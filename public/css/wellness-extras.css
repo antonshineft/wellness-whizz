@@ -404,7 +404,7 @@ img.ww-opaque { mix-blend-mode: multiply; }
   .gallery-scroll-2 .frame-113 { width: 100%; }
   .gallery-scroll-2 .frame-112 { max-width: none; width: 100%; box-sizing: border-box; }
   /* the export's three-column block is 100% wide plus 20px of padding, which gave tablets a 10px sideways scroll */
-  ._3-columns { box-sizing: border-box; }
+  ._3-columns { max-width: 100%; box-sizing: border-box; }
   .ww-card .ww-products { display: flex; flex-wrap: nowrap; justify-content: flex-start; gap: 12px; overflow-x: auto; margin: 4px -16px 0; padding: 2px 16px 8px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
   .ww-card .ww-products::-webkit-scrollbar { display: none; }
   .ww-card .ww-product { flex: 0 0 auto; scroll-snap-align: start; }
