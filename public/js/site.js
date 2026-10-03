@@ -48,6 +48,18 @@
       .catch(function () { say('Something went wrong. Please try again.', 'is-error'); if (button) button.disabled = false; });
   }, true);
 
+  // Blog index: "Show more" reveals the next batch of hidden cards and disappears when none are left.
+  document.addEventListener('click', function (event) {
+    var button = event.target && event.target.closest ? event.target.closest('.ww-more') : null;
+    if (!button) return;
+    var grid = document.getElementById(button.getAttribute('data-target') || '');
+    if (!grid) return;
+    var step = parseInt(button.getAttribute('data-step') || '6', 10) || 6;
+    var hidden = grid.querySelectorAll('.is-hidden');
+    for (var i = 0; i < hidden.length && i < step; i++) hidden[i].classList.remove('is-hidden');
+    if (grid.querySelectorAll('.is-hidden').length === 0) button.parentNode.removeChild(button);
+  });
+
   // Every link marked data-track="outbound_click" (Buy on iHerb buttons, product photos) is an affiliate click.
   document.addEventListener('click', function (event) {
     var link = event.target && event.target.closest ? event.target.closest('a[data-track]') : null;

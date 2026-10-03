@@ -143,14 +143,15 @@ a.ww-footer-link:hover { opacity: 1; }
 .ww-page-wrap { font-family: Aeonik, sans-serif; color: #1d272d; padding: 0; }
 /* Hero runs edge to edge like the other site blocks (10px gutter, rounded corners); its text lines up with the 1200px content column. */
 .ww-page-hero { margin: 10px 10px 40px; padding: 70px 24px 56px; border-radius: 40px; background-image: linear-gradient(#bcffb7, #fff0); box-sizing: border-box; }
-.ww-page-hero-inner { max-width: 1200px; margin: 0 auto; display: flex; gap: 32px; align-items: center; justify-content: space-between; }
+/* 1132px = the .ww-page content width (1200px minus its 34px side padding), so hero text lines up with the cards below */
+.ww-page-hero-inner { max-width: 1132px; margin: 0 auto; display: flex; gap: 32px; align-items: center; justify-content: space-between; }
 .ww-page-hero-text { max-width: 820px; }
 .ww-eyebrow { font-size: 14px; letter-spacing: .1em; text-transform: uppercase; opacity: .7; margin-bottom: 14px; font-weight: 500; }
 .ww-page-title { font-family: Aeonik, sans-serif; font-size: 64px; line-height: 1.02; font-weight: 500; letter-spacing: -.02em; margin: 0 0 18px; color: #1d272d; }
 .ww-page-lead { font-size: 22px; line-height: 32px; font-weight: 500; margin: 0; }
 .ww-page-hero-media { flex: 0 0 280px; width: 280px; height: 280px; background: #fdf1cf; border-radius: 28px; display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; }
 .ww-page-hero-media img { max-width: 100%; max-height: 100%; object-fit: contain; }
-.ww-page { max-width: 1200px; margin: 0 auto; padding: 0 20px 80px; box-sizing: border-box; }
+.ww-page { max-width: 1200px; margin: 0 auto; padding: 0 34px 80px; box-sizing: border-box; } /* 34px = hero margin 10px + hero padding 24px */
 .ww-prose { font-size: 18px; line-height: 30px; max-width: 780px; }
 .ww-prose h2 { font-family: Aeonik, sans-serif; font-size: 34px; line-height: 40px; font-weight: 500; margin: 48px 0 16px; color: #1d272d; }
 .ww-prose h3 { font-family: Aeonik, sans-serif; font-size: 24px; line-height: 32px; font-weight: 500; margin: 32px 0 10px; color: #1d272d; }
@@ -186,6 +187,9 @@ a.ww-footer-link:hover { opacity: 1; }
 .ww-faq p { margin: 10px 0 0; font-size: 16px; line-height: 26px; }
 /* blog index */
 .ww-posts { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+.ww-post-card.is-hidden { display: none; }
+.ww-more-wrap { display: flex; justify-content: center; margin-top: 32px; }
+.ww-more { border: 0; cursor: pointer; font-family: inherit; }
 .ww-post-card { display: flex; flex-direction: column; background: #ecf3f6; border-radius: 28px; overflow: hidden; text-decoration: none; color: #1d272d; transition: transform .15s, box-shadow .15s; }
 .ww-post-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px #1d272d1f; }
 .ww-post-card-media { background: #fdf1cf; height: 220px; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
@@ -214,9 +218,20 @@ a.ww-footer-link:hover { opacity: 1; }
 .ww-shop .fakebutton.ww-shop-buy { padding: 10px 14px; font-size: 14px; line-height: 18px; border-radius: 14px; white-space: nowrap; text-decoration: none; }
 .ww-shop-inline { margin: 28px 0; }
 .ww-shop-inline .ww-shop-item { flex-wrap: wrap; }
+.ww-sources { margin: 64px 0 56px; padding-top: 32px; border-top: 1px solid #1d272d1a; }
+.ww-sources h2 { margin-top: 0; }
 .ww-sources ol { font-size: 15px; line-height: 24px; }
 .ww-sources a { word-break: break-word; }
 .ww-note { font-size: 14px; line-height: 22px; opacity: .7; }
+/* Article aside: the quiz card. Salad-green fade, a 1px frame inside, and a still from the home video fading into it. */
+.ww-quiz-card { display: block; text-decoration: none; color: #1d272d; border-radius: 26px; padding: 10px; background-image: linear-gradient(170deg, #bcffb7, #dcffd8 55%, #f3fff1); }
+.ww-quiz-card-frame { border: 1px solid #1d272d1f; border-radius: 18px; padding: 16px; overflow: hidden; }
+.ww-quiz-card-media { margin: -16px -16px 12px; }
+.ww-quiz-card-media img { display: block; width: 100%; height: 150px; object-fit: cover; -webkit-mask-image: linear-gradient(#000 50%, transparent); mask-image: linear-gradient(#000 50%, transparent); }
+.ww-quiz-card h4 { margin: 0 0 6px; font-family: Aeonik, sans-serif; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; opacity: .7; font-weight: 700; }
+.ww-quiz-card p { margin: 0 0 14px; font-size: 14px; line-height: 22px; opacity: .85; }
+.ww-quiz-card .ww-shop-buy { display: inline-block; padding: 10px 14px; font-size: 14px; line-height: 18px; border-radius: 14px; }
+.ww-quiz-card:hover .ww-shop-buy { background-color: #2f3d46; }
 .ww-related { margin-top: 56px; }
 .ww-related h2 { font-family: Aeonik, sans-serif; font-size: 34px; line-height: 40px; font-weight: 500; margin: 0 0 20px; }
 @media (max-width: 991px) {
@@ -227,7 +242,7 @@ a.ww-footer-link:hover { opacity: 1; }
 @media (max-width: 767px) {
   .ww-page-hero { padding: 40px 20px 32px; margin: 10px 10px 28px; border-radius: 28px; }
   .ww-page-hero-inner { flex-direction: column; align-items: flex-start; }
-  .ww-page { padding: 0 12px 60px; }
+  .ww-page { padding: 0 30px 60px; } /* hero margin 10px + mobile hero padding 20px */
   .ww-page-hero-media { width: 100%; flex-basis: auto; height: 220px; }
   .ww-page-title { font-size: 36px; }
   .ww-page-lead { font-size: 18px; line-height: 26px; }

@@ -81,10 +81,10 @@ export function expandArticleHtml(ctx: BlogContext, post: BlogPost): string {
   return html;
 }
 
-export function postCard(ctx: BlogContext, post: BlogPost): string {
+export function postCard(ctx: BlogContext, post: BlogPost, hidden = false): string {
   const sup = ctx.supplements.get(post.heroSupplement);
   return `
-        <a href="/blog/${escapeHtml(post.slug)}" class="ww-post-card">
+        <a href="/blog/${escapeHtml(post.slug)}" class="ww-post-card${hidden ? ' is-hidden' : ''}">
           <div class="ww-post-card-media">${supplementPhoto(sup, post.title, 'width="180" height="180"')}</div>
           <div class="ww-post-card-body">
             <span class="ww-tag">${escapeHtml(post.category)}</span>
@@ -95,11 +95,19 @@ export function postCard(ctx: BlogContext, post: BlogPost): string {
         </a>`;
 }
 
+/** Cards shown on the blog index before the "Show more" button (all cards are in the HTML; the rest start hidden). */
+const BLOG_PAGE_SIZE = 6;
+
 export function renderBlogIndex(ctx: BlogContext, posts: readonly BlogPost[]): string {
   const body = `
       <p class="ww-blog-intro">Long reads on how supplements actually work, what the research says, and how to read a label before you buy. Every article is checked against primary sources and links to the products it discusses on iHerb.</p>
-      <div class="ww-posts">${posts.map((p) => postCard(ctx, p)).join('')}
-      </div>
+      <div class="ww-posts" id="ww-posts">${posts.map((p, i) => postCard(ctx, p, i >= BLOG_PAGE_SIZE)).join('')}
+      </div>${
+        posts.length > BLOG_PAGE_SIZE
+          ? `
+      <div class="ww-more-wrap"><button type="button" class="bignavbutton w-button ww-teaser-btn ww-more" data-target="ww-posts" data-step="${BLOG_PAGE_SIZE}">Show more</button></div>`
+          : ''
+      }
       <div style="margin-top:32px">${captureBox({ source: 'newsletter' })}</div>${quizCta()}`;
   const shell = pageShell({
     eyebrow: 'Blog',
@@ -174,7 +182,7 @@ export function renderBlogPost(ctx: BlogContext, post: BlogPost, related: readon
           <p class="ww-note">${escapeHtml(DISCLOSURE)}</p>
         </article>
         <aside class="ww-article-aside ww-only-desktop">${shop}
-          <div class="ww-shop"><h4>Free personal list</h4><p class="ww-note" style="margin:0 0 12px">Two minutes, no account. The advisor weighs your goals and what you already take.</p><a href="/wellness-quiz" class="fakebutton ww-buy ww-shop-buy w-button">Start the quiz</a></div>
+          <a href="/wellness-quiz" class="ww-quiz-card"><div class="ww-quiz-card-frame"><div class="ww-quiz-card-media"><img src="/images/quiz-still.webp" width="720" height="400" loading="lazy" alt=""></div><h4>Free personal list</h4><p>Two minutes, no account. The advisor weighs your goals and what you already take.</p><span class="fakebutton ww-buy ww-shop-buy">Start the quiz</span></div></a>
           ${captureBox({ source: 'newsletter', compact: true })}
         </aside>
       </div>${relatedHtml}`;
