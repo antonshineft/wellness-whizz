@@ -6,15 +6,17 @@
  *   POST /api/quiz         replaces the Webflow form + Make.com scenario
  *   GET  /api/session/:id  status of a quiz session
  *   GET  /api/config       public client configuration (Turnstile site key)
+ *   POST /api/event        funnel events sent by the browser (quiz views, outbound clicks)
+ *   GET  /api/stats        funnel numbers, protected by the STATS_KEY secret
  *   /result/:id            personalised results page
  *   /supplement/:slug      supplement detail page
  */
 import { Hono } from 'hono';
-import {
-  countRecentSessions, createSession, getSession, getSessionResults, getSupplementBySlug, listSupplements, markSession,
-  resolveSupplementSlug, type QuizProfile,
-} from './db';
 import { ensureDatabase } from './bootstrap';
+import {
+  EVENT_TYPES, countRecentSessions, createSession, getSession, getSessionResults, getSupplementBySlug, listSupplements,
+  logEvent, markSession, resolveSupplementSlug, statsSummary, type EventInput, type EventType, type QuizProfile,
+} from './db';
 import { runQuizPipeline } from './pipeline';
 import { fetchAsset, renderHome } from './render/home';
 import { renderFailedPage, renderPendingPage, renderResultPage } from './render/result';
@@ -27,14 +29,17 @@ export interface Bindings {
   OPENAI_MODEL?: string;
   DEV_FAKE_AI?: string;
   PRODUCT_SEARCH_URL?: string;
+  IHERB_RCODE?: string;
   RATE_LIMIT_PER_HOUR?: string;
   GLOBAL_LIMIT_PER_HOUR?: string;
   LIST_AI_SUPPLEMENTS?: string;
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
+  STATS_KEY?: string;
 }
 
-const app = new Hono<{ Bindings: Bindings }>();
+type AppContext = { Bindings: Bindings };
+const app = new Hono<AppContext>();
 
 const AGES = ['<18', '18-25', '26-40', '41-65', '65+'];
 const ACTIVITIES = ['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active', 'Extra Active'];
@@ -42,6 +47,8 @@ const SEXES = ['Female', 'Male'];
 const SESSION_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 /** A session still pending after this long has lost its Worker (client disconnected); it is marked failed. */
 const PENDING_TIMEOUT_MS = 4 * 60 * 1000;
+/** Event types the browser may report; page views are recorded server-side. */
+const CLIENT_EVENT_TYPES: readonly EventType[] = ['quiz_view', 'outbound_click'];
 
 const htmlHeaders = (cacheControl: string) => ({ 'content-type': 'text/html; charset=utf-8', 'cache-control': cacheControl });
 const curatedOnly = (env: Bindings) => env.LIST_AI_SUPPLEMENTS === 'false';
@@ -63,7 +70,10 @@ app.use('*', async (c, next) => {
 
 // ---------- pages ----------
 
-app.get('/', (c) => renderHome(c.env, c.req.raw, curatedOnly(c.env)));
+app.get('/', (c) => {
+  track(c, { type: 'home_view', page: '/' });
+  return renderHome(c.env, c.req.raw, curatedOnly(c.env));
+});
 
 app.get('/result/:id', async (c) => {
   const id = c.req.param('id');
@@ -83,7 +93,8 @@ app.get('/result/:id', async (c) => {
 
   const items = await getSessionResults(c.env.DB, id);
   if (!items.length) return c.body(renderFailedPage(session), 200, htmlHeaders('no-store'));
-  return c.body(renderResultPage(session, items), 200, htmlHeaders('private, max-age=0, must-revalidate'));
+  track(c, { type: 'result_view', page: `/result/${id}`, session_id: id });
+  return c.body(renderResultPage(session, items, c.env), 200, htmlHeaders('private, max-age=0, must-revalidate'));
 });
 
 app.get('/supplement/:slug', async (c) => {
@@ -95,7 +106,8 @@ app.get('/supplement/:slug', async (c) => {
     return canonical ? c.redirect(`/supplement/${canonical}`, 302) : notFound(c.env, c.req.raw);
   }
   const explore = await listSupplements(c.env.DB, 200, curatedOnly(c.env));
-  return c.body(renderSupplementPage(supplement, explore), 200, htmlHeaders('public, max-age=300'));
+  track(c, { type: 'supplement_view', page: `/supplement/${supplement.slug}`, slug: supplement.slug });
+  return c.body(renderSupplementPage(supplement, explore, c.env), 200, htmlHeaders('public, max-age=300'));
 });
 
 // ---------- API ----------
@@ -175,6 +187,35 @@ app.get('/api/session/:id', async (c) => {
   return c.json({ id, status: session.status, url: `/result/${id}`, created_at: session.created_at });
 });
 
+/** Browser-reported events (sent with navigator.sendBeacon from site.js / quiz.js). */
+app.post('/api/event', async (c) => {
+  const body = await readJson(c.req.raw);
+  const type = String(body.type ?? '') as EventType;
+  if (!CLIENT_EVENT_TYPES.includes(type)) return c.json({ ok: false }, 400);
+  const text = (key: string, max: number) => {
+    const value = String(body[key] ?? '').trim().slice(0, max);
+    return value || null;
+  };
+  let target: string | null = null;
+  try {
+    const href = String(body.href ?? '');
+    if (href) target = new URL(href).hostname.slice(0, 120);
+  } catch {
+    target = null;
+  }
+  track(c, { type, slug: text('slug', 120), product: text('product', 200), page: text('page', 200), target, session_id: text('session', 64) });
+  return c.json({ ok: true });
+});
+
+app.get('/api/stats', async (c) => {
+  const key = c.env.STATS_KEY;
+  if (!key) return c.json({ error: 'Not found' }, 404);
+  const provided = c.req.query('key') ?? (c.req.header('authorization') ?? '').replace(/^Bearer\s+/i, '');
+  if (!provided || provided !== key) return c.json({ error: 'Unauthorized' }, 401);
+  c.header('cache-control', 'no-store');
+  return c.json(await statsSummary(c.env.DB));
+});
+
 app.get('/api/supplements', async (c) => {
   const supplements = await listSupplements(c.env.DB, 500, curatedOnly(c.env));
   c.header('cache-control', 'public, max-age=300');
@@ -199,6 +240,35 @@ app.onError((err, c) => {
 export default app;
 
 // ---------- helpers ----------
+
+/** Record a funnel event without delaying the response. Never throws. */
+interface TrackContext {
+  env: Bindings;
+  executionCtx: { waitUntil(promise: Promise<unknown>): void };
+  req: { raw: Request; header: (name: string) => string | undefined };
+}
+
+function track(c: TrackContext, event: EventInput): void {
+  const request = c.req.raw;
+  const ip = c.req.header('cf-connecting-ip') ?? '';
+  const referrer = event.referrer ?? externalReferrer(c.req.header('referer'), request.url);
+  c.executionCtx.waitUntil(
+    hashIp(ip)
+      .then((ip_hash) => logEvent(c.env.DB, { ...event, referrer, ip_hash }))
+      .catch((err) => console.error(`event not recorded: ${String(err)}`)),
+  );
+}
+
+/** Referrer host when it is another site (own-site navigation is not interesting). */
+function externalReferrer(referer: string | undefined, ownUrl: string): string | null {
+  if (!referer) return null;
+  try {
+    const host = new URL(referer).hostname;
+    return host && host !== new URL(ownUrl).hostname ? host.slice(0, 120) : null;
+  } catch {
+    return null;
+  }
+}
 
 async function notFound(env: Bindings, request: Request): Promise<Response> {
   const res = await fetchAsset(env.ASSETS, request, '/404');

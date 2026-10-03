@@ -45,7 +45,7 @@ interface Manifest {
 }
 
 const BATCH_SIZE = 100;
-const TABLES = ['supplements', 'sessions', 'session_supplements', 'meta'];
+const TABLES = ['supplements', 'sessions', 'session_supplements', 'meta', 'events'];
 let ready: Promise<void> | null = null;
 
 /** Make sure schema and bundled content are present and current. Safe to call on every request. */

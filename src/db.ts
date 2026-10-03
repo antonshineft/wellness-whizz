@@ -328,6 +328,94 @@ export async function getSessionResults(db: D1Database, sessionId: string): Prom
 }
 
 /** Sessions started in the last `hours` hours, for one IP hash or (null) for everyone. */
+// ---------- events (measurement) ----------
+
+export type EventType = 'home_view' | 'quiz_view' | 'result_view' | 'supplement_view' | 'outbound_click';
+export const EVENT_TYPES: readonly EventType[] = ['home_view', 'quiz_view', 'result_view', 'supplement_view', 'outbound_click'];
+
+export interface EventInput {
+  type: EventType;
+  slug?: string | null;
+  product?: string | null;
+  page?: string | null;
+  referrer?: string | null;
+  target?: string | null;
+  session_id?: string | null;
+  ip_hash?: string | null;
+}
+
+export async function logEvent(db: D1Database, e: EventInput): Promise<void> {
+  await db
+    .prepare('INSERT INTO events (type, slug, product, page, referrer, target, session_id, ip_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(e.type, e.slug ?? null, e.product ?? null, e.page ?? null, e.referrer ?? null, e.target ?? null, e.session_id ?? null, e.ip_hash ?? null)
+    .run();
+}
+
+export interface Stats {
+  generated_at: string;
+  funnel: Record<string, { last_7_days: number; last_30_days: number }>;
+  quizzes: { last_7_days: number; last_30_days: number; completed_30_days: number; failed_30_days: number };
+  top_supplements_30_days: { slug: string; clicks: number }[];
+  top_products_30_days: { slug: string; product: string; clicks: number }[];
+  referrers_30_days: { referrer: string; views: number }[];
+}
+
+/** Funnel numbers for the last 7 and 30 days. */
+export async function statsSummary(db: D1Database): Promise<Stats> {
+  const [byType, quizzes, topSupplements, topProducts, referrers] = await Promise.all([
+    db
+      .prepare(
+        `SELECT type, SUM(ts >= datetime('now', '-7 days')) AS d7, COUNT(*) AS d30
+         FROM events WHERE ts >= datetime('now', '-30 days') GROUP BY type`,
+      )
+      .all<{ type: string; d7: number; d30: number }>(),
+    db
+      .prepare(
+        `SELECT SUM(created_at >= datetime('now', '-7 days')) AS d7, COUNT(*) AS d30,
+                SUM(status = 'ready') AS ready, SUM(status = 'failed') AS failed
+         FROM sessions WHERE created_at >= datetime('now', '-30 days') AND sex != ''`,
+      )
+      .first<{ d7: number; d30: number; ready: number; failed: number }>(),
+    db
+      .prepare(
+        `SELECT slug, COUNT(*) AS clicks FROM events
+         WHERE type = 'outbound_click' AND ts >= datetime('now', '-30 days') AND slug IS NOT NULL
+         GROUP BY slug ORDER BY clicks DESC LIMIT 20`,
+      )
+      .all<{ slug: string; clicks: number }>(),
+    db
+      .prepare(
+        `SELECT slug, product, COUNT(*) AS clicks FROM events
+         WHERE type = 'outbound_click' AND ts >= datetime('now', '-30 days') AND product IS NOT NULL
+         GROUP BY slug, product ORDER BY clicks DESC LIMIT 20`,
+      )
+      .all<{ slug: string; product: string; clicks: number }>(),
+    db
+      .prepare(
+        `SELECT referrer, COUNT(*) AS views FROM events
+         WHERE referrer IS NOT NULL AND ts >= datetime('now', '-30 days')
+         GROUP BY referrer ORDER BY views DESC LIMIT 20`,
+      )
+      .all<{ referrer: string; views: number }>(),
+  ]);
+  const funnel: Stats['funnel'] = {};
+  for (const type of EVENT_TYPES) funnel[type] = { last_7_days: 0, last_30_days: 0 };
+  for (const row of byType.results) funnel[row.type] = { last_7_days: Number(row.d7 ?? 0), last_30_days: Number(row.d30 ?? 0) };
+  return {
+    generated_at: new Date().toISOString(),
+    funnel,
+    quizzes: {
+      last_7_days: Number(quizzes?.d7 ?? 0),
+      last_30_days: Number(quizzes?.d30 ?? 0),
+      completed_30_days: Number(quizzes?.ready ?? 0),
+      failed_30_days: Number(quizzes?.failed ?? 0),
+    },
+    top_supplements_30_days: topSupplements.results,
+    top_products_30_days: topProducts.results,
+    referrers_30_days: referrers.results,
+  };
+}
+
 export async function countRecentSessions(db: D1Database, ipHash: string | null, hours = 1): Promise<number> {
   const row = ipHash
     ? await db

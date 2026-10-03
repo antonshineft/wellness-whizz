@@ -9,12 +9,12 @@ import {
   type FormType, type Product, type QuizProfile, type SupplementInput,
 } from './db';
 import { linksListHtml, listHtml } from './html';
+import { searchUrl, type LinkEnv } from './links';
 
-export interface AiEnv {
+export interface AiEnv extends LinkEnv {
   OPENAI_API_KEY?: string;
   OPENAI_MODEL?: string;
   DEV_FAKE_AI?: string;
-  PRODUCT_SEARCH_URL?: string;
 }
 
 export interface Recommendation {
@@ -25,7 +25,6 @@ export interface Recommendation {
 }
 
 const DEFAULT_MODEL = 'gpt-4.1-mini';
-const DEFAULT_PRODUCT_SEARCH_URL = 'https://www.iherb.com/search?kw={query}';
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 const SYSTEM_PROMPT = [
@@ -218,7 +217,7 @@ function draftToInput(env: AiEnv, draft: ProfileDraft, rec: Recommendation): Sup
   const products: Product[] = (draft.products ?? []).slice(0, 5).map((p) => ({
     name: String(p.name ?? '').trim(),
     brand: String(p.brand ?? '').trim(),
-    url: productUrl(env, `${p.brand ?? ''} ${p.name ?? ''}`.trim()),
+    url: searchUrl(env, `${p.brand ?? ''} ${p.name ?? ''}`.trim()),
   }));
   return {
     // Keep the recommendation's canonical name: it is the key later quizzes look the row up by.
@@ -239,11 +238,6 @@ function draftToInput(env: AiEnv, draft: ProfileDraft, rec: Recommendation): Sup
     studies_html: linksListHtml(studies),
     products,
   };
-}
-
-export function productUrl(env: AiEnv, query: string): string {
-  const template = env.PRODUCT_SEARCH_URL || DEFAULT_PRODUCT_SEARCH_URL;
-  return template.replace('{query}', encodeURIComponent(query));
 }
 
 async function chatJson<T>(env: AiEnv, schemaName: string, schema: unknown, userPrompt: string): Promise<T> {

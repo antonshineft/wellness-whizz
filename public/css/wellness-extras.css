@@ -1,0 +1,34 @@
+/* Wellness Whizz additions on top of the Webflow export: shop buttons, product picks, sticky mobile bar. */
+.ww-products { display: flex; flex-wrap: wrap; gap: 10px 14px; margin: 14px 0 6px; }
+.ww-product { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 92px; color: #1d272d; text-decoration: none; font-family: Aeonik, sans-serif; }
+.ww-product img { width: 76px; height: 76px; object-fit: contain; background: #fff; border: 1px solid #1d272d1f; border-radius: 14px; transition: transform .15s, box-shadow .15s; }
+.ww-product span { font-size: 12px; line-height: 14px; text-align: center; max-height: 28px; overflow: hidden; }
+.ww-product:hover img { transform: translateY(-2px); box-shadow: 0 6px 16px #1d272d26; }
+.ww-actions { display: flex; flex: 1 1 auto; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; }
+.ww-actions .fakebutton { padding: 16px 26px; font-size: 20px; line-height: 24px; white-space: nowrap; }
+/* The card's bottom row holds the rating and two buttons: let it wrap instead of overlapping. */
+.result-card-frame .bottomcard { flex-wrap: wrap; gap: 12px 16px; max-width: none; align-items: center; }
+/* Result cards are green, so the primary button is the dark pill and "More Details" becomes an outline. */
+.fakebutton.ww-buy { background-color: #1d272d; color: #fff; }
+.fakebutton.ww-buy:hover { background-color: #2f3d46; }
+.fakebutton.ww-secondary { background-color: transparent; color: #1d272d; border: 1.5px solid #1d272d66; }
+.fakebutton.ww-secondary:hover { background-color: #1d272d14; }
+.ww-disclosure { font-family: Aeonik, sans-serif; font-size: 12px; line-height: 16px; color: #1d272d; opacity: .65; margin: 10px 20px 0; }
+.ww-disclosure.on-dark { color: #fff; }
+.ww-strip-wrap { width: 100%; padding: 0 20px; box-sizing: border-box; }
+.ww-strip-title { font-family: Aeonik, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #1d272d99; margin: 6px 0 10px; }
+.ww-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.ww-pick { display: flex; flex-direction: column; align-items: center; gap: 8px; background: #ecf3f6; border-radius: 20px; padding: 14px 10px; text-align: center; font-family: Aeonik, sans-serif; color: #1d272d; }
+.ww-pick img { width: 120px; height: 120px; object-fit: contain; background: #fff; border-radius: 16px; }
+.ww-pick-name { font-size: 14px; line-height: 18px; font-weight: 500; min-height: 36px; display: flex; align-items: center; }
+.ww-pick .outbutton { padding: 10px 16px; font-size: 14px; text-decoration: none; }
+.ww-sticky { display: none; }
+@media (max-width: 767px) {
+  .ww-sticky { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 60; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #1d272d; color: #fff; border-radius: 18px; padding: 10px 12px 10px 16px; box-shadow: 0 8px 24px #0006; font-family: Aeonik, sans-serif; }
+  .ww-sticky span { font-size: 13px; line-height: 16px; opacity: .9; }
+  .ww-sticky .outbutton { white-space: nowrap; text-decoration: none; }
+  body.ww-has-sticky { padding-bottom: 84px; }
+  .ww-products { justify-content: center; }
+  .ww-actions { justify-content: center; width: 100%; }
+  .ww-actions .fakebutton { flex: 1 1 45%; text-align: center; padding: 14px 12px; font-size: 16px; line-height: 20px; }
+}

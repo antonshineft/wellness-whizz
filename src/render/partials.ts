@@ -1,6 +1,7 @@
 /** Reusable fragments that mirror the exported Webflow markup (same classes, so the exported CSS applies). */
-import type { FdaStatus, FormType, SafetyStatus, Supplement } from '../db';
+import type { FdaStatus, FormType, Product, SafetyStatus, Supplement } from '../db';
 import { escapeHtml } from '../html';
+import { primaryProduct, shopUrl, type LinkEnv } from '../links';
 
 export const WF_SITE_ID = '65945a814598016172123fbf';
 export const WF_PAGE_IDS = {
@@ -148,6 +149,78 @@ export function footer(): string {
       </div>
     </footer>
   </section>`;
+}
+
+// ---------- shop elements (iHerb referral links) ----------
+
+const OUTBOUND_ATTRS = 'target="_blank" rel="noopener nofollow sponsored"';
+
+function trackAttrs(sup: Supplement, product?: Product): string {
+  return `data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}"${product ? ` data-product="${escapeHtml(product.name)}"` : ''}`;
+}
+
+function productImage(sup: Supplement, product: Product, attrs: string): string {
+  return product.image
+    ? `<img src="${escapeHtml(product.image)}" loading="lazy" alt="${escapeHtml(product.name)}" ${attrs}>`
+    : cardImage(sup, attrs);
+}
+
+/** Primary call to action: "Buy on iHerb" for the supplement's main product. */
+export function buyButton(env: LinkEnv, sup: Supplement, extraClass = ''): string {
+  const product = primaryProduct(sup);
+  return `<a href="${escapeHtml(shopUrl(env, sup, product))}" ${OUTBOUND_ATTRS} class="fakebutton ww-buy w-button${extraClass ? ' ' + extraClass : ''}" ${trackAttrs(sup, product)}>Buy on iHerb</a>`;
+}
+
+/** Small clickable product photos (result cards). */
+export function productThumbs(env: LinkEnv, sup: Supplement, max = 3): string {
+  const products = sup.products.slice(0, max);
+  if (!products.length) return '';
+  return `<div class="ww-products">${products
+    .map(
+      (p) =>
+        `<a href="${escapeHtml(shopUrl(env, sup, p))}" ${OUTBOUND_ATTRS} class="ww-product" ${trackAttrs(sup, p)}>` +
+        productImage(sup, p, 'width="76" height="76"') +
+        `<span>${escapeHtml(p.name)}</span></a>`,
+    )
+    .join('')}</div>`;
+}
+
+/** "Top picks on iHerb" strip under the supplement page header. */
+export function productPicks(env: LinkEnv, sup: Supplement): string {
+  const products = sup.products.slice(0, 5);
+  const picks = products.length
+    ? products
+        .map(
+          (p) => `
+      <div class="ww-pick">${productImage(sup, p, 'width="120" height="120"')}
+        <div class="ww-pick-name">${escapeHtml(p.name)}</div>
+        <a href="${escapeHtml(shopUrl(env, sup, p))}" ${OUTBOUND_ATTRS} class="outbutton w-button" ${trackAttrs(sup, p)}>Buy on iHerb</a>
+      </div>`,
+        )
+        .join('')
+    : `
+      <div class="ww-pick">${cardImage(sup, 'width="120" height="120"')}
+        <div class="ww-pick-name">${escapeHtml(sup.name)}</div>
+        <a href="${escapeHtml(shopUrl(env, sup))}" ${OUTBOUND_ATTRS} class="outbutton w-button" ${trackAttrs(sup)}>Find on iHerb</a>
+      </div>`;
+  return `
+    <section class="ww-strip-wrap" aria-label="Where to buy">
+      <div class="ww-strip-title">Top picks on iHerb</div>
+      <div class="ww-strip">${picks}
+      </div>
+      ${disclosure()}
+    </section>`;
+}
+
+/** Sticky "buy" bar shown on small screens. */
+export function stickyBuyBar(env: LinkEnv, sup: Supplement): string {
+  const product = primaryProduct(sup);
+  return `
+  <div class="ww-sticky"><span>Buy <strong>${escapeHtml(sup.name)}</strong> on iHerb</span><a href="${escapeHtml(shopUrl(env, sup, product))}" ${OUTBOUND_ATTRS} class="outbutton w-button" ${trackAttrs(sup, product)}>Buy now</a></div>`;
+}
+
+export function disclosure(onDark = false): string {
+  return `<p class="ww-disclosure${onDark ? ' on-dark' : ''}">As an iHerb affiliate, Wellness Whizz earns from qualifying purchases at no extra cost to you. Prices and availability are shown on iHerb.</p>`;
 }
 
 /** One entry of the "Explore manually" list. */

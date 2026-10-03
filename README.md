@@ -90,6 +90,8 @@ redeploys.
 | --------------------- | --------------------------- | --------------------------------------------------------------------- |
 | `OPENAI_API_KEY`      | secret                      | Required in production.                                               |
 | `OPENAI_MODEL`        | `wrangler.jsonc` → `vars`   | Default `gpt-4.1-mini`. Any model that supports Structured Outputs.   |
+| `IHERB_RCODE`         | `wrangler.jsonc` → `vars`   | Your iHerb Rewards / referral code. Appended to every `iherb.com` link the site generates (short links such as `iherb.co/…` already contain it). |
+| `STATS_KEY`           | secret                      | When set, `GET /api/stats?key=…` returns the funnel numbers (see "Measuring"). |
 | `PRODUCT_SEARCH_URL`  | `wrangler.jsonc` → `vars`   | Link for "View More" buttons of products that have no URL of their own (supplements created by the AI). `{query}` is replaced by the product name. Default is an iHerb search; append `&rcode=YOURCODE` for affiliate credit. Imported supplements keep their own iHerb links. |
 | `RATE_LIMIT_PER_HOUR` | `wrangler.jsonc` → `vars`   | Max quiz submissions per IP per hour (default 10). `0` disables.       |
 | `GLOBAL_LIMIT_PER_HOUR` | `wrangler.jsonc` → `vars` | Max quiz submissions per hour across all visitors (default 100). Caps your OpenAI spend if someone rotates IPs. |
@@ -97,6 +99,17 @@ redeploys.
 | `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | dashboard variable / secret | Optional bot protection, see below. Active only when both are set. |
 | `DEV_FAKE_AI`         | `.dev.vars` only            | `true` returns canned data instead of calling OpenAI (no key needed). Only honoured on localhost; a deployed site ignores it. |
 | Google Ads conversions| `public/js/site.js`         | Set `window.GTAG_CONVERSION_LABEL` to your `AW-…/…` label to report conversions on card clicks. |
+
+### Measuring what works
+
+The Worker records funnel events in the `events` table: home views, quiz views, result views, supplement views and
+outbound clicks on iHerb links (with the supplement and product clicked). No personal data is stored beyond a hashed
+IP. Set a secret `STATS_KEY` (`npx wrangler secret put STATS_KEY`, or in the dashboard) and open
+`https://<your-site>/api/stats?key=<the key>` for the last 7 and 30 days: the funnel, quizzes started and completed,
+the most clicked supplements and products, and where visitors came from.
+
+Every "Buy on iHerb" button and product photo is an affiliate link with your referral code; the result cards and the
+"Top picks on iHerb" strip on each supplement page are the main places people click out.
 
 ### Bot protection with Cloudflare Turnstile (recommended)
 

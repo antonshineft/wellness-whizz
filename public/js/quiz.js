@@ -33,6 +33,7 @@
 
     var form = document.getElementById('quiz-form');
     if (!form) return;
+    if (window.wwTrack) window.wwTrack({ type: 'quiz_view', page: window.location.pathname });
     var block = form.closest('.quiz-form-block') || form.parentNode;
     var done = block.querySelector('.w-form-done');
     var fail = block.querySelector('.w-form-fail');

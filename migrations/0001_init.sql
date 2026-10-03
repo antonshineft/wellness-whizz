@@ -39,6 +39,22 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_ip_created ON sessions(ip_hash, created_at);
 
+-- Funnel measurement: page views, quiz views and outbound (shop) clicks. No personal data beyond a hashed IP.
+CREATE TABLE IF NOT EXISTS events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts TEXT NOT NULL DEFAULT (datetime('now')),
+  type TEXT NOT NULL,                 -- home_view | quiz_view | result_view | supplement_view | outbound_click
+  slug TEXT,                          -- supplement slug, when applicable
+  product TEXT,                       -- product name, for outbound clicks
+  page TEXT,                          -- path the event happened on
+  referrer TEXT,                      -- external referrer host for views
+  target TEXT,                        -- destination host for outbound clicks
+  session_id TEXT,
+  ip_hash TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
+CREATE INDEX IF NOT EXISTS idx_events_type_ts ON events(type, ts);
+
 -- Bookkeeping, e.g. which version of the bundled data/*.json has been loaded.
 CREATE TABLE IF NOT EXISTS meta (
   key TEXT PRIMARY KEY,

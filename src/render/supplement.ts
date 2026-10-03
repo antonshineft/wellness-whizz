@@ -1,10 +1,11 @@
 /** /supplement/:slug — the "Supplements" CMS template page. */
 import type { Supplement } from '../db';
 import { escapeHtml } from '../html';
+import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
 import {
   EFFECTIVITY_LABELS, SAFETY_LABELS, WF_PAGE_IDS, cardImage, detailImage, exploreSection, footer, headerBadges, navbar,
-  ratingImage,
+  productPicks, ratingImage, stickyBuyBar,
 } from './partials';
 
 const PRODUCT_CARD_IDS = [
@@ -87,13 +88,13 @@ function infoColumn(opts: { title: string; icon: string; tagline: string; safe: 
       </div>`;
 }
 
-function productCards(sup: Supplement): string {
+function productCards(env: LinkEnv, sup: Supplement): string {
   const products = sup.products.slice(0, 5);
   if (!products.length) return '';
   const names = products.map((p) => `<div class="text-41">${escapeHtml(p.name)}</div>`).join('\n            ');
   const cards = products
     .map((p, i) => {
-      const link = /^https?:\/\//i.test(p.url) ? escapeHtml(p.url) : '#';
+      const link = escapeHtml(shopUrl(env, sup, p));
       const image = p.image
         ? `<img src="${escapeHtml(p.image)}" loading="lazy" width="306" height="305" alt="${escapeHtml(p.name)}" class="convertedimage14-4">`
         : cardImage(sup, 'width="306" height="305" class="convertedimage14-4"');
@@ -102,7 +103,7 @@ function productCards(sup: Supplement): string {
                 <div class="frame-113">${image}
                   <div class="frame-112">
                     <div class="text-43">${escapeHtml(p.name)}${p.brand ? `<br><span style="font-size:18px;font-weight:500;line-height:24px">${escapeHtml(p.brand)}</span>` : ''}</div>
-                    <a href="${link}" target="_blank" rel="noopener nofollow sponsored" class="outbutton w-button">View More</a>
+                    <a href="${link}" target="_blank" rel="noopener nofollow sponsored" class="outbutton w-button" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}" data-product="${escapeHtml(p.name)}">Buy on iHerb</a>
                   </div>
                 </div>
               </div>`;
@@ -186,7 +187,7 @@ function studiesSection(sup: Supplement): string {
     </div>`;
 }
 
-export function renderSupplementPage(sup: Supplement, explore: Supplement[]): string {
+export function renderSupplementPage(sup: Supplement, explore: Supplement[], env: LinkEnv): string {
   const body = `${navbar('logo-left')}
   <div data-w-id="2841e5e2-b1d4-d414-f4f8-0c4efba35752" class="heading-3-columns">
     <div data-w-id="2841e5e2-b1d4-d414-f4f8-0c4efba35753" style="-webkit-transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-moz-transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-ms-transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);opacity:0.4" class="frame-48">
@@ -202,7 +203,7 @@ export function renderSupplementPage(sup: Supplement, explore: Supplement[]): st
           <div class="frame-52">${headerBadges(sup)}</div>
         </div>
       </div>
-    </div>
+    </div>${productPicks(env, sup)}
     <div data-w-id="2841e5e2-b1d4-d414-f4f8-0c4efba35769" style="opacity:0.27;-webkit-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-moz-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-ms-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0)" class="_3-columns">
       <div class="column-5">
         <div class="frame-226">${detailImage(sup)}</div>
@@ -227,16 +228,16 @@ export function renderSupplementPage(sup: Supplement, explore: Supplement[]): st
         rating: ratingBlock('SAFETY', SAFETY_LABELS, sup.safety, true),
         html: sup.contraindications_html,
       })}
-    </div>${productCards(sup)}
+    </div>${productCards(env, sup)}
   </div>
   <section class="info">${synergySection(sup)}${insightsSection(sup)}${studiesSection(sup)}
-  </section>${exploreSection(explore)}${footer()}`;
+  </section>${exploreSection(explore)}${footer()}${stickyBuyBar(env, sup)}`;
 
   return page({
     title: sup.name,
     description: sup.summary || `${sup.name}: benefits, contraindications, interactions and research.`,
     pageId: WF_PAGE_IDS.supplement,
-    bodyClass: 'body-2',
+    bodyClass: 'body-2 ww-has-sticky',
     head: HEAD_STYLES,
     body,
   });

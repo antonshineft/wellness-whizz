@@ -1,8 +1,9 @@
 /** /result/:id — the "Results" CMS template page, rendered from the session's stored recommendations. */
 import type { ResultItem, Session } from '../db';
 import { escapeHtml } from '../html';
+import type { LinkEnv } from '../links';
 import { page } from './layout';
-import { WF_PAGE_IDS, cardBadges, cardImage, navbar, ratingImage } from './partials';
+import { WF_PAGE_IDS, buyButton, cardBadges, cardImage, disclosure, navbar, productThumbs, ratingImage } from './partials';
 
 /** Webflow interaction ids of the five cards (fade-in animations in webflow.js are keyed on these). */
 const CARD_IDS = [
@@ -13,7 +14,7 @@ const CARD_IDS = [
   '5c3ddf26-6cc6-2d01-a454-196bc2180c45',
 ];
 
-function resultCard(item: ResultItem, index: number): string {
+function resultCard(env: LinkEnv, item: ResultItem, index: number): string {
   const sup = item.supplement;
   const href = `/supplement/${escapeHtml(sup.slug)}`;
   const wid = CARD_IDS[index] ? ` data-w-id="${CARD_IDS[index]}" style="opacity:0"` : '';
@@ -30,13 +31,13 @@ function resultCard(item: ResultItem, index: number): string {
                     <div class="badges">${cardBadges(sup)}</div>
                   </div>
                   <div>
-                    <p class="paragraph">${escapeHtml(item.reason || sup.summary)}</p>
+                    <p class="paragraph">${escapeHtml(item.reason || sup.summary)}</p>${productThumbs(env, sup)}
                   </div>
                   <div class="bottomcard">
                     <div class="w-layout-hflex flex-block">
                       <div class="text-block-7">EFFECTIVITY</div>${ratingImage(sup.effectivity, 'vectors-wrapper-82', 'width="127" height="79.34735107421875"')}
                     </div>
-                    <a href="${href}" class="fakebutton w-button">More Details</a>
+                    <div class="ww-actions">${buyButton(env, sup)}<a href="${href}" class="fakebutton ww-secondary w-button">More Details</a></div>
                   </div>
                 </div>
               </div>
@@ -44,7 +45,7 @@ function resultCard(item: ResultItem, index: number): string {
           </div>`;
 }
 
-export function renderResultPage(session: Session, items: ResultItem[]): string {
+export function renderResultPage(session: Session, items: ResultItem[], env: LinkEnv): string {
   const names = items.map((i) => i.supplement.name).join(', ');
   const body = `${navbar()}
   <div class="div-block-7">
@@ -55,10 +56,11 @@ export function renderResultPage(session: Session, items: ResultItem[]): string 
       </div>
       <div class="w-dyn-list">
         <div role="list" class="w-dyn-items">
-          <div data-session-id="${escapeHtml(session.id)}" role="listitem" class="resultsclass w-dyn-item">${items.map(resultCard).join('')}
+          <div data-session-id="${escapeHtml(session.id)}" role="listitem" class="resultsclass w-dyn-item">${items.map((item, i) => resultCard(env, item, i)).join('')}
           </div>
         </div>
       </div>
+      ${disclosure(true)}
     </div>
   </div>`;
   return page({
