@@ -5,7 +5,7 @@ import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
 import {
   EFFECTIVITY_LABELS, SAFETY_LABELS, WF_PAGE_IDS, blendAttr, cardImage, detailImage, exploreSection, footer, headerBadges, navbar,
-  productPicks, ratingImage, stickyBuyBar,
+  productPicks, ratingImage, relatedSection, stickyBuyBar,
 } from './partials';
 
 const PRODUCT_CARD_IDS = [
@@ -187,7 +187,53 @@ function studiesSection(sup: Supplement): string {
     </div>`;
 }
 
-export function renderSupplementPage(sup: Supplement, explore: Supplement[], env: LinkEnv): string {
+export interface SupplementPageExtras {
+  related?: Supplement[];
+  /** Site origin for canonical URL and structured data. */
+  origin?: string;
+}
+
+function seoHead(sup: Supplement, origin: string): string {
+  const url = `${origin}/supplement/${sup.slug}`;
+  const product = sup.products.find((p) => p.image);
+  const image = product?.image ? new URL(product.image, origin).toString() : null;
+  const safe = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
+  const supplement = {
+    '@context': 'https://schema.org',
+    '@type': 'DietarySupplement',
+    name: sup.name,
+    description: sup.summary,
+    url,
+    ...(image ? { image } : {}),
+    ...(sup.category ? { category: sup.category } : {}),
+    isProprietary: false,
+    mainEntityOfPage: url,
+  };
+  const breadcrumbs = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: `${origin}/` },
+      { '@type': 'ListItem', position: 2, name: 'Supplements', item: `${origin}/#Links` },
+      { '@type': 'ListItem', position: 3, name: sup.name, item: url },
+    ],
+  };
+  return `
+  <link rel="canonical" href="${escapeHtml(url)}">${image ? `\n  <meta property="og:image" content="${escapeHtml(image)}">` : ''}
+  <script type="application/ld+json">${safe(supplement)}</script>
+  <script type="application/ld+json">${safe(breadcrumbs)}</script>`;
+}
+
+function seoDescription(sup: Supplement): string {
+  const effectivity = Math.min(5, Math.max(1, Math.round(sup.effectivity)));
+  const safety = Math.min(5, Math.max(1, Math.round(sup.safety)));
+  const base = (sup.summary || `${sup.name}: benefits, contraindications, interactions and research.`).trim();
+  const tail = ` Effectivity ${effectivity}/5, safety ${safety}/5, with contraindications, interactions, studies and ${sup.products.length ? `${sup.products.length} products to buy on iHerb` : 'where to buy on iHerb'}.`;
+  const text = base.length + tail.length <= 300 ? base + tail : base.slice(0, 300 - tail.length).replace(/\s+\S*$/, '') + tail;
+  return text.slice(0, 300);
+}
+
+export function renderSupplementPage(sup: Supplement, explore: Supplement[], env: LinkEnv, extras: SupplementPageExtras = {}): string {
   const body = `${navbar('logo-left')}
   <div data-w-id="2841e5e2-b1d4-d414-f4f8-0c4efba35752" class="heading-3-columns">
     <div data-w-id="2841e5e2-b1d4-d414-f4f8-0c4efba35753" style="-webkit-transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-moz-transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-ms-transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);opacity:0.4" class="frame-48">
@@ -230,14 +276,14 @@ export function renderSupplementPage(sup: Supplement, explore: Supplement[], env
     </div>${productCards(env, sup)}
   </div>
   <section class="info">${synergySection(sup)}${insightsSection(sup)}${studiesSection(sup)}
-  </section>${exploreSection(explore)}${footer()}${stickyBuyBar(env, sup)}`;
+  </section>${relatedSection(extras.related ?? [])}${exploreSection(explore)}${footer()}${stickyBuyBar(env, sup)}`;
 
   return page({
-    title: sup.name,
-    description: sup.summary || `${sup.name}: benefits, contraindications, interactions and research.`,
+    title: `${sup.name}: Benefits, Dosage, Safety & Where to Buy`,
+    description: seoDescription(sup),
     pageId: WF_PAGE_IDS.supplement,
     bodyClass: 'body-2 ww-has-sticky',
-    head: HEAD_STYLES,
+    head: HEAD_STYLES + (extras.origin ? seoHead(sup, extras.origin) : ''),
     body,
   });
 }

@@ -16,7 +16,7 @@ const DEFAULT_DESCRIPTION =
 
 /** Full HTML document with the same head, stylesheets, fonts and scripts as the Webflow export. */
 export function page(opts: PageOptions): string {
-  const title = escapeHtml(opts.title);
+  const title = escapeHtml(/wellness whizz/i.test(opts.title) ? opts.title : `${opts.title} | Wellness Whizz`);
   const description = escapeHtml(opts.description ?? DEFAULT_DESCRIPTION);
   const bodyClass = opts.bodyClass ? ` class="${opts.bodyClass}"` : '';
   return `<!DOCTYPE html>

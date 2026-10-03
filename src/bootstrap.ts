@@ -45,7 +45,7 @@ interface Manifest {
 }
 
 const BATCH_SIZE = 100;
-const TABLES = ['supplements', 'sessions', 'session_supplements', 'meta', 'events', 'images'];
+const TABLES = ['supplements', 'sessions', 'session_supplements', 'meta', 'events', 'images', 'subscribers'];
 /** Columns added after the first release; created on databases that predate them. */
 const LATER_COLUMNS: [table: string, column: string, definition: string][] = [
   ['supplements', 'image', "TEXT NOT NULL DEFAULT ''"],

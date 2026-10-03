@@ -5,7 +5,7 @@ import { escapeHtml } from '../html';
 import { primaryProduct, searchUrl, shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
 import { faqHtml, pageShell, quizCta } from './pages';
-import { WF_PAGE_IDS, blendAttr, buyButton, cardImage } from './partials';
+import { WF_PAGE_IDS, blendAttr, buyButton, captureBox, cardImage } from './partials';
 
 export interface BlogContext {
   env: LinkEnv;
@@ -99,7 +99,8 @@ export function renderBlogIndex(ctx: BlogContext, posts: readonly BlogPost[]): s
   const body = `
       <p class="ww-blog-intro">Long reads on how supplements actually work, what the research says, and how to read a label before you buy. Every article is checked against primary sources and links to the products it discusses on iHerb.</p>
       <div class="ww-posts">${posts.map((p) => postCard(ctx, p)).join('')}
-      </div>${quizCta()}`;
+      </div>
+      <div style="margin-top:32px">${captureBox({ source: 'newsletter' })}</div>${quizCta()}`;
   const shell = pageShell({
     eyebrow: 'Blog',
     title: 'Evidence first, then the shopping list',
@@ -174,6 +175,7 @@ export function renderBlogPost(ctx: BlogContext, post: BlogPost, related: readon
         </article>
         <aside class="ww-article-aside ww-only-desktop">${shop}
           <div class="ww-shop"><h4>Free personal list</h4><p class="ww-note" style="margin:0 0 12px">Two minutes, no account. The advisor weighs your goals and what you already take.</p><a href="/wellness-quiz" class="fakebutton ww-buy ww-shop-buy w-button">Start the quiz</a></div>
+          ${captureBox({ source: 'newsletter', compact: true })}
         </aside>
       </div>${relatedHtml}`;
   const shell = pageShell({

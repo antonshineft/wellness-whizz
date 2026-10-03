@@ -142,6 +142,18 @@ supplement's entry in `data/supplements.json` and run `node scripts/data-manifes
 the live database. Generated illustrations (`src/images.ts`) are off by default; `IMAGE_GENERATION=true` turns them
 on as a last resort.
 
+### Email capture and the results email
+
+- The result page has an "Email me these results" box and the blog has a newsletter box. Addresses go into the
+  `subscribers` table (`source` = `results` or `newsletter`, with the result page id when there is one). Download
+  them any time: `GET /api/admin/subscribers?key=<STATS_KEY>` (CSV, or `&format=json`).
+- To actually send the results email, create a free account at https://resend.com, verify your domain, and set two
+  secrets: `RESEND_API_KEY` and `EMAIL_FROM` (e.g. `Wellness Whizz <hello@aiww.io>`). Until then addresses are
+  stored and the box says the list will be sent shortly. The email (`src/email.ts`) lists the recommended
+  supplements with Buy on iHerb links and a link back to the results page.
+- `/api/stats` now also reports `content`: how many supplements have an article and studies, how many still lack
+  product photos, the number of subscribers, and `last_cron` with what the last background run wrote or failed.
+
 ### Pages, blog and sitemap
 
 - `/how-it-works` and `/terms` (Terms and Conditions with the privacy and affiliate disclosures) are rendered from
@@ -151,6 +163,9 @@ on as a last resort.
   with your referral code and click tracking, `<ww-shop slugs="…"></ww-shop>` for product cards from the catalogue
   and `<ww-quiz></ww-quiz>` for the quiz call-to-action. Every article page carries BlogPosting and FAQ structured data.
 - `/sitemap.xml` lists the pages, the articles and every supplement page; `public/robots.txt` points search engines at it.
+- Supplement pages carry an SEO title ("<name>: Benefits, Dosage, Safety & Where to Buy"), a descriptive meta
+  description, a canonical URL, DietarySupplement and BreadcrumbList structured data and a "Related supplements"
+  block (same category) above the explore list.
 - The home page carousel (`public/js/home.js`) scrolls continuously and loops without empty slides; it pauses on
   hover, the arrows step one card, and it can be dragged.
 

@@ -457,8 +457,8 @@ export async function exportSupplements(db: D1Database): Promise<Supplement[]> {
 
 // ---------- events (measurement) ----------
 
-export type EventType = 'home_view' | 'quiz_view' | 'result_view' | 'supplement_view' | 'page_view' | 'outbound_click';
-export const EVENT_TYPES: readonly EventType[] = ['home_view', 'quiz_view', 'result_view', 'supplement_view', 'page_view', 'outbound_click'];
+export type EventType = 'home_view' | 'quiz_view' | 'result_view' | 'supplement_view' | 'page_view' | 'outbound_click' | 'subscribe';
+export const EVENT_TYPES: readonly EventType[] = ['home_view', 'quiz_view', 'result_view', 'supplement_view', 'page_view', 'outbound_click', 'subscribe'];
 
 export interface EventInput {
   type: EventType;
@@ -541,6 +541,120 @@ export async function statsSummary(db: D1Database): Promise<Stats> {
     top_products_30_days: topProducts.results,
     referrers_30_days: referrers.results,
   };
+}
+
+// ---------- related supplements, subscribers, content progress ----------
+
+/** Supplements of the same category (random order), falling back to random ones; never the supplement itself. */
+export async function relatedSupplements(db: D1Database, sup: Supplement, n = 4, curatedOnly = false): Promise<Supplement[]> {
+  const curated = curatedOnly ? " AND source = 'cms'" : '';
+  const { results } = await db
+    .prepare(`SELECT ${SUPPLEMENT_COLUMNS} FROM supplements WHERE id != ? AND category = ?${curated} ORDER BY RANDOM() LIMIT ?`)
+    .bind(sup.id, sup.category, n)
+    .all<SupplementRow>();
+  const related = results.map(rowToSupplement);
+  if (related.length < n) {
+    const ids = [sup.id, ...related.map((r) => r.id)];
+    const { results: more } = await db
+      .prepare(`SELECT ${SUPPLEMENT_COLUMNS} FROM supplements WHERE id NOT IN (${ids.map(() => '?').join(',')})${curated} ORDER BY RANDOM() LIMIT ?`)
+      .bind(...ids, n - related.length)
+      .all<SupplementRow>();
+    related.push(...more.map(rowToSupplement));
+  }
+  return related;
+}
+
+export interface SubscriberInput {
+  email: string;
+  source: 'results' | 'newsletter';
+  session_id?: string | null;
+  ip_hash?: string | null;
+}
+
+/** Store an email address; an existing address keeps its row (the session id is updated when given). */
+export async function addSubscriber(db: D1Database, input: SubscriberInput): Promise<{ created: boolean }> {
+  const email = input.email.trim().toLowerCase();
+  const existing = await db.prepare('SELECT id FROM subscribers WHERE email = ?').bind(email).first<{ id: number }>();
+  if (existing) {
+    await db
+      .prepare('UPDATE subscribers SET session_id = COALESCE(?, session_id), unsubscribed_at = NULL WHERE id = ?')
+      .bind(input.session_id ?? null, existing.id)
+      .run();
+    return { created: false };
+  }
+  await db
+    .prepare('INSERT INTO subscribers (email, source, session_id, ip_hash) VALUES (?, ?, ?, ?)')
+    .bind(email, input.source, input.session_id ?? null, input.ip_hash ?? null)
+    .run();
+  return { created: true };
+}
+
+export async function markSubscriberSent(db: D1Database, email: string): Promise<void> {
+  await db.prepare("UPDATE subscribers SET last_sent_at = datetime('now') WHERE email = ?").bind(email.trim().toLowerCase()).run();
+}
+
+export async function countRecentSubscriptions(db: D1Database, ipHash: string | null, hours = 1): Promise<number> {
+  if (!ipHash) return 0;
+  const row = await db
+    .prepare(`SELECT COUNT(*) AS n FROM subscribers WHERE ip_hash = ? AND created_at >= datetime('now', ?)`)
+    .bind(ipHash, `-${hours} hours`)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+export interface SubscriberRow {
+  email: string;
+  source: string;
+  session_id: string | null;
+  created_at: string;
+  last_sent_at: string | null;
+  unsubscribed_at: string | null;
+}
+
+export async function listSubscribers(db: D1Database): Promise<SubscriberRow[]> {
+  const { results } = await db
+    .prepare('SELECT email, source, session_id, created_at, last_sent_at, unsubscribed_at FROM subscribers ORDER BY created_at DESC')
+    .all<SubscriberRow>();
+  return results;
+}
+
+export interface ContentProgress {
+  supplements: number;
+  with_article: number;
+  with_studies: number;
+  without_product_photos: number;
+  subscribers: number;
+}
+
+/** How far the background writers have got (shown on /api/stats). */
+export async function contentProgress(db: D1Database, minArticleLength: number): Promise<ContentProgress> {
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) AS supplements,
+              SUM(CASE WHEN length(holistic_html) >= ? THEN 1 ELSE 0 END) AS with_article,
+              SUM(CASE WHEN studies_html != '' THEN 1 ELSE 0 END) AS with_studies,
+              SUM(CASE WHEN products_json NOT LIKE '%"image":%' THEN 1 ELSE 0 END) AS without_product_photos
+       FROM supplements`,
+    )
+    .bind(minArticleLength)
+    .first<{ supplements: number; with_article: number; with_studies: number; without_product_photos: number }>();
+  const subs = await db.prepare('SELECT COUNT(*) AS n FROM subscribers WHERE unsubscribed_at IS NULL').first<{ n: number }>();
+  return {
+    supplements: Number(row?.supplements ?? 0),
+    with_article: Number(row?.with_article ?? 0),
+    with_studies: Number(row?.with_studies ?? 0),
+    without_product_photos: Number(row?.without_product_photos ?? 0),
+    subscribers: Number(subs?.n ?? 0),
+  };
+}
+
+export async function setMeta(db: D1Database, key: string, value: string): Promise<void> {
+  await db.prepare('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(key, value).run();
+}
+
+export async function getMeta(db: D1Database, key: string): Promise<string | null> {
+  const row = await db.prepare('SELECT value FROM meta WHERE key = ?').bind(key).first<{ value: string }>();
+  return row?.value ?? null;
 }
 
 export async function countRecentSessions(db: D1Database, ipHash: string | null, hours = 1): Promise<number> {

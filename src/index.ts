@@ -17,11 +17,13 @@ import { ensureDatabase } from './bootstrap';
 import { MIN_ARTICLE_LENGTH, generateArticle } from './content';
 import { generateSupplementImage, imageGenerationEnabled, loadImage, supplementsNeedingImage } from './images';
 import { attachIherbProducts, supplementsWithoutPhotos } from './products';
+import { emailEnabled, resultsEmail, sendEmail } from './email';
 import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
   getSessionResults, getSupplementBySlug, listSupplements, logEvent, markSession, mergeDuplicateSupplements,
   resolveSupplementSlug, statsSummary, supplementsNeedingContent, updateSupplementContent, type EventInput,
   type EventType, type QuizProfile, countSupplements, getSupplementsBySlugs, listSupplementSlugs,
+  addSubscriber, contentProgress, countRecentSubscriptions, getMeta, listSubscribers, markSubscriberSent, relatedSupplements, setMeta,
 } from './db';
 import { runQuizPipeline } from './pipeline';
 import { renderBlogIndex, renderBlogPost } from './render/blog';
@@ -48,6 +50,9 @@ export interface Bindings {
   BACKFILL_BATCH?: string;
   /** "false" turns off generated illustrations for supplements without product photos. */
   IMAGE_GENERATION?: string;
+  /** Optional: Resend API key + verified sender for "Email me my results" (src/email.ts). */
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
   IMAGE_MODEL?: string;
 }
 
@@ -61,7 +66,7 @@ const SESSION_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 /** A session still pending after this long has lost its Worker (client disconnected); it is marked failed. */
 const PENDING_TIMEOUT_MS = 4 * 60 * 1000;
 /** Event types the browser may report; page views are recorded server-side. */
-const CLIENT_EVENT_TYPES: readonly EventType[] = ['quiz_view', 'outbound_click'];
+const CLIENT_EVENT_TYPES: readonly EventType[] = ['quiz_view', 'outbound_click', 'subscribe'];
 
 const htmlHeaders = (cacheControl: string) => ({ 'content-type': 'text/html; charset=utf-8', 'cache-control': cacheControl });
 const curatedOnly = (env: Bindings) => env.LIST_AI_SUPPLEMENTS === 'false';
@@ -129,9 +134,16 @@ app.get('/supplement/:slug', async (c) => {
     const canonical = await resolveSupplementSlug(c.env.DB, slug);
     return canonical ? c.redirect(`/supplement/${canonical}`, 302) : notFound(c.env, c.req.raw);
   }
-  const explore = await listSupplements(c.env.DB, 200, curatedOnly(c.env));
+  const [explore, related] = await Promise.all([
+    listSupplements(c.env.DB, 200, curatedOnly(c.env)),
+    relatedSupplements(c.env.DB, supplement, 4, curatedOnly(c.env)),
+  ]);
   track(c, { type: 'supplement_view', page: `/supplement/${supplement.slug}`, slug: supplement.slug });
-  return c.body(renderSupplementPage(supplement, explore, c.env), 200, htmlHeaders('public, max-age=300'));
+  return c.body(
+    renderSupplementPage(supplement, explore, c.env, { related, origin: new URL(c.req.url).origin }),
+    200,
+    htmlHeaders('public, max-age=300'),
+  );
 });
 
 // ---------- editorial pages ----------
@@ -285,6 +297,50 @@ app.post('/api/event', async (c) => {
   return c.json({ ok: true });
 });
 
+/** Email capture: "Email me my results" (sends the list when Resend is configured) and the newsletter box. */
+app.post('/api/subscribe', async (c) => {
+  const body = await readJson(c.req.raw);
+  const email = String(body.email ?? '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 254) return c.json({ error: 'Please enter a valid email address.' }, 400);
+  const source = body.source === 'results' ? 'results' : 'newsletter';
+  const sessionId = typeof body.session_id === 'string' && SESSION_ID_RE.test(body.session_id) ? body.session_id : null;
+  const ipHash = await hashIp(c.req.header('cf-connecting-ip') ?? '');
+  if ((await countRecentSubscriptions(c.env.DB, ipHash)) >= 5) return c.json({ error: 'Too many requests, please try again later.' }, 429);
+
+  await addSubscriber(c.env.DB, { email, source, session_id: sessionId, ip_hash: ipHash });
+  track(c, { type: 'subscribe', slug: source, page: typeof body.page === 'string' ? body.page.slice(0, 200) : null, session_id: sessionId });
+
+  if (source === 'results' && sessionId && emailEnabled(c.env)) {
+    const [session, items] = await Promise.all([getSession(c.env.DB, sessionId), getSessionResults(c.env.DB, sessionId)]);
+    if (session && items.length) {
+      const mail = resultsEmail(c.env, new URL(c.req.url).origin, session, items);
+      c.executionCtx.waitUntil(
+        sendEmail(c.env, email, mail.subject, mail.html, mail.text)
+          .then(() => markSubscriberSent(c.env.DB, email))
+          .catch((err) => console.error(`results email failed: ${String(err)}`)),
+      );
+      return c.json({ ok: true, message: 'Sent. Check your inbox (and the spam folder) in a minute.' });
+    }
+  }
+  return c.json({
+    ok: true,
+    message: source === 'results' ? 'Saved. We will email this list to you shortly.' : 'Thank you, you are on the list.',
+  });
+});
+
+/** Owner-only: the subscriber list as CSV (default) or JSON (?format=json). */
+app.get('/api/admin/subscribers', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  const rows = await listSubscribers(c.env.DB);
+  c.header('cache-control', 'no-store');
+  if (c.req.query('format') === 'json') return c.json({ count: rows.length, subscribers: rows });
+  const csv = ['email,source,session_id,created_at,last_sent_at,unsubscribed_at']
+    .concat(rows.map((r) => [r.email, r.source, r.session_id ?? '', r.created_at, r.last_sent_at ?? '', r.unsubscribed_at ?? ''].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')))
+    .join('\n');
+  return c.body(csv, 200, { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="subscribers.csv"' });
+});
+
 /** Owner-only routes: require the STATS_KEY secret as ?key= or a bearer token. */
 function authorized(c: { env: Bindings; req: { query: (k: string) => string | undefined; header: (k: string) => string | undefined } }): Response | null {
   const key = c.env.STATS_KEY;
@@ -298,7 +354,18 @@ app.get('/api/stats', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   c.header('cache-control', 'no-store');
-  return c.json(await statsSummary(c.env.DB));
+  const [stats, content, lastCron] = await Promise.all([
+    statsSummary(c.env.DB),
+    contentProgress(c.env.DB, MIN_ARTICLE_LENGTH),
+    getMeta(c.env.DB, 'cron:last'),
+  ]);
+  let last_cron: unknown = null;
+  try {
+    last_cron = lastCron ? JSON.parse(lastCron) : null;
+  } catch {
+    last_cron = lastCron;
+  }
+  return c.json({ ...stats, content: { ...content, last_cron } });
 });
 
 /** Write missing articles now (the cron does the same a few at a time). ?limit=N, default 3. */
@@ -360,14 +427,14 @@ export default {
           if (result.merged.length) console.log(`merged duplicate supplements: ${result.merged.join(', ')}`);
         })
         .then(() => backfillContent(env, batch))
-        .then((result) => console.log(`backfill: ${JSON.stringify(result)}`))
-        .then(() => backfillProductPhotos(env, 2))
-        .then((result) => {
-          if (result.attached.length || result.failed.length) console.log(`product photos: ${JSON.stringify(result)}`);
-        })
-        .then(() => backfillImages(env, 2))
-        .then((result) => {
-          if (result.generated.length || result.failed.length) console.log(`illustrations: ${JSON.stringify(result)}`);
+        .then(async (content) => {
+          console.log(`backfill: ${JSON.stringify(content)}`);
+          const photos = await backfillProductPhotos(env, 2);
+          if (photos.attached.length || photos.failed.length) console.log(`product photos: ${JSON.stringify(photos)}`);
+          const images = await backfillImages(env, 2);
+          if (images.generated.length || images.failed.length) console.log(`illustrations: ${JSON.stringify(images)}`);
+          // Visible on /api/stats as content.last_cron, so progress and failures can be checked without logs.
+          await setMeta(env.DB, 'cron:last', JSON.stringify({ at: new Date().toISOString(), batch, articles: content, photos, illustrations: images }));
         })
         .catch((err) => console.error(`backfill failed: ${String(err)}`)),
     );

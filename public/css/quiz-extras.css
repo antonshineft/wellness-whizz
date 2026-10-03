@@ -1,0 +1,54 @@
+/* Wellness quiz additions: suggestion chips under the Diet and Goal inputs, and the "preparing your results" screen.
+   Loaded after wellness-extras.css; the form sits on the dark #1d272d panel, so the chips are light-on-dark. */
+
+/* ---------- chips ---------- */
+/* The row is as wide as the text inputs above it (600px desktop, 400px tablet, 85% phone; all centred). */
+.ww-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 600px; max-width: 100%; margin: 12px auto 0; box-sizing: border-box; text-align: left; font-family: Aeonik, sans-serif; }
+.ww-chips + .field-label-2 { margin-top: 26px; }
+.ww-chips-hint { flex: 1 0 100%; margin: 0 0 2px; font-size: 13px; line-height: 16px; font-weight: 400; color: #ffffff80; }
+.ww-chip { -webkit-appearance: none; appearance: none; display: inline-flex; align-items: center; gap: 7px; margin: 0; padding: 8px 14px 8px 12px; min-height: 36px; border: 1.5px solid #ffffff33; border-radius: 999px; background: #ffffff14; color: #fff; font-family: Aeonik, sans-serif; font-size: 14px; line-height: 18px; font-weight: 500; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color .15s, border-color .15s, color .15s, transform .15s; }
+/* "+" before an unselected chip, a green tick once it is selected. */
+.ww-chip::before { content: '+'; flex: 0 0 auto; width: 16px; height: 16px; border-radius: 50%; background: #ffffff1f; color: #fff; font-size: 13px; line-height: 16px; font-weight: 700; text-align: center; transition: background-color .15s, color .15s; }
+.ww-chip:hover { background: #ffffff26; border-color: #ffffff66; }
+.ww-chip:active { transform: scale(.97); }
+.ww-chip:focus-visible { outline: 2px solid #87d581; outline-offset: 2px; }
+.ww-chip[aria-pressed="true"] { background: #1d272d; border-color: #87d581; color: #fff; }
+.ww-chip[aria-pressed="true"]:hover { background: #26323a; }
+.ww-chip[aria-pressed="true"]::before { content: '\2713'; background: #87d581; color: #1d272d; }
+@media (max-width: 991px) {
+  .ww-chips { width: 400px; }
+}
+@media (max-width: 479px) {
+  .ww-chips { width: 85%; gap: 6px; }
+  .ww-chip { padding: 7px 12px 7px 10px; min-height: 34px; font-size: 13px; }
+}
+
+/* ---------- waiting screen ---------- */
+.ww-wait { width: 100%; max-width: 440px; margin: 0 auto; padding: 0 10px; box-sizing: border-box; text-align: center; font-family: Aeonik, sans-serif; color: #fff; }
+.ww-wait-msg { display: flex; align-items: center; justify-content: center; min-height: 56px; margin: 0; font-size: 20px; line-height: 28px; font-weight: 500; color: #fff; transition: opacity .25s ease; }
+.ww-wait-msg.is-fading { opacity: 0; }
+.ww-wait-bar { position: relative; height: 10px; margin: 12px 0 14px; border-radius: 999px; background: #ffffff1f; overflow: hidden; }
+.ww-wait-fill { position: relative; height: 100%; width: 0; border-radius: 999px; background: #87d581; overflow: hidden; transition: width .45s ease-out; }
+/* A soft highlight sweeps along the filled part so the bar reads as "working" even while it barely moves. */
+.ww-wait-fill::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 45%; background-image: linear-gradient(90deg, #87d58100, #ffffff80, #87d58100); animation: ww-wait-sweep 1.8s ease-in-out infinite; }
+.ww-wait.is-done .ww-wait-fill { transition-duration: .3s; }
+.ww-wait.is-done .ww-wait-fill::after { animation: none; }
+.text-block-8.ww-wait-note { margin: 0; font-size: 13px; line-height: 18px; color: #ffffff80; }
+.ww-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+@keyframes ww-wait-sweep {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(230%); }
+}
+@media (max-width: 479px) {
+  .ww-wait-msg { font-size: 18px; line-height: 26px; min-height: 52px; }
+}
+/* Reduced motion: the status text is enough; no bar animation, no fade, and the looping counter GIF stays hidden. */
+@media (prefers-reduced-motion: reduce) {
+  .ww-wait-bar { display: none; }
+  .ww-wait-msg { transition: none; }
+  .ww-wait-msg.is-fading { opacity: 1; }
+  .ww-wait-fill { transition: none; }
+  .ww-wait-fill::after { animation: none; }
+  .success-message .image-6 { display: none; }
+  .ww-chip { transition: none; }
+}

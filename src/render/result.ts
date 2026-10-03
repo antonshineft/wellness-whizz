@@ -4,7 +4,7 @@ import { escapeHtml } from '../html';
 import type { LinkEnv } from '../links';
 import { page } from './layout';
 import { primaryProduct, shopUrl } from '../links';
-import { WF_PAGE_IDS, blendAttr, buyButton, cardImage, cardTags, disclosure, navbar, productThumbs } from './partials';
+import { WF_PAGE_IDS, blendAttr, buyButton, captureBox, cardImage, cardTags, disclosure, navbar, productThumbs } from './partials';
 
 const FORM_LABELS: Record<string, string> = {
   capsule: 'Capsules', softgel: 'Softgels', small_softgel: 'Softgels', tablet: 'Tablets', powder: 'Powder',
@@ -64,6 +64,7 @@ export function renderResultPage(session: Session, items: ResultItem[], env: Lin
       <div class="w-dyn-list">
         <div role="list" class="w-dyn-items">
           <div data-session-id="${escapeHtml(session.id)}" role="listitem" class="resultsclass w-dyn-item">${items.map((item, i) => resultCard(env, item, i)).join('')}
+            <div class="ww-capture-wrap">${captureBox({ source: 'results', sessionId: session.id, dark: true })}</div>
           </div>
         </div>
       </div>

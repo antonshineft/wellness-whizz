@@ -278,3 +278,55 @@ a.ww-footer-link:hover { opacity: 1; }
 }
 /* product photos that still carry iHerb's white background: blend it into the tile */
 img.ww-opaque { mix-blend-mode: multiply; }
+.ww-teaser-actions { display: flex; justify-content: center; margin-top: 28px; }
+.ww-teaser-btn { color: #fff; text-decoration: none; padding: 19px 50px; border-radius: 20px; font-size: 24px; line-height: 32px; font-weight: 700; }
+.ww-teaser-btn:hover { background-image: linear-gradient(#2f3d46, #4b5962); }
+
+/* ---------- email capture ---------- */
+.ww-capture { font-family: Aeonik, sans-serif; color: #1d272d; background: #ecf3f6; border-radius: 28px; padding: 26px 28px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; }
+.ww-capture.on-dark { background: #2a363d; color: #fff; }
+.ww-capture-text { flex: 1 1 300px; min-width: 0; }
+.ww-capture h3 { margin: 0 0 4px; font-family: Aeonik, sans-serif; font-size: 24px; line-height: 30px; font-weight: 700; color: inherit; }
+.ww-capture p { margin: 0; font-size: 15px; line-height: 22px; opacity: .8; }
+.ww-capture form { display: flex; flex: 1 1 360px; gap: 10px; flex-wrap: wrap; }
+.ww-capture input[type="email"] { flex: 1 1 200px; min-width: 0; height: 52px; border: 1.5px solid #1d272d33; border-radius: 16px; padding: 0 16px; font-family: Aeonik, sans-serif; font-size: 16px; color: #1d272d; background: #fff; outline: none; }
+.ww-capture input[type="email"]:focus { border-color: #87d581; box-shadow: 0 0 0 3px #87d58155; }
+.ww-capture button { height: 52px; padding: 0 22px; border: 0; border-radius: 16px; background: #1d272d; color: #fff; font-family: Aeonik, sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.ww-capture.on-dark button { background: #87d581; color: #1d272d; }
+.ww-capture button:hover { filter: brightness(1.1); }
+.ww-capture button[disabled] { opacity: .6; cursor: default; }
+.ww-capture-note { flex-basis: 100%; font-size: 13px; line-height: 18px; opacity: .7; margin: -4px 0 0; }
+.ww-capture-note.is-success { opacity: 1; color: #1d272d; font-weight: 700; }
+.ww-capture.on-dark .ww-capture-note.is-success { color: #87d581; }
+.ww-capture-note.is-error { opacity: 1; color: #b3261e; }
+.ww-capture.on-dark .ww-capture-note.is-error { color: #ffb4ab; }
+.ww-capture.is-compact { flex-direction: column; align-items: stretch; padding: 20px; gap: 14px; }
+.ww-capture.is-compact .ww-capture-text { flex: 0 0 auto; }
+.ww-capture.is-compact h3 { font-size: 20px; line-height: 26px; }
+.ww-capture.is-compact form { flex: 0 0 auto; flex-direction: column; }
+.ww-capture.is-compact input[type="email"] { flex: 0 0 auto; width: 100%; box-sizing: border-box; }
+.ww-capture.is-compact .ww-capture-note { flex-basis: auto; }
+.ww-capture.is-compact button { width: 100%; }
+.ww-capture input[type="email"] { box-sizing: border-box; }
+.resultsclass .ww-capture-wrap { padding: 12px; }
+@media (max-width: 767px) {
+  .ww-capture { padding: 20px; border-radius: 22px; }
+  .ww-capture button { width: 100%; }
+}
+
+/* ---------- supplement page: related supplements ---------- */
+.ww-related-wrap { font-family: Aeonik, sans-serif; color: #1d272d; padding: 60px 20px 10px; }
+.ww-related-inner { max-width: 1200px; margin: 0 auto; }
+.ww-related-title { margin: 0 0 20px; font-family: Aeonik, sans-serif; font-size: 44px; line-height: 48px; font-weight: 500; color: #1d272d; }
+.ww-related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.ww-related-tile { display: flex; flex-direction: column; align-items: center; gap: 10px; background: #ecf3f6; border-radius: 24px; padding: 16px; text-decoration: none; color: #1d272d; transition: transform .15s, box-shadow .15s; }
+.ww-related-tile:hover { transform: translateY(-3px); box-shadow: 0 10px 30px #1d272d1f; }
+.ww-related-media { width: 100%; height: 170px; background: #fdf1cf; border-radius: 18px; display: flex; align-items: center; justify-content: center; padding: 14px; box-sizing: border-box; }
+.ww-related-media img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+.ww-related-name { font-size: 18px; line-height: 24px; font-weight: 700; text-align: center; }
+@media (max-width: 767px) {
+  .ww-related-wrap { padding: 40px 10px 0; }
+  .ww-related-title { font-size: 32px; line-height: 36px; }
+  .ww-related-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .ww-related-media { height: 130px; }
+}

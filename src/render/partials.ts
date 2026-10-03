@@ -289,3 +289,50 @@ export function homeCard(sup: Supplement): string {
   </div>
 </div>`;
 }
+
+/** Email capture box. source "results" sends the recommendation list (when email is configured), "newsletter" subscribes. */
+export function captureBox(opts: { source: 'results' | 'newsletter'; sessionId?: string; dark?: boolean; compact?: boolean; title?: string; text?: string }): string {
+  const title = opts.title ?? (opts.source === 'results' ? 'Email me these results' : 'Get new guides by email');
+  const text =
+    opts.text ??
+    (opts.source === 'results'
+      ? 'Your list with buy links, so you can come back to it on any device. No spam, unsubscribe any time.'
+      : 'One or two evidence-based articles a month. No spam, unsubscribe any time.');
+  const cls = `ww-capture${opts.dark ? ' on-dark' : ''}${opts.compact ? ' is-compact' : ''}`;
+  return `
+      <div class="${cls}">
+        <div class="ww-capture-text"><h3>${escapeHtml(title)}</h3><p>${escapeHtml(text)}</p></div>
+        <form data-ww-subscribe data-source="${opts.source}"${opts.sessionId ? ` data-session="${escapeHtml(opts.sessionId)}"` : ''} novalidate>
+          <input type="email" name="email" placeholder="you@example.com" autocomplete="email" required aria-label="Email address">
+          <button type="submit">${opts.source === 'results' ? 'Send my results' : 'Subscribe'}</button>
+          <p class="ww-capture-note" aria-live="polite">By subscribing you agree to our <a href="/terms">terms</a>.</p>
+        </form>
+      </div>`;
+}
+
+/** "Related supplements": same-category tiles shown above the explore list on supplement pages. */
+export function relatedSection(related: Supplement[]): string {
+  if (!related.length) return '';
+  const tiles = related
+    .map((sup) => {
+      const product = sup.products.find((p) => p.image);
+      const photo = product
+        ? `<img src="${escapeHtml(product.image!)}" loading="lazy" width="150" height="150" alt="${escapeHtml(product.name)}"${blendAttr(product)}>`
+        : cardImage(sup, 'width="150" height="150"');
+      return `
+        <a href="/supplement/${escapeHtml(sup.slug)}" class="ww-related-tile">
+          <div class="ww-related-media">${photo}</div>
+          <div class="ww-related-name">${escapeHtml(sup.name)}</div>
+          <span class="ww-tag">${escapeHtml(sup.category)}</span>
+        </a>`;
+    })
+    .join('');
+  return `
+  <section class="ww-related-wrap">
+    <div class="ww-related-inner">
+      <h3 class="ww-related-title">Related supplements</h3>
+      <div class="ww-related-grid">${tiles}
+      </div>
+    </div>
+  </section>`;
+}

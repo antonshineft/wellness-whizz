@@ -78,3 +78,16 @@ CREATE TABLE IF NOT EXISTS session_supplements (
   reason TEXT NOT NULL DEFAULT '',
   PRIMARY KEY (session_id, position)
 );
+
+-- Email capture: "email me my results" on the result page and the newsletter box on the blog.
+CREATE TABLE IF NOT EXISTS subscribers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  source TEXT NOT NULL DEFAULT 'newsletter',     -- results | newsletter
+  session_id TEXT,                               -- the result page they asked to receive, if any
+  ip_hash TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_sent_at TEXT,
+  unsubscribed_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_subscribers_created ON subscribers(created_at);
