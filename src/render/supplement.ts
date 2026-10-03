@@ -97,7 +97,7 @@ function productCards(env: LinkEnv, sup: Supplement): string {
       const link = escapeHtml(shopUrl(env, sup, p));
       const image = p.image
         ? `<img src="${escapeHtml(p.image)}" loading="lazy" width="306" height="305" alt="${escapeHtml(p.name)}" class="convertedimage14-4">`
-        : '';
+        : cardImage(sup, `width="306" height="305" class="convertedimage14-4"`);
       return `
               <div id="Card" data-w-id="${PRODUCT_CARD_IDS[i]}" style="opacity:0" class="frame-114">
                 <div class="frame-113">${image}

@@ -36,15 +36,17 @@ function resultCard(env: LinkEnv, item: ResultItem, index: number): string {
   return `
           <div${wid} class="result-card-frame">
             <div class="ww-card">
-              ${mediaLink}
-              <div class="ww-card-body">
-                <h2 class="ww-card-title">${escapeHtml(sup.name)}</h2>
-                <div class="ww-card-meta">${cardTags(sup, form)}</div>
-                <p class="ww-card-text">${escapeHtml(item.reason || sup.summary)}</p>
-                ${productThumbs(env, sup)}
-                <div class="ww-card-bottom">
-                  <div class="ww-actions">${buyButton(env, sup)}<a href="${href}" class="fakebutton ww-secondary w-button">More Details</a></div>
+              <div class="ww-card-main">
+                ${mediaLink}
+                <div class="ww-card-body">
+                  <h2 class="ww-card-title">${escapeHtml(sup.name)}</h2>
+                  <div class="ww-card-meta">${cardTags(sup, form)}</div>
+                  <p class="ww-card-text">${escapeHtml(item.reason || sup.summary)}</p>
+                  ${productThumbs(env, sup)}
                 </div>
+              </div>
+              <div class="ww-card-bottom">
+                <div class="ww-actions">${buyButton(env, sup)}<a href="${href}" class="fakebutton ww-secondary w-button">More Details</a></div>
               </div>
             </div>
           </div>`;

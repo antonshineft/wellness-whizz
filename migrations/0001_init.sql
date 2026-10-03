@@ -20,6 +20,15 @@ CREATE TABLE IF NOT EXISTS supplements (
   studies_html TEXT NOT NULL DEFAULT '',
   products_json TEXT NOT NULL DEFAULT '[]',        -- [{"name","brand","url","image"}]
   source TEXT NOT NULL DEFAULT 'cms',              -- cms (imported/seeded) | ai (created by the quiz pipeline)
+  image TEXT NOT NULL DEFAULT '',                  -- generated illustration path for supplements without product photos
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Generated illustrations (small WebP files) served from /images/generated/<key>.webp.
+CREATE TABLE IF NOT EXISTS images (
+  key TEXT PRIMARY KEY,
+  content_type TEXT NOT NULL,
+  bytes BLOB NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

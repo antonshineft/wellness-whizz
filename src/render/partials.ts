@@ -53,11 +53,13 @@ export const EFFECTIVITY_LABELS = ['Possible', 'Supportive', 'Reasonable', 'Pote
 export const SAFETY_LABELS = ['Cautionary', 'Mild Risk', 'Secure', 'Safe', 'Proven Safe'] as const;
 
 export function cardImage(sup: Supplement, attrs: string): string {
+  if (sup.image) return `<img src="${escapeHtml(sup.image)}" loading="lazy" alt="${escapeHtml(sup.name)}" ${attrs}>`;
   const img = CARD_IMAGES[sup.form_type] ?? CARD_IMAGES.capsule;
   return `<img src="/images/${img.src}" srcset="${withPrefix(img.srcset)}" loading="lazy" alt="${escapeHtml(sup.name)}" ${attrs}>`;
 }
 
 export function detailImage(sup: Supplement): string {
+  if (sup.image) return `<img src="${escapeHtml(sup.image)}" loading="lazy" alt="${escapeHtml(sup.name)}" class="image-3 ww-generated-tile">`;
   const img = DETAIL_IMAGES[sup.form_type] ?? DETAIL_IMAGES.capsule;
   const cls = img.cls ? ` class="${img.cls}"` : '';
   return `<img src="/images/${img.src}" srcset="${withPrefix(img.srcset)}" sizes="(max-width: 479px) 100vw, (max-width: 767px) 73vw, (max-width: 991px) 349.990234375px, 35vw" loading="lazy" alt="${escapeHtml(sup.name)}"${cls}>`;
@@ -165,9 +167,9 @@ export function footer(): string {
       </a>
       <div class="frame-220">
         <div class="frame-221">
-          <div class="text-58">Blog</div>
-          <div class="text-58">How it works </div>
-          <div class="text-58">Terms and Conditions</div>
+          <a href="/blog" class="text-58 ww-footer-link">Blog</a>
+          <a href="/how-it-works" class="text-58 ww-footer-link">How it works</a>
+          <a href="/terms" class="text-58 ww-footer-link">Terms and Conditions</a>
         </div>
         <nav class="frame-222">
           <a href="https://chat.openai.com/g/g-pqcxd1t8o-wellness-whizz" target="_blank" rel="noopener" class="w-inline-block"><img src="/images/Vectors-Wrapper_9.svg" loading="lazy" width="37.501739501953125" height="38" alt="ChatGPT" class="vectors-wrapper-59"></a>
@@ -271,8 +273,8 @@ export function homeCard(sup: Supplement): string {
   const product = sup.products.find((p) => p.image);
   const image = product
     ? `<img src="${escapeHtml(product.image)}" loading="lazy" width="213" height="213" alt="${escapeHtml(product.name)}" class="convertedimage2 ww-slider-photo">`
-    : cardImage(sup, 'width="213" height="213" class="convertedimage2"');
-  return `<div role="listitem" class="collection-item-2 w-dyn-item w-col w-col-6">
+    : cardImage(sup, `width="213" height="213" class="convertedimage2${sup.image ? ' ww-slider-photo' : ''}"`);
+  return `<div role="listitem" class="collection-item-2 ww-carousel-item">
   <a href="/supplement/${escapeHtml(sup.slug)}" class="link-block-2 w-inline-block" aria-label="${escapeHtml(sup.name)}"></a>
   <div class="imagecard">${image}
     <div class="frame-256">

@@ -12,16 +12,20 @@
  *   /supplement/:slug      supplement detail page
  */
 import { Hono } from 'hono';
+import { POSTS, getPost, supplementSlugsUsed } from './blog';
 import { ensureDatabase } from './bootstrap';
 import { MIN_ARTICLE_LENGTH, generateArticle } from './content';
+import { generateSupplementImage, imageGenerationEnabled, loadImage, supplementsNeedingImage } from './images';
 import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
   getSessionResults, getSupplementBySlug, listSupplements, logEvent, markSession, mergeDuplicateSupplements,
   resolveSupplementSlug, statsSummary, supplementsNeedingContent, updateSupplementContent, type EventInput,
-  type EventType, type QuizProfile,
+  type EventType, type QuizProfile, countSupplements, getSupplementsBySlugs, listSupplementSlugs,
 } from './db';
 import { runQuizPipeline } from './pipeline';
+import { renderBlogIndex, renderBlogPost } from './render/blog';
 import { fetchAsset, renderHome } from './render/home';
+import { renderHowItWorks, renderTerms } from './render/pages';
 import { renderFailedPage, renderPendingPage, renderResultPage } from './render/result';
 import { renderSupplementPage } from './render/supplement';
 
@@ -41,6 +45,9 @@ export interface Bindings {
   STATS_KEY?: string;
   /** Supplements per cron run of the article writer; "0" disables the scheduled backfill. */
   BACKFILL_BATCH?: string;
+  /** "false" turns off generated illustrations for supplements without product photos. */
+  IMAGE_GENERATION?: string;
+  IMAGE_MODEL?: string;
 }
 
 type AppContext = { Bindings: Bindings };
@@ -102,6 +109,17 @@ app.get('/result/:id', async (c) => {
   return c.body(renderResultPage(session, items, c.env), 200, htmlHeaders('private, max-age=0, must-revalidate'));
 });
 
+/** Generated illustrations stored in D1. */
+app.get('/images/generated/:file', async (c) => {
+  const key = c.req.param('file').replace(/\.webp$/i, '');
+  if (!/^[a-z0-9-]{1,120}$/.test(key)) return c.notFound();
+  const image = await loadImage(c.env.DB, key);
+  if (!image) return c.notFound();
+  return new Response(image.bytes, {
+    headers: { 'content-type': image.contentType, 'cache-control': 'public, max-age=86400, stale-while-revalidate=604800' },
+  });
+});
+
 app.get('/supplement/:slug', async (c) => {
   const slug = c.req.param('slug');
   const supplement = await getSupplementBySlug(c.env.DB, slug);
@@ -113,6 +131,60 @@ app.get('/supplement/:slug', async (c) => {
   const explore = await listSupplements(c.env.DB, 200, curatedOnly(c.env));
   track(c, { type: 'supplement_view', page: `/supplement/${supplement.slug}`, slug: supplement.slug });
   return c.body(renderSupplementPage(supplement, explore, c.env), 200, htmlHeaders('public, max-age=300'));
+});
+
+// ---------- editorial pages ----------
+
+app.get('/how-it-works', async (c) => {
+  const n = await countSupplements(c.env.DB);
+  track(c, { type: 'page_view', page: '/how-it-works' });
+  return c.body(renderHowItWorks(n), 200, htmlHeaders('public, max-age=600'));
+});
+
+app.get('/terms', (c) => {
+  track(c, { type: 'page_view', page: '/terms' });
+  return c.body(renderTerms(), 200, htmlHeaders('public, max-age=600'));
+});
+
+app.get('/blog', async (c) => {
+  const supplements = await getSupplementsBySlugs(c.env.DB, POSTS.map((p) => p.heroSupplement));
+  track(c, { type: 'page_view', page: '/blog' });
+  const ctx = { env: c.env, origin: new URL(c.req.url).origin, supplements };
+  return c.body(renderBlogIndex(ctx, POSTS), 200, htmlHeaders('public, max-age=600'));
+});
+
+app.get('/blog/:slug', async (c) => {
+  const post = getPost(c.req.param('slug'));
+  if (!post) return notFound(c.env, c.req.raw);
+  const related = POSTS.filter((p) => p.slug !== post.slug).slice(0, 3);
+  const supplements = await getSupplementsBySlugs(c.env.DB, [...supplementSlugsUsed(post), ...related.map((p) => p.heroSupplement)]);
+  track(c, { type: 'page_view', page: `/blog/${post.slug}`, slug: `blog:${post.slug}` });
+  const ctx = { env: c.env, origin: new URL(c.req.url).origin, supplements };
+  return c.body(renderBlogPost(ctx, post, related), 200, htmlHeaders('public, max-age=600'));
+});
+
+app.get('/sitemap.xml', async (c) => {
+  const origin = new URL(c.req.url).origin;
+  const supplements = await listSupplementSlugs(c.env.DB, curatedOnly(c.env));
+  const urls: { loc: string; lastmod?: string; priority: string }[] = [
+    { loc: '/', priority: '1.0' },
+    { loc: '/wellness-quiz', priority: '0.9' },
+    { loc: '/blog', priority: '0.8' },
+    { loc: '/how-it-works', priority: '0.6' },
+    { loc: '/terms', priority: '0.2' },
+    ...POSTS.map((p) => ({ loc: `/blog/${p.slug}`, lastmod: p.date, priority: '0.8' })),
+    ...supplements.map((s) => ({ loc: `/supplement/${s.slug}`, lastmod: s.created_at.slice(0, 10), priority: '0.7' })),
+  ];
+  const xml =
+    '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    urls
+      .map(
+        (u) =>
+          `  <url><loc>${origin}${u.loc}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ''}<priority>${u.priority}</priority></url>`,
+      )
+      .join('\n') +
+    '\n</urlset>\n';
+  return c.body(xml, 200, { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' });
 });
 
 // ---------- API ----------
@@ -169,7 +241,7 @@ app.post('/api/quiz', async (c) => {
   if (!(await createSession(c.env.DB, id, validation.profile, ipHash))) return existingResponse(); // lost a race
 
   // The browser stays connected while the pipeline runs; waitUntil covers a short disconnect at the end.
-  const work = runQuizPipeline(env, id, validation.profile).then(
+  const work = runQuizPipeline(env, id, validation.profile, (job) => c.executionCtx.waitUntil(job)).then(
     () => 'ready' as const,
     () => 'failed' as const,
   );
@@ -235,7 +307,9 @@ app.get('/api/admin/backfill', async (c) => {
   const limit = Math.min(10, Math.max(1, Number(c.req.query('limit') ?? '3') || 3));
   c.header('cache-control', 'no-store');
   const merged = await mergeDuplicateSupplements(c.env.DB);
-  return c.json({ ...(await backfillContent(c.env, limit)), merged: merged.merged });
+  const content = await backfillContent(c.env, limit);
+  const images = await backfillImages(c.env, Math.min(limit, 3));
+  return c.json({ ...content, merged: merged.merged, illustrations: images });
 });
 
 /** The whole catalogue as JSON, in the shape of data/supplements.json (to bundle AI-written content into the repo). */
@@ -285,6 +359,10 @@ export default {
         })
         .then(() => backfillContent(env, batch))
         .then((result) => console.log(`backfill: ${JSON.stringify(result)}`))
+        .then(() => backfillImages(env, 2))
+        .then((result) => {
+          if (result.generated.length || result.failed.length) console.log(`illustrations: ${JSON.stringify(result)}`);
+        })
         .catch((err) => console.error(`backfill failed: ${String(err)}`)),
     );
   },
@@ -298,6 +376,27 @@ interface BackfillResult {
   remaining: number;
 }
 
+/** Illustrations for up to `limit` supplements (AI-created first) that have no product photos. */
+async function backfillImages(env: Bindings, limit: number): Promise<{ generated: string[]; failed: string[]; remaining: number }> {
+  if (!imageGenerationEnabled(env)) return { generated: [], failed: [], remaining: 0 };
+  const todo = await supplementsNeedingImage(env.DB, limit);
+  const generated: string[] = [];
+  const failed: string[] = [];
+  for (const { slug } of todo) {
+    const sup = await getSupplementBySlug(env.DB, slug);
+    if (!sup) continue;
+    try {
+      await generateSupplementImage(env, sup);
+      generated.push(slug);
+    } catch (err) {
+      failed.push(`${slug}: ${String(err).slice(0, 160)}`);
+      console.error(`illustration for ${slug} failed: ${String(err)}`);
+    }
+  }
+  const remaining = (await supplementsNeedingImage(env.DB, 1000)).length;
+  return { generated, failed, remaining };
+}
+
 /** Generate articles for up to `limit` supplements that lack one. Safe to run repeatedly. */
 async function backfillContent(env: Bindings, limit: number): Promise<BackfillResult> {
   if (!env.OPENAI_API_KEY && env.DEV_FAKE_AI !== 'true') {
@@ -306,7 +405,9 @@ async function backfillContent(env: Bindings, limit: number): Promise<BackfillRe
   const todo = await supplementsNeedingContent(env.DB, MIN_ARTICLE_LENGTH, limit);
   const settled = await Promise.allSettled(
     todo.map(async (sup) => {
-      const content = await generateArticle(env, sup);
+      const generated = await generateArticle(env, sup);
+      // A supplement that already has a full article only gets the studies list filled in.
+      const content = sup.holistic_html.length >= MIN_ARTICLE_LENGTH ? { ...generated, holistic_html: sup.holistic_html } : generated;
       await updateSupplementContent(env.DB, sup.id, content);
       return sup.slug;
     }),

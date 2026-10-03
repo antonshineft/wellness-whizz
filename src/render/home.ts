@@ -1,6 +1,6 @@
 /**
  * Home page: the static index.html from the export, with the two Webflow collection lists filled from D1
- * (the slider cards and the "Explore manually" links) using HTMLRewriter.
+ * (the carousel cards and the "Explore manually" links) using HTMLRewriter.
  */
 import { listSupplements, randomSupplements, type Supplement } from '../db';
 import { exploreItem, homeCard } from './partials';
@@ -16,24 +16,14 @@ export async function renderHome(
     listSupplements(env.DB, 200, curatedOnly),
   ]);
   if (!assetResponse.ok) return assetResponse;
-  // Six slides; supplements with real product photos first.
+  // Carousel cards: supplements with real product photos first. The browser script loops them seamlessly.
   const withPhoto = candidates.filter((s) => s.products.some((p) => p.image));
-  const slides = [...withPhoto, ...candidates.filter((s) => !withPhoto.includes(s))].slice(0, 6);
-
-  // Each of the six slides shows one supplement (the Webflow design sizes one card to the full slide width).
-  let slideIndex = 0;
-  const cardFor = (i: number): Supplement | undefined => (slides.length ? slides[i % slides.length] : undefined);
+  const cards = [...withPhoto, ...candidates.filter((s) => !withPhoto.includes(s))].slice(0, 10);
 
   const rewriter = new HTMLRewriter()
-    .on('.collection-list-2', {
+    .on('.ww-carousel-track', {
       element(el) {
-        const supplement = cardFor(slideIndex++);
-        if (supplement) el.setInnerContent(homeCard(supplement), { html: true });
-      },
-    })
-    .on('.collection-list-wrapper-2 .empty-state', {
-      element(el) {
-        if (slides.length) el.remove();
+        if (cards.length) el.setInnerContent(cards.map(homeCard).join(''), { html: true });
       },
     })
     .on('.linksnav', {

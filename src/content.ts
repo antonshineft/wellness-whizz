@@ -33,7 +33,7 @@ const articleSchema = {
     key_takeaways: { type: 'array', items: { type: 'string' }, description: '4 short bullets.' },
     studies: {
       type: 'array',
-      description: '3 well-known peer-reviewed studies or reviews you are confident exist.',
+      description: 'Up to 5 relevant peer-reviewed studies, meta-analyses or reviews you are confident exist, most relevant first.',
       items: {
         type: 'object',
         additionalProperties: false,
@@ -63,7 +63,7 @@ export async function generateArticle(env: AiEnv, sup: Supplement): Promise<Gene
   return {
     holistic_html: articleHtml(draft),
     studies_html: linksListHtml(
-      (draft.studies ?? []).slice(0, 3).map((s) => ({
+      (draft.studies ?? []).slice(0, 5).map((s) => ({
         label: [s.title, [s.source, s.year].filter(Boolean).join(', ')].filter(Boolean).join(' — '),
         href: `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(s.title)}`,
       })),
@@ -78,7 +78,8 @@ async function requestArticle(env: AiEnv, sup: Supplement): Promise<ArticleDraft
     'Audience: health-conscious adults choosing supplements online. Tone: warm, clear, evidence-informed, no hype.',
     'Cover what it is and how it works, who benefits most, how to take it (timing, food, typical dose ranges),',
     'how it fits into sleep, diet and training habits, and what to watch out for. Mention when to see a doctor.',
-    'About 450 to 550 words in total. No medical claims of curing or treating diseases. Only cite studies you are confident exist.',
+    'About 450 to 550 words in total. No medical claims of curing or treating diseases.',
+    'Studies: list up to 5 relevant peer-reviewed studies, meta-analyses or reviews that you are confident exist (exact title, journal, year), most relevant first.',
   ]
     .filter(Boolean)
     .join('\n');

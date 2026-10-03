@@ -7,15 +7,21 @@ import {
   findSupplementByAlias, getSupplementsByNameKeys, insertSupplement, listSupplementNames, markSession, normalizeNameKey,
   saveSessionResults, type QuizProfile, type Supplement,
 } from './db';
+import { generateSupplementImage, imageGenerationEnabled, type ImageEnv } from './images';
 import { generateSupplementProfile, recommendSupplements, type AiEnv } from './openai';
 
-export interface PipelineEnv extends AiEnv {
+export interface PipelineEnv extends AiEnv, ImageEnv {
   DB: D1Database;
 }
 
 const MIN_RESULTS = 3;
 
-export async function runQuizPipeline(env: PipelineEnv, sessionId: string, profile: QuizProfile): Promise<void> {
+export async function runQuizPipeline(
+  env: PipelineEnv,
+  sessionId: string,
+  profile: QuizProfile,
+  background: (work: Promise<unknown>) => void = () => {},
+): Promise<void> {
   try {
     const knownNames = await listSupplementNames(env.DB, 300);
     const recommendations = await recommendSupplements(env, profile, knownNames);
@@ -31,6 +37,9 @@ export async function runQuizPipeline(env: PipelineEnv, sessionId: string, profi
         if (found) return { supplement: found, reason: rec.reason };
         const draft = await generateSupplementProfile(env, rec);
         const supplement = await insertSupplement(env.DB, draft, 'ai');
+        if (supplement.source === 'ai' && !supplement.image && !supplement.products.some((p) => p.image) && imageGenerationEnabled(env)) {
+          background(generateSupplementImage(env, supplement).catch((err) => console.error(`illustration for ${supplement.slug} failed: ${String(err)}`)));
+        }
         return { supplement, reason: rec.reason };
       }),
     );

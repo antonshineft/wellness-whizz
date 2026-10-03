@@ -45,7 +45,11 @@ interface Manifest {
 }
 
 const BATCH_SIZE = 100;
-const TABLES = ['supplements', 'sessions', 'session_supplements', 'meta', 'events'];
+const TABLES = ['supplements', 'sessions', 'session_supplements', 'meta', 'events', 'images'];
+/** Columns added after the first release; created on databases that predate them. */
+const LATER_COLUMNS: [table: string, column: string, definition: string][] = [
+  ['supplements', 'image', "TEXT NOT NULL DEFAULT ''"],
+];
 let ready: Promise<void> | null = null;
 
 /** Make sure schema and bundled content are present and current. Safe to call on every request. */
@@ -75,6 +79,14 @@ async function bootstrap(db: D1Database): Promise<void> {
       .filter(Boolean);
     await db.batch(statements.map((s) => db.prepare(s)));
     console.log('bootstrap: created database schema');
+  }
+
+  for (const [table, column, definition] of LATER_COLUMNS) {
+    const info = await db.prepare(`PRAGMA table_info(${table})`).all<{ name: string }>();
+    if (!info.results.some((c) => c.name === column)) {
+      await db.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`).run();
+      console.log(`bootstrap: added column ${table}.${column}`);
+    }
   }
 
   const manifest = manifestJson as Manifest;

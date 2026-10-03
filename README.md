@@ -114,14 +114,36 @@ Every "Buy on iHerb" button and product photo is an affiliate link with your ref
 ### Article writer (content backfill)
 
 Only a fifth of the Webflow catalogue had a "Holistic Highlights" article and most pages had no studies. The Worker
-now writes them itself: a cron trigger (`wrangler.jsonc` → `triggers`) runs every 10 minutes and writes
-`BACKFILL_BATCH` (default 3) missing articles per run with OpenAI, newest AI-created supplements first, until none
-is left; afterwards each run is a single cheap database query. Set `BACKFILL_BATCH` to `0` to switch it off.
+now writes them itself: a cron trigger (`wrangler.jsonc` → `triggers`) runs every 5 minutes and writes
+`BACKFILL_BATCH` (default 6) missing articles per run with OpenAI, newest AI-created supplements first, until none
+is left; afterwards each run is a single cheap database query. Each article comes with up to five relevant studies
+(PubMed links). A supplement that already has a full article only gets its studies list filled in. Set
+`BACKFILL_BATCH` to `0` to switch it off.
 
 - `GET /api/admin/backfill?key=<STATS_KEY>&limit=5` writes up to 5 articles right now and reports what is left.
 - `GET /api/admin/export?key=<STATS_KEY>` downloads the whole catalogue in the shape of `data/supplements.json`;
   save it over that file and commit to carry AI-written content into the repository (bundled text never overwrites
   content the database already has when the bundle's field is empty).
+
+### Illustrations for supplements without product photos
+
+Supplements the quiz creates have no product photos. The site generates one brand-free illustration per such
+supplement (a bottle or tub with the name on the label, transparent background) with OpenAI's image model, stores it
+in D1 and serves it from `/images/generated/…`. New supplements get theirs right after creation; the cron catches up
+on older ones two per run. `IMAGE_GENERATION=false` switches this off; `IMAGE_MODEL` overrides the model
+(default `gpt-image-1`, roughly 4 cents per image at medium quality).
+
+### Pages, blog and sitemap
+
+- `/how-it-works` and `/terms` (Terms and Conditions with the privacy and affiliate disclosures) are rendered from
+  `src/render/pages.ts`; the footer links point at them.
+- `/blog` lists the articles in `src/blog/posts/*.ts` (newest first) and `/blog/<slug>` renders one. An article is a
+  plain TypeScript module (see `src/blog/types.ts`): write `href="iherb:magnesium glycinate"` for an iHerb search link
+  with your referral code and click tracking, `<ww-shop slugs="…"></ww-shop>` for product cards from the catalogue
+  and `<ww-quiz></ww-quiz>` for the quiz call-to-action. Every article page carries BlogPosting and FAQ structured data.
+- `/sitemap.xml` lists the pages, the articles and every supplement page; `public/robots.txt` points search engines at it.
+- The home page carousel (`public/js/home.js`) scrolls continuously and loops without empty slides; it pauses on
+  hover, the arrows step one card, and it can be dragged.
 
 ### Bot protection with Cloudflare Turnstile (recommended)
 
@@ -204,7 +226,10 @@ src/index.ts       Routes (Hono)
 src/pipeline.ts    Quiz pipeline (the former Make.com scenario)
 src/openai.ts      OpenAI calls, prompts and JSON schemas
 src/db.ts          D1 queries
-src/render/        HTML templates reusing the Webflow markup and classes
+src/render/        HTML templates reusing the Webflow markup and classes (home, result, supplement, pages, blog)
+src/blog/          Blog posts (one module per article) and the post registry
+src/content.ts     Article writer (Holistic Highlights + studies) run by the cron trigger
+src/images.ts      Illustrations for supplements without product photos
 src/bootstrap.ts   Creates tables and loads data/*.json on first start
 data/              Webflow CMS content bundled into the Worker (built by scripts/build-data.mjs)
 migrations/        D1 schema

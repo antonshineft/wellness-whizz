@@ -42,10 +42,12 @@ export interface Supplement {
   studies_html: string;
   products: Product[];
   source: SupplementSource;
+  /** Generated illustration path (supplements without product photos), empty otherwise. */
+  image: string;
   created_at: string;
 }
 
-export type SupplementInput = Omit<Supplement, 'id' | 'slug' | 'created_at' | 'source'>;
+export type SupplementInput = Omit<Supplement, 'id' | 'slug' | 'created_at' | 'source' | 'image'>;
 
 export interface QuizProfile {
   sex: string;
@@ -149,13 +151,14 @@ function rowToSupplement(row: SupplementRow): Supplement {
     safety: clampRating(rest.safety),
     products: parseProducts(products_json),
     source: rest.source === 'ai' ? 'ai' : 'cms',
+    image: rest.image ?? '',
   };
 }
 
 const SUPPLEMENT_COLUMNS =
   'id, slug, name, name_key, category, form_type, fda_status, safety_status, effectivity, safety, summary, ' +
   'benefits_html, contraindications_html, enhancing_html, interactions_html, why_consider, holistic_html, ' +
-  'studies_html, products_json, source, created_at';
+  'studies_html, products_json, source, image, created_at';
 
 // ---------- supplements ----------
 
@@ -211,6 +214,31 @@ export async function resolveSupplementSlug(db: D1Database, requested: string): 
     if (row) return row.slug;
   }
   return null;
+}
+
+export async function getSupplementsBySlugs(db: D1Database, slugs: string[]): Promise<Map<string, Supplement>> {
+  const map = new Map<string, Supplement>();
+  const unique = [...new Set(slugs.filter(Boolean))];
+  if (!unique.length) return map;
+  const { results } = await db
+    .prepare(`SELECT ${SUPPLEMENT_COLUMNS} FROM supplements WHERE slug IN (${unique.map(() => '?').join(',')})`)
+    .bind(...unique)
+    .all<SupplementRow>();
+  for (const row of results) map.set(row.slug, rowToSupplement(row));
+  return map;
+}
+
+export async function countSupplements(db: D1Database): Promise<number> {
+  const row = await db.prepare('SELECT COUNT(*) AS n FROM supplements').first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+/** Slugs and creation dates of the whole catalogue (sitemap). */
+export async function listSupplementSlugs(db: D1Database, curatedOnly = false): Promise<{ slug: string; created_at: string }[]> {
+  const { results } = await db
+    .prepare(`SELECT slug, created_at FROM supplements${curatedOnly ? " WHERE source = 'cms'" : ''} ORDER BY name`)
+    .all<{ slug: string; created_at: string }>();
+  return results;
 }
 
 export async function getSupplementByNameKey(db: D1Database, key: string): Promise<Supplement | null> {
@@ -366,7 +394,7 @@ export async function getSessionResults(db: D1Database, sessionId: string): Prom
     .prepare(
       `SELECT ss.position, ss.reason, s.id, s.slug, s.name, s.name_key, s.category, s.form_type, s.fda_status, s.safety_status,
               s.effectivity, s.safety, s.summary, s.benefits_html, s.contraindications_html, s.enhancing_html,
-              s.interactions_html, s.why_consider, s.holistic_html, s.studies_html, s.products_json, s.source, s.created_at
+              s.interactions_html, s.why_consider, s.holistic_html, s.studies_html, s.products_json, s.source, s.image, s.created_at
        FROM session_supplements ss JOIN supplements s ON s.id = ss.supplement_id
        WHERE ss.session_id = ? ORDER BY ss.position`,
     )
@@ -426,8 +454,8 @@ export async function exportSupplements(db: D1Database): Promise<Supplement[]> {
 
 // ---------- events (measurement) ----------
 
-export type EventType = 'home_view' | 'quiz_view' | 'result_view' | 'supplement_view' | 'outbound_click';
-export const EVENT_TYPES: readonly EventType[] = ['home_view', 'quiz_view', 'result_view', 'supplement_view', 'outbound_click'];
+export type EventType = 'home_view' | 'quiz_view' | 'result_view' | 'supplement_view' | 'page_view' | 'outbound_click';
+export const EVENT_TYPES: readonly EventType[] = ['home_view', 'quiz_view', 'result_view', 'supplement_view', 'page_view', 'outbound_click'];
 
 export interface EventInput {
   type: EventType;
