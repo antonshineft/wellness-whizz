@@ -1,0 +1,5 @@
+1. Strongest: D. It alone attacks the binding constraint, $2 per order, instead of traffic. A 10-25% supplement affiliate program on the 10-15 most-clicked supplements multiplies every future visitor; nothing else on the table does. A is the best execution plan (measure first, B by Friday, time-budgeted) and should be the skeleton, with D's move inserted in week one.
+
+2. Biggest blind spot: B. 2,000 gpt-4.1-mini pages on a freshly migrated domain is the scaled-content pattern Google demotes, and "zinc with sertraline" pages are unreviewed medical advice from an anonymous site. Gating results behind email breaks the one funnel step that works (35% completion). Sponsorship needs a list far larger than 1,700.
+
+3. All five missed: (a) iHerb Rewards payout mechanics: cash or store credit, minimum payout, cookie window, eligible countries. Every revenue figure is unverified until checked. (b) Organic traffic lands on supplement pages, but conversion lives on the quiz result page; nobody routes supplement-page visitors into the quiz. (c) Numeric go/no-go gates at day 30 and 60 so the owner knows when to stop.
