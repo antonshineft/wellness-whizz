@@ -35,6 +35,8 @@
     // (their own pages and result pages still work).
     "LIST_AI_SUPPLEMENTS": "true",
     "BACKFILL_BATCH": "6",
+    // The site's one public address: the workers.dev URL and www. redirect to it (src/index.ts).
+    "CANONICAL_HOST": "aiww.io",
     // Illustrations (OpenAI image model) for supplements without product photos; "false" switches them off.
     "IMAGE_GENERATION": "false"
     // Optional Cloudflare Turnstile bot protection: add TURNSTILE_SITE_KEY (variable) and TURNSTILE_SECRET_KEY (secret)
