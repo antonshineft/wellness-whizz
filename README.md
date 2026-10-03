@@ -130,8 +130,8 @@ automatically into an empty database. To refresh it after changes in Webflow, ex
 node scripts/build-data.mjs ~/Downloads/Supplements.csv ~/Downloads/Results.csv
 ```
 
-then commit `data/` and push (a new database picks it up; an existing one keeps its rows, so for an existing site use
-the SQL importers below, which update rows in place).
+then commit `data/` and push. The Worker notices the new version in `data/manifest.json` and refreshes the rows of
+an existing database on the next request (the SQL importers below remain available for one-off manual changes).
 
 Export the **Supplements** collection from Webflow as CSV, then:
 
@@ -149,9 +149,17 @@ templates understand, the iHerb affiliate links become the "View More" buttons, 
 rows (slugs are never rewritten) and overrides the starter seed. Rich text is reduced to plain formatting tags and
 http(s) links.
 
-Product images still point at Webflow's CDN. Before cancelling Webflow, run the import once with
-`--download-images`: it copies them into `public/images/products/` and links the local files (commit that folder).
-A bare slug such as `/supplement/zinc` redirects to the full slug (`/supplement/zinc-fe1df`).
+Product images still point at Webflow's CDN. Before cancelling Webflow, copy them into the project:
+
+```sh
+node scripts/download-product-images.mjs
+```
+
+This downloads every product photo referenced in `data/supplements.json` into `public/images/products/` (shrunk to
+web size), points the data at the local files and bumps `data/manifest.json`. Commit `data/` and
+`public/images/products/` and push: the next deploy serves the local images and the live database refreshes itself
+(the Worker reloads bundled content whenever the manifest version changes; supplements created by the AI are left
+alone). A bare slug such as `/supplement/zinc` redirects to the full slug (`/supplement/zinc-fe1df`).
 
 To keep old `/result/{sessionID}` links alive, also export the **Results** collection and import it *after* the
 supplements (it references them by slug):

@@ -39,6 +39,12 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_ip_created ON sessions(ip_hash, created_at);
 
+-- Bookkeeping, e.g. which version of the bundled data/*.json has been loaded.
+CREATE TABLE IF NOT EXISTS meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
 -- The 5 supplements recommended for a session, with the personalised reason shown on the card.
 CREATE TABLE IF NOT EXISTS session_supplements (
   session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,

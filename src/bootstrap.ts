@@ -1,14 +1,16 @@
 /**
- * Self-installing database.
+ * Self-installing, self-updating database.
  *
- * On the first request of a fresh deployment the Worker creates its tables (same SQL as migrations/0001_init.sql)
- * and, when the supplements table is empty, loads the content bundled in data/*.json (built from the Webflow CMS
- * exports by scripts/build-data.mjs). This is what lets the "Deploy to Cloudflare" button produce a working site
- * without any manual database steps. Everything here is idempotent and cheap after the first run.
+ * On the first request of a fresh deployment the Worker creates its tables (same SQL as migrations/0001_init.sql).
+ * It then compares the version of the content bundled in data/*.json (built from the Webflow CMS exports by
+ * scripts/build-data.mjs, versions in data/manifest.json) with the version recorded in the `meta` table and loads or
+ * refreshes the rows when they differ. Supplements created by the quiz (source = 'ai') are never touched.
+ * Everything here is idempotent and runs once per isolate.
  */
 import schemaSql from '../migrations/0001_init.sql';
 import supplementsJson from '../data/supplements.json';
 import resultsJson from '../data/results.json';
+import manifestJson from '../data/manifest.json';
 import { asFdaStatus, asFormType, asSafetyStatus, clampRating, normalizeNameKey, type Product } from './db';
 
 interface BundledSupplement {
@@ -37,10 +39,16 @@ interface BundledSession {
   cards: { position: number; slug: string; reason: string }[];
 }
 
+interface Manifest {
+  supplementsVersion: string;
+  resultsVersion: string;
+}
+
 const BATCH_SIZE = 100;
+const TABLES = ['supplements', 'sessions', 'session_supplements', 'meta'];
 let ready: Promise<void> | null = null;
 
-/** Make sure schema and bundled content exist. Safe to call on every request; runs once per isolate. */
+/** Make sure schema and bundled content are present and current. Safe to call on every request. */
 export function ensureDatabase(db: D1Database): Promise<void> {
   if (!ready) {
     ready = bootstrap(db).catch((err) => {
@@ -52,10 +60,12 @@ export function ensureDatabase(db: D1Database): Promise<void> {
 }
 
 async function bootstrap(db: D1Database): Promise<void> {
+  const placeholders = TABLES.map(() => '?').join(',');
   const tables = await db
-    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('supplements', 'sessions', 'session_supplements')")
+    .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (${placeholders})`)
+    .bind(...TABLES)
     .all<{ name: string }>();
-  if (tables.results.length < 3) {
+  if (tables.results.length < TABLES.length) {
     const statements = schemaSql
       .split('\n')
       .filter((line) => !line.trim().startsWith('--'))
@@ -67,18 +77,35 @@ async function bootstrap(db: D1Database): Promise<void> {
     console.log('bootstrap: created database schema');
   }
 
-  const count = await db.prepare('SELECT COUNT(*) AS n FROM supplements').first<{ n: number }>();
-  if ((count?.n ?? 0) > 0) return;
+  const manifest = manifestJson as Manifest;
+  const loaded = await loadedVersions(db);
 
-  const supplements = supplementsJson as BundledSupplement[];
-  const sessions = resultsJson as BundledSession[];
-  if (!supplements.length) return;
-
-  for (const chunk of chunks(supplements, BATCH_SIZE)) {
-    await db.batch(chunk.map((s) => supplementStatement(db, s)));
+  if (loaded.supplements !== manifest.supplementsVersion) {
+    const supplements = supplementsJson as BundledSupplement[];
+    for (const chunk of chunks(supplements, BATCH_SIZE)) await db.batch(chunk.map((s) => upsertSupplement(db, s)));
+    await setVersion(db, 'supplements_version', manifest.supplementsVersion);
+    console.log(`bootstrap: loaded ${supplements.length} supplements (version ${manifest.supplementsVersion})`);
   }
-  console.log(`bootstrap: loaded ${supplements.length} supplements`);
 
+  if (loaded.results !== manifest.resultsVersion) {
+    const sessions = resultsJson as BundledSession[];
+    await loadSessions(db, sessions);
+    await setVersion(db, 'results_version', manifest.resultsVersion);
+    console.log(`bootstrap: loaded ${sessions.length} past result sessions (version ${manifest.resultsVersion})`);
+  }
+}
+
+async function loadedVersions(db: D1Database): Promise<{ supplements: string; results: string }> {
+  const { results } = await db.prepare('SELECT key, value FROM meta').all<{ key: string; value: string }>();
+  const get = (key: string) => results.find((r) => r.key === key)?.value ?? '';
+  return { supplements: get('supplements_version'), results: get('results_version') };
+}
+
+function setVersion(db: D1Database, key: string, value: string) {
+  return db.prepare('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(key, value).run();
+}
+
+async function loadSessions(db: D1Database, sessions: BundledSession[]): Promise<void> {
   if (!sessions.length) return;
   const idBySlug = new Map<string, number>();
   const { results } = await db.prepare('SELECT id, slug FROM supplements').all<{ id: number; slug: string }>();
@@ -106,17 +133,23 @@ async function bootstrap(db: D1Database): Promise<void> {
     }
   }
   for (const chunk of chunks(statements, BATCH_SIZE)) await db.batch(chunk);
-  console.log(`bootstrap: loaded ${sessions.length} past result sessions`);
 }
 
-function supplementStatement(db: D1Database, s: BundledSupplement): D1PreparedStatement {
+const COLUMNS = [
+  'slug', 'name', 'name_key', 'category', 'form_type', 'fda_status', 'safety_status', 'effectivity', 'safety', 'summary',
+  'benefits_html', 'contraindications_html', 'enhancing_html', 'interactions_html', 'why_consider', 'holistic_html',
+  'studies_html', 'products_json', 'source',
+];
+// Existing rows are refreshed by name or by slug; slugs are never rewritten (old links must keep working).
+const UPDATE_BY_NAME = COLUMNS.filter((c) => c !== 'name_key' && c !== 'slug').map((c) => `${c} = excluded.${c}`).join(', ');
+const UPDATE_BY_SLUG = COLUMNS.filter((c) => c !== 'slug').map((c) => `${c} = excluded.${c}`).join(', ');
+const UPSERT_SQL =
+  `INSERT INTO supplements (${COLUMNS.join(', ')}) VALUES (${COLUMNS.map(() => '?').join(', ')}) ` +
+  `ON CONFLICT(name_key) DO UPDATE SET ${UPDATE_BY_NAME} ON CONFLICT(slug) DO UPDATE SET ${UPDATE_BY_SLUG}`;
+
+function upsertSupplement(db: D1Database, s: BundledSupplement): D1PreparedStatement {
   return db
-    .prepare(
-      `INSERT OR IGNORE INTO supplements (slug, name, name_key, category, form_type, fda_status, safety_status, effectivity, safety,
-         summary, benefits_html, contraindications_html, enhancing_html, interactions_html, why_consider, holistic_html,
-         studies_html, products_json, source)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'cms')`,
-    )
+    .prepare(UPSERT_SQL)
     .bind(
       s.slug,
       s.name,
@@ -136,6 +169,7 @@ function supplementStatement(db: D1Database, s: BundledSupplement): D1PreparedSt
       s.holistic_html ?? '',
       s.studies_html ?? '',
       JSON.stringify(s.products ?? []),
+      'cms',
     );
 }
 

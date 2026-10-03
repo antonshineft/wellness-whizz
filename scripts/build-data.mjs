@@ -8,6 +8,7 @@
  * (src/bootstrap.ts) inserts them when the database is still empty. Re-run after exporting new content from Webflow.
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { writeManifest } from './data-manifest.mjs';
 import { resultsFromCsv, supplementsFromCsv } from './webflow-mapping.mjs';
 
 const args = process.argv.slice(2);
@@ -36,6 +37,8 @@ if (resultsCsv) {
 } else if (!existsSync(new URL('results.json', DATA_DIR))) {
   writeFileSync(new URL('results.json', DATA_DIR), '[]\n');
 }
+const manifest = writeManifest();
+console.error(`data/manifest.json: supplements ${manifest.supplementsVersion}, results ${manifest.resultsVersion}`);
 
 async function localImage(url, baseName) {
   try {
