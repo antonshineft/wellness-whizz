@@ -198,30 +198,48 @@ function seoHead(sup: Supplement, origin: string): string {
   const product = sup.products.find((p) => p.image);
   const image = product?.image ? new URL(product.image, origin).toString() : null;
   const safe = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
-  const supplement = {
+  // The page is described as a MedicalWebPage about a Substance rather than as a DietarySupplement: that type is a
+  // Product subtype, and Google (and so Semrush) treats a Product without offers, a review or a rating as an error.
+  const webPage = {
     '@context': 'https://schema.org',
-    '@type': 'DietarySupplement',
-    name: sup.name,
-    description: sup.summary,
+    '@type': 'MedicalWebPage',
+    '@id': url,
     url,
-    ...(image ? { image } : {}),
-    ...(sup.category ? { category: sup.category } : {}),
-    isProprietary: false,
-    mainEntityOfPage: url,
+    name: seoTitle(sup),
+    description: sup.summary,
+    inLanguage: 'en',
+    ...(image ? { primaryImageOfPage: { '@type': 'ImageObject', url: image } } : {}),
+    isPartOf: { '@type': 'WebSite', name: 'Wellness Whizz', url: `${origin}/` },
+    publisher: { '@type': 'Organization', name: 'Wellness Whizz', url: `${origin}/` },
+    about: { '@type': 'Substance', name: sup.name, description: sup.summary },
   };
   const breadcrumbs = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: `${origin}/` },
-      { '@type': 'ListItem', position: 2, name: 'Supplements', item: `${origin}/#Links` },
+      { '@type': 'ListItem', position: 2, name: 'Supplements', item: `${origin}/supplements` },
       { '@type': 'ListItem', position: 3, name: sup.name, item: url },
     ],
   };
   return `
   <link rel="canonical" href="${escapeHtml(url)}">${image ? `\n  <meta property="og:image" content="${escapeHtml(image)}">\n  <meta name="twitter:image" content="${escapeHtml(image)}">` : ''}
-  <script type="application/ld+json">${safe(supplement)}</script>
+  <script type="application/ld+json">${safe(webPage)}</script>
   <script type="application/ld+json">${safe(breadcrumbs)}</script>`;
+}
+
+/** Keep titles under about 60 characters including the site name the layout appends. */
+function seoTitle(sup: Supplement): string {
+  const suffix = ' | Wellness Whizz'.length;
+  for (const candidate of [
+    `${sup.name}: Benefits, Dosage, Safety & Where to Buy`,
+    `${sup.name}: Benefits, Dosage & Safety`,
+    `${sup.name}: Benefits & Safety`,
+    `${sup.name} Guide`,
+  ]) {
+    if (candidate.length + suffix <= 60) return candidate;
+  }
+  return sup.name;
 }
 
 function seoDescription(sup: Supplement): string {
@@ -233,7 +251,19 @@ function seoDescription(sup: Supplement): string {
   return text.slice(0, 300);
 }
 
-export function renderSupplementPage(sup: Supplement, explore: Supplement[], env: LinkEnv, extras: SupplementPageExtras = {}): string {
+/** Generated rich text sometimes contains <h1>; a page keeps one h1 (the supplement name), so inner ones become h2. */
+const demoteH1 = <T extends string | null | undefined>(html: T): T => (html ? (html.replace(/<(\/?)h1\b/gi, '<$1h2') as T) : html);
+
+export function renderSupplementPage(input: Supplement, explore: Supplement[], env: LinkEnv, extras: SupplementPageExtras = {}): string {
+  const sup: Supplement = {
+    ...input,
+    benefits_html: demoteH1(input.benefits_html),
+    contraindications_html: demoteH1(input.contraindications_html),
+    enhancing_html: demoteH1(input.enhancing_html),
+    interactions_html: demoteH1(input.interactions_html),
+    holistic_html: demoteH1(input.holistic_html),
+    studies_html: demoteH1(input.studies_html),
+  };
   const body = `${navbar('logo-left')}
   <div data-w-id="2841e5e2-b1d4-d414-f4f8-0c4efba35752" class="heading-3-columns">
     <div data-w-id="2841e5e2-b1d4-d414-f4f8-0c4efba35753" style="-webkit-transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-moz-transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-ms-transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);opacity:0.4" class="frame-48">
@@ -279,7 +309,7 @@ export function renderSupplementPage(sup: Supplement, explore: Supplement[], env
   </section>${relatedSection(extras.related ?? [])}${exploreSection(explore)}${footer()}${stickyBuyBar(env, sup)}`;
 
   return page({
-    title: `${sup.name}: Benefits, Dosage, Safety & Where to Buy`,
+    title: seoTitle(sup),
     description: seoDescription(sup),
     pageId: WF_PAGE_IDS.supplement,
     bodyClass: 'body-2 ww-has-sticky',

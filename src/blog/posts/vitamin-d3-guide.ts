@@ -3,6 +3,7 @@ import type { BlogPost } from '../types';
 const post: BlogPost = {
   slug: 'vitamin-d3-how-much-to-take-and-when-to-test',
   title: 'Vitamin D3: How Much to Take, When to Test, and Whether You Need K2',
+  seoTitle: 'Vitamin D3: How Much to Take and When to Test',
   description:
     'How much vitamin D3 to take, when a 25-hydroxyvitamin D test is worth doing, what the ranges mean in nmol/L and ng/mL, and whether K2 belongs with it.',
   excerpt:

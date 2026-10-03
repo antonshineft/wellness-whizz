@@ -347,3 +347,16 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-note-takeaway { background: #fff; border-radius: 14px; padding: 10px 14px; }
 .ww-note-links { font-size: 14px; opacity: .85; }
 .ww-note-links a { color: #1d272d; }
+
+/* ---------- supplements index ---------- */
+.ww-catalog-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0 auto 30px; max-width: 1000px; }
+.ww-catalog-nav .ww-tag { text-decoration: none; height: 32px; font-size: 13px; padding: 8px 14px; }
+.ww-catalog-nav .ww-tag b { width: auto; height: auto; background: transparent; color: #1d272d; font-size: 12px; opacity: .6; }
+.ww-catalog-section { max-width: 1200px; margin: 0 auto 40px; font-family: Aeonik, sans-serif; color: #1d272d; }
+.ww-catalog-section h2 { font-family: Aeonik, sans-serif; font-size: 30px; line-height: 36px; font-weight: 500; margin: 0 0 16px; }
+
+/* Home hero: one h1 for the page; the spans keep the original three-block layout. */
+.ww-hero-h1 { display: contents; margin: 0; font-weight: inherit; }
+
+/* The X profile links replace faded placeholder icons; show them at full strength like the other social icons. */
+.ww-x-icon { opacity: 1; }

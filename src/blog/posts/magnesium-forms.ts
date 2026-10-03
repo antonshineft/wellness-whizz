@@ -3,6 +3,7 @@ import type { BlogPost } from '../types';
 const post: BlogPost = {
   slug: 'magnesium-glycinate-vs-citrate-vs-threonate',
   title: 'Magnesium Supplements: Glycinate, Citrate, Threonate or Oxide? How to Choose the Right Form',
+  seoTitle: 'Magnesium Glycinate vs Citrate vs Threonate: Which Form?',
   description:
     'Glycinate, citrate, malate, threonate, taurate or oxide? How to read elemental magnesium on a label, match a form to your goal, and dose it safely.',
   excerpt:

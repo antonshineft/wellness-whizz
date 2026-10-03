@@ -140,9 +140,9 @@ export function navbar(variant: 'default' | 'logo-left' = 'default', currentQuiz
       <div class="navbar-content">
         <nav role="navigation" class="navbar-menu w-nav-menu">
           <div class="div-block-8">
-            <a href="https://chat.openai.com/g/g-pqcxd1t8o-wellness-whizz" target="_blank" rel="noopener" class="navbar-link w-nav-link"><img src="/images/Vectors-Wrapper_1.svg" loading="lazy" width="26.173086166381836" height="26.520586013793945" alt="ChatGPT" class="vectors-wrapper-7"></a>
-            <a href="https://www.tiktok.com/@theaiwellnesswhiz?_t=8jPysLbiyxN&amp;_r=1" target="_blank" rel="noopener" class="navbar-link w-nav-link"><img src="/images/Vectors-Wrapper_2.svg" loading="lazy" width="23.03125" height="26.520832061767578" alt="TikTok" class="vectors-wrapper-8"></a>
-            <a href="#" class="navbar-link w-nav-link"><img src="/images/Vectors-Wrapper_3.svg" loading="lazy" width="29.3125" height="29.3125" alt="" class="vectors-wrapper-9"></a>
+            <a href="https://chat.openai.com/g/g-pqcxd1t8o-wellness-whizz" target="_blank" rel="noopener" aria-label="Wellness Whizz GPT on ChatGPT" class="navbar-link w-nav-link"><img src="/images/Vectors-Wrapper_1.svg" loading="lazy" width="26.173086166381836" height="26.520586013793945" alt="ChatGPT" class="vectors-wrapper-7"></a>
+            <a href="https://www.tiktok.com/@theaiwellnesswhiz?_t=8jPysLbiyxN&amp;_r=1" target="_blank" rel="noopener" aria-label="Wellness Whizz on TikTok" class="navbar-link w-nav-link"><img src="/images/Vectors-Wrapper_2.svg" loading="lazy" width="23.03125" height="26.520832061767578" alt="TikTok" class="vectors-wrapper-8"></a>
+            <a href="https://x.com/aiwwio" target="_blank" rel="noopener" aria-label="Wellness Whizz on X" class="navbar-link w-nav-link"><img src="/images/x-logo.svg" loading="lazy" width="26" height="26" alt="X (Twitter)" class="vectors-wrapper-9 ww-x-icon"></a>
           </div>
           <a href="/wellness-quiz"${current} class="bignavbutton w-button${currentCls}">Get Started</a>
         </nav>
@@ -167,14 +167,15 @@ export function footer(): string {
       </a>
       <div class="frame-220">
         <div class="frame-221">
+          <a href="/supplements" class="text-58 ww-footer-link">Supplements</a>
           <a href="/blog" class="text-58 ww-footer-link">Blog</a>
           <a href="/research" class="text-58 ww-footer-link">Research</a>
           <a href="/how-it-works" class="text-58 ww-footer-link">How it works</a>
           <a href="/terms" class="text-58 ww-footer-link">Terms and Conditions</a>
         </div>
         <nav class="frame-222">
-          <a href="https://chat.openai.com/g/g-pqcxd1t8o-wellness-whizz" target="_blank" rel="noopener" class="w-inline-block"><img src="/images/Vectors-Wrapper_9.svg" loading="lazy" width="37.501739501953125" height="38" alt="ChatGPT" class="vectors-wrapper-59"></a>
-          <a href="https://www.tiktok.com/@theaiwellnesswhiz?_t=8jPysLbiyxN&amp;_r=1" target="_blank" rel="noopener" class="w-inline-block"><img src="/images/Vectors-Wrapper_10.svg" loading="lazy" width="33" height="38" alt="TikTok" class="vectors-wrapper-60"></a><img src="/images/Vectors-Wrapper_11.svg" loading="lazy" width="42" height="42" alt="" class="vectors-wrapper-61">
+          <a href="https://chat.openai.com/g/g-pqcxd1t8o-wellness-whizz" target="_blank" rel="noopener" aria-label="Wellness Whizz GPT on ChatGPT" class="w-inline-block"><img src="/images/Vectors-Wrapper_9.svg" loading="lazy" width="37.501739501953125" height="38" alt="ChatGPT" class="vectors-wrapper-59"></a>
+          <a href="https://www.tiktok.com/@theaiwellnesswhiz?_t=8jPysLbiyxN&amp;_r=1" target="_blank" rel="noopener" aria-label="Wellness Whizz on TikTok" class="w-inline-block"><img src="/images/Vectors-Wrapper_10.svg" loading="lazy" width="33" height="38" alt="TikTok" class="vectors-wrapper-60"></a><a href="https://x.com/aiwwio" target="_blank" rel="noopener" aria-label="Wellness Whizz on X" class="w-inline-block"><img src="/images/x-logo-light.svg" loading="lazy" width="34" height="38" alt="X (Twitter)" class="vectors-wrapper-61 ww-x-icon"></a>
         </nav>
       </div>
     </footer>

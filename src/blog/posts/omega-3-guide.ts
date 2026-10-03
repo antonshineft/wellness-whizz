@@ -3,6 +3,7 @@ import type { BlogPost } from '../types';
 const post: BlogPost = {
   slug: 'how-to-choose-an-omega-3-supplement',
   title: 'How to Choose an Omega-3 Supplement: EPA, DHA, Form and Freshness Explained',
+  seoTitle: 'How to Choose an Omega-3 Supplement: EPA, DHA and Form',
   description:
     'A calm, evidence-based guide to choosing an omega-3 supplement: reading EPA and DHA on the label, comparing fish, krill and algal oils, and judging freshness.',
   excerpt:

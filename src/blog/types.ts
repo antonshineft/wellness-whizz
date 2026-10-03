@@ -21,6 +21,8 @@ export interface BlogPost {
   /** URL path segment: /blog/<slug>. Lowercase, hyphens only. */
   slug: string;
   title: string;
+  /** Optional shorter title for the <title> tag (keep it under 60 characters); the h1 and structured data use `title`. */
+  seoTitle?: string;
   /** Meta description, 140–160 characters. */
   description: string;
   /** One or two sentences shown on the blog index card. */

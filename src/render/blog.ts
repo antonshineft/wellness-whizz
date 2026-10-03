@@ -190,7 +190,7 @@ export function renderBlogPost(ctx: BlogContext, post: BlogPost, related: readon
   <meta property="og:type" content="article">
   <meta property="article:published_time" content="${escapeHtml(post.date)}">${imageUrl ? `\n  <meta property="og:image" content="${escapeHtml(imageUrl)}">\n  <meta name="twitter:image" content="${escapeHtml(imageUrl)}">` : ''}${jsonLd(ctx, post, imageUrl)}`;
   return page({
-    title: post.title,
+    title: post.seoTitle ?? post.title,
     description: post.description,
     pageId: WF_PAGE_IDS.supplement,
     bodyClass: 'body-2',

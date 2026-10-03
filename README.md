@@ -46,6 +46,12 @@ and asset paths made local. The quiz page talks to our API instead of Webflow (`
 The browser stays connected while this runs (typically 15 to 40 seconds). See "Limits" below for what happens when it
 does not.
 
+## Static assets are minified on deploy
+
+`public/` holds the readable sources (the Webflow export plus our CSS and scripts). `npm run deploy` and `npm run dev`
+first run `scripts/build-assets.mjs`, which copies everything to `dist/` with CSS and JavaScript minified; wrangler
+serves `dist/`. If you ever run `wrangler deploy` directly, run `npm run build:assets` first.
+
 ## Local development
 
 ```sh
@@ -192,10 +198,17 @@ sending. `GET /api/admin/social?key=<STATS_KEY>` shows the queue; `&action=build
   plain TypeScript module (see `src/blog/types.ts`): write `href="iherb:magnesium glycinate"` for an iHerb search link
   with your referral code and click tracking, `<ww-shop slugs="…"></ww-shop>` for product cards from the catalogue
   and `<ww-quiz></ww-quiz>` for the quiz call-to-action. Every article page carries BlogPosting and FAQ structured data.
-- `/sitemap.xml` lists the pages, the articles and every supplement page; `public/robots.txt` points search engines at it.
+- `/sitemap.xml` lists the pages, the articles and every supplement page; `/robots.txt` (served by the Worker, with an
+  absolute sitemap URL) points search engines at it and `/llms.txt` gives AI assistants a plain-text map of the site.
+  Note: Cloudflare's "managed robots.txt" / "block AI bots" settings prepend their own rules to robots.txt; turn
+  them off in the dashboard (Security → Settings) if AI crawlers should be allowed in.
+- Plain `http://` requests and `www.` are redirected (301) to `https://` on the canonical host, and every response
+  carries `Strict-Transport-Security` and `X-Content-Type-Options` (Worker middleware in `src/index.ts`; `public/_headers`
+  for static assets).
 - Supplement pages carry an SEO title ("<name>: Benefits, Dosage, Safety & Where to Buy"), a descriptive meta
-  description, a canonical URL, DietarySupplement and BreadcrumbList structured data and a "Related supplements"
-  block (same category) above the explore list.
+  description (titles stay within 60 characters), a canonical URL, MedicalWebPage and BreadcrumbList structured data
+  and a "Related supplements" block (same category) above the explore list. `/supplements` is the index of every
+  guide, grouped by category (also the breadcrumb parent).
 - The home page carousel (`public/js/home.js`) scrolls continuously and loops without empty slides; it pauses on
   hover, the arrows step one card, and it can be dragged.
 

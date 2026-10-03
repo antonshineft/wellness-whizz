@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/build-assets.mjs",
     "dev": "wrangler dev",
+    "build:assets": "node scripts/build-assets.mjs",
+    "predeploy": "node scripts/build-assets.mjs",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types",
     "typecheck": "wrangler types && tsc --noEmit",
@@ -20,6 +23,7 @@
     "@types/node": "^26.6.4",
     "sharp": "^0.35.5",
     "typescript": "^5.9.0",
-    "wrangler": "^4.147.0"
+    "wrangler": "^4.147.0",
+    "esbuild": "^0.28.1"
   }
 }

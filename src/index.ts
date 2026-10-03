@@ -20,6 +20,7 @@ import { attachIherbProducts, supplementsWithoutPhotos } from './products';
 import { emailEnabled, resultsEmail, sendEmail } from './email';
 import { listResearchNotes, researchBatch } from './research';
 import { renderResearchPage } from './render/research';
+import { renderSupplementsIndex } from './render/supplements-index';
 import { buildQueue, listSocialPosts, postDue, setSocialStatus } from './social/content';
 import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
@@ -104,6 +105,7 @@ app.use('*', async (c, next) => {
     if (!isLocalRequest(c.req.url) && !url.pathname.startsWith('/api/') && url.pathname !== '/__scheduled') {
       if (canonical && url.hostname !== canonical) target = canonical;
       else if (!canonical && url.hostname.startsWith('www.')) target = url.hostname.slice(4);
+      else if (url.protocol === 'http:') target = url.hostname; // plain HTTP: same host, https
     }
     if (target) {
       url.hostname = target;
@@ -113,6 +115,22 @@ app.use('*', async (c, next) => {
     }
   }
   await next();
+});
+
+/** Security headers on Worker responses; static assets get the same ones from public/_headers. */
+app.use('*', async (c, next) => {
+  await next();
+  const headers: Record<string, string> = {
+    'x-content-type-options': 'nosniff',
+    'referrer-policy': 'strict-origin-when-cross-origin',
+    'x-frame-options': 'SAMEORIGIN',
+  };
+  if (!isLocalRequest(c.req.url)) headers['strict-transport-security'] = 'max-age=15552000; includeSubDomains';
+  try {
+    for (const [name, value] of Object.entries(headers)) c.res.headers.set(name, value);
+  } catch {
+    c.res = new Response(c.res.body, { status: c.res.status, headers: { ...Object.fromEntries(c.res.headers), ...headers } });
+  }
 });
 
 // Same security headers as public/_headers applies to the static files; the database is prepared on first use.
@@ -223,6 +241,44 @@ app.get('/robots.txt', (c) => {
   return c.body(body, 200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' });
 });
 
+/** llms.txt (llmstxt.org): a plain-text map of the site for AI assistants and their crawlers. */
+app.get('/llms.txt', async (c) => {
+  const origin = new URL(c.req.url).origin;
+  const supplements = await listSupplements(c.env.DB, 500, curatedOnly(c.env));
+  const clip = (text: string) => (text.length > 160 ? `${text.slice(0, 157).replace(/\s+\S*$/, '')}…` : text);
+  const line = (name: string, path: string, text?: string | null) =>
+    `- [${name}](${origin}${path})${text?.trim() ? `: ${clip(text.replace(/\s+/g, ' ').trim())}` : ''}`;
+  const body = [
+    '# Wellness Whizz',
+    '',
+    '> Wellness Whizz is a free AI supplement advisor: a two-minute quiz turns your goals, diet and lifestyle into a personalised, evidence-based supplement plan, and every supplement in the catalogue has a guide covering benefits, dosage, contraindications, interactions, studies and where to buy.',
+    '',
+    'Educational content only, not medical advice. Product links are iHerb affiliate links.',
+    '',
+    '## Start here',
+    line('Take the quiz', '/', 'A personalised supplement plan in about two minutes.'),
+    line('How it works', '/how-it-works', 'How the recommendation engine scores supplements.'),
+    line('All supplements', '/supplements', `Index of all ${supplements.length} supplement guides, grouped by category.`),
+    line('Blog', '/blog', 'Evidence-first guides to choosing supplements.'),
+    line('Research notes', '/research', 'Plain-language summaries of recent human trials and reviews.'),
+    line('Terms, privacy and affiliate disclosure', '/terms'),
+    '',
+    '## Articles',
+    ...POSTS.map((p) => line(p.title, `/blog/${p.slug}`, p.description)),
+    '',
+    '## Supplement guides',
+    ...supplements.map((s) => line(s.name, `/supplement/${s.slug}`, s.summary)),
+    '',
+  ].join('\n');
+  return c.body(body, 200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' });
+});
+
+app.get('/supplements', async (c) => {
+  const supplements = await listSupplements(c.env.DB, 500, curatedOnly(c.env));
+  track(c, { type: 'page_view', page: '/supplements' });
+  return c.body(renderSupplementsIndex(supplements, new URL(c.req.url).origin), 200, htmlHeaders('public, max-age=600'));
+});
+
 app.get('/research', async (c) => {
   const notes = await listResearchNotes(c.env.DB, 100);
   track(c, { type: 'page_view', page: '/research' });
@@ -259,6 +315,7 @@ app.get('/sitemap.xml', async (c) => {
     { loc: '/', priority: '1.0' },
     { loc: '/wellness-quiz', priority: '0.9' },
     { loc: '/blog', priority: '0.8' },
+    { loc: '/supplements', priority: '0.8' },
     { loc: '/research', priority: '0.7' },
     { loc: '/how-it-works', priority: '0.6' },
     { loc: '/terms', priority: '0.2' },
