@@ -1,0 +1,4 @@
+# Copy to .dev.vars for local development (never commit .dev.vars).
+# Your OpenAI key. For local testing without spending credits you can leave it empty and add the line
+# DEV_FAKE_AI=true  (fake mode only works on localhost; it is ignored on a deployed site).
+OPENAI_API_KEY=

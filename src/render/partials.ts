@@ -1,0 +1,180 @@
+/** Reusable fragments that mirror the exported Webflow markup (same classes, so the exported CSS applies). */
+import type { FdaStatus, FormType, SafetyStatus, Supplement } from '../db';
+import { escapeHtml } from '../html';
+
+export const WF_SITE_ID = '65945a814598016172123fbf';
+export const WF_PAGE_IDS = {
+  home: '65945a814598016172123fc5',
+  quiz: '65c62ed2a0336ec29fe56900',
+  result: '65c8ededb28fe27c777ca021',
+  supplement: '65b279f3722615f329b470f3',
+  notFound: '65cded0cf390161c415e500d',
+} as const;
+
+/** Images used on result cards and the home slider, per dosage form. */
+const CARD_IMAGES: Record<FormType, { src: string; srcset: string }> = {
+  capsule: { src: 'Capsule.png', srcset: 'Capsule-p-500.png 500w, Capsule.png 525w' },
+  softgel: { src: 'Softgel-1.png', srcset: 'Softgel-1-p-500.png 500w, Softgel-1.png 525w' },
+  small_softgel: { src: 'Small-Softgel.png', srcset: 'Small-Softgel-p-500.png 500w, Small-Softgel.png 525w' },
+  tablet: { src: 'Tablet.png', srcset: 'Tablet-p-500.png 500w, Tablet.png 525w' },
+  powder: { src: 'powder.jpg', srcset: 'powder-p-500.jpg 500w, powder-p-800.jpg 800w, powder.jpg 1024w' },
+  bar: { src: 'Bar-1.png', srcset: 'Bar-1-p-500.png 500w, Bar-1.png 525w' },
+  gummy: { src: 'Gummy.png', srcset: 'Gummy-p-500.png 500w, Gummy.png 525w' },
+  drops: { src: 'Powder.png', srcset: 'Powder-p-500.png 500w, Powder.png 525w' }, // this file is the dropper illustration
+};
+
+/** Images used in the big tile on the supplement detail page, per dosage form. */
+const DETAIL_IMAGES: Record<FormType, { src: string; srcset: string; cls: string }> = {
+  softgel: { src: 'softgels.png', srcset: 'softgels-p-500.png 500w, softgels.png 654w', cls: 'form' },
+  small_softgel: { src: 'smallsoft.png', srcset: 'smallsoft-p-500.png 500w, smallsoft.png 654w', cls: 'image-2' },
+  powder: { src: 'powder.jpg', srcset: 'powder-p-500.jpg 500w, powder-p-800.jpg 800w, powder.jpg 1024w', cls: 'image-3' },
+  capsule: { src: 'Frame-227-1.png', srcset: 'Frame-227-1-p-500.png 500w, Frame-227-1.png 654w', cls: 'image-3' },
+  tablet: { src: 'tablets.png', srcset: 'tablets-p-500.png 500w, tablets.png 654w', cls: '' },
+  drops: { src: 'DROPS-1.png', srcset: 'DROPS-1-p-500.png 500w, DROPS-1.png 635w', cls: '' },
+  bar: { src: 'bar-3.png', srcset: 'bar-3-p-500.png 500w, bar-3.png 654w', cls: '' },
+  gummy: { src: 'gummy-2.png', srcset: 'gummy-2-p-500.png 500w, gummy-2.png 654w', cls: '' },
+};
+
+const FDA_BADGES: Record<FdaStatus, { src: string; alt: string }> = {
+  approved: { src: 'FDA-Yes.png', alt: 'FDA approved' },
+  probably_ok: { src: 'FDA-Ok.png', alt: 'FDA probably ok' },
+  not_approved: { src: 'FDA-No.png', alt: 'Not approved by FDA' },
+};
+
+const SAFETY_BADGES: Record<SafetyStatus, { src: string; alt: string; width: number }> = {
+  safe: { src: 'Safe-Yes.png', alt: 'Safe', width: 80 },
+  ok: { src: 'Safe-Ok.png', alt: 'Safe Ok', width: 78 },
+  not_safe: { src: 'Safe-No.png', alt: 'Not safe', width: 111 },
+  prescription: { src: 'Safe-Prescription.png', alt: 'Need Prescription', width: 139 },
+};
+
+export const EFFECTIVITY_LABELS = ['Possible', 'Supportive', 'Reasonable', 'Potent', 'Clinically Proven'] as const;
+export const SAFETY_LABELS = ['Cautionary', 'Mild Risk', 'Secure', 'Safe', 'Proven Safe'] as const;
+
+export function cardImage(sup: Supplement, attrs: string): string {
+  const img = CARD_IMAGES[sup.form_type] ?? CARD_IMAGES.capsule;
+  return `<img src="/images/${img.src}" srcset="${withPrefix(img.srcset)}" loading="lazy" alt="${escapeHtml(sup.name)}" ${attrs}>`;
+}
+
+export function detailImage(sup: Supplement): string {
+  const img = DETAIL_IMAGES[sup.form_type] ?? DETAIL_IMAGES.capsule;
+  const cls = img.cls ? ` class="${img.cls}"` : '';
+  return `<img src="/images/${img.src}" srcset="${withPrefix(img.srcset)}" sizes="(max-width: 479px) 100vw, (max-width: 767px) 73vw, (max-width: 991px) 349.990234375px, 35vw" loading="lazy" alt="${escapeHtml(sup.name)}"${cls}>`;
+}
+
+function withPrefix(srcset: string): string {
+  return srcset
+    .split(',')
+    .map((part) => '/images/' + part.trim())
+    .join(', ');
+}
+
+/** Badges as used in the home slider and supplement header (safety first, then FDA). */
+export function headerBadges(sup: Supplement): string {
+  const safety = SAFETY_BADGES[sup.safety_status];
+  const fda = FDA_BADGES[sup.fda_status];
+  return (
+    `<img src="/images/${safety.src}" loading="lazy" width="${safety.width}" alt="${safety.alt}">` +
+    `<img src="/images/${fda.src}" loading="lazy" width="78" alt="${fda.alt}">`
+  );
+}
+
+/** Badges as used on result cards (FDA first, then safety, fixed 32px height). */
+export function cardBadges(sup: Supplement): string {
+  const safety = SAFETY_BADGES[sup.safety_status];
+  const fda = FDA_BADGES[sup.fda_status];
+  return (
+    `<img src="/images/${fda.src}" loading="lazy" width="75" height="32" alt="${fda.alt}" class="vectors-wrapper-80">` +
+    `<img src="/images/${safety.src}" loading="lazy" width="74" height="32" alt="${safety.alt}" class="vectors-wrapper-81">`
+  );
+}
+
+export function ratingImage(value: number, cls: string, extra = ''): string {
+  const n = Math.min(5, Math.max(1, Math.round(value)));
+  return `<img src="/images/Rate${n}.png" loading="lazy" alt="${n} out of 5" class="${cls}" ${extra}>`;
+}
+
+export function navbar(variant: 'default' | 'logo-left' = 'default', currentQuiz = false): string {
+  const cls = variant === 'logo-left' ? 'navbar-logo-left w-nav' : 'navbar w-nav';
+  const easing = variant === 'logo-left' ? 'ease-in-back' : 'ease';
+  const current = currentQuiz ? ' aria-current="page"' : '';
+  const currentCls = currentQuiz ? ' w--current' : '';
+  return `
+  <div data-animation="default" data-collapse="medium" data-duration="400" data-easing="${easing}" data-easing2="ease" role="banner" class="${cls}">
+    <div class="navbarcontainer container w-container">
+      <div class="navbar-brand">
+        <a href="/" class="link-block-3 w-inline-block">
+          <div class="logo"><img src="/images/Vectors-Wrapper_4.svg" loading="lazy" width="66.23321533203125" height="66.23321533203125" alt="" class="vectors-wrapper"><img src="/images/Vectors-Wrapper.svg" loading="lazy" width="233.07275390625" height="23.488250732421875" alt="Wellness Whizz" class="vectors-wrapper-6"></div>
+        </a>
+      </div>
+      <div class="navbar-content">
+        <nav role="navigation" class="navbar-menu w-nav-menu">
+          <div class="div-block-8">
+            <a href="https://chat.openai.com/g/g-pqcxd1t8o-wellness-whizz" target="_blank" rel="noopener" class="navbar-link w-nav-link"><img src="/images/Vectors-Wrapper_1.svg" loading="lazy" width="26.173086166381836" height="26.520586013793945" alt="ChatGPT" class="vectors-wrapper-7"></a>
+            <a href="https://www.tiktok.com/@theaiwellnesswhiz?_t=8jPysLbiyxN&amp;_r=1" target="_blank" rel="noopener" class="navbar-link w-nav-link"><img src="/images/Vectors-Wrapper_2.svg" loading="lazy" width="23.03125" height="26.520832061767578" alt="TikTok" class="vectors-wrapper-8"></a>
+            <a href="#" class="navbar-link w-nav-link"><img src="/images/Vectors-Wrapper_3.svg" loading="lazy" width="29.3125" height="29.3125" alt="" class="vectors-wrapper-9"></a>
+          </div>
+          <a href="/wellness-quiz"${current} class="bignavbutton w-button${currentCls}">Get Started</a>
+        </nav>
+      </div>
+      <div class="menu-button w-nav-button">
+        <div class="icon w-icon-nav-menu"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+export function footer(): string {
+  return `
+  <section class="footer">
+    <footer id="Footer" class="frame-217">
+      <div class="text-55">Your Personalized Supplement AI Advisor</div>
+      <div class="frame-218">
+        <div data-w-id="2b9b101a-68ad-ad8d-3793-d3601abc8c34" class="wellness">WELLNESS WHIZZ </div><img src="/images/Vectors-Wrapper_13.svg" loading="lazy" width="150.27268981933594" height="145.3221435546875" alt="" data-w-id="2b9b101a-68ad-ad8d-3793-d3601abc8c36" class="vectors-wrapper-63"><img src="/images/Vectors-Wrapper_12.svg" loading="lazy" width="152.4515380859375" height="117.09674835205078" alt="" data-w-id="2b9b101a-68ad-ad8d-3793-d3601abc8c37" class="vectors-wrapper-62"><img src="/images/Vectors-Wrapper_15.svg" loading="lazy" width="109" height="187.63829040527344" alt="" data-w-id="2b9b101a-68ad-ad8d-3793-d3601abc8c38" class="vectors-wrapper-65"><img src="/images/Vectors-Wrapper_16.svg" loading="lazy" width="152" height="203.06663513183594" alt="" data-w-id="2b9b101a-68ad-ad8d-3793-d3601abc8c39" class="vectors-wrapper-66"><img src="/images/Vectors-Wrapper_14.svg" loading="lazy" width="153.16067504882812" height="139.3534393310547" alt="" data-w-id="2b9b101a-68ad-ad8d-3793-d3601abc8c3a" class="vectors-wrapper-64">
+      </div>
+      <a data-w-id="af3b4a1d-4e56-d54b-44c8-76282d422767" href="/wellness-quiz" class="footerbutton w-inline-block">
+        <div class="text-57">Start Quiz Now</div>
+      </a>
+      <div class="frame-220">
+        <div class="frame-221">
+          <div class="text-58">Blog</div>
+          <div class="text-58">How it works </div>
+          <div class="text-58">Terms and Conditions</div>
+        </div>
+        <nav class="frame-222">
+          <a href="https://chat.openai.com/g/g-pqcxd1t8o-wellness-whizz" target="_blank" rel="noopener" class="w-inline-block"><img src="/images/Vectors-Wrapper_9.svg" loading="lazy" width="37.501739501953125" height="38" alt="ChatGPT" class="vectors-wrapper-59"></a>
+          <a href="https://www.tiktok.com/@theaiwellnesswhiz?_t=8jPysLbiyxN&amp;_r=1" target="_blank" rel="noopener" class="w-inline-block"><img src="/images/Vectors-Wrapper_10.svg" loading="lazy" width="33" height="38" alt="TikTok" class="vectors-wrapper-60"></a><img src="/images/Vectors-Wrapper_11.svg" loading="lazy" width="42" height="42" alt="" class="vectors-wrapper-61">
+        </nav>
+      </div>
+    </footer>
+  </section>`;
+}
+
+/** One entry of the "Explore manually" list. */
+export function exploreItem(sup: Supplement): string {
+  return `<div role="listitem" class="collection-item w-dyn-item w-col w-col-3"><a data-w-id="8f15da15-fcc1-d435-9e4d-ff3fddaced87" href="/supplement/${escapeHtml(sup.slug)}" class="link">${escapeHtml(sup.name)}</a></div>`;
+}
+
+export function exploreSection(supplements: Supplement[]): string {
+  const items = supplements.length
+    ? `<div role="list" class="linksnav w-dyn-items w-row">${supplements.map(exploreItem).join('')}</div>`
+    : `<div role="list" class="linksnav w-dyn-items w-row"></div><div class="w-dyn-empty"><div>No items found.</div></div>`;
+  return `
+  <div id="Links" class="manuallinks">
+    <h3 class="heading-2 explore">Explore manually</h3>
+    <figure class="collection-list-wrapper w-dyn-list">${items}</figure>
+  </div>`;
+}
+
+/** One card of the home-page slider. */
+export function homeCard(sup: Supplement): string {
+  return `<div role="listitem" class="collection-item-2 w-dyn-item w-col w-col-6">
+  <a href="/supplement/${escapeHtml(sup.slug)}" class="link-block-2 w-inline-block" aria-label="${escapeHtml(sup.name)}"></a>
+  <div class="imagecard">${cardImage(sup, 'width="213" height="213" class="convertedimage2"')}
+    <div class="frame-256">
+      <div class="text-75">${escapeHtml(sup.name)}</div>
+      <div class="frame-257">${headerBadges(sup)}</div>
+    </div>
+  </div>
+</div>`;
+}

@@ -1,0 +1,24 @@
+{
+  "name": "wellness-whizz",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "typecheck": "wrangler types && tsc --noEmit",
+    "db:migrate:local": "wrangler d1 migrations apply wellness-whizz --local",
+    "db:migrate:remote": "wrangler d1 migrations apply wellness-whizz --remote",
+    "db:seed:local": "wrangler d1 execute wellness-whizz --local --file=./seed.sql",
+    "db:seed:remote": "wrangler d1 execute wellness-whizz --remote --file=./seed.sql"
+  },
+  "dependencies": {
+    "hono": "^4.13.12"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "typescript": "^5.9.0",
+    "wrangler": "^4.147.0"
+  }
+}

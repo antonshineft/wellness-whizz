@@ -1,0 +1,38 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wellness-whizz",
+  "main": "src/index.ts",
+  // Lets the Worker import migrations/0001_init.sql as text (used by the self-installing bootstrap).
+  "rules": [{ "type": "Text", "globs": ["**/*.sql"], "fallthrough": true }],
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    // Only these paths run the Worker; everything else is served straight from the static assets.
+    "run_worker_first": ["/", "/api/*", "/result/*", "/supplement/*"]
+  },
+  // No database_id on purpose: `wrangler deploy` and the "Deploy to Cloudflare" button create the database
+  // automatically and fill it in. Tables and content are created by the Worker itself on first start.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "wellness-whizz",
+      "migrations_dir": "migrations","database_id": "1d6f8d51-5f7f-428b-aac2-df480ab13902"
+    }
+  ],
+  "vars": {
+    "OPENAI_MODEL": "gpt-4.1-mini",
+    "PRODUCT_SEARCH_URL": "https://www.iherb.com/search?kw={query}",
+    // Abuse controls for the (paid) quiz endpoint: per-IP and global submissions per hour, 0 disables.
+    "RATE_LIMIT_PER_HOUR": "10",
+    "GLOBAL_LIMIT_PER_HOUR": "100",
+    // "false" keeps supplements created by the AI out of the home slider, the Explore list and /api/supplements
+    // (their own pages and result pages still work).
+    "LIST_AI_SUPPLEMENTS": "true"
+    // Optional Cloudflare Turnstile bot protection: add TURNSTILE_SITE_KEY (variable) and TURNSTILE_SECRET_KEY (secret)
+    // in the Cloudflare dashboard under the Worker's Settings -> Variables and Secrets. Both are needed to enable it.
+  },
+  "observability": { "enabled": true }
+}
