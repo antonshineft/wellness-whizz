@@ -52,6 +52,11 @@ const SAFETY_BADGES: Record<SafetyStatus, { src: string; alt: string; width: num
 export const EFFECTIVITY_LABELS = ['Possible', 'Supportive', 'Reasonable', 'Potent', 'Clinically Proven'] as const;
 export const SAFETY_LABELS = ['Cautionary', 'Mild Risk', 'Secure', 'Safe', 'Proven Safe'] as const;
 
+/** Path of the image the result card shows: the supplement's own picture, else the illustration for its form. */
+export function cardImageSrc(sup: Supplement): string {
+  return sup.image || `/images/${(CARD_IMAGES[sup.form_type] ?? CARD_IMAGES.capsule).src}`;
+}
+
 export function cardImage(sup: Supplement, attrs: string): string {
   if (sup.image) return `<img src="${escapeHtml(sup.image)}" loading="lazy" alt="${escapeHtml(sup.name)}" ${attrs}>`;
   const img = CARD_IMAGES[sup.form_type] ?? CARD_IMAGES.capsule;

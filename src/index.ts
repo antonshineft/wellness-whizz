@@ -11,11 +11,11 @@
  *   /result/:id            personalised results page
  *   /supplement/:slug      supplement detail page
  */
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { POSTS, getPost, supplementSlugsUsed } from './blog';
 import { ensureDatabase } from './bootstrap';
 import { MIN_ARTICLE_LENGTH, generateArticle } from './content';
-import { generateSupplementImage, imageGenerationEnabled, loadImage, supplementsNeedingImage } from './images';
+import { generateSupplementImage, imageGenerationEnabled, loadImage, storeImage, supplementsNeedingImage } from './images';
 import { attachIherbProducts, supplementsWithoutPhotos } from './products';
 import { emailEnabled, resultsEmail, sendEmail } from './email';
 import { listResearchNotes, researchBatch } from './research';
@@ -83,7 +83,7 @@ const SESSION_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 /** A session still pending after this long has lost its Worker (client disconnected); it is marked failed. */
 const PENDING_TIMEOUT_MS = 4 * 60 * 1000;
 /** Event types the browser may report; page views are recorded server-side. */
-const CLIENT_EVENT_TYPES: readonly EventType[] = ['quiz_view', 'outbound_click', 'subscribe'];
+const CLIENT_EVENT_TYPES: readonly EventType[] = ['quiz_view', 'outbound_click', 'subscribe', 'share'];
 
 const htmlHeaders = (cacheControl: string) => ({ 'content-type': 'text/html; charset=utf-8', 'cache-control': cacheControl });
 const curatedOnly = (env: Bindings) => env.LIST_AI_SUPPLEMENTS === 'false';
@@ -170,7 +170,48 @@ app.get('/result/:id', async (c) => {
   const items = await getSessionResults(c.env.DB, id);
   if (!items.length) return c.body(renderFailedPage(session), 200, htmlHeaders('no-store'));
   track(c, { type: 'result_view', page: `/result/${id}`, session_id: id });
-  return c.body(renderResultPage(session, items, c.env), 200, htmlHeaders('private, max-age=0, must-revalidate'));
+  return c.body(renderResultPage(session, items, c.env, { origin: new URL(c.req.url).origin }), 200, htmlHeaders('private, max-age=0, must-revalidate'));
+});
+
+/** Shareable result images: drawn by the browser on the result page and uploaded (see public/js/share-card.js);
+ *  until then the generic brand card is served, marked so the page knows to draw one. */
+const MAX_CARD_BYTES = 900_000;
+const CARD_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+async function serveResultImage(c: Context<AppContext>, kind: 'card' | 'story'): Promise<Response> {
+  const id = c.req.param('id') ?? '';
+  if (!SESSION_ID_RE.test(id)) return c.notFound();
+  const image = await loadImage(c.env.DB, `result-${id}-${kind}`);
+  if (image) {
+    return new Response(image.bytes, { headers: { 'content-type': image.contentType, 'cache-control': 'public, max-age=3600', 'x-ww-card': 'generated' } });
+  }
+  const fallback = await c.env.ASSETS.fetch(new Request(new URL('/images/share-default.jpg', c.req.url)));
+  return new Response(fallback.body, {
+    status: fallback.ok ? 200 : 404,
+    headers: { 'content-type': 'image/jpeg', 'cache-control': 'no-store', 'x-ww-card': 'default' },
+  });
+}
+app.get('/result/:id/card.jpg', (c) => serveResultImage(c, 'card'));
+app.get('/result/:id/story.jpg', (c) => serveResultImage(c, 'story'));
+
+function looksLikeImage(b: Uint8Array, type: string): boolean {
+  if (type === 'image/jpeg') return b[0] === 0xff && b[1] === 0xd8;
+  if (type === 'image/png') return b[0] === 0x89 && b[1] === 0x50;
+  return b[0] === 0x52 && b[1] === 0x49 && b[8] === 0x57 && b[9] === 0x45; // RIFF....WEBP
+}
+
+app.post('/api/result/:id/card', async (c) => {
+  const id = c.req.param('id');
+  if (!SESSION_ID_RE.test(id)) return c.json({ ok: false }, 400);
+  const kind = c.req.query('kind') === 'story' ? 'story' : 'card';
+  const type = (c.req.header('content-type') ?? '').split(';')[0].trim().toLowerCase();
+  if (!CARD_TYPES.has(type)) return c.json({ ok: false, error: 'unsupported image type' }, 415);
+  if (Number(c.req.header('content-length') ?? '0') > MAX_CARD_BYTES) return c.json({ ok: false, error: 'image too large' }, 413);
+  const session = await getSession(c.env.DB, id);
+  if (!session || session.status !== 'ready') return c.json({ ok: false }, 404);
+  const bytes = new Uint8Array(await c.req.raw.arrayBuffer());
+  if (bytes.length > MAX_CARD_BYTES || bytes.length < 2_000 || !looksLikeImage(bytes, type)) return c.json({ ok: false, error: 'not an image' }, 400);
+  await storeImage(c.env.DB, `result-${id}-${kind}`, type, bytes);
+  return c.json({ ok: true });
 });
 
 /** Generated illustrations stored in D1. */
@@ -237,7 +278,13 @@ app.get('/blog/:slug', async (c) => {
 /** robots.txt with an absolute sitemap URL (a relative one is ignored by search engines). */
 app.get('/robots.txt', (c) => {
   const origin = new URL(c.req.url).origin;
-  const body = ['User-agent: *', 'Allow: /', 'Disallow: /api/', 'Disallow: /result/', '', `Sitemap: ${origin}/sitemap.xml`, ''].join('\n');
+  // Result pages stay out of search indexes, but the link-preview crawlers may read them for the share card.
+  const previewBots = ['Twitterbot', 'facebookexternalhit', 'Facebot', 'WhatsApp', 'LinkedInBot', 'TelegramBot', 'Slackbot-LinkExpanding', 'Discordbot'];
+  const body = [
+    'User-agent: *', 'Allow: /', 'Disallow: /api/', 'Disallow: /result/', '',
+    ...previewBots.flatMap((bot) => [`User-agent: ${bot}`, 'Allow: /', 'Disallow: /api/', '']),
+    `Sitemap: ${origin}/sitemap.xml`, '',
+  ].join('\n');
   return c.body(body, 200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' });
 });
 

@@ -312,6 +312,20 @@ Cloudflare Workers, D1 and static assets have generous free tiers (100k requests
 site of this size. OpenAI is the only paid dependency: one quiz costs roughly 6 model calls with `gpt-4.1-mini`
 (1 recommendation call + up to 5 profile generations); profiles are cached in D1, so repeat supplements cost nothing.
 
+## Shareable result cards
+
+Every result page carries a "Share your plan" block. The browser draws two images from the result data with the
+Canvas API (`public/js/share-card.js`): a 1200×630 link preview and a 1080×1920 story image, both with the top
+picks, a one-line profile ("Lightly active · vegan · better sleep"), the brand and a QR code to the result. They are
+uploaded to `POST /api/result/<id>/card?kind=card|story` (JPEG/PNG/WebP, under 900 KB, stored in the `images`
+table as `result-<id>-card` / `-story`) and served at `/result/<id>/card.jpg` and `/story.jpg`; until the browser
+has drawn one, the generic `public/images/share-default.jpg` is served with `x-ww-card: default`. The result page's
+`og:image` / `twitter:image` point at the card, result pages are `noindex`, and `robots.txt` lets the link-preview
+crawlers (Twitterbot, facebookexternalhit, WhatsApp, LinkedIn, Telegram, Slack, Discord) read `/result/` while
+search engines stay out. Buttons: X, WhatsApp, story image (native share sheet with the file where available,
+download otherwise), copy link, and a native "Share…" button on devices that support it. Shares are tracked as
+`share` events with the channel in `slug`.
+
 ## Next phase (agreed 2026-10-03)
 
 Two features chosen for the next round of work, in this order:
@@ -320,8 +334,7 @@ Two features chosen for the next round of work, in this order:
    gets an audit (duplicated nutrients against the upper limits, poorly absorbed forms, timing clashes such as iron with
    calcium, interactions with listed medicines) plus a cleaner stack with products. Built on the quiz engine and the
    catalogue; intended as the link magnet and the natural "run it through the checker" answer in Reddit replies.
-2. **Shareable result cards**: a branded image of each quiz result (top five with scores) with one-tap sharing to X,
-   WhatsApp and Instagram stories; every share links back to the quiz.
+2. ~~Shareable result cards~~: shipped, see above.
 
 Also queued from the same discussion: iHerb price-drop radar, "ask the research" question box, study-drop reaction
 posts, a seven-day email course, and Pinterest pins generated from the comparison tables.

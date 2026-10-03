@@ -457,8 +457,8 @@ export async function exportSupplements(db: D1Database): Promise<Supplement[]> {
 
 // ---------- events (measurement) ----------
 
-export type EventType = 'home_view' | 'quiz_view' | 'result_view' | 'supplement_view' | 'page_view' | 'outbound_click' | 'subscribe';
-export const EVENT_TYPES: readonly EventType[] = ['home_view', 'quiz_view', 'result_view', 'supplement_view', 'page_view', 'outbound_click', 'subscribe'];
+export type EventType = 'home_view' | 'quiz_view' | 'result_view' | 'supplement_view' | 'page_view' | 'outbound_click' | 'subscribe' | 'share';
+export const EVENT_TYPES: readonly EventType[] = ['home_view', 'quiz_view', 'result_view', 'supplement_view', 'page_view', 'outbound_click', 'subscribe', 'share'];
 
 export interface EventInput {
   type: EventType;

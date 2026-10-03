@@ -409,3 +409,24 @@ img.ww-opaque { mix-blend-mode: multiply; }
   .ww-card .ww-products::-webkit-scrollbar { display: none; }
   .ww-card .ww-product { flex: 0 0 auto; scroll-snap-align: start; }
 }
+
+/* ---------- result page: share your plan ---------- */
+.resultsclass .ww-share-wrap { max-width: 1020px; margin: 0 auto; padding: 10px; box-sizing: border-box; }
+.ww-share { font-family: Aeonik, sans-serif; color: #fff; background: #2a363d; border-radius: 28px; padding: 24px 28px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); grid-template-rows: auto auto auto; gap: 16px 28px; align-items: center; }
+.ww-share-text h3 { margin: 0 0 6px; font-family: Aeonik, sans-serif; font-size: 24px; line-height: 30px; font-weight: 700; color: #fff; }
+.ww-share-text p { margin: 0; font-size: 15px; line-height: 22px; opacity: .8; }
+.ww-share-preview { grid-column: 2; grid-row: 1 / span 3; background: #fff; border-radius: 18px; padding: 6px; }
+.ww-share-preview img { display: block; width: 100%; height: auto; border-radius: 14px; }
+.ww-share-buttons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ww-share-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; background: #1d272d; color: #fff; border: 0; border-radius: 18px; padding: 12px 6px; font: 700 12px/16px Aeonik, sans-serif; text-decoration: none; cursor: pointer; text-align: center; }
+.ww-share-btn span { display: flex; width: 40px; height: 40px; border-radius: 50%; background: #87d581; color: #1d272d; align-items: center; justify-content: center; }
+.ww-share-btn:hover span { filter: brightness(1.08); }
+.ww-share-btn.is-done span { background: #fff; }
+.ww-share-btn.is-busy { opacity: .6; pointer-events: none; }
+.ww-share-native { display: block; width: 100%; margin: 0; border: 0; background: #87d581; color: #1d272d; border-radius: 16px; padding: 14px; font: 700 16px/20px Aeonik, sans-serif; text-align: center; cursor: pointer; }
+.ww-share-note { margin: 0; font-size: 12px; line-height: 16px; opacity: .6; grid-column: 1; }
+@media (max-width: 767px) {
+  .ww-share { grid-template-columns: minmax(0, 1fr); padding: 18px 16px 20px; gap: 14px; }
+  .ww-share-preview { grid-column: auto; grid-row: auto; }
+  .ww-share-note { grid-column: auto; }
+}
