@@ -2,10 +2,10 @@ import type { BlogPost } from '../types';
 
 const post: BlogPost = {
   slug: 'magnesium-glycinate-vs-citrate-vs-threonate',
-  title: 'Magnesium Supplements: Glycinate, Citrate, Threonate or Oxide? How to Choose the Right Form',
-  seoTitle: 'Magnesium Glycinate vs Citrate vs Threonate: Which Form?',
+  title: 'Magnesium Glycinate vs Citrate: Which Form Should You Take? (Plus Threonate, Malate and Oxide)',
+  seoTitle: 'Magnesium Glycinate vs Citrate: Which Is Better?',
   description:
-    'Glycinate, citrate, malate, threonate, taurate or oxide? How to read elemental magnesium on a label, match a form to your goal, and dose it safely.',
+    'Magnesium glycinate vs citrate, plus malate, threonate and oxide: how to read elemental magnesium on a label, match a form to your goal and dose it safely.',
   excerpt:
     'Magnesium supplements differ more in absorption and side effects than in what they do once absorbed. Here is how the main forms compare, and how to match one to your goal.',
   date: '2026-10-03',
@@ -20,6 +20,12 @@ const post: BlogPost = {
 <p>Low intake is common in Western diets. Magnesium is concentrated in whole grains, legumes, nuts, seeds and leafy greens, and refining grains strips most of it out. US dietary surveys consistently find that a large share of adults, by some analyses roughly half, eat less than the estimated average requirement. The recommended dietary allowance is 400 to 420 mg a day for adult men and 310 to 320 mg for adult women.</p>
 
 <p>Some groups run lower than average: older adults, who absorb less and excrete more; people with gastrointestinal disease such as Crohn's or coeliac disease; people with type 2 diabetes, which raises urinary losses; heavy drinkers; and long-term users of proton-pump inhibitors or diuretics. If that describes you, a supplement is worth discussing with your doctor. The next question is which form, and that is where labels get confusing.</p>
+
+<h2>Magnesium glycinate vs citrate: the short answer</h2>
+
+<p>These two are the forms most people end up choosing between, so here is the comparison in one place. <strong>Absorption is similar.</strong> Both are soluble, well-absorbed salts. Citrate has the longer research record, and in the best-known head-to-head trial it matched or beat an amino-acid chelate. <strong>The gut is where they differ.</strong> Citrate draws water into the bowel, so at around 300 mg of elemental magnesium or more it loosens stools in many people. Glycinate rarely does, which is why it is the usual pick for a full dose at bedtime. <strong>Cost and bulk favour citrate.</strong> Citrate carries about 11 to 16 percent elemental magnesium and is cheap; glycinate carries about 14 percent and costs more per milligram. A 200 mg dose is usually two or three capsules of either.</p>
+
+<p>So: choose <a href="iherb:magnesium citrate">magnesium citrate</a> if you want the best-studied, lowest-cost form and would not mind a mild laxative effect, or if you are constipated. Choose <a href="iherb:magnesium glycinate">magnesium glycinate</a> if higher doses upset your stomach, you take magnesium in the evening for sleep, or your stools are already loose. Taking both is fine; some people use citrate in the morning and glycinate at night, counting the elemental total. Magnesium oxide, the cheapest form on the shelf, is a different case: it is poorly absorbed and mostly useful as a laxative, as the table below shows. For timing questions, see <a href="/blog/when-to-take-magnesium">when to take magnesium</a>.</p>
 
 <h2>How to read a magnesium label</h2>
 
@@ -125,6 +131,14 @@ const post: BlogPost = {
 <ww-quiz></ww-quiz>
 `,
   faq: [
+    {
+      q: 'Can I take magnesium glycinate and citrate together?',
+      a: 'Yes. They are the same mineral with different partners, so what matters is the total elemental magnesium. Add the two labels together and keep supplemental magnesium at or below 350 mg a day unless a doctor has told you otherwise. A common split is citrate with breakfast and glycinate at night.',
+    },
+    {
+      q: 'Magnesium glycinate vs citrate for sleep: which is better?',
+      a: 'The trials that improved sleep used several forms, including oxide and citrate, so the mineral matters more than the salt. Glycinate is the practical choice at bedtime because a 300 to 400 mg dose rarely loosens stools, which citrate can do overnight. If citrate suits your bowels, it works just as well.',
+    },
     {
       q: 'Is magnesium glycinate better than magnesium citrate?',
       a: 'Not in terms of absorption: both are well absorbed, and citrate has the longer research record. Glycinate is gentler on the bowel, which makes it easier to take a full dose at night. Citrate is cheaper and slightly loosens stools at higher doses. Choose on tolerance, cost and timing rather than on potency.',

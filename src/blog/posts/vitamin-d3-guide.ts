@@ -2,8 +2,8 @@ import type { BlogPost } from '../types';
 
 const post: BlogPost = {
   slug: 'vitamin-d3-how-much-to-take-and-when-to-test',
-  title: 'Vitamin D3: How Much to Take, When to Test, and Whether You Need K2',
-  seoTitle: 'Vitamin D3: How Much to Take and When to Test',
+  title: 'Vitamin D3 vs D2: Which to Take, How Much, When to Test, and Whether You Need K2',
+  seoTitle: 'Vitamin D3 vs D2, How Much to Take and When to Test',
   description:
     'How much vitamin D3 to take, when a 25-hydroxyvitamin D test is worth doing, what the ranges mean in nmol/L and ng/mL, and whether K2 belongs with it.',
   excerpt:
@@ -21,9 +21,11 @@ const post: BlogPost = {
 
 <p>VITAL gave almost 26,000 American adults 2,000 IU of vitamin D3 a day for a median of just over five years and found no reduction in cancer or major cardiovascular events; a later analysis found no reduction in fractures either. D-Health gave more than 21,000 Australians aged 60 to 84 the equivalent of 2,000 IU a day, as a monthly dose, and found no reduction in deaths from any cause. In both trials most participants started with adequate levels. Correcting a deficiency matters; pushing an adequate level higher brings little measurable benefit.</p>
 
-<h2>D3 or D2, and what the units mean</h2>
+<h2>Vitamin D3 vs D2: which should you take, and what the units mean</h2>
 
-<p>Vitamin D2 (ergocalciferol) is made by exposing yeast or mushrooms to ultraviolet light. Vitamin D3 (cholecalciferol) is the form your skin makes; in supplements it comes from lanolin, the wax in sheep's wool, or from lichen for a <a href="iherb:vegan vitamin d3 lichen">vegan vitamin D3</a>. Head-to-head trials show that D3 raises 25-hydroxyvitamin D more and keeps it up longer, particularly with weekly or monthly dosing. Unless you have a specific reason to use D2, choose D3.</p>
+<p>Vitamin D2 (ergocalciferol) is made by exposing yeast or mushrooms to ultraviolet light. Vitamin D3 (cholecalciferol) is the form your skin makes; in supplements it comes from lanolin, the wax in sheep's wool, or from lichen for a <a href="iherb:vegan vitamin d3 lichen">vegan vitamin D3</a>. Both are converted in the liver to 25-hydroxyvitamin D, the form measured in blood tests, so the same test tracks either.</p>
+
+<p>They are not equally effective. A 2012 meta-analysis of randomised trials found that D3 raised 25-hydroxyvitamin D significantly more than the same dose of D2, and the gap widens with weekly or monthly dosing because D2 and its metabolites are cleared faster. Taken daily, D2 still works, which is why the 50,000 IU prescription capsules common in the United States are usually D2 and do raise levels. For an over-the-counter supplement there is no reason to prefer D2: choose D3, and choose a lichen-sourced D3 if you avoid animal products. The one practical difference on the label is the unit, explained next.</p>
 
 <p>International units (IU) are the convention in most trials and guidelines; micrograms (mcg) are used in Europe and are now the required unit on American Supplement Facts panels. 40 IU equals 1 mcg, so 1,000 IU is 25 mcg and 2,000 IU is 50 mcg. A label reading "25 mcg (1,000 IU)" is the same amount written twice, not a double dose.</p>
 
@@ -93,6 +95,14 @@ const post: BlogPost = {
 <ww-quiz></ww-quiz>
 `,
   faq: [
+    {
+      q: 'What is the difference between vitamin D2 and D3?',
+      a: 'D2 (ergocalciferol) comes from UV-treated yeast and mushrooms; D3 (cholecalciferol) is the form your skin makes and comes from lanolin or lichen in supplements. Both become 25-hydroxyvitamin D in the liver, but D3 raises and sustains blood levels more effectively, especially with weekly or monthly dosing.',
+    },
+    {
+      q: 'Is vitamin D2 as good as D3?',
+      a: 'Not quite. In head-to-head trials D3 produces a larger and longer-lasting rise in 25-hydroxyvitamin D. D2 does work when taken daily and is what many high-dose prescriptions contain. If you are buying your own supplement, D3 is the better choice, and vegan D3 from lichen is widely available.',
+    },
     {
       q: 'Is it better to take vitamin D3 daily or weekly?',
       a: 'Both work, because the body stores vitamin D and what matters is the total over the month. Daily dosing is what most trials used and is easiest to keep steady; a weekly dose of 7,000 IU delivers the same amount as 1,000 IU a day. Avoid very large single doses taken monthly or yearly, which have been linked in some trials to more falls in older people.',
