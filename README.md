@@ -155,6 +155,8 @@ Product images still point at Webflow's CDN. Before cancelling Webflow, copy the
 node scripts/download-product-images.mjs
 ```
 
+(On a machine that reaches the internet through a proxy, prefix the command with `NODE_USE_ENV_PROXY=1`.)
+
 This downloads every product photo referenced in `data/supplements.json` into `public/images/products/` (shrunk to
 web size), points the data at the local files and bumps `data/manifest.json`. Commit `data/` and
 `public/images/products/` and push: the next deploy serves the local images and the live database refreshes itself
