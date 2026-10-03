@@ -202,6 +202,13 @@ app.get('/blog/:slug', async (c) => {
   return c.body(renderBlogPost(ctx, post, related), 200, htmlHeaders('public, max-age=600'));
 });
 
+/** robots.txt with an absolute sitemap URL (a relative one is ignored by search engines). */
+app.get('/robots.txt', (c) => {
+  const origin = new URL(c.req.url).origin;
+  const body = ['User-agent: *', 'Allow: /', 'Disallow: /api/', 'Disallow: /result/', '', `Sitemap: ${origin}/sitemap.xml`, ''].join('\n');
+  return c.body(body, 200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' });
+});
+
 app.get('/sitemap.xml', async (c) => {
   const origin = new URL(c.req.url).origin;
   const supplements = await listSupplementSlugs(c.env.DB, curatedOnly(c.env));
