@@ -141,8 +141,19 @@ const COLUMNS = [
   'studies_html', 'products_json', 'source',
 ];
 // Existing rows are refreshed by name or by slug; slugs are never rewritten (old links must keep working).
-const UPDATE_BY_NAME = COLUMNS.filter((c) => c !== 'name_key' && c !== 'slug').map((c) => `${c} = excluded.${c}`).join(', ');
-const UPDATE_BY_SLUG = COLUMNS.filter((c) => c !== 'slug').map((c) => `${c} = excluded.${c}`).join(', ');
+// Text fields that are empty in the bundle keep whatever the database already holds (for example articles the
+// site wrote itself with the content backfill).
+const KEEP_IF_BUNDLE_EMPTY = new Set([
+  'summary', 'benefits_html', 'contraindications_html', 'enhancing_html', 'interactions_html', 'why_consider',
+  'holistic_html', 'studies_html',
+]);
+const assignment = (c: string) => {
+  if (KEEP_IF_BUNDLE_EMPTY.has(c)) return `${c} = CASE WHEN excluded.${c} != '' THEN excluded.${c} ELSE supplements.${c} END`;
+  if (c === 'products_json') return `${c} = CASE WHEN excluded.${c} NOT IN ('', '[]') THEN excluded.${c} ELSE supplements.${c} END`;
+  return `${c} = excluded.${c}`;
+};
+const UPDATE_BY_NAME = COLUMNS.filter((c) => c !== 'name_key' && c !== 'slug').map(assignment).join(', ');
+const UPDATE_BY_SLUG = COLUMNS.filter((c) => c !== 'slug').map(assignment).join(', ');
 const UPSERT_SQL =
   `INSERT INTO supplements (${COLUMNS.join(', ')}) VALUES (${COLUMNS.map(() => '?').join(', ')}) ` +
   `ON CONFLICT(name_key) DO UPDATE SET ${UPDATE_BY_NAME} ON CONFLICT(slug) DO UPDATE SET ${UPDATE_BY_SLUG}`;

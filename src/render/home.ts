@@ -10,12 +10,15 @@ export async function renderHome(
   request: Request,
   curatedOnly = false,
 ): Promise<Response> {
-  const [assetResponse, slides, explore] = await Promise.all([
+  const [assetResponse, candidates, explore] = await Promise.all([
     fetchAsset(env.ASSETS, request, '/'),
-    randomSupplements(env.DB, 6, curatedOnly),
+    randomSupplements(env.DB, 18, curatedOnly),
     listSupplements(env.DB, 200, curatedOnly),
   ]);
   if (!assetResponse.ok) return assetResponse;
+  // Six slides; supplements with real product photos first.
+  const withPhoto = candidates.filter((s) => s.products.some((p) => p.image));
+  const slides = [...withPhoto, ...candidates.filter((s) => !withPhoto.includes(s))].slice(0, 6);
 
   // Each of the six slides shows one supplement (the Webflow design sizes one card to the full slide width).
   let slideIndex = 0;

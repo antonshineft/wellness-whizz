@@ -11,7 +11,8 @@
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
     // Only these paths run the Worker; everything else is served straight from the static assets.
-    "run_worker_first": ["/", "/api/*", "/result/*", "/supplement/*"]
+    // "/__scheduled" lets `wrangler dev --test-scheduled` reach the cron handler locally.
+    "run_worker_first": ["/", "/api/*", "/result/*", "/supplement/*", "/__scheduled"]
   },
   // No database_id on purpose: `wrangler deploy` and the "Deploy to Cloudflare" button create the database
   // automatically and fill it in. Tables and content are created by the Worker itself on first start.
@@ -32,9 +33,12 @@
     "GLOBAL_LIMIT_PER_HOUR": "100",
     // "false" keeps supplements created by the AI out of the home slider, the Explore list and /api/supplements
     // (their own pages and result pages still work).
-    "LIST_AI_SUPPLEMENTS": "true"
+    "LIST_AI_SUPPLEMENTS": "true",
+    "BACKFILL_BATCH": "3"
     // Optional Cloudflare Turnstile bot protection: add TURNSTILE_SITE_KEY (variable) and TURNSTILE_SECRET_KEY (secret)
     // in the Cloudflare dashboard under the Worker's Settings -> Variables and Secrets. Both are needed to enable it.
   },
+  // Article writer: every 10 minutes write BACKFILL_BATCH missing "Holistic Highlights" articles (src/content.ts).
+  "triggers": { "crons": ["*/10 * * * *"] },
   "observability": { "enabled": true }
 }

@@ -3,7 +3,13 @@ import type { ResultItem, Session } from '../db';
 import { escapeHtml } from '../html';
 import type { LinkEnv } from '../links';
 import { page } from './layout';
+import { primaryProduct, shopUrl } from '../links';
 import { WF_PAGE_IDS, buyButton, cardBadges, cardImage, disclosure, navbar, productThumbs, ratingImage } from './partials';
+
+const FORM_LABELS: Record<string, string> = {
+  capsule: 'Capsules', softgel: 'Softgels', small_softgel: 'Softgels', tablet: 'Tablets', powder: 'Powder',
+  gummy: 'Gummies', bar: 'Bars', drops: 'Drops',
+};
 
 /** Webflow interaction ids of the five cards (fade-in animations in webflow.js are keyed on these). */
 const CARD_IDS = [
@@ -18,27 +24,33 @@ function resultCard(env: LinkEnv, item: ResultItem, index: number): string {
   const sup = item.supplement;
   const href = `/supplement/${escapeHtml(sup.slug)}`;
   const wid = CARD_IDS[index] ? ` data-w-id="${CARD_IDS[index]}" style="opacity:0"` : '';
+  const product = primaryProduct(sup);
+  // Lead with the real product photo when there is one; the generic illustration is the fallback.
+  const media = product?.image
+    ? `<img src="${escapeHtml(product.image)}" loading="lazy" alt="${escapeHtml(product.name)}">`
+    : cardImage(sup, 'class="ww-card-illustration"');
+  const mediaLink = product
+    ? `<a href="${escapeHtml(shopUrl(env, sup, product))}" target="_blank" rel="noopener nofollow sponsored" class="ww-card-media" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}" data-product="${escapeHtml(product.name)}">${media}</a>`
+    : `<a href="${href}" class="ww-card-media">${media}</a>`;
+  const form = FORM_LABELS[sup.form_type] ?? '';
   return `
           <div${wid} class="result-card-frame">
-            <div class="inner-frame">
-              <a href="${href}" class="div-block-15-image w-inline-block">
-                <div class="div-block-15-image">${cardImage(sup, 'sizes="(max-width: 479px) 77vw, (max-width: 767px) 135px, (max-width: 991px) 33vw, 323.994140625px" class="formimage"')}</div>
-              </a>
-              <div class="stroke">
-                <div class="outcarddiv">
-                  <div class="outtextdiv">
-                    <div class="resultname">${escapeHtml(sup.name)}</div>
-                    <div class="badges">${cardBadges(sup)}</div>
-                  </div>
-                  <div>
-                    <p class="paragraph">${escapeHtml(item.reason || sup.summary)}</p>${productThumbs(env, sup)}
-                  </div>
-                  <div class="bottomcard">
-                    <div class="w-layout-hflex flex-block">
-                      <div class="text-block-7">EFFECTIVITY</div>${ratingImage(sup.effectivity, 'vectors-wrapper-82', 'width="127" height="79.34735107421875"')}
-                    </div>
-                    <div class="ww-actions">${buyButton(env, sup)}<a href="${href}" class="fakebutton ww-secondary w-button">More Details</a></div>
-                  </div>
+            <div class="ww-card">
+              ${mediaLink}
+              <div class="ww-card-body">
+                <div class="ww-card-head">
+                  <span class="ww-rank">#${index + 1}</span>
+                  <h2 class="ww-card-title">${escapeHtml(sup.name)}</h2>
+                </div>
+                <div class="ww-card-meta">
+                  <div class="badges">${cardBadges(sup)}</div>
+                  <span class="ww-tag">${escapeHtml(sup.category)}</span>${form ? `<span class="ww-tag">${escapeHtml(form)}</span>` : ''}
+                  <span class="ww-rating" title="Effectivity ${sup.effectivity} of 5"><span class="ww-rating-label">Effectivity</span>${ratingImage(sup.effectivity, 'ww-rating-img')}</span>
+                </div>
+                <p class="ww-card-text">${escapeHtml(item.reason || sup.summary)}</p>
+                ${productThumbs(env, sup)}
+                <div class="ww-card-bottom">
+                  <div class="ww-actions">${buyButton(env, sup)}<a href="${href}" class="fakebutton ww-secondary w-button">More Details</a></div>
                 </div>
               </div>
             </div>

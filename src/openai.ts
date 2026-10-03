@@ -193,7 +193,7 @@ export async function generateSupplementProfile(env: AiEnv, rec: Recommendation)
 
 // ---------- internals ----------
 
-function useFakeAi(env: AiEnv): boolean {
+export function useFakeAi(env: AiEnv): boolean {
   if (env.OPENAI_API_KEY) return false;
   if (env.DEV_FAKE_AI === 'true') return true;
   throw new Error('OPENAI_API_KEY is not configured (set it with `wrangler secret put OPENAI_API_KEY`, or DEV_FAKE_AI=true for local development)');
@@ -240,7 +240,7 @@ function draftToInput(env: AiEnv, draft: ProfileDraft, rec: Recommendation): Sup
   };
 }
 
-async function chatJson<T>(env: AiEnv, schemaName: string, schema: unknown, userPrompt: string): Promise<T> {
+export async function chatJson<T>(env: AiEnv, schemaName: string, schema: unknown, userPrompt: string): Promise<T> {
   const body = JSON.stringify({
     model: env.OPENAI_MODEL || DEFAULT_MODEL,
     messages: [

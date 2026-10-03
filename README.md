@@ -111,6 +111,18 @@ the most clicked supplements and products, and where visitors came from.
 Every "Buy on iHerb" button and product photo is an affiliate link with your referral code; the result cards and the
 "Top picks on iHerb" strip on each supplement page are the main places people click out.
 
+### Article writer (content backfill)
+
+Only a fifth of the Webflow catalogue had a "Holistic Highlights" article and most pages had no studies. The Worker
+now writes them itself: a cron trigger (`wrangler.jsonc` → `triggers`) runs every 10 minutes and writes
+`BACKFILL_BATCH` (default 3) missing articles per run with OpenAI, newest AI-created supplements first, until none
+is left; afterwards each run is a single cheap database query. Set `BACKFILL_BATCH` to `0` to switch it off.
+
+- `GET /api/admin/backfill?key=<STATS_KEY>&limit=5` writes up to 5 articles right now and reports what is left.
+- `GET /api/admin/export?key=<STATS_KEY>` downloads the whole catalogue in the shape of `data/supplements.json`;
+  save it over that file and commit to carry AI-written content into the repository (bundled text never overwrites
+  content the database already has when the bundle's field is empty).
+
 ### Bot protection with Cloudflare Turnstile (recommended)
 
 Every quiz submission costs OpenAI credits, so protect the form once the site is public:

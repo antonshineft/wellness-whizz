@@ -1,13 +1,11 @@
 /* Wellness Whizz additions on top of the Webflow export: shop buttons, product picks, sticky mobile bar. */
 .ww-products { display: flex; flex-wrap: wrap; gap: 10px 14px; margin: 14px 0 6px; }
 .ww-product { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 92px; color: #1d272d; text-decoration: none; font-family: Aeonik, sans-serif; }
-.ww-product img { width: 76px; height: 76px; object-fit: contain; background: #fff; border: 1px solid #1d272d1f; border-radius: 14px; transition: transform .15s, box-shadow .15s; }
+.ww-product img { width: 76px; height: 76px; object-fit: contain; padding: 4px; background: #fbf1ce; border-radius: 14px; transition: transform .15s, box-shadow .15s; }
 .ww-product span { font-size: 12px; line-height: 14px; text-align: center; max-height: 28px; overflow: hidden; }
 .ww-product:hover img { transform: translateY(-2px); box-shadow: 0 6px 16px #1d272d26; }
 .ww-actions { display: flex; flex: 1 1 auto; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; }
 .ww-actions .fakebutton { padding: 16px 26px; font-size: 20px; line-height: 24px; white-space: nowrap; }
-/* The card's bottom row holds the rating and two buttons: let it wrap instead of overlapping. */
-.result-card-frame .bottomcard { flex-wrap: wrap; gap: 12px 16px; max-width: none; align-items: center; }
 /* Result cards are green, so the primary button is the dark pill and "More Details" becomes an outline. */
 .fakebutton.ww-buy { background-color: #1d272d; color: #fff; }
 .fakebutton.ww-buy:hover { background-color: #2f3d46; }
@@ -19,8 +17,10 @@
 .ww-strip-title { font-family: Aeonik, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #1d272d99; margin: 6px 0 10px; }
 .ww-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .ww-pick { display: flex; flex-direction: column; align-items: center; gap: 8px; background: #ecf3f6; border-radius: 20px; padding: 14px 10px; text-align: center; font-family: Aeonik, sans-serif; color: #1d272d; }
-.ww-pick img { width: 120px; height: 120px; object-fit: contain; background: #fff; border-radius: 16px; }
-.ww-pick-name { font-size: 14px; line-height: 18px; font-weight: 500; min-height: 36px; display: flex; align-items: center; }
+.ww-pick img { width: 120px; height: 120px; object-fit: contain; padding: 6px; background: #fbf1ce; border-radius: 16px; }
+.ww-pick-text { justify-content: center; min-height: 150px; }
+.ww-pick-name small { display: block; font-size: 12px; font-weight: 400; opacity: .7; }
+.ww-pick-name { font-size: 14px; line-height: 18px; font-weight: 500; min-height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .ww-pick .outbutton { padding: 10px 16px; font-size: 14px; text-decoration: none; }
 .ww-sticky { display: none; }
 @media (max-width: 767px) {
@@ -32,3 +32,54 @@
   .ww-actions { justify-content: center; width: 100%; }
   .ww-actions .fakebutton { flex: 1 1 45%; text-align: center; padding: 14px 12px; font-size: 16px; line-height: 20px; }
 }
+
+/* ---------- result cards (product-first layout) ---------- */
+.result-card-frame { padding: 12px; }
+.ww-card { display: flex; gap: 20px; align-items: stretch; font-family: Aeonik, sans-serif; color: #1d272d; }
+.ww-card-media { flex: 0 0 240px; display: flex; align-items: center; justify-content: center; padding: 14px; background: #fbf1ce; border-radius: 28px; overflow: hidden; }
+.ww-card-media img { width: 100%; max-height: 240px; object-fit: contain; transition: transform .2s; }
+.ww-card-media:hover img { transform: scale(1.04); }
+.ww-card-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 6px 6px 6px 0; }
+.ww-card-head { display: flex; align-items: baseline; gap: 12px; }
+.ww-rank { flex: none; font-size: 13px; font-weight: 700; letter-spacing: .06em; background: #1d272d; color: #87d581; border-radius: 999px; padding: 4px 10px; line-height: 16px; }
+.ww-card-title { margin: 0; font-family: Aeonik, sans-serif; font-size: 36px; line-height: 1.05; font-weight: 500; text-transform: uppercase; color: #1d272d; overflow-wrap: anywhere; }
+.ww-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ww-card-meta .badges { gap: 6px; }
+.ww-tag { font-family: Aeonik, sans-serif; font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: #1d272d; background: #1d272d14; border-radius: 999px; padding: 6px 10px; line-height: 14px; white-space: nowrap; }
+.frame-52 .ww-tag { background: #1d272d1a; margin-right: 4px; }
+.ww-card-text { margin: 0; font-size: 16px; line-height: 24px; color: #1d272d; }
+.ww-card .ww-products { margin: 2px 0; }
+.ww-card-bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; margin-top: auto; }
+.ww-rating { display: inline-flex; align-items: center; gap: 6px; background: #1d272d; border-radius: 999px; padding: 3px 10px 3px 12px; }
+.ww-rating-label { font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #ffffffb3; }
+.ww-rating-img { height: 26px; width: auto; display: block; }
+.ww-card-bottom { justify-content: flex-end; }
+@media (max-width: 991px) {
+  .ww-card-media { flex-basis: 200px; }
+  .ww-card-title { font-size: 30px; }
+}
+@media (max-width: 767px) {
+  .ww-card { flex-direction: column; gap: 14px; }
+  .ww-card-media { flex: none; height: 210px; padding: 10px; }
+  .ww-card-media img { max-height: 190px; }
+  .ww-card-body { padding: 0 4px 4px; }
+  .ww-card-title { font-size: 28px; }
+  .ww-card-bottom { justify-content: center; }
+}
+
+/* ---------- home page: centre blocks that the export pinned to a 1440px layout ---------- */
+.frame-244 { left: 0; right: 0; margin-left: auto; margin-right: auto; width: fit-content; max-width: calc(100% - 40px); }
+.manuallinks { margin-left: auto; margin-right: auto; padding-left: 100px; padding-right: 100px; box-sizing: border-box; }
+.manuallinks .linksnav { width: 100%; }
+@media (max-width: 767px) {
+  .manuallinks { padding-left: 24px; padding-right: 24px; }
+}
+
+/* ---------- supplement page: generated article typography ---------- */
+.rich-text-block-4 h3 { font-family: Aeonik, sans-serif; font-size: 28px; line-height: 36px; font-weight: 500; color: #fff; margin: 0 0 12px; }
+.rich-text-block-4 h4 { font-family: Aeonik, sans-serif; font-size: 20px; line-height: 28px; font-weight: 500; color: #87d581; margin: 24px 0 8px; }
+.rich-text-block-4 p { margin: 0 0 14px; }
+.rich-text-block-4 ul { padding-left: 20px; margin: 0 0 14px; }
+
+/* ---------- home slider: product photo on the cream square ---------- */
+.ww-slider-photo { object-fit: contain; padding: 10px; background: #fbf1ce; border: none; }

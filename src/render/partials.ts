@@ -171,9 +171,9 @@ export function buyButton(env: LinkEnv, sup: Supplement, extraClass = ''): strin
   return `<a href="${escapeHtml(shopUrl(env, sup, product))}" ${OUTBOUND_ATTRS} class="fakebutton ww-buy w-button${extraClass ? ' ' + extraClass : ''}" ${trackAttrs(sup, product)}>Buy on iHerb</a>`;
 }
 
-/** Small clickable product photos (result cards). */
+/** Small clickable product photos (result cards). Products without a real photo are left out. */
 export function productThumbs(env: LinkEnv, sup: Supplement, max = 3): string {
-  const products = sup.products.slice(0, max);
+  const products = sup.products.filter((p) => p.image).slice(0, max);
   if (!products.length) return '';
   return `<div class="ww-products">${products
     .map(
@@ -192,14 +192,14 @@ export function productPicks(env: LinkEnv, sup: Supplement): string {
     ? products
         .map(
           (p) => `
-      <div class="ww-pick">${productImage(sup, p, 'width="120" height="120"')}
-        <div class="ww-pick-name">${escapeHtml(p.name)}</div>
-        <a href="${escapeHtml(shopUrl(env, sup, p))}" ${OUTBOUND_ATTRS} class="outbutton w-button" ${trackAttrs(sup, p)}>Buy on iHerb</a>
+      <div class="ww-pick${p.image ? '' : ' ww-pick-text'}">${p.image ? productImage(sup, p, 'width="120" height="120"') : ''}
+        <div class="ww-pick-name">${escapeHtml(p.name)}${p.brand ? `<small>${escapeHtml(p.brand)}</small>` : ''}</div>
+        <a href="${escapeHtml(shopUrl(env, sup, p))}" ${OUTBOUND_ATTRS} class="outbutton w-button" ${trackAttrs(sup, p)}>${p.image ? 'Buy on iHerb' : 'Find on iHerb'}</a>
       </div>`,
         )
         .join('')
     : `
-      <div class="ww-pick">${cardImage(sup, 'width="120" height="120"')}
+      <div class="ww-pick ww-pick-text">
         <div class="ww-pick-name">${escapeHtml(sup.name)}</div>
         <a href="${escapeHtml(shopUrl(env, sup))}" ${OUTBOUND_ATTRS} class="outbutton w-button" ${trackAttrs(sup)}>Find on iHerb</a>
       </div>`;
@@ -239,11 +239,15 @@ export function exploreSection(supplements: Supplement[]): string {
   </div>`;
 }
 
-/** One card of the home-page slider. */
+/** One card of the home-page slider: the real product photo on the cream square, illustration as fallback. */
 export function homeCard(sup: Supplement): string {
+  const product = sup.products.find((p) => p.image);
+  const image = product
+    ? `<img src="${escapeHtml(product.image)}" loading="lazy" width="213" height="213" alt="${escapeHtml(product.name)}" class="convertedimage2 ww-slider-photo">`
+    : cardImage(sup, 'width="213" height="213" class="convertedimage2"');
   return `<div role="listitem" class="collection-item-2 w-dyn-item w-col w-col-6">
   <a href="/supplement/${escapeHtml(sup.slug)}" class="link-block-2 w-inline-block" aria-label="${escapeHtml(sup.name)}"></a>
-  <div class="imagecard">${cardImage(sup, 'width="213" height="213" class="convertedimage2"')}
+  <div class="imagecard">${image}
     <div class="frame-256">
       <div class="text-75">${escapeHtml(sup.name)}</div>
       <div class="frame-257">${headerBadges(sup)}</div>

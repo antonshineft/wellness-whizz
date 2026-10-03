@@ -328,6 +328,51 @@ export async function getSessionResults(db: D1Database, sessionId: string): Prom
 }
 
 /** Sessions started in the last `hours` hours, for one IP hash or (null) for everyone. */
+// ---------- content backfill ----------
+
+/** Supplements whose Holistic Highlights article is missing or short, or whose studies list is empty. */
+export async function supplementsNeedingContent(db: D1Database, minArticleLength: number, limit: number): Promise<Supplement[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT ${SUPPLEMENT_COLUMNS} FROM supplements
+       WHERE length(holistic_html) < ? OR studies_html = ''
+       ORDER BY source = 'ai' DESC, created_at DESC LIMIT ?`,
+    )
+    .bind(minArticleLength, limit)
+    .all<SupplementRow>();
+  return results.map(rowToSupplement);
+}
+
+export async function countSupplementsNeedingContent(db: D1Database, minArticleLength: number): Promise<number> {
+  const row = await db
+    .prepare(`SELECT COUNT(*) AS n FROM supplements WHERE length(holistic_html) < ? OR studies_html = ''`)
+    .bind(minArticleLength)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+export async function updateSupplementContent(
+  db: D1Database,
+  id: number,
+  content: { holistic_html?: string; studies_html?: string },
+): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE supplements SET
+         holistic_html = CASE WHEN ? != '' THEN ? ELSE holistic_html END,
+         studies_html = CASE WHEN studies_html = '' AND ? != '' THEN ? ELSE studies_html END
+       WHERE id = ?`,
+    )
+    .bind(content.holistic_html ?? '', content.holistic_html ?? '', content.studies_html ?? '', content.studies_html ?? '', id)
+    .run();
+}
+
+/** Everything in the catalogue, for exporting back into data/supplements.json. */
+export async function exportSupplements(db: D1Database): Promise<Supplement[]> {
+  const { results } = await db.prepare(`SELECT ${SUPPLEMENT_COLUMNS} FROM supplements ORDER BY id`).all<SupplementRow>();
+  return results.map(rowToSupplement);
+}
+
 // ---------- events (measurement) ----------
 
 export type EventType = 'home_view' | 'quiz_view' | 'result_view' | 'supplement_view' | 'outbound_click';

@@ -97,7 +97,7 @@ function productCards(env: LinkEnv, sup: Supplement): string {
       const link = escapeHtml(shopUrl(env, sup, p));
       const image = p.image
         ? `<img src="${escapeHtml(p.image)}" loading="lazy" width="306" height="305" alt="${escapeHtml(p.name)}" class="convertedimage14-4">`
-        : cardImage(sup, 'width="306" height="305" class="convertedimage14-4"');
+        : '';
       return `
               <div id="Card" data-w-id="${PRODUCT_CARD_IDS[i]}" style="opacity:0" class="frame-114">
                 <div class="frame-113">${image}
@@ -197,10 +197,9 @@ export function renderSupplementPage(sup: Supplement, explore: Supplement[], env
         </div>
         <div class="frame-50">
           <div class="frame-51">
-            <div class="text-10">${escapeHtml(sup.category)}</div>
-            <div class="text-10"> </div>
+            <div class="text-10">${escapeHtml(sup.summary || `${sup.name}: benefits, dosage, safety and where to buy.`)}</div>
           </div>
-          <div class="frame-52">${headerBadges(sup)}</div>
+          <div class="frame-52"><span class="ww-tag">${escapeHtml(sup.category)}</span>${headerBadges(sup)}</div>
         </div>
       </div>
     </div>${productPicks(env, sup)}

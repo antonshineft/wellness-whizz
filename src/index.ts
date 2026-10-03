@@ -13,9 +13,11 @@
  */
 import { Hono } from 'hono';
 import { ensureDatabase } from './bootstrap';
+import { MIN_ARTICLE_LENGTH, generateArticle } from './content';
 import {
-  EVENT_TYPES, countRecentSessions, createSession, getSession, getSessionResults, getSupplementBySlug, listSupplements,
-  logEvent, markSession, resolveSupplementSlug, statsSummary, type EventInput, type EventType, type QuizProfile,
+  EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
+  getSessionResults, getSupplementBySlug, listSupplements, logEvent, markSession, resolveSupplementSlug, statsSummary,
+  supplementsNeedingContent, updateSupplementContent, type EventInput, type EventType, type QuizProfile,
 } from './db';
 import { runQuizPipeline } from './pipeline';
 import { fetchAsset, renderHome } from './render/home';
@@ -36,6 +38,8 @@ export interface Bindings {
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
   STATS_KEY?: string;
+  /** Supplements per cron run of the article writer; "0" disables the scheduled backfill. */
+  BACKFILL_BATCH?: string;
 }
 
 type AppContext = { Bindings: Bindings };
@@ -207,13 +211,41 @@ app.post('/api/event', async (c) => {
   return c.json({ ok: true });
 });
 
-app.get('/api/stats', async (c) => {
+/** Owner-only routes: require the STATS_KEY secret as ?key= or a bearer token. */
+function authorized(c: { env: Bindings; req: { query: (k: string) => string | undefined; header: (k: string) => string | undefined } }): Response | null {
   const key = c.env.STATS_KEY;
-  if (!key) return c.json({ error: 'Not found' }, 404);
+  if (!key) return Response.json({ error: 'Not found' }, { status: 404 });
   const provided = c.req.query('key') ?? (c.req.header('authorization') ?? '').replace(/^Bearer\s+/i, '');
-  if (!provided || provided !== key) return c.json({ error: 'Unauthorized' }, 401);
+  if (!provided || provided !== key) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  return null;
+}
+
+app.get('/api/stats', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
   c.header('cache-control', 'no-store');
   return c.json(await statsSummary(c.env.DB));
+});
+
+/** Write missing articles now (the cron does the same a few at a time). ?limit=N, default 3. */
+app.get('/api/admin/backfill', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  const limit = Math.min(10, Math.max(1, Number(c.req.query('limit') ?? '3') || 3));
+  c.header('cache-control', 'no-store');
+  return c.json(await backfillContent(c.env, limit));
+});
+
+/** The whole catalogue as JSON, in the shape of data/supplements.json (to bundle AI-written content into the repo). */
+app.get('/api/admin/export', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  const rows = await exportSupplements(c.env.DB);
+  c.header('cache-control', 'no-store');
+  c.header('content-disposition', 'attachment; filename="supplements.json"');
+  return c.json(
+    rows.map(({ id: _id, created_at: _created, source: _source, ...rest }) => rest),
+  );
 });
 
 app.get('/api/supplements', async (c) => {
@@ -237,9 +269,53 @@ app.onError((err, c) => {
   return c.body('Internal error', 500, { 'content-type': 'text/plain; charset=utf-8' });
 });
 
-export default app;
+export default {
+  fetch: app.fetch,
+  /** Cron trigger (see wrangler.jsonc): writes a few missing articles per run until the catalogue is complete. */
+  async scheduled(_event: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {
+    const batch = Number(env.BACKFILL_BATCH ?? '3');
+    if (!batch) return;
+    ctx.waitUntil(
+      ensureDatabase(env.DB)
+        .then(() => backfillContent(env, batch))
+        .then((result) => console.log(`backfill: ${JSON.stringify(result)}`))
+        .catch((err) => console.error(`backfill failed: ${String(err)}`)),
+    );
+  },
+};
 
 // ---------- helpers ----------
+
+interface BackfillResult {
+  written: string[];
+  failed: string[];
+  remaining: number;
+}
+
+/** Generate articles for up to `limit` supplements that lack one. Safe to run repeatedly. */
+async function backfillContent(env: Bindings, limit: number): Promise<BackfillResult> {
+  if (!env.OPENAI_API_KEY && env.DEV_FAKE_AI !== 'true') {
+    return { written: [], failed: ['OPENAI_API_KEY is not configured'], remaining: await countSupplementsNeedingContent(env.DB, MIN_ARTICLE_LENGTH) };
+  }
+  const todo = await supplementsNeedingContent(env.DB, MIN_ARTICLE_LENGTH, limit);
+  const settled = await Promise.allSettled(
+    todo.map(async (sup) => {
+      const content = await generateArticle(env, sup);
+      await updateSupplementContent(env.DB, sup.id, content);
+      return sup.slug;
+    }),
+  );
+  const written: string[] = [];
+  const failed: string[] = [];
+  settled.forEach((outcome, i) => {
+    if (outcome.status === 'fulfilled') written.push(outcome.value);
+    else {
+      failed.push(`${todo[i].slug}: ${String(outcome.reason).slice(0, 160)}`);
+      console.error(`article for ${todo[i].slug} failed: ${String(outcome.reason)}`);
+    }
+  });
+  return { written, failed, remaining: await countSupplementsNeedingContent(env.DB, MIN_ARTICLE_LENGTH) };
+}
 
 /** Record a funnel event without delaying the response. Never throws. */
 interface TrackContext {
