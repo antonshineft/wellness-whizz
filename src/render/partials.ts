@@ -168,6 +168,7 @@ export function footer(): string {
       <div class="frame-220">
         <div class="frame-221">
           <a href="/blog" class="text-58 ww-footer-link">Blog</a>
+          <a href="/research" class="text-58 ww-footer-link">Research</a>
           <a href="/how-it-works" class="text-58 ww-footer-link">How it works</a>
           <a href="/terms" class="text-58 ww-footer-link">Terms and Conditions</a>
         </div>

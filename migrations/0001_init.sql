@@ -91,3 +91,36 @@ CREATE TABLE IF NOT EXISTS subscribers (
   unsubscribed_at TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_subscribers_created ON subscribers(created_at);
+
+-- Social posting queue (X for now): what to post, when, and what happened.
+CREATE TABLE IF NOT EXISTS social_posts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  channel TEXT NOT NULL DEFAULT 'x',
+  kind TEXT NOT NULL,                              -- article | fact | research
+  ref TEXT NOT NULL DEFAULT '',                    -- slug / pmid the post is about
+  thread_json TEXT NOT NULL,                       -- JSON array of tweet texts (1 = single post)
+  status TEXT NOT NULL DEFAULT 'queued',           -- queued | posted | failed | skipped
+  scheduled_at TEXT NOT NULL DEFAULT (datetime('now')),
+  posted_at TEXT,
+  external_id TEXT,
+  error TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_social_status ON social_posts(status, scheduled_at);
+
+-- Research notes: new trials and reviews found on PubMed for catalogue supplements, summarised in plain language.
+CREATE TABLE IF NOT EXISTS research_notes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  pmid TEXT NOT NULL UNIQUE,
+  supplement_id INTEGER NOT NULL REFERENCES supplements(id),
+  title TEXT NOT NULL,
+  journal TEXT NOT NULL DEFAULT '',
+  pub_date TEXT NOT NULL DEFAULT '',
+  pub_type TEXT NOT NULL DEFAULT '',
+  summary TEXT NOT NULL DEFAULT '',
+  takeaway TEXT NOT NULL DEFAULT '',
+  tweet TEXT NOT NULL DEFAULT '',
+  queued INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_research_created ON research_notes(created_at);

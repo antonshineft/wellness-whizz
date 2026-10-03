@@ -334,3 +334,16 @@ img.ww-opaque { mix-blend-mode: multiply; }
   .ww-related-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .ww-related-media { height: 130px; }
 }
+
+/* ---------- research notes ---------- */
+.ww-notes { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.ww-note { background: #ecf3f6; border-radius: 24px; padding: 22px 26px; font-family: Aeonik, sans-serif; color: #1d272d; }
+.ww-note-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; opacity: .8; margin-bottom: 10px; }
+.ww-note-meta .ww-tag { opacity: 1; text-decoration: none; }
+.ww-note h2 { font-family: Aeonik, sans-serif; font-size: 21px; line-height: 28px; font-weight: 700; margin: 0 0 10px; }
+.ww-note h2 a { color: #1d272d; text-decoration: none; }
+.ww-note h2 a:hover { text-decoration: underline; text-decoration-color: #87d581; }
+.ww-note p { margin: 0 0 10px; font-size: 16px; line-height: 26px; }
+.ww-note-takeaway { background: #fff; border-radius: 14px; padding: 10px 14px; }
+.ww-note-links { font-size: 14px; opacity: .85; }
+.ww-note-links a { color: #1d272d; }

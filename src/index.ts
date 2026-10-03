@@ -18,6 +18,9 @@ import { MIN_ARTICLE_LENGTH, generateArticle } from './content';
 import { generateSupplementImage, imageGenerationEnabled, loadImage, supplementsNeedingImage } from './images';
 import { attachIherbProducts, supplementsWithoutPhotos } from './products';
 import { emailEnabled, resultsEmail, sendEmail } from './email';
+import { listResearchNotes, researchBatch } from './research';
+import { renderResearchPage } from './render/research';
+import { buildQueue, listSocialPosts, postDue, setSocialStatus } from './social/content';
 import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
   getSessionResults, getSupplementBySlug, listSupplements, logEvent, markSession, mergeDuplicateSupplements,
@@ -50,6 +53,17 @@ export interface Bindings {
   BACKFILL_BATCH?: string;
   /** "false" turns off generated illustrations for supplements without product photos. */
   IMAGE_GENERATION?: string;
+  /** X (Twitter) posting: the four keys of a developer app with read and write permission (src/social/x.ts). */
+  X_API_KEY?: string;
+  X_API_SECRET?: string;
+  X_ACCESS_TOKEN?: string;
+  X_ACCESS_SECRET?: string;
+  /** "false" keeps posts queued without sending them; X_POSTS_PER_DAY caps sends (default 2). */
+  X_AUTOPOST?: string;
+  X_POSTS_PER_DAY?: string;
+  /** Optional NCBI key for faster PubMed requests; RESEARCH_BATCH supplements checked per daily run (default 15). */
+  NCBI_API_KEY?: string;
+  RESEARCH_BATCH?: string;
   /** Optional: the site's one public hostname (e.g. aiww.io); other hostnames redirect to it. */
   CANONICAL_HOST?: string;
   /** Optional: Resend API key + verified sender for "Email me my results" (src/email.ts). */
@@ -209,6 +223,35 @@ app.get('/robots.txt', (c) => {
   return c.body(body, 200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' });
 });
 
+app.get('/research', async (c) => {
+  const notes = await listResearchNotes(c.env.DB, 100);
+  track(c, { type: 'page_view', page: '/research' });
+  return c.body(renderResearchPage(notes, new URL(c.req.url).origin), 200, htmlHeaders('public, max-age=600'));
+});
+
+/** Owner-only: the X queue (what was posted, what is waiting, what failed) and simple controls. */
+app.get('/api/admin/social', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  c.header('cache-control', 'no-store');
+  const action = c.req.query('action');
+  const id = Number(c.req.query('id') ?? '');
+  if (action && Number.isFinite(id) && id > 0) {
+    if (action === 'skip') await setSocialStatus(c.env.DB, id, 'skipped');
+    else if (action === 'retry') await setSocialStatus(c.env.DB, id, 'queued', new Date().toISOString().slice(0, 19).replace('T', ' '));
+  }
+  if (action === 'build') {
+    const built = await buildQueue(c.env);
+    return c.json({ built, posts: await listSocialPosts(c.env.DB) });
+  }
+  if (action === 'post') return c.json({ result: await postDue(c.env), posts: await listSocialPosts(c.env.DB) });
+  if (action === 'research') {
+    const sups = await listSupplements(c.env.DB, 500, true);
+    return c.json({ result: await researchBatch(c.env, sups.sort(() => Math.random() - 0.5), 5), notes: (await listResearchNotes(c.env.DB, 10)).length });
+  }
+  return c.json({ posts: await listSocialPosts(c.env.DB) });
+});
+
 app.get('/sitemap.xml', async (c) => {
   const origin = new URL(c.req.url).origin;
   const supplements = await listSupplementSlugs(c.env.DB, curatedOnly(c.env));
@@ -216,6 +259,7 @@ app.get('/sitemap.xml', async (c) => {
     { loc: '/', priority: '1.0' },
     { loc: '/wellness-quiz', priority: '0.9' },
     { loc: '/blog', priority: '0.8' },
+    { loc: '/research', priority: '0.7' },
     { loc: '/how-it-works', priority: '0.6' },
     { loc: '/terms', priority: '0.2' },
     ...POSTS.map((p) => ({ loc: `/blog/${p.slug}`, lastmod: p.date, priority: '0.8' })),
@@ -387,18 +431,21 @@ app.get('/api/stats', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   c.header('cache-control', 'no-store');
-  const [stats, content, lastCron] = await Promise.all([
+  const [stats, content, lastCron, lastSocial, lastResearch] = await Promise.all([
     statsSummary(c.env.DB),
     contentProgress(c.env.DB, MIN_ARTICLE_LENGTH),
     getMeta(c.env.DB, 'cron:last'),
+    getMeta(c.env.DB, 'social:last'),
+    getMeta(c.env.DB, 'research:last'),
   ]);
-  let last_cron: unknown = null;
-  try {
-    last_cron = lastCron ? JSON.parse(lastCron) : null;
-  } catch {
-    last_cron = lastCron;
-  }
-  return c.json({ ...stats, content: { ...content, last_cron } });
+  const parse = (v: string | null): unknown => {
+    try {
+      return v ? JSON.parse(v) : null;
+    } catch {
+      return v;
+    }
+  };
+  return c.json({ ...stats, content: { ...content, last_cron: parse(lastCron) }, social: { last_run: parse(lastSocial) }, research: { last_run: parse(lastResearch) } });
 });
 
 /** Write missing articles now (the cron does the same a few at a time). ?limit=N, default 3. */
@@ -450,7 +497,42 @@ app.onError((err, c) => {
 export default {
   fetch: app.fetch,
   /** Cron trigger (see wrangler.jsonc): writes a few missing articles per run until the catalogue is complete. */
-  async scheduled(_event: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {
+  async scheduled(event: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {
+    if (event.cron === '0 * * * *') {
+      // Hourly: build the X queue from the site's own content and send what is due.
+      ctx.waitUntil(
+        ensureDatabase(env.DB)
+          .then(() => buildQueue(env))
+          .then((built) => {
+            if (built.queued.length) console.log(`social queued: ${built.queued.join(', ')}`);
+            return postDue(env);
+          })
+          .then((result) => {
+            if (result.posted.length || result.failed.length) console.log(`social: ${JSON.stringify(result)}`);
+            return setMeta(env.DB, 'social:last', JSON.stringify({ at: new Date().toISOString(), ...result }));
+          })
+          .catch((err) => console.error(`social failed: ${String(err)}`)),
+      );
+      return;
+    }
+    if (event.cron === '0 6 * * *') {
+      // Daily: look for new PubMed papers about a slice of the catalogue (the whole catalogue in about a week).
+      ctx.waitUntil(
+        ensureDatabase(env.DB)
+          .then(async () => {
+            const sups = await listSupplements(env.DB, 500, true);
+            const batch = Math.max(1, Number(env.RESEARCH_BATCH ?? '15') || 15);
+            const cursor = Number((await getMeta(env.DB, 'research:cursor')) ?? '0') || 0;
+            const slice = [...sups.slice(cursor, cursor + batch), ...sups.slice(0, Math.max(0, cursor + batch - sups.length))];
+            const result = await researchBatch(env, slice, batch);
+            await setMeta(env.DB, 'research:cursor', String((cursor + batch) % Math.max(1, sups.length)));
+            await setMeta(env.DB, 'research:last', JSON.stringify({ at: new Date().toISOString(), ...result }));
+            console.log(`research: ${JSON.stringify(result)}`);
+          })
+          .catch((err) => console.error(`research failed: ${String(err)}`)),
+      );
+      return;
+    }
     const batch = Number(env.BACKFILL_BATCH ?? '3');
     if (!batch) return;
     ctx.waitUntil(

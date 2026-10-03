@@ -219,7 +219,7 @@ function seoHead(sup: Supplement, origin: string): string {
     ],
   };
   return `
-  <link rel="canonical" href="${escapeHtml(url)}">${image ? `\n  <meta property="og:image" content="${escapeHtml(image)}">` : ''}
+  <link rel="canonical" href="${escapeHtml(url)}">${image ? `\n  <meta property="og:image" content="${escapeHtml(image)}">\n  <meta name="twitter:image" content="${escapeHtml(image)}">` : ''}
   <script type="application/ld+json">${safe(supplement)}</script>
   <script type="application/ld+json">${safe(breadcrumbs)}</script>`;
 }

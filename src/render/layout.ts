@@ -31,6 +31,7 @@ export function page(opts: PageOptions): string {
   <meta content="${description}" name="twitter:description">
   <meta property="og:type" content="website">
   <meta content="summary_large_image" name="twitter:card">
+  <meta content="@aiwwio" name="twitter:site">
   <meta content="width=device-width, initial-scale=1" name="viewport">
   <meta content="D5839stdLcyZohbV8RR60XC4AdkQRaxR8669m8NgTWA" name="google-site-verification">
   <link href="/css/normalize.css" rel="stylesheet" type="text/css">

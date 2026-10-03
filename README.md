@@ -166,6 +166,24 @@ on as a last resort.
 - `/api/stats` now also reports `content`: how many supplements have an article and studies, how many still lack
   product photos, the number of subscribers, and `last_cron` with what the last background run wrote or failed.
 
+### Posting to X and the research notes
+
+The site keeps its own X account busy without anyone logging in:
+
+- every blog article is announced once as a short thread;
+- one supplement fact a day, rotating through the catalogue, each linking to the supplement page;
+- new trials, meta-analyses and reviews about catalogue supplements, found on PubMed every day for a slice of the
+  catalogue (`RESEARCH_BATCH`, default 15, so the whole catalogue is checked weekly), summarised in plain language by
+  the model, shown on `/research` and posted at most twice a week.
+
+Posts are drafted by the model into a queue (`social_posts`) and sent from the hourly cron inside a daytime window,
+`X_POSTS_PER_DAY` (default 2) at most, never two within 2.5 hours. Setup: create a free X developer app at
+https://developer.x.com with **Read and write** permission for the account, generate the four keys and store them as
+secrets: `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_SECRET`. `X_AUTOPOST=false` keeps drafting without
+sending. `GET /api/admin/social?key=<STATS_KEY>` shows the queue; `&action=build`, `&action=post` and
+`&action=research` run the three steps by hand; `&action=skip&id=N` and `&action=retry&id=N` manage one item.
+`/api/stats` reports the last social and research runs.
+
 ### Pages, blog and sitemap
 
 - `/how-it-works` and `/terms` (Terms and Conditions with the privacy and affiliate disclosures) are rendered from

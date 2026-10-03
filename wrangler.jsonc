@@ -12,7 +12,7 @@
     "not_found_handling": "404-page",
     // Only these paths run the Worker; everything else is served straight from the static assets.
     // "/__scheduled" lets `wrangler dev --test-scheduled` reach the cron handler locally.
-    "run_worker_first": ["/", "/api/*", "/result/*", "/supplement/*", "/images/generated/*", "/how-it-works", "/terms", "/blog", "/blog/*", "/sitemap.xml", "/robots.txt", "/__scheduled"]
+    "run_worker_first": ["/", "/api/*", "/result/*", "/supplement/*", "/images/generated/*", "/how-it-works", "/terms", "/blog", "/blog/*", "/sitemap.xml", "/robots.txt", "/research", "/__scheduled"]
   },
   // No database_id on purpose: `wrangler deploy` and the "Deploy to Cloudflare" button create the database
   // automatically and fill it in. Tables and content are created by the Worker itself on first start.
@@ -37,12 +37,15 @@
     "BACKFILL_BATCH": "6",
     // The site's one public address: the workers.dev URL and www. redirect to it (src/index.ts).
     "CANONICAL_HOST": "aiww.io",
+    // X posting: "false" keeps posts queued (visible at /api/admin/social) without sending; posts per day cap.
+    "X_AUTOPOST": "true",
+    "X_POSTS_PER_DAY": "2",
     // Illustrations (OpenAI image model) for supplements without product photos; "false" switches them off.
     "IMAGE_GENERATION": "false"
     // Optional Cloudflare Turnstile bot protection: add TURNSTILE_SITE_KEY (variable) and TURNSTILE_SECRET_KEY (secret)
     // in the Cloudflare dashboard under the Worker's Settings -> Variables and Secrets. Both are needed to enable it.
   },
   // Article writer: every 10 minutes write BACKFILL_BATCH missing "Holistic Highlights" articles (src/content.ts).
-  "triggers": { "crons": ["*/5 * * * *"] },
+  "triggers": { "crons": ["*/5 * * * *", "0 * * * *", "0 6 * * *"] },
   "observability": { "enabled": true }
 }

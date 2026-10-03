@@ -188,7 +188,7 @@ export function renderBlogPost(ctx: BlogContext, post: BlogPost, related: readon
   const head = `
   <link rel="canonical" href="${escapeHtml(ctx.origin)}/blog/${escapeHtml(post.slug)}">
   <meta property="og:type" content="article">
-  <meta property="article:published_time" content="${escapeHtml(post.date)}">${imageUrl ? `\n  <meta property="og:image" content="${escapeHtml(imageUrl)}">` : ''}${jsonLd(ctx, post, imageUrl)}`;
+  <meta property="article:published_time" content="${escapeHtml(post.date)}">${imageUrl ? `\n  <meta property="og:image" content="${escapeHtml(imageUrl)}">\n  <meta name="twitter:image" content="${escapeHtml(imageUrl)}">` : ''}${jsonLd(ctx, post, imageUrl)}`;
   return page({
     title: post.title,
     description: post.description,
