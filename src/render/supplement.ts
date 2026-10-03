@@ -4,7 +4,7 @@ import { escapeHtml } from '../html';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
 import {
-  EFFECTIVITY_LABELS, SAFETY_LABELS, WF_PAGE_IDS, cardImage, detailImage, exploreSection, footer, headerBadges, navbar,
+  EFFECTIVITY_LABELS, SAFETY_LABELS, WF_PAGE_IDS, blendAttr, cardImage, detailImage, exploreSection, footer, headerBadges, navbar,
   productPicks, ratingImage, stickyBuyBar,
 } from './partials';
 
@@ -96,7 +96,7 @@ function productCards(env: LinkEnv, sup: Supplement): string {
     .map((p, i) => {
       const link = escapeHtml(shopUrl(env, sup, p));
       const image = p.image
-        ? `<img src="${escapeHtml(p.image)}" loading="lazy" width="306" height="305" alt="${escapeHtml(p.name)}" class="convertedimage14-4">`
+        ? `<img src="${escapeHtml(p.image)}" loading="lazy" width="306" height="305" alt="${escapeHtml(p.name)}" class="convertedimage14-4"${blendAttr(p)}>`
         : cardImage(sup, `width="306" height="305" class="convertedimage14-4"`);
       return `
               <div id="Card" data-w-id="${PRODUCT_CARD_IDS[i]}" style="opacity:0" class="frame-114">

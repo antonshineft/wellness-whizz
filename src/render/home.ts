@@ -2,19 +2,24 @@
  * Home page: the static index.html from the export, with the two Webflow collection lists filled from D1
  * (the carousel cards and the "Explore manually" links) using HTMLRewriter.
  */
-import { listSupplements, randomSupplements, type Supplement } from '../db';
+import { POSTS } from '../blog';
+import { getSupplementsBySlugs, listSupplements, randomSupplements } from '../db';
+import type { LinkEnv } from '../links';
+import { postCard } from './blog';
 import { exploreItem, homeCard } from './partials';
 
 export async function renderHome(
-  env: { DB: D1Database; ASSETS: Fetcher },
+  env: LinkEnv & { DB: D1Database; ASSETS: Fetcher },
   request: Request,
   curatedOnly = false,
 ): Promise<Response> {
-  const [assetResponse, candidates, explore] = await Promise.all([
+  const [assetResponse, candidates, explore, postSupplements] = await Promise.all([
     fetchAsset(env.ASSETS, request, '/'),
     randomSupplements(env.DB, 18, curatedOnly),
     listSupplements(env.DB, 200, curatedOnly),
+    getSupplementsBySlugs(env.DB, POSTS.map((p) => p.heroSupplement)),
   ]);
+  const blogCtx = { env, origin: new URL(request.url).origin, supplements: postSupplements };
   if (!assetResponse.ok) return assetResponse;
   // Carousel cards: supplements with real product photos first. The browser script loops them seamlessly.
   const withPhoto = candidates.filter((s) => s.products.some((p) => p.image));
@@ -24,6 +29,11 @@ export async function renderHome(
     .on('.ww-carousel-track', {
       element(el) {
         if (cards.length) el.setInnerContent(cards.map(homeCard).join(''), { html: true });
+      },
+    })
+    .on('.ww-teaser-posts', {
+      element(el) {
+        el.setInnerContent(POSTS.slice(0, 3).map((p) => postCard(blogCtx, p)).join(''), { html: true });
       },
     })
     .on('.linksnav', {

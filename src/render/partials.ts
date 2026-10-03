@@ -188,9 +188,14 @@ function trackAttrs(sup: Supplement, product?: Product): string {
   return `data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}"${product ? ` data-product="${escapeHtml(product.name)}"` : ''}`;
 }
 
+/** Inline style for photos that still carry a white background (fetched from iHerb at runtime). */
+export function blendAttr(product?: { opaque?: boolean } | null): string {
+  return product?.opaque ? ' style="mix-blend-mode:multiply"' : '';
+}
+
 function productImage(sup: Supplement, product: Product, attrs: string): string {
   return product.image
-    ? `<img src="${escapeHtml(product.image)}" loading="lazy" alt="${escapeHtml(product.name)}" ${attrs}>`
+    ? `<img src="${escapeHtml(product.image)}" loading="lazy" alt="${escapeHtml(product.name)}" ${attrs}${blendAttr(product)}>`
     : cardImage(sup, attrs);
 }
 
@@ -272,7 +277,7 @@ export function exploreSection(supplements: Supplement[]): string {
 export function homeCard(sup: Supplement): string {
   const product = sup.products.find((p) => p.image);
   const image = product
-    ? `<img src="${escapeHtml(product.image)}" loading="lazy" width="213" height="213" alt="${escapeHtml(product.name)}" class="convertedimage2 ww-slider-photo">`
+    ? `<img src="${escapeHtml(product.image)}" loading="lazy" width="213" height="213" alt="${escapeHtml(product.name)}" class="convertedimage2 ww-slider-photo"${blendAttr(product)}>`
     : cardImage(sup, `width="213" height="213" class="convertedimage2${sup.image ? ' ww-slider-photo' : ''}"`);
   return `<div role="listitem" class="collection-item-2 ww-carousel-item">
   <a href="/supplement/${escapeHtml(sup.slug)}" class="link-block-2 w-inline-block" aria-label="${escapeHtml(sup.name)}"></a>

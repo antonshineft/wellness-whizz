@@ -44,7 +44,8 @@
    {
     "name": "Acai Liquid Concentrate",
     "brand": "",
-    "url": "https://iherb.co/kvYSMKfN"
+    "url": "https://iherb.co/kvYSMKfN",
+    "image": "/images/products/acai-berry-supplements-35982-5.webp"
    }
   ]
  },
@@ -443,7 +444,8 @@
    {
     "name": "Blueberry Extract And Pom",
     "brand": "",
-    "url": "https://iherb.co/N77Bm4Qd"
+    "url": "https://iherb.co/N77Bm4Qd",
+    "image": "/images/products/blueberry-supplements-7540e-5.webp"
    }
   ]
  },
@@ -842,7 +844,8 @@
    {
     "name": "Dietary Supp L-Arginine",
     "brand": "",
-    "url": "https://iherb.co/3JCzfBjq"
+    "url": "https://iherb.co/3JCzfBjq",
+    "image": "/images/products/citrulline-606c9-5.webp"
    }
   ]
  },
@@ -2373,6 +2376,56 @@
   ]
  },
  {
+  "slug": "l-theanine",
+  "name": "L-Theanine",
+  "category": "Amino Acid",
+  "form_type": "capsule",
+  "fda_status": "probably_ok",
+  "safety_status": "safe",
+  "effectivity": 3,
+  "safety": 4,
+  "summary": "L-Theanine promotes relaxation and stress reduction without drowsiness, supporting cognitive focus and mood balance.",
+  "benefits_html": "",
+  "contraindications_html": "",
+  "enhancing_html": "",
+  "interactions_html": "",
+  "why_consider": "",
+  "holistic_html": "",
+  "studies_html": "",
+  "products": [
+   {
+    "name": "L-Theanine Featuring AlphaWave 200 mg",
+    "brand": "California Gold Nutrition",
+    "url": "https://www.iherb.com/pr/california-gold-nutrition-l-theanine-featuring-alphawave-200-mg-60-veggie-capsules/83280",
+    "image": "/images/products/l-theanine-1.webp"
+   },
+   {
+    "name": "L-Theanine",
+    "brand": "NOW Foods",
+    "url": "https://www.iherb.com/pr/now-foods-l-theanine-120-veg-capsules/54096",
+    "image": "/images/products/l-theanine-2.webp"
+   },
+   {
+    "name": "L-Theanine 200 mg",
+    "brand": "Nutricost",
+    "url": "https://www.iherb.com/pr/nutricost-l-theanine-200-mg-120-capsules/140230",
+    "image": "/images/products/l-theanine-3.webp"
+   },
+   {
+    "name": "L-Theanine",
+    "brand": "Life Extension",
+    "url": "https://www.iherb.com/pr/life-extension-l-theanine-60-vegetarian-capsules-100-mg-per-capsule/47819",
+    "image": "/images/products/l-theanine-4.webp"
+   },
+   {
+    "name": "L-Theanine 200 mg",
+    "brand": "EVLution Nutrition",
+    "url": "https://www.iherb.com/pr/evlution-nutrition-l-theanine-200-mg-60-veggie-capsules/115818",
+    "image": "/images/products/l-theanine-5.webp"
+   }
+  ]
+ },
+ {
   "slug": "lutein-392f2",
   "name": "Lutein",
   "category": "Antioxidant",
@@ -2463,56 +2516,6 @@
     "brand": "",
     "url": "https://iherb.co/Brw1pYPM",
     "image": "/images/products/lycopene-cbdf9-5.webp"
-   }
-  ]
- },
- {
-  "slug": "mct-oil-df089",
-  "name": "MCT Oil",
-  "category": "Fatty Acid",
-  "form_type": "softgel",
-  "fda_status": "approved",
-  "safety_status": "safe",
-  "effectivity": 2,
-  "safety": 5,
-  "summary": "MCT Oil, a staple in ketogenic diets, is prized for its rapid absorption and metabolism, providing an immediate source of energy and supporting cognitive function and weight management.",
-  "benefits_html": "<ol><li>Supports weight management and healthy metabolism</li><li>Enhances cognitive function and mental clarity</li><li>Provides quick and sustained energy without crashes</li><li>Aids in the absorption of fat-soluble vitamins</li><li>Supports healthy gut function and digestion</li></ol>",
-  "contraindications_html": "<ol><li>Allergic reactions: Some individuals may have allergies to MCT oil, which could result in rashes, itching, or difficulty breathing.</li><li>Gastrointestinal issues: MCT oil can cause stomach discomfort, cramping, diarrhea, and other digestive issues in some people.</li><li>Liver problems: Those with liver disease or liver damage should avoid MCT oil, as it may exacerbate their condition.</li><li>Pancreatitis: MCT oil can potentially worsen pancreatitis, a painful inflammatory condition affecting the pancreas.</li><li>Gallbladder disease: Individuals with gallbladder issues should use caution with MCT oil, as it may worsen symptoms or lead to complications.</li></ol>",
-  "enhancing_html": "<ol><li>Omega-3 fatty acids</li><li>Vitamin D</li><li>Turmeric</li><li>Probiotics</li><li>Collagen protein</li></ol>",
-  "interactions_html": "<ol><li>Warfarin</li><li>Vitamin E</li><li>Omega-3 fatty acids</li><li>Orlistat</li><li>Liraglutide</li></ol>",
-  "why_consider": "You need to use MCT oil because it can give you a lot of energy and help you feel full. It's really good for your brain and can help you focus better. Plus, it's easy for your body to digest. You can use it in cooking or add it to your coffee for a quick boost. It's pretty awesome stuff!",
-  "holistic_html": "",
-  "studies_html": "",
-  "products": [
-   {
-    "name": "Mct - Oil - Brain And Body",
-    "brand": "",
-    "url": "https://iherb.co/96pXqVcG",
-    "image": "/images/products/mct-oil-df089-1.webp"
-   },
-   {
-    "name": "Sports Mct Oil 1000 Mg",
-    "brand": "",
-    "url": "https://iherb.co/477AELAY",
-    "image": "/images/products/mct-oil-df089-2.webp"
-   },
-   {
-    "name": "Organic Mct Oil",
-    "brand": "",
-    "url": "https://iherb.co/T52Kh1Jt",
-    "image": "/images/products/mct-oil-df089-3.webp"
-   },
-   {
-    "name": "Organic Mct Oil",
-    "brand": "",
-    "url": "https://iherb.co/reQNMawY",
-    "image": "/images/products/mct-oil-df089-4.webp"
-   },
-   {
-    "name": "Carlson Gen Mct & Omega-3",
-    "brand": "",
-    "url": "https://iherb.co/4w7Th2u6",
-    "image": "/images/products/mct-oil-df089-5.webp"
    }
   ]
  },
@@ -2613,6 +2616,56 @@
     "brand": "",
     "url": "https://iherb.co/hDpHTCi6",
     "image": "/images/products/manganese-d62af-5.webp"
+   }
+  ]
+ },
+ {
+  "slug": "mct-oil-df089",
+  "name": "MCT Oil",
+  "category": "Fatty Acid",
+  "form_type": "softgel",
+  "fda_status": "approved",
+  "safety_status": "safe",
+  "effectivity": 2,
+  "safety": 5,
+  "summary": "MCT Oil, a staple in ketogenic diets, is prized for its rapid absorption and metabolism, providing an immediate source of energy and supporting cognitive function and weight management.",
+  "benefits_html": "<ol><li>Supports weight management and healthy metabolism</li><li>Enhances cognitive function and mental clarity</li><li>Provides quick and sustained energy without crashes</li><li>Aids in the absorption of fat-soluble vitamins</li><li>Supports healthy gut function and digestion</li></ol>",
+  "contraindications_html": "<ol><li>Allergic reactions: Some individuals may have allergies to MCT oil, which could result in rashes, itching, or difficulty breathing.</li><li>Gastrointestinal issues: MCT oil can cause stomach discomfort, cramping, diarrhea, and other digestive issues in some people.</li><li>Liver problems: Those with liver disease or liver damage should avoid MCT oil, as it may exacerbate their condition.</li><li>Pancreatitis: MCT oil can potentially worsen pancreatitis, a painful inflammatory condition affecting the pancreas.</li><li>Gallbladder disease: Individuals with gallbladder issues should use caution with MCT oil, as it may worsen symptoms or lead to complications.</li></ol>",
+  "enhancing_html": "<ol><li>Omega-3 fatty acids</li><li>Vitamin D</li><li>Turmeric</li><li>Probiotics</li><li>Collagen protein</li></ol>",
+  "interactions_html": "<ol><li>Warfarin</li><li>Vitamin E</li><li>Omega-3 fatty acids</li><li>Orlistat</li><li>Liraglutide</li></ol>",
+  "why_consider": "You need to use MCT oil because it can give you a lot of energy and help you feel full. It's really good for your brain and can help you focus better. Plus, it's easy for your body to digest. You can use it in cooking or add it to your coffee for a quick boost. It's pretty awesome stuff!",
+  "holistic_html": "",
+  "studies_html": "",
+  "products": [
+   {
+    "name": "Mct - Oil - Brain And Body",
+    "brand": "",
+    "url": "https://iherb.co/96pXqVcG",
+    "image": "/images/products/mct-oil-df089-1.webp"
+   },
+   {
+    "name": "Sports Mct Oil 1000 Mg",
+    "brand": "",
+    "url": "https://iherb.co/477AELAY",
+    "image": "/images/products/mct-oil-df089-2.webp"
+   },
+   {
+    "name": "Organic Mct Oil",
+    "brand": "",
+    "url": "https://iherb.co/T52Kh1Jt",
+    "image": "/images/products/mct-oil-df089-3.webp"
+   },
+   {
+    "name": "Organic Mct Oil",
+    "brand": "",
+    "url": "https://iherb.co/reQNMawY",
+    "image": "/images/products/mct-oil-df089-4.webp"
+   },
+   {
+    "name": "Carlson Gen Mct & Omega-3",
+    "brand": "",
+    "url": "https://iherb.co/4w7Th2u6",
+    "image": "/images/products/mct-oil-df089-5.webp"
    }
   ]
  },
@@ -3061,7 +3114,8 @@
    {
     "name": "Super Omega-3 Epa/Dha",
     "brand": "",
-    "url": "https://iherb.co/PZhpBz64"
+    "url": "https://iherb.co/PZhpBz64",
+    "image": "/images/products/omega-3-fatty-acids-95158-5.webp"
    }
   ]
  },
@@ -3436,7 +3490,8 @@
    {
     "name": "High Protein Bars",
     "brand": "",
-    "url": "https://iherb.co/tv6gw29v"
+    "url": "https://iherb.co/tv6gw29v",
+    "image": "/images/products/protein-bars-21633-4.webp"
    }
   ]
  },
@@ -3485,7 +3540,8 @@
    {
     "name": "Gold Standard Casein",
     "brand": "",
-    "url": "https://iherb.co/gJsdSESS"
+    "url": "https://iherb.co/gJsdSESS",
+    "image": "/images/products/protein-powder-casein-c95a1-5.webp"
    }
   ]
  },
@@ -3966,7 +4022,8 @@
    {
     "name": "Gold Series Sleep 3",
     "brand": "",
-    "url": "https://iherb.co/jqfkP8XV"
+    "url": "https://iherb.co/jqfkP8XV",
+    "image": "/images/products/sleep-aids-6794a-5.webp"
    }
   ]
  },
@@ -4214,7 +4271,8 @@
    {
     "name": "Azo Test Strips Urinary",
     "brand": "",
-    "url": "https://iherb.co/55aKHKuD"
+    "url": "https://iherb.co/55aKHKuD",
+    "image": "/images/products/urinary-tract-support-supplements-5a9af-5.webp"
    }
   ]
  },
@@ -4363,7 +4421,8 @@
    {
     "name": "21 Century Vitamin C",
     "brand": "",
-    "url": "https://iherb.co/dww5A5Ye"
+    "url": "https://iherb.co/dww5A5Ye",
+    "image": "/images/products/vitamin-c-76157-5.webp"
    }
   ]
  },
@@ -4462,7 +4521,8 @@
    {
     "name": "Bluebonnet Vitamin E",
     "brand": "",
-    "url": "https://iherb.co/fEHmyj66"
+    "url": "https://iherb.co/fEHmyj66",
+    "image": "/images/products/vitamin-e-f4fa7-5.webp"
    }
   ]
  },

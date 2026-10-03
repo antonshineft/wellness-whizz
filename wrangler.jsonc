@@ -36,7 +36,7 @@
     "LIST_AI_SUPPLEMENTS": "true",
     "BACKFILL_BATCH": "6",
     // Illustrations (OpenAI image model) for supplements without product photos; "false" switches them off.
-    "IMAGE_GENERATION": "true"
+    "IMAGE_GENERATION": "false"
     // Optional Cloudflare Turnstile bot protection: add TURNSTILE_SITE_KEY (variable) and TURNSTILE_SECRET_KEY (secret)
     // in the Cloudflare dashboard under the Worker's Settings -> Variables and Secrets. Both are needed to enable it.
   },

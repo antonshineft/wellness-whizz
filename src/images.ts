@@ -25,8 +25,9 @@ const CONTAINER: Record<string, string> = {
   drops: 'a white matte dropper bottle',
 };
 
+/** Off unless IMAGE_GENERATION=true: the site prefers real product photos from iHerb (src/products.ts). */
 export function imageGenerationEnabled(env: ImageEnv): boolean {
-  return env.IMAGE_GENERATION !== 'false' && !!env.OPENAI_API_KEY;
+  return env.IMAGE_GENERATION === 'true' && !!env.OPENAI_API_KEY;
 }
 
 /** Generate and store the illustration; returns its public path. */

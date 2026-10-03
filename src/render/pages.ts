@@ -12,20 +12,24 @@ export interface PageShellOptions {
   body: string;
   /** Rendered inside the hero on the right (e.g. a product tile). */
   heroAside?: string;
+  /** "plain": no green gradient, hero text and content column centred (How it works, Terms). */
+  variant?: 'gradient' | 'plain';
 }
 
 /** Hero + content container used by the editorial pages and the blog. */
 export function pageShell(opts: PageShellOptions): string {
   return `${navbar('logo-left')}
   <main class="ww-page-wrap">
-    <header class="ww-page-hero${opts.heroAside ? ' has-aside' : ''}">
-      <div class="ww-page-hero-text">
-        <div class="ww-eyebrow">${escapeHtml(opts.eyebrow)}</div>
-        <h1 class="ww-page-title">${escapeHtml(opts.title)}</h1>
-        <p class="ww-page-lead">${escapeHtml(opts.lead)}</p>
-      </div>${opts.heroAside ?? ''}
+    <header class="ww-page-hero${opts.heroAside ? ' has-aside' : ''}${opts.variant === 'plain' ? ' is-plain' : ''}">
+      <div class="ww-page-hero-inner">
+        <div class="ww-page-hero-text">
+          <div class="ww-eyebrow">${escapeHtml(opts.eyebrow)}</div>
+          <h1 class="ww-page-title">${escapeHtml(opts.title)}</h1>
+          <p class="ww-page-lead">${escapeHtml(opts.lead)}</p>
+        </div>${opts.heroAside ?? ''}
+      </div>
     </header>
-    <div class="ww-page">${opts.body}
+    <div class="ww-page${opts.variant === 'plain' ? ' is-centered' : ''}">${opts.body}
     </div>
   </main>${footer()}`;
 }
@@ -98,6 +102,7 @@ export function renderHowItWorks(catalogueSize: number): string {
     title: 'Personal supplement advice, built on evidence',
     lead: 'Wellness Whizz turns a two-minute questionnaire into a short list of supplements that fit your goals, diet and safety profile, with links to buy each one on iHerb.',
     body,
+    variant: 'plain',
   });
   return page({
     title: 'How it works',
@@ -163,6 +168,7 @@ export function renderTerms(): string {
     title: 'Terms and Conditions',
     lead: 'What you can expect from Wellness Whizz, what we expect from you, how we make money and what happens with your data. Written to be read, not skimmed.',
     body,
+    variant: 'plain',
   });
   return page({
     title: 'Terms and Conditions',

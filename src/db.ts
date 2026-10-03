@@ -18,8 +18,10 @@ export interface Product {
   name: string;
   brand: string;
   url: string;
-  /** Optional product image URL (imported from the Webflow CMS). */
+  /** Optional product image URL (imported from the Webflow CMS, or copied from iHerb into D1). */
   image?: string;
+  /** The photo still has iHerb's white background (blend it into the tile). */
+  opaque?: boolean;
 }
 
 export interface Supplement {
@@ -134,6 +136,7 @@ export function parseProducts(json: string | null | undefined): Product[] {
         brand: String(p.brand ?? ''),
         url: String(p.url ?? ''),
         ...(p.image ? { image: String(p.image) } : {}),
+        ...(p.opaque ? { opaque: true } : {}),
       }));
   } catch {
     return [];

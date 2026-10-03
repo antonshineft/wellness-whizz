@@ -8,6 +8,7 @@ import {
   saveSessionResults, type QuizProfile, type Supplement,
 } from './db';
 import { generateSupplementImage, imageGenerationEnabled, type ImageEnv } from './images';
+import { attachIherbProducts } from './products';
 import { generateSupplementProfile, recommendSupplements, type AiEnv } from './openai';
 
 export interface PipelineEnv extends AiEnv, ImageEnv {
@@ -37,8 +38,16 @@ export async function runQuizPipeline(
         if (found) return { supplement: found, reason: rec.reason };
         const draft = await generateSupplementProfile(env, rec);
         const supplement = await insertSupplement(env.DB, draft, 'ai');
-        if (supplement.source === 'ai' && !supplement.image && !supplement.products.some((p) => p.image) && imageGenerationEnabled(env)) {
-          background(generateSupplementImage(env, supplement).catch((err) => console.error(`illustration for ${supplement.slug} failed: ${String(err)}`)));
+        if (supplement.source === 'ai' && !supplement.products.some((p) => p.image)) {
+          // Real iHerb products and photos, fetched after the response is sent; the cron retries if this fails.
+          background(
+            attachIherbProducts(env, supplement)
+              .then((n) => {
+                if (!n && !supplement.image && imageGenerationEnabled(env)) return generateSupplementImage(env, supplement).then(() => undefined);
+                return undefined;
+              })
+              .catch((err) => console.error(`products for ${supplement.slug} failed: ${String(err)}`)),
+          );
         }
         return { supplement, reason: rec.reason };
       }),

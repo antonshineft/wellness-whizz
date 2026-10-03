@@ -125,13 +125,22 @@ is left; afterwards each run is a single cheap database query. Each article come
   save it over that file and commit to carry AI-written content into the repository (bundled text never overwrites
   content the database already has when the bundle's field is empty).
 
-### Illustrations for supplements without product photos
+### Product photos for supplements the quiz creates
 
-Supplements the quiz creates have no product photos. The site generates one brand-free illustration per such
-supplement (a bottle or tub with the name on the label, transparent background) with OpenAI's image model, stores it
-in D1 and serves it from `/images/generated/…`. New supplements get theirs right after creation; the cron catches up
-on older ones two per run. `IMAGE_GENERATION=false` switches this off; `IMAGE_MODEL` overrides the model
-(default `gpt-image-1`, roughly 4 cents per image at medium quality).
+Supplements created by the quiz get real iHerb products: the Worker searches iHerb for the supplement name, keeps up
+to five matching products (name, brand, link, photo) and stores the photos in D1 (served from
+`/images/generated/…`, shown with the white background blended into the cream tile). This runs right after a
+supplement is created and again from the cron for any supplement still without photos. If iHerb cannot be reached
+from the Worker, run the same lookup from your computer and commit the result:
+
+```sh
+NODE_USE_ENV_PROXY=1 node scripts/iherb-products.mjs --query "l-theanine" --slug l-theanine --brand-limit 1
+```
+
+It prints the products with transparent WebP photos saved in `public/images/products/`; add them to the
+supplement's entry in `data/supplements.json` and run `node scripts/data-manifest.mjs` so the next deploy updates
+the live database. Generated illustrations (`src/images.ts`) are off by default; `IMAGE_GENERATION=true` turns them
+on as a last resort.
 
 ### Pages, blog and sitemap
 

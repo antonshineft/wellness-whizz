@@ -5,7 +5,7 @@ import { escapeHtml } from '../html';
 import { primaryProduct, searchUrl, shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
 import { faqHtml, pageShell, quizCta } from './pages';
-import { WF_PAGE_IDS, buyButton, cardImage } from './partials';
+import { WF_PAGE_IDS, blendAttr, buyButton, cardImage } from './partials';
 
 export interface BlogContext {
   env: LinkEnv;
@@ -27,7 +27,7 @@ export function formatDate(iso: string): string {
 
 function supplementPhoto(sup: Supplement | undefined, alt: string, attrs = ''): string {
   const product = sup?.products.find((p) => p.image);
-  if (product?.image) return `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(alt)}" loading="lazy" ${attrs}>`;
+  if (product?.image) return `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(alt)}" loading="lazy" ${attrs}${blendAttr(product)}>`;
   if (sup) return cardImage(sup, `${attrs} alt="${escapeHtml(alt)}"`);
   return '';
 }
@@ -81,7 +81,7 @@ export function expandArticleHtml(ctx: BlogContext, post: BlogPost): string {
   return html;
 }
 
-function postCard(ctx: BlogContext, post: BlogPost): string {
+export function postCard(ctx: BlogContext, post: BlogPost): string {
   const sup = ctx.supplements.get(post.heroSupplement);
   return `
         <a href="/blog/${escapeHtml(post.slug)}" class="ww-post-card">
@@ -193,6 +193,7 @@ export function renderBlogPost(ctx: BlogContext, post: BlogPost, related: readon
     pageId: WF_PAGE_IDS.supplement,
     bodyClass: 'body-2',
     head,
-    body: shell,
+    body: `<div class="ww-progress" aria-hidden="true"></div>${shell}`,
+    scripts: '  <script src="/js/reading-progress.js"></script>',
   });
 }

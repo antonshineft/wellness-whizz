@@ -16,6 +16,7 @@ import { POSTS, getPost, supplementSlugsUsed } from './blog';
 import { ensureDatabase } from './bootstrap';
 import { MIN_ARTICLE_LENGTH, generateArticle } from './content';
 import { generateSupplementImage, imageGenerationEnabled, loadImage, supplementsNeedingImage } from './images';
+import { attachIherbProducts, supplementsWithoutPhotos } from './products';
 import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
   getSessionResults, getSupplementBySlug, listSupplements, logEvent, markSession, mergeDuplicateSupplements,
@@ -111,7 +112,7 @@ app.get('/result/:id', async (c) => {
 
 /** Generated illustrations stored in D1. */
 app.get('/images/generated/:file', async (c) => {
-  const key = c.req.param('file').replace(/\.webp$/i, '');
+  const key = c.req.param('file').replace(/\.(webp|jpe?g|png)$/i, '');
   if (!/^[a-z0-9-]{1,120}$/.test(key)) return c.notFound();
   const image = await loadImage(c.env.DB, key);
   if (!image) return c.notFound();
@@ -308,8 +309,9 @@ app.get('/api/admin/backfill', async (c) => {
   c.header('cache-control', 'no-store');
   const merged = await mergeDuplicateSupplements(c.env.DB);
   const content = await backfillContent(c.env, limit);
+  const photos = await backfillProductPhotos(c.env, Math.min(limit, 3));
   const images = await backfillImages(c.env, Math.min(limit, 3));
-  return c.json({ ...content, merged: merged.merged, illustrations: images });
+  return c.json({ ...content, merged: merged.merged, photos, illustrations: images });
 });
 
 /** The whole catalogue as JSON, in the shape of data/supplements.json (to bundle AI-written content into the repo). */
@@ -359,6 +361,10 @@ export default {
         })
         .then(() => backfillContent(env, batch))
         .then((result) => console.log(`backfill: ${JSON.stringify(result)}`))
+        .then(() => backfillProductPhotos(env, 2))
+        .then((result) => {
+          if (result.attached.length || result.failed.length) console.log(`product photos: ${JSON.stringify(result)}`);
+        })
         .then(() => backfillImages(env, 2))
         .then((result) => {
           if (result.generated.length || result.failed.length) console.log(`illustrations: ${JSON.stringify(result)}`);
@@ -377,6 +383,27 @@ interface BackfillResult {
 }
 
 /** Illustrations for up to `limit` supplements (AI-created first) that have no product photos. */
+/** Give supplements without product photos real iHerb products (AI-created ones first). */
+async function backfillProductPhotos(env: Bindings, limit: number): Promise<{ attached: string[]; failed: string[]; remaining: number }> {
+  const todo = await supplementsWithoutPhotos(env.DB, limit);
+  const attached: string[] = [];
+  const failed: string[] = [];
+  for (const { slug } of todo) {
+    const sup = await getSupplementBySlug(env.DB, slug);
+    if (!sup) continue;
+    try {
+      const n = await attachIherbProducts(env, sup);
+      if (n) attached.push(`${slug} (${n})`);
+      else failed.push(`${slug}: no match on iHerb`);
+    } catch (err) {
+      failed.push(`${slug}: ${String(err).slice(0, 160)}`);
+      console.error(`product photos for ${slug} failed: ${String(err)}`);
+    }
+  }
+  const remaining = (await supplementsWithoutPhotos(env.DB, 1000)).length;
+  return { attached, failed, remaining };
+}
+
 async function backfillImages(env: Bindings, limit: number): Promise<{ generated: string[]; failed: string[]; remaining: number }> {
   if (!imageGenerationEnabled(env)) return { generated: [], failed: [], remaining: 0 };
   const todo = await supplementsNeedingImage(env.DB, limit);

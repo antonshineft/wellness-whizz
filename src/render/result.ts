@@ -4,7 +4,7 @@ import { escapeHtml } from '../html';
 import type { LinkEnv } from '../links';
 import { page } from './layout';
 import { primaryProduct, shopUrl } from '../links';
-import { WF_PAGE_IDS, buyButton, cardImage, cardTags, disclosure, navbar, productThumbs } from './partials';
+import { WF_PAGE_IDS, blendAttr, buyButton, cardImage, cardTags, disclosure, navbar, productThumbs } from './partials';
 
 const FORM_LABELS: Record<string, string> = {
   capsule: 'Capsules', softgel: 'Softgels', small_softgel: 'Softgels', tablet: 'Tablets', powder: 'Powder',
@@ -27,7 +27,7 @@ function resultCard(env: LinkEnv, item: ResultItem, index: number): string {
   const product = primaryProduct(sup);
   // Lead with the real product photo when there is one; the generic illustration is the fallback.
   const media = product?.image
-    ? `<img src="${escapeHtml(product.image)}" loading="lazy" alt="${escapeHtml(product.name)}">`
+    ? `<img src="${escapeHtml(product.image)}" loading="lazy" alt="${escapeHtml(product.name)}"${blendAttr(product)}>`
     : cardImage(sup, 'class="ww-card-illustration"');
   const mediaLink = product
     ? `<a href="${escapeHtml(shopUrl(env, sup, product))}" target="_blank" rel="noopener nofollow sponsored" class="ww-card-media" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}" data-product="${escapeHtml(product.name)}">${media}</a>`
