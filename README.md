@@ -142,6 +142,18 @@ supplement's entry in `data/supplements.json` and run `node scripts/data-manifes
 the live database. Generated illustrations (`src/images.ts`) are off by default; `IMAGE_GENERATION=true` turns them
 on as a last resort.
 
+### Your own domain
+
+1. In the Cloudflare dashboard add the domain (Add a domain → Free plan). Cloudflare copies the DNS records it can
+   find; check that every mail record (MX, the SPF TXT, the DKIM CNAMEs, autodiscover, _dmarc) is there and set
+   to "DNS only", and delete the old hosting records (the Webflow A records, the `www` CNAME, the `_webflow` TXT).
+2. At your registrar replace the nameservers with the two Cloudflare gives you.
+3. Workers & Pages → this Worker → Settings → Domains & Routes → Add → Custom Domain: add `aiww.io` and
+   `www.aiww.io`. Cloudflare creates the DNS records and the certificate.
+4. Once the site answers on the domain, add a secret (or variable) `CANONICAL_HOST` = `aiww.io`. From then on the
+   workers.dev address and `www.` redirect permanently to the domain, so search engines see one site. Without it,
+   only `www.` redirects to the bare domain.
+
 ### Email capture and the results email
 
 - The result page has an "Email me these results" box and the blog has a newsletter box. Addresses go into the

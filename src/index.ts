@@ -50,6 +50,8 @@ export interface Bindings {
   BACKFILL_BATCH?: string;
   /** "false" turns off generated illustrations for supplements without product photos. */
   IMAGE_GENERATION?: string;
+  /** Optional: the site's one public hostname (e.g. aiww.io); other hostnames redirect to it. */
+  CANONICAL_HOST?: string;
   /** Optional: Resend API key + verified sender for "Email me my results" (src/email.ts). */
   RESEND_API_KEY?: string;
   EMAIL_FROM?: string;
@@ -74,6 +76,30 @@ const curatedOnly = (env: Bindings) => env.LIST_AI_SUPPLEMENTS === 'false';
 const isLocalRequest = (url: string) => /^(localhost|127\.0\.0\.1|\[::1\])$/.test(new URL(url).hostname);
 /** Turnstile is on only when both the public site key and the secret are configured. */
 const turnstileSiteKey = (env: Bindings) => (env.TURNSTILE_SITE_KEY && env.TURNSTILE_SECRET_KEY ? env.TURNSTILE_SITE_KEY : null);
+
+/**
+ * One address for the site: "www." is always redirected to the bare domain, and when CANONICAL_HOST is set
+ * (e.g. aiww.io) every other hostname, such as the workers.dev address, is redirected to it too. Only page
+ * requests are redirected; API calls and the local dev server are left alone.
+ */
+app.use('*', async (c, next) => {
+  if (c.req.method === 'GET' || c.req.method === 'HEAD') {
+    const url = new URL(c.req.url);
+    const canonical = (c.env.CANONICAL_HOST ?? '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    let target: string | null = null;
+    if (!isLocalRequest(c.req.url) && !url.pathname.startsWith('/api/') && url.pathname !== '/__scheduled') {
+      if (canonical && url.hostname !== canonical) target = canonical;
+      else if (!canonical && url.hostname.startsWith('www.')) target = url.hostname.slice(4);
+    }
+    if (target) {
+      url.hostname = target;
+      url.protocol = 'https:';
+      url.port = '';
+      return c.redirect(url.toString(), 301);
+    }
+  }
+  await next();
+});
 
 // Same security headers as public/_headers applies to the static files; the database is prepared on first use.
 app.use('*', async (c, next) => {
