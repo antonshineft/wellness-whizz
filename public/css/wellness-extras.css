@@ -244,7 +244,9 @@ a.ww-footer-link:hover { opacity: 1; }
 /* keep long tables and words inside the phone viewport */
 .ww-article-layout > * { min-width: 0; }
 .ww-prose { min-width: 0; overflow-wrap: anywhere; }
-.ww-prose table { max-width: 100%; }
+.ww-prose table { max-width: 100%; -webkit-overflow-scrolling: touch; }
+/* cells keep whole words and the table scrolls sideways instead of breaking words mid-way */
+.ww-prose th, .ww-prose td { overflow-wrap: normal; word-break: normal; }
 @media (max-width: 991px) {
   .ww-article-layout { grid-template-columns: minmax(0, 1fr); }
 }

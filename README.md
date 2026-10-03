@@ -198,6 +198,8 @@ sending. `GET /api/admin/social?key=<STATS_KEY>` shows the queue; `&action=build
   plain TypeScript module (see `src/blog/types.ts`): write `href="iherb:magnesium glycinate"` for an iHerb search link
   with your referral code and click tracking, `<ww-shop slugs="…"></ww-shop>` for product cards from the catalogue
   and `<ww-quiz></ww-quiz>` for the quiz call-to-action. Every article page carries BlogPosting and FAQ structured data.
+  Posts in the "Goal guides" category (best supplements for bloating, energy and focus) rank options by evidence and
+  lead to the quiz; `seoTitle` keeps the <title> under 60 characters when the headline is longer.
 - `/sitemap.xml` lists the pages, the articles and every supplement page; `/robots.txt` (served by the Worker, with an
   absolute sitemap URL) points search engines at it and `/llms.txt` gives AI assistants a plain-text map of the site.
   Note: Cloudflare's "managed robots.txt" / "block AI bots" settings prepend their own rules to robots.txt; turn
