@@ -35,34 +35,37 @@
 
 /* ---------- result cards (product-first layout) ---------- */
 .result-card-frame { padding: 12px; }
-.ww-card { display: flex; gap: 20px; align-items: stretch; font-family: Aeonik, sans-serif; color: #1d272d; }
-.ww-card-media { flex: 0 0 240px; display: flex; align-items: center; justify-content: center; padding: 14px; background: #fbf1ce; border-radius: 28px; overflow: hidden; }
-.ww-card-media img { width: 100%; max-height: 240px; object-fit: contain; transition: transform .2s; }
+.ww-card { display: flex; gap: 20px; align-items: flex-start; font-family: Aeonik, sans-serif; color: #1d272d; }
+/* Square photo panel: every card gets the same height from it. */
+.ww-card-media { flex: 0 0 260px; width: 260px; height: 260px; display: flex; align-items: center; justify-content: center; padding: 18px; box-sizing: border-box; background: #fbf1ce; border-radius: 28px; overflow: hidden; }
+.ww-card-media img { width: 100%; height: 100%; object-fit: contain; transition: transform .2s; }
 .ww-card-media:hover img { transform: scale(1.04); }
-.ww-card-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 6px 6px 6px 0; }
-.ww-card-head { display: flex; align-items: baseline; gap: 12px; }
-.ww-rank { flex: none; font-size: 13px; font-weight: 700; letter-spacing: .06em; background: #1d272d; color: #87d581; border-radius: 999px; padding: 4px 10px; line-height: 16px; }
+.ww-card-body { flex: 1 1 auto; min-width: 0; min-height: 260px; display: flex; flex-direction: column; gap: 10px; padding: 4px 6px 0 0; box-sizing: border-box; }
 .ww-card-title { margin: 0; font-family: Aeonik, sans-serif; font-size: 36px; line-height: 1.05; font-weight: 500; text-transform: uppercase; color: #1d272d; overflow-wrap: anywhere; }
 .ww-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.ww-card-meta .badges { gap: 6px; }
-.ww-tag { font-family: Aeonik, sans-serif; font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: #1d272d; background: #1d272d14; border-radius: 999px; padding: 6px 10px; line-height: 14px; white-space: nowrap; }
+/* One tag style for everything on the card: same font, size and padding. Dark variant for FDA and effectivity. */
+.ww-tag { display: inline-flex; align-items: center; gap: 6px; font-family: Aeonik, sans-serif; font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: #1d272d; background: #1d272d14; border-radius: 999px; padding: 6px 12px; line-height: 16px; height: 28px; box-sizing: border-box; white-space: nowrap; }
+.ww-tag b { font-weight: 700; font-size: 11px; width: 14px; height: 14px; border-radius: 50%; background: #1d272d; color: #fff; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+.ww-tag-dark { background: #1d272d; color: #fff; }
+.ww-tag-dark b { background: #87d581; color: #1d272d; }
+.ww-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; margin: 0 2px; }
+.ww-bars i { display: block; width: 3px; border-radius: 1px; background: #ffffff55; }
+.ww-bars i.on { background: #87d581; }
 .frame-52 .ww-tag { background: #1d272d1a; margin-right: 4px; }
-.ww-card-text { margin: 0; font-size: 16px; line-height: 24px; color: #1d272d; }
+.ww-card-text { margin: 0; font-size: 16px; line-height: 24px; color: #1d272d; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .ww-card .ww-products { margin: 2px 0; }
 .ww-card-bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; margin-top: auto; }
-.ww-rating { display: inline-flex; align-items: center; gap: 6px; background: #1d272d; border-radius: 999px; padding: 3px 10px 3px 12px; }
-.ww-rating-label { font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #ffffffb3; }
-.ww-rating-img { height: 26px; width: auto; display: block; }
 .ww-card-bottom { justify-content: flex-end; }
 @media (max-width: 991px) {
-  .ww-card-media { flex-basis: 200px; }
+  .ww-card-media { flex-basis: 200px; width: 200px; height: 200px; }
+  .ww-card-body { min-height: 200px; }
   .ww-card-title { font-size: 30px; }
 }
 @media (max-width: 767px) {
   .ww-card { flex-direction: column; gap: 14px; }
-  .ww-card-media { flex: none; height: 210px; padding: 10px; }
-  .ww-card-media img { max-height: 190px; }
-  .ww-card-body { padding: 0 4px 4px; }
+  .ww-card-media { flex: none; width: 100%; height: 220px; padding: 12px; }
+  .ww-card-body { min-height: 0; padding: 0 4px 4px; }
+  .ww-card-meta { justify-content: center; }
   .ww-card-title { font-size: 28px; }
   .ww-card-bottom { justify-content: center; }
 }

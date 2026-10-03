@@ -4,8 +4,8 @@
  *   -> store the results for the session -> mark the session ready.
  */
 import {
-  getSupplementsByNameKeys, insertSupplement, listSupplementNames, markSession, normalizeNameKey, saveSessionResults,
-  type QuizProfile, type Supplement,
+  findSupplementByAlias, getSupplementsByNameKeys, insertSupplement, listSupplementNames, markSession, normalizeNameKey,
+  saveSessionResults, type QuizProfile, type Supplement,
 } from './db';
 import { generateSupplementProfile, recommendSupplements, type AiEnv } from './openai';
 
@@ -27,7 +27,7 @@ export async function runQuizPipeline(env: PipelineEnv, sessionId: string, profi
     // not sink the whole session, so failures are logged and the remaining recommendations are kept.
     const settled = await Promise.allSettled(
       recommendations.map(async (rec, i): Promise<{ supplement: Supplement; reason: string }> => {
-        const found = existing.get(keys[i]);
+        const found = existing.get(keys[i]) ?? (await findSupplementByAlias(env.DB, rec.name));
         if (found) return { supplement: found, reason: rec.reason };
         const draft = await generateSupplementProfile(env, rec);
         const supplement = await insertSupplement(env.DB, draft, 'ai');

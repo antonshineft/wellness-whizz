@@ -16,8 +16,9 @@ import { ensureDatabase } from './bootstrap';
 import { MIN_ARTICLE_LENGTH, generateArticle } from './content';
 import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
-  getSessionResults, getSupplementBySlug, listSupplements, logEvent, markSession, resolveSupplementSlug, statsSummary,
-  supplementsNeedingContent, updateSupplementContent, type EventInput, type EventType, type QuizProfile,
+  getSessionResults, getSupplementBySlug, listSupplements, logEvent, markSession, mergeDuplicateSupplements,
+  resolveSupplementSlug, statsSummary, supplementsNeedingContent, updateSupplementContent, type EventInput,
+  type EventType, type QuizProfile,
 } from './db';
 import { runQuizPipeline } from './pipeline';
 import { fetchAsset, renderHome } from './render/home';
@@ -233,7 +234,8 @@ app.get('/api/admin/backfill', async (c) => {
   if (denied) return denied;
   const limit = Math.min(10, Math.max(1, Number(c.req.query('limit') ?? '3') || 3));
   c.header('cache-control', 'no-store');
-  return c.json(await backfillContent(c.env, limit));
+  const merged = await mergeDuplicateSupplements(c.env.DB);
+  return c.json({ ...(await backfillContent(c.env, limit)), merged: merged.merged });
 });
 
 /** The whole catalogue as JSON, in the shape of data/supplements.json (to bundle AI-written content into the repo). */
@@ -277,6 +279,10 @@ export default {
     if (!batch) return;
     ctx.waitUntil(
       ensureDatabase(env.DB)
+        .then(() => mergeDuplicateSupplements(env.DB))
+        .then((result) => {
+          if (result.merged.length) console.log(`merged duplicate supplements: ${result.merged.join(', ')}`);
+        })
         .then(() => backfillContent(env, batch))
         .then((result) => console.log(`backfill: ${JSON.stringify(result)}`))
         .catch((err) => console.error(`backfill failed: ${String(err)}`)),

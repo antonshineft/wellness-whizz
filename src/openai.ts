@@ -157,7 +157,8 @@ export async function recommendSupplements(env: AiEnv, profile: QuizProfile, kno
   if (useFakeAi(env)) return fakeRecommendations(profile);
 
   const catalogue = knownNames.length
-    ? `\n\nIf one of these supplements from our catalogue fits, use its exact name: ${knownNames.join('; ')}.`
+    ? `\n\nOur catalogue already contains these supplements. Whenever one of them covers the need, you MUST use its exact ` +
+      `catalogue name instead of a synonym (for example "B Vitamins" rather than "Vitamin B Complex"): ${knownNames.join('; ')}.`
     : '';
   const user = [
     'User profile:',

@@ -4,7 +4,7 @@ import { escapeHtml } from '../html';
 import type { LinkEnv } from '../links';
 import { page } from './layout';
 import { primaryProduct, shopUrl } from '../links';
-import { WF_PAGE_IDS, buyButton, cardBadges, cardImage, disclosure, navbar, productThumbs, ratingImage } from './partials';
+import { WF_PAGE_IDS, buyButton, cardImage, cardTags, disclosure, navbar, productThumbs } from './partials';
 
 const FORM_LABELS: Record<string, string> = {
   capsule: 'Capsules', softgel: 'Softgels', small_softgel: 'Softgels', tablet: 'Tablets', powder: 'Powder',
@@ -38,15 +38,8 @@ function resultCard(env: LinkEnv, item: ResultItem, index: number): string {
             <div class="ww-card">
               ${mediaLink}
               <div class="ww-card-body">
-                <div class="ww-card-head">
-                  <span class="ww-rank">#${index + 1}</span>
-                  <h2 class="ww-card-title">${escapeHtml(sup.name)}</h2>
-                </div>
-                <div class="ww-card-meta">
-                  <div class="badges">${cardBadges(sup)}</div>
-                  <span class="ww-tag">${escapeHtml(sup.category)}</span>${form ? `<span class="ww-tag">${escapeHtml(form)}</span>` : ''}
-                  <span class="ww-rating" title="Effectivity ${sup.effectivity} of 5"><span class="ww-rating-label">Effectivity</span>${ratingImage(sup.effectivity, 'ww-rating-img')}</span>
-                </div>
+                <h2 class="ww-card-title">${escapeHtml(sup.name)}</h2>
+                <div class="ww-card-meta">${cardTags(sup, form)}</div>
                 <p class="ww-card-text">${escapeHtml(item.reason || sup.summary)}</p>
                 ${productThumbs(env, sup)}
                 <div class="ww-card-bottom">

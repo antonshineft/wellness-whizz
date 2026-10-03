@@ -82,6 +82,19 @@ export function normalizeNameKey(name: string): string {
     .trim();
 }
 
+/**
+ * Looser identity than name_key: word order, plurals and filler words are ignored, so "Vitamin B Complex" and
+ * "B Vitamins" share one alias key while "Vitamin C" and "Vitamin E" do not.
+ */
+const ALIAS_FILLER = new Set(['complex', 'supplement', 'supplements', 'formula', 'blend', 'the', 'of', 'and', 'with']);
+export function aliasKey(name: string): string {
+  const words = normalizeNameKey(name)
+    .split(' ')
+    .filter((w) => w && !ALIAS_FILLER.has(w))
+    .map((w) => (w.length > 3 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w));
+  return [...new Set(words)].sort().join(' ');
+}
+
 export function slugify(name: string): string {
   return normalizeNameKey(name).replace(/\s+/g, '-').slice(0, 80).replace(/-+$/g, '');
 }
@@ -203,6 +216,44 @@ export async function resolveSupplementSlug(db: D1Database, requested: string): 
 export async function getSupplementByNameKey(db: D1Database, key: string): Promise<Supplement | null> {
   const row = await db.prepare(`SELECT ${SUPPLEMENT_COLUMNS} FROM supplements WHERE name_key = ?`).bind(key).first<SupplementRow>();
   return row ? rowToSupplement(row) : null;
+}
+
+/** Find an existing supplement whose alias key matches the name (see aliasKey). Curated rows win over AI rows. */
+export async function findSupplementByAlias(db: D1Database, name: string): Promise<Supplement | null> {
+  const wanted = aliasKey(name);
+  if (!wanted) return null;
+  const { results } = await db
+    .prepare("SELECT id, name, source FROM supplements ORDER BY source = 'cms' DESC, id")
+    .all<{ id: number; name: string; source: string }>();
+  const hit = results.find((r) => aliasKey(r.name) === wanted);
+  if (!hit) return null;
+  const row = await db.prepare(`SELECT ${SUPPLEMENT_COLUMNS} FROM supplements WHERE id = ?`).bind(hit.id).first<SupplementRow>();
+  return row ? rowToSupplement(row) : null;
+}
+
+/**
+ * Merge AI-created supplements that duplicate a curated one under another name ("Vitamin B Complex" next to
+ * "B Vitamins"): past results are re-pointed to the curated row and the duplicate is deleted.
+ */
+export async function mergeDuplicateSupplements(db: D1Database): Promise<{ merged: string[] }> {
+  const { results } = await db
+    .prepare('SELECT id, slug, name, source FROM supplements ORDER BY id')
+    .all<{ id: number; slug: string; name: string; source: string }>();
+  const curated = new Map<string, { id: number; slug: string }>();
+  for (const r of results) if (r.source !== 'ai' && !curated.has(aliasKey(r.name))) curated.set(aliasKey(r.name), r);
+  const merged: string[] = [];
+  for (const r of results) {
+    if (r.source !== 'ai') continue;
+    const target = curated.get(aliasKey(r.name));
+    if (!target || target.id === r.id) continue;
+    await db.batch([
+      db.prepare('UPDATE OR IGNORE session_supplements SET supplement_id = ? WHERE supplement_id = ?').bind(target.id, r.id),
+      db.prepare('DELETE FROM session_supplements WHERE supplement_id = ?').bind(r.id),
+      db.prepare('DELETE FROM supplements WHERE id = ?').bind(r.id),
+    ]);
+    merged.push(`${r.slug} -> ${target.slug}`);
+  }
+  return { merged };
 }
 
 export async function getSupplementsByNameKeys(db: D1Database, keys: string[]): Promise<Map<string, Supplement>> {
