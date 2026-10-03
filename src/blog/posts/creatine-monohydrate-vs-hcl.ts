@@ -15,7 +15,7 @@ const post: BlogPost = {
   heroSupplement: 'creatine-ce673',
   shop: ['creatine-ce673', 'protein-powder-whey-2d3f0', 'beta-alanine-fe8b4'],
   html: `
-<p>Creatine is the best-studied performance supplement there is, and the creatine monohydrate vs HCl question comes up because the two sit side by side on the shelf at very different prices. Monohydrate has several hundred trials behind it. Creatine HCl, a newer form, is marketed as more soluble, easier on the stomach and effective at a fraction of the dose. This article covers what creatine does, what the trials show for each form, how much creatine per day you need, whether a creatine loading phase is worth the trouble, and who should check with a doctor first.</p>
+<p>Creatine is the best-studied performance supplement there is, and the creatine monohydrate vs HCl question comes up because the two sit side by side on the shelf at very different prices. Monohydrate has several hundred trials behind it. Creatine HCl, a newer form, is marketed as more soluble, easier on the stomach and effective at a fraction of the dose. This article covers what creatine does, what the trials show for each form, how much creatine per day you need, whether a creatine loading phase is worth it, and who should check with a doctor first.</p>
 
 <p>The short version: both forms deliver creatine, and nothing published so far shows that HCl works better, or at a smaller dose, than monohydrate taken properly. The longer version matters if you want to spend sensibly and avoid the side effects that put people off.</p>
 
@@ -35,41 +35,39 @@ const post: BlogPost = {
 
 <p>The size of the effect is worth stating plainly. In meta-analyses of resistance-training studies, creatine adds roughly 1 kg of lean mass and a few percent extra strength over 4 to 12 weeks compared with placebo. These are real, consistent gains on top of training, not a substitute for it.</p>
 
-<p>The cognitive evidence is newer and thinner. Small trials and recent meta-analyses report modest improvements in memory and reasoning, with the clearest signals in older adults, in people who are sleep deprived, and in vegetarians. One 2024 trial found that a single large dose partly offset the mental slowing of a night without sleep. These results are interesting rather than settled, and the doses that matter for the brain are still being worked out.</p>
+<p>The cognitive evidence is newer and thinner. Small trials and recent meta-analyses report modest improvements in memory and reasoning, clearest in older adults and the sleep deprived; one 2024 trial found that a single large dose partly offset the mental slowing of a night without sleep. These results are interesting rather than settled.</p>
 
-<p>Vegetarians and vegans deserve a specific mention. Their muscle creatine runs around 10 to 20 percent lower than omnivores', because they get none from food, and they respond to supplementation with larger rises in stores and, in some trials, larger performance and cognitive gains. If you eat no meat or fish, creatine is one of the few supplements with a clear rationale behind it.</p>
+<p>Vegetarians and vegans deserve a specific mention. Their muscle creatine runs around 10 to 20 percent lower than omnivores', because they get none from food, and they respond to supplementation with larger rises in stores and, in some trials, larger performance and cognitive gains.</p>
 
 <h2>What is creatine HCl vs creatine monohydrate?</h2>
 
-<p>Creatine hydrochloride is creatine bound to hydrochloric acid, which makes a salt that dissolves far more readily in water. Laboratory measurements put its solubility at around 38 times that of monohydrate. That part of the marketing is true: a scoop of <a href="iherb:creatine hcl">creatine HCl</a> disappears into a glass of water, while monohydrate settles at the bottom unless you stir it.</p>
+<p>Creatine hydrochloride is creatine bound to hydrochloric acid, which makes a salt that dissolves far more readily in water. Laboratory measurements put its solubility at around 38 times that of monohydrate. That part of the marketing is true: a scoop of <a href="iherb:creatine hcl">creatine HCl</a> disappears into a glass of water, while monohydrate settles unless stirred.</p>
 
-<p>The rest of the claim is a chain of inference. Because HCl dissolves better, the argument goes, it is absorbed better, so less is needed, so 1.5 to 2 g can replace 3 to 5 g, with less water retention and less stomach upset. Each link sounds plausible. None has been demonstrated.</p>
+<p>The rest of the claim is a chain of inference: because HCl dissolves better it is absorbed better, so less is needed, so 1.5 to 2 g can replace 3 to 5 g, with less water retention and less stomach upset. Each link sounds plausible. None has been demonstrated. Monohydrate is already absorbed almost completely from the gut, close to 99 percent by the position stand's estimate, and better solubility cannot improve on near-total absorption. Once creatine is in solution, the body sees the same molecule.</p>
 
-<p>Start with absorption. Monohydrate is already absorbed almost completely from the gut; the position stand puts it close to 99 percent. Better solubility cannot improve on near-total absorption. Once creatine is in solution, in your stomach or in your shaker, the body sees the same molecule.</p>
+<p>The creatine HCl vs monohydrate comparison has been tested directly in only a few small studies, mostly in trained men over 4 to 8 weeks. Both forms improved strength or body composition, with no meaningful advantage for HCl. None that we are aware of measured muscle creatine content, so there is no evidence that a 1.5 to 2 g HCl dose reaches the saturation that 3 to 5 g of monohydrate reliably produces. The low-dose claim rests on a solubility figure, not on a biopsy or a performance outcome.</p>
 
-<p>Then the trials. The creatine HCl vs monohydrate comparison has been tested directly in only a few small studies, mostly in trained men over 4 to 8 weeks. They generally found that both forms improved strength or body composition, with no meaningful advantage for HCl. None that we are aware of measured muscle creatine content, so there is no evidence that a 1.5 to 2 g HCl dose reaches the muscle saturation that 3 to 5 g of monohydrate reliably produces. The low-dose claim rests on a solubility figure, not on a biopsy or a performance outcome.</p>
-
-<p>Cost settles it for most people. Per gram of creatine, HCl typically costs several times more than plain monohydrate, and taken at a dose that matches the monohydrate evidence, the gap widens further. HCl is not a bad product. It is a pleasant-mixing way to take creatine that is priced on a benefit the research has not confirmed.</p>
+<p>Cost settles it for most people. Per gram, HCl typically costs several times more than plain monohydrate, and at a dose that matches the monohydrate evidence the gap widens further. HCl is not a bad product. It is a pleasant-mixing way to take creatine, priced on a benefit the research has not confirmed.</p>
 
 <h2>Creatine HCl vs monohydrate: does creatine HCl cause less bloating?</h2>
 
 <p>"Bloating" is used for two different things, and separating them resolves most of the worry.</p>
 
-<p>The first is water weight. Creatine pulls water into muscle cells along with it, so most people gain 1 to 2 kg in the first week or two, more with a loading phase and less, and more gradually, without one. This water is intracellular, inside the muscle. It is not fat, and it is not gut bloating, though a tighter waistband can feel like it. Any form of creatine that raises muscle stores will do this, because the water follows the creatine. A product that caused no water gain would most likely be one that was not working.</p>
+<p>The first is water weight. Creatine pulls water into muscle cells along with it, so most people gain 1 to 2 kg in the first week or two, more with a loading phase and less without one. This water is intracellular, inside the muscle. It is not fat, and it is not gut bloating. Any form of creatine that raises muscle stores will do this, because the water follows the creatine; a product that caused no water gain would most likely be one that was not working.</p>
 
-<p>The second is genuine digestive upset: cramping, nausea or loose stools. This is uncommon at 3 to 5 g a day and is reported mostly during loading, when single 10 g doses are taken. In one trial, a single 10 g dose caused diarrhoea noticeably more often than the same amount split in two. The fix is to split the dose, take it with a meal and make sure it is fully dissolved. So does creatine HCl cause less bloating? Less undissolved powder might help a sensitive gut, but there is no controlled evidence that it does, and no form can prevent the water gain that comes with a dose that works.</p>
+<p>The second is genuine digestive upset: cramping, nausea or loose stools. This is uncommon at 3 to 5 g a day and is reported mostly during loading; in one trial a single 10 g dose caused diarrhoea noticeably more often than the same amount split in two. The fix is to split the dose, take it with a meal and make sure it is fully dissolved. So does creatine HCl cause less bloating? Less undissolved powder might help a sensitive gut, but there is no controlled evidence that it does, and no form can prevent the water gain that comes with a dose that works.</p>
 
 <h2>Other creatine forms, compared</h2>
 
-<p>Dozens of creatine variants have reached the market. Most are the same molecule with a different partner attached, or the same compound ground to a different particle size. The table summarises what the evidence supports. Costs are relative to plain monohydrate powder, one of the cheapest supplements sold.</p>
+<p>Dozens of creatine variants have reached the market, most of them the same molecule with a different partner attached or a different particle size. The table summarises what the evidence supports; costs are relative to plain monohydrate powder.</p>
 
 <table>
 <thead>
 <tr><th>Form</th><th>Evidence</th><th>Typical dose</th><th>Cost per effective dose</th><th>Notes</th></tr>
 </thead>
 <tbody>
-<tr><td>Monohydrate</td><td>Several hundred trials; the ISSN reference standard</td><td>3–5 g a day</td><td>Lowest</td><td>Nearly fully absorbed; settles in water unless stirred</td></tr>
-<tr><td>Micronised monohydrate</td><td>Same molecule, same evidence</td><td>3–5 g a day</td><td>Low</td><td>Finer powder that stays suspended; absorption unchanged</td></tr>
+<tr><td>Monohydrate</td><td>Several hundred trials; the reference standard</td><td>3–5 g a day</td><td>Lowest</td><td>Nearly fully absorbed; settles unless stirred</td></tr>
+<tr><td>Micronised monohydrate</td><td>Same molecule, same evidence</td><td>3–5 g a day</td><td>Low</td><td>Finer powder; absorption unchanged</td></tr>
 <tr><td>Hydrochloride (HCl)</td><td>A few small trials; no superiority shown</td><td>1.5–2 g marketed; effective dose not established</td><td>Several times higher</td><td>Very soluble; no muscle saturation data</td></tr>
 <tr><td>Buffered (Kre-Alkalyn)</td><td>One head-to-head trial; matched monohydrate, no advantage</td><td>Same as monohydrate</td><td>Higher</td><td>Claim of less breakdown to creatinine not supported</td></tr>
 <tr><td>Ethyl ester</td><td>Performed worse than monohydrate in a direct trial</td><td>Not recommended</td><td>Higher</td><td>Degrades to creatinine; lower muscle uptake</td></tr>
@@ -77,67 +75,66 @@ const post: BlogPost = {
 </tbody>
 </table>
 
-<p>Two deserve a sentence each. Buffered creatine was sold on the idea that monohydrate breaks down to useless creatinine in stomach acid; a 28-day trial comparing the two found identical muscle creatine, performance and side effects. Creatine ethyl ester is the one form that did worse than monohydrate in a direct comparison, raising blood creatinine without raising muscle creatine as much. <a href="iherb:micronized creatine">Micronised monohydrate</a> is simply monohydrate milled finer; it mixes better, costs little more and is otherwise identical.</p>
+<p>Buffered creatine was sold on the idea that monohydrate breaks down to useless creatinine in stomach acid; a 28-day trial found identical muscle creatine, performance and side effects. Creatine ethyl ester is the one form that did worse than monohydrate in a direct comparison. <a href="iherb:micronized creatine">Micronised monohydrate</a> is simply monohydrate milled finer; it mixes better, costs little more and is otherwise identical.</p>
 
 <blockquote>Every form of creatine that works, works by raising the same store of the same molecule. Pay for evidence and purity, not for a new name.</blockquote>
 
 <h2>How much creatine per day, and is a creatine loading phase worth it?</h2>
 
-<p>How much creatine per day? For most adults, <strong>3 to 5 g of creatine monohydrate a day</strong>, every day, including rest days. Taken without a loading phase, this fills muscle stores over about 3 to 4 weeks. A common maintenance rule of thumb is around 0.03 g per kilogram of body weight, about 2 g for a 70 kg person and 3 g for a 100 kg person, so 3 to 5 g covers almost everyone with margin. Larger, more muscular people and those training very hard sometimes use 5 to 10 g a day. Above that there is little evidence of extra benefit, and the surplus is excreted.</p>
+<p>How much creatine per day? For most adults, <strong>3 to 5 g of creatine monohydrate a day</strong>, every day, including rest days. Taken without a loading phase, this fills muscle stores in about 3 to 4 weeks. A common maintenance figure is around 0.03 g per kilogram of body weight, about 2 g for a 70 kg person and 3 g for a 100 kg person, so 3 to 5 g covers almost everyone with margin. Larger, more muscular people and those training very hard sometimes use 5 to 10 g a day; above that there is little evidence of extra benefit.</p>
 
-<p>A creatine loading phase gets you to saturation faster. The classic protocol is 20 g a day, split into four 5 g doses, for 5 to 7 days, then 3 to 5 g a day to maintain. Research protocols often express the loading dose as 0.3 g per kilogram per day. Stores saturate in about a week instead of a month. The trade-offs are more water gain in the first week and a higher chance of digestive upset. Loading is worth it if a competition or training block starts soon. If you have time, the lower daily dose reaches the same destination with fewer side effects and less powder.</p>
+<p>A creatine loading phase gets you to saturation faster. The classic protocol is 20 g a day, split into four 5 g doses, for 5 to 7 days, then 3 to 5 g a day to maintain. Research protocols often express this as 0.3 g per kilogram per day. Stores saturate in about a week instead of a month, at the cost of more water gain and a higher chance of digestive upset. Loading is worth it if a competition or training block starts soon; otherwise the lower daily dose reaches the same destination with fewer side effects and less powder.</p>
 
-<p>Cycling off is not required and has no evidence behind it. If you stop, stores drift back to baseline over four to six weeks, and the water weight goes with them.</p>
+<p>Cycling off is not required. If you stop, stores return to baseline over four to six weeks, and the water weight goes with them.</p>
 
 <ww-shop slugs="creatine-ce673,protein-powder-whey-2d3f0"></ww-shop>
 
 <h2>When to take creatine</h2>
 
-<p>Timing matters less than people assume. Creatine is stored, not used on the spot, so what counts is keeping muscle saturated. A few trials suggest that taking it close to a training session is marginally better than taking it hours away, and that taking it with carbohydrate and protein modestly increases retention, probably because insulin helps push creatine into muscle. The differences are small and inconsistent. The practical advice is to attach it to something you already do every day, such as a post-training shake or breakfast, and to mix it fresh, since creatine slowly degrades in water. If you miss a day, take your normal dose the next day. Doubling up is not needed.</p>
+<p>Timing matters less than people assume. Creatine is stored, not used on the spot, so what counts is keeping muscle saturated. A few trials suggest that taking it close to a training session is marginally better than hours away, and that taking it with carbohydrate and protein modestly increases retention. The differences are small and inconsistent. Attach it to something you already do every day, such as a post-training shake or breakfast, and mix it fresh, since creatine slowly degrades in water. If you miss a day, take your normal dose the next day; doubling up is not needed.</p>
 
 <h2>Who benefits most</h2>
 
 <ul>
-<li><strong>Strength and power athletes.</strong> Lifters, sprinters, throwers and anyone whose sport is built on repeated short efforts see the most consistent gains.</li>
-<li><strong>Team-sport players.</strong> Football, rugby, hockey and basketball involve repeated sprints with short recovery, exactly the pattern phosphocreatine supports.</li>
+<li><strong>Strength, power and team-sport athletes.</strong> Lifters, sprinters, throwers and players of sports built on repeated sprints with short recovery see the most consistent gains.</li>
 <li><strong>Vegetarians and vegans.</strong> Lower starting stores mean a larger response, in muscle and possibly in the brain.</li>
-<li><strong>Older adults doing resistance training.</strong> Meta-analyses find that creatine added to a training programme produces more lean mass and strength than training alone, which matters for independence and fall risk.</li>
-<li><strong>People interested in cognition.</strong> The evidence is early, but the sleep-deprivation and older-adult findings are the most promising, and the downside at normal doses is small.</li>
+<li><strong>Older adults doing resistance training.</strong> Meta-analyses find more lean mass and strength than training alone, which matters for independence and fall risk.</li>
+<li><strong>People interested in cognition.</strong> The evidence is early, but the sleep-deprivation and older-adult findings are promising and the downside at normal doses is small.</li>
 </ul>
 
-<p>Endurance athletes gain less, because long efforts run mostly on oxygen-dependent metabolism, though a final sprint may benefit. For efforts of one to four minutes, where acid build-up limits performance, <a href="/supplement/beta-alanine-fe8b4">beta-alanine</a> works through a different mechanism and combines well with creatine. Neither replaces adequate protein: creatine helps you train harder, protein supplies the material that training builds with.</p>
+<p>Endurance athletes gain less, because long efforts run mostly on oxygen-dependent metabolism. For efforts of one to four minutes, where acid build-up limits performance, <a href="/supplement/beta-alanine-fe8b4">beta-alanine</a> works through a different mechanism and combines well with creatine. Neither replaces adequate protein: creatine helps you train harder, protein supplies the material that training builds with.</p>
 
 <h2>Myths, checked against the trials</h2>
 
-<p><strong>Kidney damage.</strong> Creatine is broken down to creatinine, the marker doctors use to estimate kidney function, so blood creatinine rises slightly in people taking it. That is a change in the marker, not in the kidney. Trials in healthy adults, including studies of up to five years, have found no adverse effect on kidney function. If you have a blood test, tell your doctor you take creatine so the result is read correctly.</p>
+<p><strong>Kidney damage.</strong> Creatine is broken down to creatinine, the marker doctors use to estimate kidney function, so blood creatinine rises slightly in people taking it. That is a change in the marker, not in the kidney. Trials in healthy adults, including studies of up to five years, have found no adverse effect on kidney function. Tell your doctor you take creatine before a blood test so the result is read correctly.</p>
 
-<p><strong>Hair loss.</strong> This rests on one 2009 study of 20 rugby players in which a loading protocol raised dihydrotestosterone, a hormone linked to male-pattern baldness, though it stayed within the normal range and hair loss itself was not measured. The finding has not been replicated, and a dozen other studies found no consistent effect of creatine on testosterone or related hormones. The evidence that creatine causes hair loss is, at present, weak.</p>
+<p><strong>Hair loss.</strong> This rests on one 2009 study of 20 rugby players in which a loading protocol raised dihydrotestosterone, a hormone linked to male-pattern baldness, though it stayed within the normal range and hair loss itself was not measured. The finding has not been replicated, and a dozen other studies found no consistent effect on testosterone or related hormones. The evidence is, at present, weak.</p>
 
-<p><strong>Dehydration and cramps.</strong> The theory was that water drawn into muscle would leave the rest of the body short. Studies in athletes training in heat have found no increase in cramping, dehydration or heat illness, and some found fewer cramps in the creatine group. Normal attention to fluids is enough.</p>
+<p><strong>Dehydration and cramps.</strong> The theory was that water drawn into muscle would leave the rest of the body short. Studies in athletes training in heat found no increase in cramping, dehydration or heat illness, and some found fewer cramps in the creatine group.</p>
 
 <h2>Choosing a product</h2>
 
-<p>With creatine, quality is about purity rather than form. Plain <a href="iherb:creatine monohydrate">creatine monohydrate</a> powder is the cheapest and best-supported option. Creapure is a German-made grade of monohydrate with a long record of purity testing, and many brands state when they use it. Third-party certification such as Informed Sport or NSF Certified for Sport matters most for competitive athletes, since it checks for contaminants and banned substances. <a href="iherb:creatine capsules">Creatine capsules</a> are convenient for travel but typically hold under 1 g each, so a 5 g dose means five or more capsules a day at several times the cost of powder. Our <a href="/supplement/creatine-ce673">creatine page</a> lists the products we have reviewed.</p>
+<p>With creatine, quality is about purity rather than form. Plain <a href="iherb:creatine monohydrate">creatine monohydrate</a> powder is the cheapest and best-supported option. Creapure is a German-made grade with a long record of purity testing, and many brands state when they use it. Third-party certification such as Informed Sport or NSF Certified for Sport matters most for competitive athletes, since it checks for contaminants and banned substances. <a href="iherb:creatine capsules">Creatine capsules</a> are convenient for travel but hold under 1 g each, so a 5 g dose means five or more capsules a day at several times the cost of powder. Our <a href="/supplement/creatine-ce673">creatine page</a> lists the products we have reviewed.</p>
 
 <h2>Safety: who should be careful</h2>
 
-<p>For healthy adults, creatine monohydrate at 3 to 5 g a day has one of the cleanest safety records of any supplement. The groups below are the exceptions, and the answer in each case is to talk to your doctor first rather than to avoid it outright.</p>
+<p>For healthy adults, creatine monohydrate at 3 to 5 g a day has one of the cleanest safety records of any supplement. The groups below are the exceptions; in each case the answer is to talk to your doctor first rather than to avoid it outright.</p>
 
 <p><strong>Kidney disease or a single kidney.</strong> The reassuring trials were done in people with healthy kidneys. If yours are not, creatine should be a medical decision, with kidney function monitored.</p>
 
-<p><strong>Medicines that affect the kidneys.</strong> Regular non-steroidal anti-inflammatory drugs such as ibuprofen or naproxen, and some diuretics, place extra load on the kidneys. Combining them with creatine has not been shown to be harmful, but it has not been well studied either, so ask a pharmacist or doctor.</p>
+<p><strong>Medicines that affect the kidneys.</strong> Regular non-steroidal anti-inflammatory drugs such as ibuprofen or naproxen, and some diuretics, place extra load on the kidneys. Combining them with creatine has not been shown to be harmful, but it has not been well studied, so ask a pharmacist or doctor.</p>
 
-<p><strong>Under 18s.</strong> The position stand considers creatine acceptable for young athletes with proper supervision and nutrition, but most trials are in adults and long-term data in adolescents are limited. A doctor or qualified sports dietitian should be involved.</p>
+<p><strong>Under 18s.</strong> The position stand considers creatine acceptable for young athletes under supervision, but most trials are in adults and long-term data in adolescents are limited. Involve a doctor or sports dietitian.</p>
 
-<p><strong>Pregnancy and breastfeeding.</strong> Animal studies are encouraging and human research is beginning, but there is not enough evidence to recommend it. Do not start creatine in pregnancy without medical advice.</p>
+<p><strong>Pregnancy and breastfeeding.</strong> Animal studies are encouraging and human research is beginning, but there is not enough evidence to recommend it without medical advice.</p>
 
 <p><strong>Caffeine.</strong> One 1996 study suggested that caffeine blunted creatine's effect; later studies did not confirm this, and the two are routinely combined in pre-workout products. The interaction evidence is weak.</p>
 
-<p>Drink normally and a little more if you are loading; that is common sense rather than a specific requirement. See a doctor if you develop persistent stomach pain, swelling of the legs, a marked change in how much you urinate, or a raised creatinine result that does not settle after a few weeks off creatine.</p>
+<p>Drink normally, and a little more if you are loading; that is common sense rather than a requirement. See a doctor if you develop persistent stomach pain, swelling of the legs, a marked change in how much you urinate, or a raised creatinine result that does not settle after a few weeks off creatine.</p>
 
 <h2>How Wellness Whizz uses this</h2>
 
-<p>Our quiz does not ask whether you want monohydrate or HCl; it asks what you train for, what you eat, and what else you take. A lifter who eats meat is pointed to plain monohydrate at 3 to 5 g a day, with no loading unless there is a deadline; a vegan with a cognitive goal gets the same form with a note on why their response may be larger; someone with reduced kidney function or on regular NSAIDs is told to clear it with a doctor first. The engine also checks the medicines and supplements you list before it recommends anything.</p>
+<p>Our quiz does not ask whether you want monohydrate or HCl; it asks what you train for, what you eat, and what else you take. A lifter who eats meat is pointed to plain monohydrate at 3 to 5 g a day, with no loading unless there is a deadline; a vegan with a cognitive goal gets the same form with a note on why their response may be larger; someone with reduced kidney function or on regular NSAIDs is told to clear it with a doctor first. The engine also checks the medicines you list before it recommends anything.</p>
 
 <ww-quiz></ww-quiz>
 `,

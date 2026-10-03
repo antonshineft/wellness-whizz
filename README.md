@@ -311,3 +311,17 @@ scripts/           Data bundler, seed builder and Webflow CSV importers (Supplem
 Cloudflare Workers, D1 and static assets have generous free tiers (100k requests/day, 5M D1 reads/day) that cover a
 site of this size. OpenAI is the only paid dependency: one quiz costs roughly 6 model calls with `gpt-4.1-mini`
 (1 recommendation call + up to 5 profile generations); profiles are cached in D1, so repeat supplements cost nothing.
+
+## Next phase (agreed 2026-10-03)
+
+Two features chosen for the next round of work, in this order:
+
+1. **Stack Checker** (`/stack-check`): a free tool where a visitor pastes or photographs their current supplements and
+   gets an audit (duplicated nutrients against the upper limits, poorly absorbed forms, timing clashes such as iron with
+   calcium, interactions with listed medicines) plus a cleaner stack with products. Built on the quiz engine and the
+   catalogue; intended as the link magnet and the natural "run it through the checker" answer in Reddit replies.
+2. **Shareable result cards**: a branded image of each quiz result (top five with scores) with one-tap sharing to X,
+   WhatsApp and Instagram stories; every share links back to the quiz.
+
+Also queued from the same discussion: iHerb price-drop radar, "ask the research" question box, study-drop reaction
+posts, a seven-day email course, and Pinterest pins generated from the comparison tables.

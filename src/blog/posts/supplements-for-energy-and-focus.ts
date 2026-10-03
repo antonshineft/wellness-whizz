@@ -154,7 +154,7 @@ const post: BlogPost = {
 
 <p><strong>Pregnancy and breastfeeding.</strong> Keep caffeine under 200 mg a day, take only what your midwife or doctor recommends, and avoid herbal adaptogens and anything labelled nootropic.</p>
 
-<p>If you take any regular medication, have a heart, kidney, thyroid or mental health condition, talk to your doctor or pharmacist before starting anything on this list.</p>
+<p>If you take any regular medication, or have a heart, kidney, thyroid or mental health condition, talk to your doctor or pharmacist before starting anything on this list.</p>
 
 <h2>How Wellness Whizz uses this</h2>
 
