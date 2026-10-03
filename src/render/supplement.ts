@@ -4,7 +4,7 @@ import { escapeHtml } from '../html';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
 import {
-  EFFECTIVITY_LABELS, SAFETY_LABELS, WF_PAGE_IDS, blendAttr, cardImage, detailImage, exploreSection, footer, headerBadges, navbar,
+  EFFECTIVITY_LABELS, SAFETY_LABELS, WF_PAGE_IDS, blendAttr, cardImage, detailImage, exploreSection, footer, headerTags, navbar,
   productPicks, ratingImage, relatedSection, stickyBuyBar,
 } from './partials';
 
@@ -275,7 +275,7 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
           <div class="frame-51">
             <div class="text-10">${escapeHtml(sup.summary || `${sup.name}: benefits, dosage, safety and where to buy.`)}</div>
           </div>
-          <div class="frame-52"><span class="ww-tag">${escapeHtml(sup.category)}</span>${headerBadges(sup)}</div>
+          <div class="frame-52">${headerTags(sup)}</div>
         </div>
       </div>
     </div>${productPicks(env, sup)}

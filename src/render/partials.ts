@@ -94,6 +94,18 @@ const SAFETY_TAGS: Record<SafetyStatus, { glyph: string; label: string }> = {
   prescription: { glyph: '!', label: 'Prescription' },
 };
 
+/** Header tags on supplement pages: category, safety and FDA as uniform text tags (same size as result-card tags). */
+export function headerTags(sup: Supplement): string {
+  const fda = FDA_TAGS[sup.fda_status];
+  const safety = SAFETY_TAGS[sup.safety_status];
+  const safetyCls = sup.safety_status === 'safe' ? ' ww-tag-good' : sup.safety_status === 'ok' ? '' : ' ww-tag-warn';
+  return (
+    `<span class="ww-tag">${escapeHtml(sup.category)}</span>` +
+    `<span class="ww-tag${safetyCls}"><b>${safety.glyph}</b>${escapeHtml(safety.label)}</span>` +
+    `<span class="ww-tag ww-tag-dark"><b>${fda.glyph}</b>${escapeHtml(fda.label)}</span>`
+  );
+}
+
 /** Uniform text tags for result cards: FDA (dark), safety, category, form, effectivity. */
 export function cardTags(sup: Supplement, formLabel: string): string {
   const fda = FDA_TAGS[sup.fda_status];

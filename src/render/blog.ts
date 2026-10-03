@@ -38,13 +38,14 @@ function shopItem(env: LinkEnv, sup: Supplement): string {
   const sub = product ? [product.brand, product.name].filter(Boolean).join(' · ') : sup.category;
   return `
           <div class="ww-shop-item">
-            <a href="${href}" target="_blank" rel="noopener nofollow sponsored" class="ww-shop-thumb" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}"${product ? ` data-product="${escapeHtml(product.name)}"` : ''}>${supplementPhoto(sup, product?.name ?? sup.name, 'width="60" height="60"')}</a>
-            <div class="ww-shop-info">
-              <div class="ww-shop-name">${escapeHtml(sup.name)}</div>
-              <div class="ww-shop-brand">${escapeHtml(sub)}</div>
-              <a href="/supplement/${escapeHtml(sup.slug)}">Full profile</a>
+            <div class="ww-shop-top">
+              <a href="${href}" target="_blank" rel="noopener nofollow sponsored" class="ww-shop-thumb" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}"${product ? ` data-product="${escapeHtml(product.name)}"` : ''}>${supplementPhoto(sup, product?.name ?? sup.name, 'width="60" height="60"')}</a>
+              <div class="ww-shop-info">
+                <div class="ww-shop-name">${escapeHtml(sup.name)}</div>
+                <div class="ww-shop-brand">${escapeHtml(sub)}</div>
+              </div>
             </div>
-            ${buyButton(env, sup, 'ww-shop-buy')}
+            <div class="ww-shop-actions"><a href="/supplement/${escapeHtml(sup.slug)}" class="ww-shop-link">Full profile</a>${buyButton(env, sup, 'ww-shop-buy')}</div>
           </div>`;
 }
 

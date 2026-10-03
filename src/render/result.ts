@@ -1,10 +1,39 @@
 /** /result/:id — the "Results" CMS template page, rendered from the session's stored recommendations. */
-import type { ResultItem, Session } from '../db';
+import type { QuizProfile, ResultItem, Session } from '../db';
 import { escapeHtml } from '../html';
 import type { LinkEnv } from '../links';
 import { page } from './layout';
 import { primaryProduct, shopUrl } from '../links';
 import { WF_PAGE_IDS, blendAttr, buyButton, captureBox, cardImage, cardTags, disclosure, navbar, productThumbs } from './partials';
+
+const AGE_TEXT: Record<string, string> = { '<18': 'under 18', '18-25': 'aged 18 to 25', '26-40': 'aged 26 to 40', '41-65': 'aged 41 to 65', '65+': 'over 65' };
+const ACTIVITY_TEXT: Record<string, string> = {
+  Sedentary: 'mostly sedentary', 'Lightly Active': 'lightly active', 'Moderately Active': 'moderately active',
+  'Very Active': 'very active', 'Extra Active': 'extremely active',
+};
+const PLAIN_DIET = /^(none|no|n\/a|nothing|no restrictions?|regular|normal|standard|balanced|omnivore|everything|mixed|-)$/i;
+const GENERIC_LEAD = 'Most suitable supplements according to your responses:';
+const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+
+/** One sentence that mirrors the quiz answers, so the result page reads as personal rather than generic. */
+export function answersSummary(profile: QuizProfile): string {
+  const clean = (v: string | null | undefined) => (v ?? '').replace(/\s+/g, ' ').trim();
+  const sex = clean(profile.sex).toLowerCase();
+  const person = sex === 'female' ? 'woman' : sex === 'male' ? 'man' : 'person';
+  const activity = ACTIVITY_TEXT[clean(profile.activity)] ?? '';
+  const age = AGE_TEXT[clean(profile.age)] ?? '';
+  const diet = clean(profile.diet);
+  const goal = clean(profile.goal);
+  if (!activity && !age && !diet && !goal) return GENERIC_LEAD;
+  const who = [activity, person].filter(Boolean).join(' ');
+  const parts: string[] = [];
+  if (diet && !PLAIN_DIET.test(diet)) {
+    parts.push(/diet/i.test(diet) ? `on a ${lowerFirst(diet)}` : diet.length <= 28 ? `on a ${lowerFirst(diet)} diet` : `whose diet is "${diet}"`);
+  }
+  if (goal) parts.push(`focused on ${goal.length > 90 ? `${goal.slice(0, 87).replace(/\s+\S*$/, '')}…` : lowerFirst(goal)}`);
+  const article = /^[aeiou]/i.test(who) ? 'an' : 'a';
+  return `For ${article} ${who}${age ? ` ${age}` : ''}${parts.length ? `, ${parts.join(' and ')}` : ''}, these are the best fits:`;
+}
 
 const FORM_LABELS: Record<string, string> = {
   capsule: 'Capsules', softgel: 'Softgels', small_softgel: 'Softgels', tablet: 'Tablets', powder: 'Powder',
@@ -59,7 +88,7 @@ export function renderResultPage(session: Session, items: ResultItem[], env: Lin
     <div class="sliderblock">
       <div class="frame-250">
         <h3 class="heading-4 results">Your Personal Wellness Advice</h3>
-        <div class="text-48"><strong class="bold-text">Most suitable supplements according to your responses:</strong></div>
+        <div class="text-48"><strong class="bold-text">${escapeHtml(answersSummary(session))}</strong></div>
       </div>
       <div class="w-dyn-list">
         <div role="list" class="w-dyn-items">

@@ -53,7 +53,12 @@
 .ww-bars i { display: block; width: 3px; border-radius: 1px; background: #ffffff55; }
 .ww-bars i.on { background: #87d581; }
 .ww-card-meta .ww-tag { height: 32px; font-size: 13px; padding: 8px 14px; }
-.frame-52 .ww-tag { background: #1d272d1a; margin-right: 4px; }
+.frame-52 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.frame-52 .ww-tag { height: 32px; font-size: 13px; padding: 8px 14px; margin: 0; }
+.ww-tag.ww-tag-good { background: #87d581; color: #1d272d; }
+.ww-tag.ww-tag-good b { background: #1d272d; color: #fff; }
+.ww-tag.ww-tag-warn { background: #ffb4b4; color: #1d272d; }
+.ww-tag.ww-tag-warn b { background: #b3261e; color: #fff; }
 .ww-card-text { margin: 0; font-size: 18px; line-height: 28px; color: #1d272d; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .ww-card .ww-products { margin: 4px 0 0; gap: 10px 16px; }
 .ww-card .ww-product { width: 104px; }
@@ -207,7 +212,11 @@ a.ww-footer-link:hover { opacity: 1; }
 .ww-article-meta .ww-tag { opacity: 1; }
 .ww-shop { background: #ecf3f6; border-radius: 24px; padding: 20px; }
 .ww-shop h4 { margin: 0 0 6px; font-family: Aeonik, sans-serif; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; opacity: .7; font-weight: 700; }
-.ww-shop-item { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid #1d272d14; }
+.ww-shop-item { display: flex; flex-direction: column; gap: 10px; padding: 12px 0; border-top: 1px solid #1d272d14; }
+.ww-shop-top { display: flex; gap: 12px; align-items: center; }
+.ww-shop-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ww-shop-actions .ww-shop-link { font-size: 13px; color: #1d272d; text-decoration: underline; text-decoration-color: #87d581; text-underline-offset: 2px; white-space: nowrap; }
+.ww-shop-actions .fakebutton.ww-shop-buy { flex: 1 1 auto; text-align: center; }
 .ww-shop-item:first-of-type { border-top: 0; }
 .ww-shop-thumb { flex: 0 0 72px; width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; background: #fdf1cf; border-radius: 16px; padding: 6px; box-sizing: border-box; }
 .ww-shop-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
@@ -377,3 +386,46 @@ img.ww-opaque { mix-blend-mode: multiply; }
 
 /* The X profile links replace faded placeholder icons; show them at full strength like the other social icons. */
 .ww-x-icon { opacity: 1; }
+
+/* ---------- email capture: thank-you state ---------- */
+.ww-capture form.is-done input, .ww-capture form.is-done button { display: none; }
+.ww-capture-note.is-success { display: flex; align-items: center; gap: 10px; font-size: 16px; line-height: 22px; font-weight: 700; opacity: 1; margin: 0; }
+.ww-capture-note.is-success::before { content: ""; flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; background: #87d581 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%231d272d' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/15px no-repeat; }
+.ww-capture.on-dark .ww-capture-note.is-success { color: #fff; }
+
+/* ---------- supplement page: the three cards under the header share the width ---------- */
+@media (min-width: 992px) {
+  /* three equal columns (grid ignores the cards' padding, which flex-basis 0 did not) */
+  ._3-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* the card header block and its rows were sized for a 479px card; let them follow the card width */
+  ._3-columns .column-2 .frame-56, ._3-columns .column-2 .frame-143, ._3-columns .column-2 .frame-144, ._3-columns .column-2 .frame-145,
+  ._3-columns .column-2 .frame-146, ._3-columns .column-2 .frame-147, ._3-columns .column-2 .frame-148, ._3-columns .column-2 .frame-149,
+  ._3-columns .column-2 .frame-146 { box-sizing: border-box; width: 100%; max-width: 100%; min-width: 0; }
+  ._3-columns .column-2 .frame-146 { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  ._3-columns .column-2 .text-30 { flex: 1 1 auto; min-width: 0; hyphens: auto; }
+  ._3-columns .column-2 .vectors-wrapper-36 { flex: 0 0 auto; }
+}
+@media (min-width: 1200px) and (max-width: 1279px) {
+  ._3-columns .column-2 .text-30 { font-size: 30px; line-height: 34px; }
+}
+@media (min-width: 992px) and (max-width: 1199px) {
+  ._3-columns .column-2 .text-30 { font-size: 24px; line-height: 28px; }
+}
+._3-columns .column-5 { flex: 1 1 0; min-width: 0; width: auto; }
+._3-columns .column-5 .frame-226 { width: 100%; min-width: 0; box-sizing: border-box; }
+._3-columns .column-5 .frame-226 img { width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: contain; }
+/* the two text cards carry fixed inner widths from the export; let them shrink so all three columns share the row */
+._3-columns .column-2 { min-width: 0; box-sizing: border-box; } /* border-box so padding does not make the dark cards wider than the image column */
+._3-columns .column-2 .frame-156, ._3-columns .column-2 .frame-158, ._3-columns .column-2 .frame-159, ._3-columns .column-2 .frame-170, ._3-columns .column-2 ._2, ._3-columns .column-2 .frame-187 { max-width: 100%; min-width: 0; }
+._3-columns .column-2 .frame-161 { width: auto; max-width: 100%; }
+
+/* ---------- phones: slider without arrows, rounded cards; result card product strip swipes sideways ---------- */
+@media (max-width: 767px) {
+  .ww-carousel .ww-arrow { display: none; }
+  .ww-carousel.slider { height: auto; top: 0; margin-bottom: 0; padding-bottom: 0; }
+  .ww-carousel .ww-carousel-mask { height: auto; min-height: 0; margin-top: 16px; }
+  .ww-carousel-item .imagecard { border-radius: 20px; overflow: hidden; }
+  .ww-card .ww-products { display: flex; flex-wrap: nowrap; justify-content: flex-start; gap: 12px; overflow-x: auto; margin: 4px -16px 0; padding: 2px 16px 8px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .ww-card .ww-products::-webkit-scrollbar { display: none; }
+  .ww-card .ww-product { flex: 0 0 auto; scroll-snap-align: start; }
+}

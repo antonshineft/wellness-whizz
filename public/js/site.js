@@ -41,7 +41,9 @@
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
       .then(function (res) {
         if (!res.ok) { say((res.body && res.body.error) || 'Something went wrong. Please try again.', 'is-error'); if (button) button.disabled = false; return; }
-        say(res.body.message || 'Thank you, you are on the list.', 'is-success');
+        var thanks = form.getAttribute('data-source') === 'results' ? 'Thank you. Your results are on their way to your inbox.' : 'Thank you, you are on the list.';
+        say(/already/i.test(res.body.message || '') ? res.body.message : thanks, 'is-success');
+        form.classList.add('is-done');
         if (input) input.value = '';
         window.wwTrack({ type: 'subscribe', slug: form.getAttribute('data-source') || 'newsletter', page: window.location.pathname });
       })
