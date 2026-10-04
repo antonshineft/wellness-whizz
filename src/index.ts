@@ -19,10 +19,10 @@ import { generateFaqs } from './faq';
 import { generateSupplementImage, imageGenerationEnabled, loadImage, storeImage, supplementsNeedingImage } from './images';
 import { attachIherbProducts, supplementsWithoutPhotos } from './products';
 import { emailEnabled, resultsEmail, sendEmail } from './email';
-import { listResearchNotes, pruneAbstractlessNotes, researchBatch } from './research';
+import { listResearchNotes, pruneAbstractlessNotes, repairNotes, researchBatch } from './research';
 import { renderResearchPage } from './render/research';
 import { renderSupplementsIndex } from './render/supplements-index';
-import { buildQueue, listSocialPosts, postDue, setSocialStatus } from './social/content';
+import { buildQueue, listSocialPosts, postDue, postingPlan, sendState, setSocialStatus } from './social/content';
 import { xEnabled } from './social/x';
 import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
@@ -62,9 +62,13 @@ export interface Bindings {
   X_API_SECRET?: string;
   X_ACCESS_TOKEN?: string;
   X_ACCESS_SECRET?: string;
-  /** "false" keeps posts queued without sending them; X_POSTS_PER_DAY caps sends (default 2). */
+  /** "false" keeps posts queued without sending them; the schedule comes from the next three (src/social/content.ts). */
   X_AUTOPOST?: string;
-  X_POSTS_PER_DAY?: string;
+  X_POSTS_PER_WEEK?: string;
+  X_POST_DAYS?: string;
+  X_POST_HOUR_UTC?: string;
+  /** Where a "post failed" email goes (default: the EMAIL_FROM address). */
+  ALERT_EMAIL?: string;
   /** Optional NCBI key for faster PubMed requests; RESEARCH_BATCH supplements checked per daily run (default 15). */
   NCBI_API_KEY?: string;
   RESEARCH_BATCH?: string;
@@ -355,10 +359,13 @@ app.get('/api/admin/social', async (c) => {
   if (action === 'research') {
     const sups = await listSupplements(c.env.DB, 500, true);
     const pruned = await pruneAbstractlessNotes(c.env.DB);
-    return c.json({ pruned, result: await researchBatch(c.env, sups.sort(() => Math.random() - 0.5), 5), notes: (await listResearchNotes(c.env.DB, 10)).length });
+    const result = await researchBatch(c.env, sups.sort(() => Math.random() - 0.5), 5);
+    const repaired = await repairNotes(c.env, 10);
+    return c.json({ pruned, result, repaired, notes: (await listResearchNotes(c.env.DB, 10)).length });
   }
   // "Why is nothing going out?" is the usual question, so the listing says what the sender would do right now.
-  const hour = new Date().getUTCHours();
+  const plan = postingPlan(c.env);
+  const state = await sendState(c.env, c.env.DB);
   const lastRun = await getMeta(c.env.DB, 'social:last');
   const posting = {
     x_keys_configured: xEnabled(c.env),
@@ -366,9 +373,15 @@ app.get('/api/admin/social', async (c) => {
     x_api_key_hint: c.env.X_API_KEY ? `…${c.env.X_API_KEY.slice(-4)}` : null,
     x_access_token_hint: c.env.X_ACCESS_TOKEN ? `${c.env.X_ACCESS_TOKEN.slice(0, 6)}…${c.env.X_ACCESS_TOKEN.slice(-4)}` : null,
     autopost: c.env.X_AUTOPOST !== 'false',
-    posts_per_day: Math.max(1, Number(c.env.X_POSTS_PER_DAY ?? '2') || 2),
-    inside_posting_window: hour >= 7 && hour < 20,
-    utc_hour: hour,
+    posts_per_week: plan.per_week,
+    posting_days: plan.days,
+    post_hour_utc: plan.days ? plan.hour_utc : null,
+    now_utc: new Date().toISOString().slice(0, 16) + 'Z',
+    can_post_now: state.ok,
+    why_not_now: state.ok ? null : state.reason,
+    last_post_at: state.last_post_at,
+    next_slot_utc: state.next_slot,
+    alert_email: emailEnabled(c.env) ? (c.env.ALERT_EMAIL ?? '').trim() || /<([^>]+)>/.exec(c.env.EMAIL_FROM ?? '')?.[1] || c.env.EMAIL_FROM : null,
     last_hourly_run: lastRun ? JSON.parse(lastRun) : null,
   };
   return c.json({ posting, posts: await listSocialPosts(c.env.DB) });
@@ -668,7 +681,8 @@ export default {
             const slice = [...sups.slice(cursor, cursor + batch), ...sups.slice(0, Math.max(0, cursor + batch - sups.length))];
             const result = await researchBatch(env, slice, batch);
             await setMeta(env.DB, 'research:cursor', String((cursor + batch) % Math.max(1, sups.length)));
-            await setMeta(env.DB, 'research:last', JSON.stringify({ at: new Date().toISOString(), ...result }));
+            const repaired = await repairNotes(env, 10);
+            await setMeta(env.DB, 'research:last', JSON.stringify({ at: new Date().toISOString(), ...result, repaired }));
             console.log(`research: ${JSON.stringify(result)}`);
           })
           .catch((err) => console.error(`research failed: ${String(err)}`)),

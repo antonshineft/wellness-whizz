@@ -73,14 +73,31 @@ export async function pubmedSummaries(env: ResearchEnv, pmids: string[]): Promis
   return pmids.map((id) => data.result?.[id]).filter((r): r is PubmedSummary => !!r && typeof r === 'object' && 'title' in r);
 }
 
-/** Abstract text (first ~2500 characters) from efetch XML; empty when PubMed has none. */
-export async function pubmedAbstract(env: ResearchEnv, pmid: string): Promise<string> {
+export interface PubmedArticle {
+  /** Abstract text (first ~2500 characters); empty when PubMed has none. */
+  abstract: string;
+  /** Publication types as PubMed lists them, e.g. "Randomized Controlled Trial". */
+  pubTypes: string[];
+}
+
+/**
+ * Abstract and publication types from efetch XML. Throws when PubMed does not answer properly (a rate limit, an
+ * outage), so the paper is tried again another day instead of being filed as having no abstract.
+ */
+export async function pubmedArticle(env: ResearchEnv, pmid: string): Promise<PubmedArticle> {
   const url = withKey(env, `${EUTILS}/efetch.fcgi?db=pubmed&id=${pmid}&retmode=xml`);
   const res = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(15_000) });
-  if (!res.ok) return '';
+  if (!res.ok) throw new Error(`PubMed efetch ${res.status}`);
   const xml = await res.text();
+  if (!/<Pubmed(Book)?Article[\s>]/.test(xml)) throw new Error('PubMed efetch: no article in the answer');
   const parts = [...xml.matchAll(/<AbstractText[^>]*>([\s\S]*?)<\/AbstractText>/g)].map((m) => m[1].replace(/<[^>]+>/g, ' '));
-  return parts.join(' ').replace(/\s+/g, ' ').trim().slice(0, 2500);
+  const pubTypes = [...xml.matchAll(/<PublicationType[^>]*>([^<]+)<\/PublicationType>/g)].map((m) => m[1].trim()).filter((t) => t && t !== 'Journal Article');
+  return { abstract: parts.join(' ').replace(/\s+/g, ' ').trim().slice(0, 2500), pubTypes };
+}
+
+/** Abstract text only; see pubmedArticle. */
+export async function pubmedAbstract(env: ResearchEnv, pmid: string): Promise<string> {
+  return (await pubmedArticle(env, pmid)).abstract;
 }
 
 const noteSchema = {
@@ -102,7 +119,7 @@ interface NoteDraft {
   tweet: string;
 }
 
-async function draftNote(env: ResearchEnv, sup: Supplement, s: PubmedSummary, abstractText: string): Promise<NoteDraft> {
+async function draftNote(env: ResearchEnv, sup: Pick<Supplement, 'name'>, s: PubmedSummary, abstractText: string): Promise<NoteDraft> {
   if (useFakeAi(env)) {
     return {
       relevant: true,
@@ -150,7 +167,8 @@ export async function researchBatch(env: ResearchEnv, supplements: Supplement[],
         const abstractText = await pubmedAbstract(env, s.uid);
         known.add(s.uid);
         if (!abstractText) {
-          // Nothing to summarise from a title alone: remember the id, keep it off the page and off X.
+          // Nothing to summarise from a title alone: remember the id, keep it off the page and off X
+          // (repairNotes looks again later: PubMed sometimes adds the abstract days after the citation).
           await env.DB.prepare('INSERT OR IGNORE INTO research_notes (pmid, supplement_id, title, journal, pub_date, pub_type, summary, takeaway, tweet) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
             .bind(s.uid, sup.id, s.title, s.fulljournalname || s.source || '', s.pubdate || '', 'no-abstract', '', '', '')
             .run();
@@ -171,6 +189,48 @@ export async function researchBatch(env: ResearchEnv, supplements: Supplement[],
     }
   }
   return { checked, added, failed };
+}
+
+/**
+ * A second look at papers filed without an abstract, by the daily run or by pruneAbstractlessNotes: PubMed often adds
+ * the abstract days after the citation appears, and an earlier fetch may simply have failed. A note whose abstract is
+ * there now is written like any other (and offered to the X queue); one still without is filed as checked and not
+ * fetched again.
+ */
+export async function repairNotes(env: ResearchEnv, limit = 10): Promise<{ checked: number; filled: string[]; failed: string[] }> {
+  const filled: string[] = [];
+  const failed: string[] = [];
+  const { results } = await env.DB
+    .prepare(
+      `SELECT n.*, s.name AS supplement_name, s.slug AS supplement_slug FROM research_notes n
+       JOIN supplements s ON s.id = n.supplement_id WHERE n.summary = '' AND n.pub_type = 'no-abstract' ORDER BY n.id DESC LIMIT ?`,
+    )
+    .bind(limit)
+    .all<ResearchNote>();
+  for (const note of results) {
+    try {
+      await sleep(400);
+      const article = await pubmedArticle(env, note.pmid);
+      if (!article.abstract) {
+        await env.DB.prepare("UPDATE research_notes SET pub_type = 'no-abstract-checked' WHERE id = ?").bind(note.id).run();
+        continue;
+      }
+      const summary: PubmedSummary = { uid: note.pmid, title: note.title, fulljournalname: note.journal, pubdate: note.pub_date, pubtype: article.pubTypes };
+      const draft = await draftNote(env, { name: note.supplement_name ?? '' }, summary, article.abstract);
+      if (!draft.relevant) {
+        await env.DB.prepare("UPDATE research_notes SET pub_type = 'not-relevant' WHERE id = ?").bind(note.id).run();
+        continue;
+      }
+      await env.DB
+        .prepare('UPDATE research_notes SET summary = ?, takeaway = ?, tweet = ?, pub_type = ?, queued = 0 WHERE id = ?')
+        .bind(draft.summary, draft.takeaway, draft.tweet, article.pubTypes.join(', '), note.id)
+        .run();
+      filled.push(`${note.supplement_slug}:${note.pmid}`);
+    } catch (err) {
+      failed.push(`${note.pmid}: ${String(err).slice(0, 120)}`);
+    }
+  }
+  return { checked: results.length, filled, failed };
 }
 
 /**

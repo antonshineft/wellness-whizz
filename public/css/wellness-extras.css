@@ -226,7 +226,16 @@ a.ww-footer-link:hover { opacity: 1; }
 .ww-shop-info a { font-size: 13px; color: #1d272d; text-decoration: underline; text-decoration-color: #87d581; text-underline-offset: 2px; }
 .ww-shop .fakebutton.ww-shop-buy { padding: 10px 14px; font-size: 14px; line-height: 18px; border-radius: 14px; white-space: nowrap; text-decoration: none; }
 .ww-shop-inline { margin: 28px 0; }
-.ww-shop-inline .ww-shop-item { flex-wrap: wrap; }
+/* Inside the article body the block is wide: one row per product (photo, name, then the links on the right). */
+.ww-shop-inline .ww-shop-item { flex-direction: row; align-items: center; gap: 16px; }
+.ww-shop-inline .ww-shop-top { flex: 1 1 auto; min-width: 0; }
+.ww-shop-inline .ww-shop-actions { flex: 0 0 auto; justify-content: flex-end; gap: 18px; }
+.ww-shop-inline .ww-shop-actions .fakebutton.ww-shop-buy { flex: 0 0 auto; width: auto; }
+@media (max-width: 600px) {
+  .ww-shop-inline .ww-shop-item { flex-direction: column; align-items: stretch; gap: 10px; }
+  .ww-shop-inline .ww-shop-actions { justify-content: space-between; gap: 12px; }
+  .ww-shop-inline .ww-shop-actions .fakebutton.ww-shop-buy { flex: 1 1 auto; width: 100%; }
+}
 .ww-sources { margin: 64px 0 56px; padding-top: 32px; border-top: 1px solid #1d272d1a; }
 .ww-sources h2 { margin-top: 0; }
 .ww-sources ol { font-size: 15px; line-height: 24px; }

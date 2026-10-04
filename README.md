@@ -205,23 +205,34 @@ on as a last resort.
 The site keeps its own X account busy without anyone logging in:
 
 - every blog article is announced once as a short thread;
-- one supplement fact a day, rotating through the catalogue, each linking to the supplement page;
+- supplement facts, rotating through the catalogue, each linking to the supplement page;
 - new trials, meta-analyses and reviews about catalogue supplements, found on PubMed every day for a slice of the
   catalogue (`RESEARCH_BATCH`, default 15, so the whole catalogue is checked weekly), summarised in plain language by
-  the model, shown on `/research` and posted at most twice a week.
+  the model from the paper's abstract and shown on `/research`. A paper without an abstract is filed and looked at
+  again later (PubMed often adds the abstract days after the citation); a PubMed error is reported in `failed` and the
+  paper tried again, not filed. The daily run also repairs up to ten filed notes. NCBI limits requests per IP address
+  and Cloudflare's addresses are shared, so set the free `NCBI_API_KEY` secret (NCBI account, Settings, API Key
+  Management) to get a quota of your own.
 
-Posts are drafted by the model into a queue (`social_posts`) and sent from the hourly cron inside a daytime window,
-`X_POSTS_PER_DAY` (default 2, set to 3 in `wrangler.jsonc`) at most, never two within 2.5 hours. Each kind has its
-own lane: at most three article threads wait at a time, facts and research notes are drafted regardless of the
-article backlog, and the sender prefers a kind that has not been posted in the last 24 hours (research, then fact,
-then article), so a batch of new articles never silences the research notes. Setup: create a free X developer app at
-https://developer.x.com with **Read and write** permission for the account, generate the four keys and store them as
-secrets: `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_SECRET`. `X_AUTOPOST=false` keeps drafting without
-sending. `GET /api/admin/social?key=<STATS_KEY>` shows the queue; `&action=build`, `&action=post` and
-`&action=research` run the three steps by hand; `&action=skip&id=N` and `&action=retry&id=N` manage one item.
-The plain listing also carries a `posting` block: whether the four X keys are configured, whether autoposting is on,
-the daily cap, whether the current hour is inside the posting window, and what the last hourly run did or why it
-skipped (for example `X keys not configured`).
+Posts are drafted by the model into a queue (`social_posts`) and sent from the hourly cron on a fixed schedule:
+`X_POSTS_PER_WEEK` (7 in `wrangler.jsonc`: one post a day) posts a week, each at `X_POST_HOUR_UTC` (default 14, so
+16:00 in Madrid in summer and 10:00 in New York) on a posting day. Up to seven a week the days follow the count
+(1: Tuesday; 2: Tuesday and Friday; 3: Monday, Wednesday, Friday; 7: every day) or `X_POST_DAYS` (for example
+`tue,fri`); more than seven are spread over a 07:00 to 20:00 UTC window, never two within 2.5 hours. Each kind has its
+own lane (at most three article threads, two facts and two research notes wait at a time; a research note not sent
+within 60 days is dropped) and the sender takes the kinds in turn, the one that went out longest ago first, so a batch
+of new articles never silences the facts or the research notes. A send that X refuses is tried once more on the next
+posting day and then parked as `failed`; after a failure the sender pauses for three hours. Each failure is reported by
+email when Resend is configured (`ALERT_EMAIL`, default the `EMAIL_FROM` address). Setup: an X developer app attached
+to a project with paid access (console.x.com; the Free plan no longer serves posting) with **Read and write**
+permission for the account; generate the four keys and store them as secrets: `X_API_KEY`, `X_API_SECRET`,
+`X_ACCESS_TOKEN`, `X_ACCESS_SECRET`. `X_AUTOPOST=false` keeps drafting without sending. `GET /api/admin/social?key=<STATS_KEY>`
+shows the queue; `&action=build`, `&action=post` and `&action=research` run the three steps by hand; `&action=skip&id=N`
+and `&action=retry&id=N` manage one item (retry clears the error, so the post gets two attempts again).
+The plain listing also carries a `posting` block: whether the four X keys are configured (with the last characters of
+the key and token to compare with the developer portal), whether autoposting is on, the plan (posts a week, posting
+days, hour), whether the sender could post right now and if not why, the last post time, the next slot, the alert
+address, and what the last hourly run did or why it skipped (for example `X keys not configured`).
 `/api/stats` reports the last social and research runs.
 
 ### Pages, blog and sitemap

@@ -37,9 +37,11 @@
     "BACKFILL_BATCH": "6",
     // The site's one public address: the workers.dev URL and www. redirect to it (src/index.ts).
     "CANONICAL_HOST": "aiww.io",
-    // X posting: "false" keeps posts queued (visible at /api/admin/social) without sending; posts per day cap.
+    // X posting: "false" keeps posts queued (visible at /api/admin/social) without sending. 7 = one post a day at
+    // 14:00 UTC (16:00 in Madrid in summer); 1 = Tuesdays only; X_POST_DAYS ("tue,fri") and X_POST_HOUR_UTC override
+    // the days and hour; ALERT_EMAIL (dashboard variable) is where a "post failed" email goes (default: EMAIL_FROM).
     "X_AUTOPOST": "true",
-    "X_POSTS_PER_DAY": "3",
+    "X_POSTS_PER_WEEK": "7",
     // Illustrations (OpenAI image model) for supplements without product photos; "false" switches them off.
     "IMAGE_GENERATION": "false"
     // Optional Cloudflare Turnstile bot protection: add TURNSTILE_SITE_KEY (variable) and TURNSTILE_SECRET_KEY (secret)
