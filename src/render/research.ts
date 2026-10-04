@@ -21,7 +21,7 @@ export function renderResearchPage(notes: ResearchNote[], origin: string): strin
         .join('')
     : '<p class="ww-blog-intro">The first notes appear as soon as the weekly PubMed check finds new trials or reviews about the supplements in our catalogue.</p>';
   const body = `
-      <p class="ww-blog-intro">Every week we check PubMed for new randomised trials, meta-analyses and systematic reviews about the supplements in our catalogue and summarise them here in plain language. Summaries are written with AI from the published abstract and link to the original paper; they are information, not medical advice.</p>
+      <p class="ww-research-intro">Every week we check PubMed for new randomised trials, meta-analyses and systematic reviews about the supplements in our catalogue and summarise them here in plain language. Summaries are written with AI from the published abstract and link to the original paper; they are information, not medical advice.</p>
       <div class="ww-notes">${items}
       </div>${quizCta()}`;
   const shell = pageShell({

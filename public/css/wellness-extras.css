@@ -371,7 +371,10 @@ img.ww-opaque { mix-blend-mode: multiply; }
 }
 
 /* ---------- research notes ---------- */
+/* The research page's short explainer: centred above the notes, in a rounded frame of the same width. */
+.ww-research-intro { max-width: 780px; margin: 0 auto 28px; padding: 22px 30px; box-sizing: border-box; border: 1px solid #1d272d1f; border-radius: 24px; background: #fff; text-align: center; font-size: 17px; line-height: 28px; color: #1d272d; }
 .ww-notes { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+@media (max-width: 767px) { .ww-research-intro { padding: 18px 20px; font-size: 16px; line-height: 26px; border-radius: 20px; } }
 .ww-note { background: #ecf3f6; border-radius: 24px; padding: 22px 26px; font-family: Aeonik, sans-serif; color: #1d272d; }
 .ww-note-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; opacity: .8; margin-bottom: 10px; }
 .ww-note-meta .ww-tag { opacity: 1; text-decoration: none; }
