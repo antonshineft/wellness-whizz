@@ -134,7 +134,7 @@ const post: BlogPost = {
 
 <h2>How Wellness Whizz uses this</h2>
 
-<p>Our quiz does not ask which magnesium you want; it asks what you are trying to achieve, what you eat, and what else you take. Someone aiming for better sleep with a sensitive stomach is pointed to glycinate; someone with constipation and a tight budget towards citrate; someone whose multivitamin already contains magnesium may need nothing extra. The engine also checks the medicines and supplements you list for interactions before it recommends a form and a dose.</p>
+<p>Our quiz asks five things: your sex, age group, activity level, diet and what you want help with, in your own words. The goal decides the form: "better sleep" or "stress" points to glycinate, "constipation" to citrate, a general top-up to whichever you tolerate, and the dose note counts elemental magnesium. It does not see your other supplements unless you list them, so check whether your multivitamin already contains magnesium before adding more, and read the <a href="/supplement/magnesium-32aa0">magnesium page</a>'s interactions.</p>
 
 <ww-quiz></ww-quiz>
 `,

@@ -115,7 +115,7 @@ const post: BlogPost = {
 
 <h2>How Wellness Whizz uses this</h2>
 
-<p>The Wellness Whizz quiz asks how often you eat oily fish, what you are trying to achieve, whether you are pregnant or planning to be, and which medicines and supplements you already take. It weighs those answers before deciding whether omega-3 belongs on your list and, if so, suggesting an EPA plus DHA range and a form that fits your diet, such as algal oil if you are vegan. Read more on our <a href="/supplement/omega-3-fatty-acids-95158">omega-3 fatty acids page</a>, or take the quiz.</p>
+<p>Our quiz asks five things: your sex, age group, activity level, diet and what you want help with, in your own words. "Vegan" in the diet box turns an omega-3 suggestion into algal oil; "heart health" or "dry eyes" in the goals box brings it onto the list with an EPA plus DHA range. It does not know whether you eat oily fish or take a blood thinner unless you say so, so mention both, and read our <a href="/supplement/omega-3-fatty-acids-95158">omega-3 fatty acids page</a> before choosing a dose.</p>
 
 <ww-quiz></ww-quiz>
 `,

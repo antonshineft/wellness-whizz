@@ -158,7 +158,7 @@ const post: BlogPost = {
 
 <h2>How Wellness Whizz uses this</h2>
 
-<p>Our quiz does not ask which nootropic you want. It asks what you eat, how you sleep, how much caffeine you drink and when, what medicines you take and whether you have had recent blood tests. Someone who is vegetarian, sleeps badly and drinks four coffees is pointed to creatine, theanine and a caffeine curfew; someone over 60 on metformin is told to check B12 first; someone describing fatigue with heavy periods is sent to a doctor rather than a product. It also checks every recommendation against the medicines you list.</p>
+<p>Our quiz asks five things: your sex, age group, activity level, diet and what you want help with, in your own words. The more you put in the goals box, the better the shortlist: "tired, vegetarian, four coffees a day, sleep badly" steers it towards creatine, theanine and a caffeine cut-off rather than another stimulant. It cannot order blood tests, so if fatigue is new, heavy or comes with heavy periods, see a doctor first. Each suggestion links to a page with contraindications and interactions.</p>
 
 <ww-quiz></ww-quiz>
 `,

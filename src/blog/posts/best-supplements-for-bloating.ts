@@ -131,7 +131,7 @@ const post: BlogPost = {
 
 <h2>How Wellness Whizz uses this</h2>
 
-<p>Our quiz does not ask whether you want a probiotic. It asks what the bloating comes with: constipation, cramping pain, dairy, particular foods or fullness after meals, and whether any warning signs are present. Someone whose bloating pairs with hard, infrequent stools is pointed to psyllium or magnesium citrate rather than a probiotic; someone with cramping and a changeable bowel towards peppermint oil; someone who reports a red flag is told plainly to see a doctor first. The engine also checks what you already take before it suggests anything.</p>
+<p>Our quiz asks five things: your sex, age group, activity level, diet and what you want help with, in your own words. Write "bloating after meals" or "bloating with constipation" rather than just "digestion" and the advisor can tell psyllium or magnesium citrate apart from a probiotic or peppermint oil. It cannot examine you, so the red flags above still mean a doctor first. Every supplement it suggests links to a page with contraindications and interactions to check against what you already take.</p>
 
 <ww-quiz></ww-quiz>
 `,

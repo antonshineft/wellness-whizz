@@ -90,7 +90,7 @@ const post: BlogPost = {
 
 <h2>How Wellness Whizz uses this</h2>
 
-<p>The <a href="/supplement/vitamin-d3-a0118">vitamin D3</a> recommendation in your quiz result is not a fixed dose. The quiz asks where you live, how much time you spend outdoors, what you eat, your body weight and age, and which supplements you already take, and weighs those against the evidence above before suggesting a dose and whether magnesium or K2 belong alongside it. If you have a recent 25(OH)D result, the advisor can use it.</p>
+<p>Our quiz asks five things: your sex, age group, activity level, diet and what you want help with, in your own words. It does not know where you live or your latest 25(OH)D result, so the vitamin D3 dose it suggests is a typical maintenance range, not a prescription; use the testing section above to refine it. Write "vegan" in the diet box and check that the product you pick is lichen-derived D3, since most softgels are made from lanolin; write "bone health" and expect calcium and K2 to be mentioned alongside.</p>
 
 <ww-quiz></ww-quiz>
 `,

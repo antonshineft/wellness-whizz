@@ -156,6 +156,13 @@ export function navbar(variant: 'default' | 'logo-left' = 'default', currentQuiz
       </div>
       <div class="navbar-content">
         <nav role="navigation" class="navbar-menu w-nav-menu">
+          <div class="ww-nav-links">
+            <a href="/wellness-quiz" class="ww-nav-link">Take the quiz</a>
+            <a href="/supplements" class="ww-nav-link">Supplements</a>
+            <a href="/blog" class="ww-nav-link">Blog</a>
+            <a href="/research" class="ww-nav-link">Research</a>
+            <a href="/how-it-works" class="ww-nav-link">How it works</a>
+          </div>
           <div class="div-block-8">
             <a href="https://chat.openai.com/g/g-pqcxd1t8o-wellness-whizz" target="_blank" rel="noopener" aria-label="Wellness Whizz GPT on ChatGPT" class="navbar-link w-nav-link"><img src="/images/Vectors-Wrapper_1.svg" loading="lazy" width="26.173086166381836" height="26.520586013793945" alt="ChatGPT" class="vectors-wrapper-7"></a>
             <a href="https://www.tiktok.com/@theaiwellnesswhiz?_t=8jPysLbiyxN&amp;_r=1" target="_blank" rel="noopener" aria-label="Wellness Whizz on TikTok" class="navbar-link w-nav-link"><img src="/images/Vectors-Wrapper_2.svg" loading="lazy" width="23.03125" height="26.520832061767578" alt="TikTok" class="vectors-wrapper-8"></a>

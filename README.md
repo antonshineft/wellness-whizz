@@ -226,8 +226,14 @@ sending. `GET /api/admin/social?key=<STATS_KEY>` shows the queue; `&action=build
   plain TypeScript module (see `src/blog/types.ts`): write `href="iherb:magnesium glycinate"` for an iHerb search link
   with your referral code and click tracking, `<ww-shop slugs="…"></ww-shop>` for product cards from the catalogue
   and `<ww-quiz></ww-quiz>` for the quiz call-to-action. Every article page carries BlogPosting and FAQ structured data.
-  Posts in the "Goal guides" category (best supplements for bloating, energy and focus) rank options by evidence and
-  lead to the quiz; `seoTitle` keeps the <title> under 60 characters when the headline is longer.
+  Posts in the "Goal guides" category (bloating, energy and focus, anxiety, vitamins for women, eye health) rank
+  options by evidence and lead to the quiz; comparison guides (magnesium forms, creatine HCl vs monohydrate, casein vs
+  whey, whey isolate vs concentrate, zinc forms, vitamin D3 and K2, citrulline vs citrulline malate, CoQ10 vs
+  ubiquinol) answer the "which form" searches from the Semrush keyword export. `seoTitle` keeps the <title> under 60
+  characters when the headline is longer. Every closing "How Wellness Whizz uses this" section describes the quiz as
+  it is (five questions, goals in the user's own words) rather than promising checks it does not make.
+- On phones and tablets the header menu lists Take the quiz, Supplements, Blog, Research and How it works above the
+  social icons (`.ww-nav-links`, hidden on desktop where the header stays minimal).
 - `/sitemap.xml` lists the pages, the articles and every supplement page; `/robots.txt` (served by the Worker, with an
   absolute sitemap URL) points search engines at it and `/llms.txt` gives AI assistants a plain-text map of the site.
   Note: Cloudflare's "managed robots.txt" / "block AI bots" settings prepend their own rules to robots.txt; turn

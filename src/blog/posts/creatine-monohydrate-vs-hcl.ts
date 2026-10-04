@@ -134,7 +134,7 @@ const post: BlogPost = {
 
 <h2>How Wellness Whizz uses this</h2>
 
-<p>Our quiz does not ask whether you want monohydrate or HCl; it asks what you train for, what you eat, and what else you take. A lifter who eats meat is pointed to plain monohydrate at 3 to 5 g a day, with no loading unless there is a deadline; a vegan with a cognitive goal gets the same form with a note on why their response may be larger; someone with reduced kidney function or on regular NSAIDs is told to clear it with a doctor first. The engine also checks the medicines you list before it recommends anything.</p>
+<p>Our quiz asks five things: your sex, age group, activity level, diet and what you want help with, in your own words. Tell it you lift, or that you are vegan with a focus goal, and creatine comes back as plain monohydrate at 3 to 5 g a day with a note on why; the advisor does not recommend HCl or other forms. Mention kidney problems or regular NSAIDs in the goals box and read the <a href="/supplement/creatine-ce673">creatine page</a>'s contraindications before you start; the results are a starting point, not medical advice.</p>
 
 <ww-quiz></ww-quiz>
 `,

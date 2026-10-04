@@ -124,7 +124,7 @@ const post: BlogPost = {
 
 <h2>How Wellness Whizz uses this</h2>
 
-<p>Our quiz asks how often you train, what you eat, how you tolerate dairy, and when your meals fall. Someone who trains in the morning and eats well is pointed to a whey concentrate, or an isolate if lactose is a problem; someone whose last meal is at six and first at nine is shown micellar casein; someone vegan or allergic to milk is steered to pea or soy. It also checks your daily total against your body weight before suggesting how many servings, if any, you need.</p>
+<p>Our quiz asks five things: your sex, age group, activity level, diet and what you want help with, in your own words. "Lactose intolerant" or "vegan" in the diet box changes the protein it suggests, from whey concentrate to an isolate or to pea and soy; "muscle" or "training" in the goals box is what brings protein onto the list at all. It does not know your meal times or your body weight, so use the gram-per-kilogram figures above to set your own daily total.</p>
 
 <ww-quiz></ww-quiz>
 `,

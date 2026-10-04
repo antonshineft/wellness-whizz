@@ -451,3 +451,13 @@ img.ww-opaque { mix-blend-mode: multiply; }
   .ww-qa-q h3 { font-size: 18px; line-height: 26px; }
   .ww-qa-a { font-size: 15px; line-height: 26px; padding-bottom: 18px; }
 }
+
+/* ---------- mobile menu: site navigation above the social icons (desktop keeps the minimal header) ---------- */
+.ww-nav-links { display: none; }
+@media (max-width: 991px) {
+  .navbar-menu { flex-wrap: wrap; }
+  .ww-nav-links { display: flex; flex-direction: column; width: 100%; order: -1; padding: 6px 10px 0; }
+  .ww-nav-link { font-family: Aeonik, sans-serif; font-size: 22px; line-height: 28px; font-weight: 500; color: #1d272d; text-decoration: none; padding: 14px 0; border-bottom: 1px solid rgba(29, 39, 45, 0.08); }
+  .ww-nav-link:last-child { border-bottom: none; margin-bottom: 6px; }
+  .ww-nav-link:hover, .ww-nav-link:focus-visible { color: #56b06f; }
+}

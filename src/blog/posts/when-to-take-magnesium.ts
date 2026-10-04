@@ -126,7 +126,7 @@ const post: BlogPost = {
 
 <h2>How Wellness Whizz uses this</h2>
 
-<p>When the quiz suggests magnesium, it also suggests a time to take it. The engine looks at why magnesium is on your list, whether the dose is worth splitting, and which medicines you have told it about. Someone on levothyroxine is steered to an evening dose; someone on doxycycline is reminded of the gap; someone aiming for sleep with a sensitive stomach is pointed to glycinate at dinner. The result is a schedule you can follow, not just a product.</p>
+<p>Our quiz asks five things: your sex, age group, activity level, diet and what you want help with, in your own words. When magnesium is on the list, the note beside it says why and suggests a dose and a time: "sleep" in the goals box points to an evening dose, "cramps after training" to one after exercise. It does not know your medicines unless you mention them, so if you take levothyroxine, an antibiotic or a bisphosphonate, apply the spacing rules above yourself.</p>
 
 <ww-quiz></ww-quiz>
 `,

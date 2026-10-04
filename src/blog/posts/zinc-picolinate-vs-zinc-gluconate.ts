@@ -94,7 +94,7 @@ const post: BlogPost = {
 
 <h2>How Wellness Whizz uses this</h2>
 
-<p>Our quiz does not ask whether you want picolinate or gluconate; it asks what you eat, which medicines and supplements you already take, and what you are hoping to change. A vegan with frequent colds is pointed towards a modest daily zinc with copper; someone whose multivitamin already contains 15 mg is told nothing more is needed. The engine adds up the elemental zinc across everything you list, so the 40 mg ceiling is respected without you doing the arithmetic.</p>
+<p>Our quiz asks five things: your sex, age group, activity level, diet and what you want help with, in your own words. A vegan who writes "frequent colds" may well see a modest daily zinc on the list; the form and dose come from the <a href="/supplement/zinc-fe1df">zinc page</a>, not from a brand. It does not add up what your multivitamin already contains, so do that arithmetic yourself against the 40 mg ceiling, and read the page's interactions if you take antibiotics or penicillamine.</p>
 
 <ww-quiz></ww-quiz>
 `,
