@@ -206,9 +206,10 @@ The site keeps its own X account busy without anyone logging in:
 
 - every blog article is announced once as a short thread;
 - supplement facts, rotating through the catalogue, each linking to the supplement page;
-- new trials, meta-analyses and reviews about catalogue supplements, found on PubMed every day for a slice of the
-  catalogue (`RESEARCH_BATCH`, default 15, so the whole catalogue is checked weekly), summarised in plain language by
-  the model from the paper's abstract and shown on `/research`. A paper without an abstract is filed and looked at
+- new trials, meta-analyses and reviews about catalogue supplements, found on PubMed for a slice of the catalogue
+  every day (`RESEARCH_BATCH`, default 15) and every hour (`RESEARCH_HOURLY`, default 4, 0 switches it off), so the
+  whole catalogue is checked about once a day; summarised in plain language by the model from the paper's abstract
+  and shown on `/research`. A paper without an abstract is filed and looked at
   again later (PubMed often adds the abstract days after the citation); a PubMed error is reported in `failed` and the
   paper tried again, not filed. The hourly and the daily run each repair up to ten filed notes. NCBI allows three
   requests a second per IP address (ten with the free `NCBI_API_KEY` secret: NCBI account, Settings, API Key

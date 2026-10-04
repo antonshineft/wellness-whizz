@@ -69,9 +69,11 @@ export interface Bindings {
   X_POST_HOUR_UTC?: string;
   /** Where a "post failed" email goes (default: the EMAIL_FROM address). */
   ALERT_EMAIL?: string;
-  /** Optional NCBI key for faster PubMed requests; RESEARCH_BATCH supplements checked per daily run (default 15). */
+  /** Optional NCBI key for faster PubMed requests; RESEARCH_BATCH supplements checked per daily run (default 15) and
+   *  RESEARCH_HOURLY per hourly run (default 4, 0 switches the hourly check off). */
   NCBI_API_KEY?: string;
   RESEARCH_BATCH?: string;
+  RESEARCH_HOURLY?: string;
   /** Optional: the site's one public hostname (e.g. aiww.io); other hostnames redirect to it. */
   CANONICAL_HOST?: string;
   /** Optional: Resend API key + verified sender for "Email me my results" (src/email.ts). */
@@ -648,6 +650,16 @@ app.onError((err, c) => {
   return c.body('Internal error', 500, { 'content-type': 'text/plain; charset=utf-8' });
 });
 
+/** One slice of the catalogue through the PubMed check, advancing the cursor the daily and hourly runs share. */
+async function researchStep(env: Bindings, batch: number): Promise<Awaited<ReturnType<typeof researchBatch>>> {
+  const sups = await listSupplements(env.DB, 500, true);
+  const cursor = Number((await getMeta(env.DB, 'research:cursor')) ?? '0') || 0;
+  const slice = [...sups.slice(cursor, cursor + batch), ...sups.slice(0, Math.max(0, cursor + batch - sups.length))];
+  const result = await researchBatch(env, slice, batch);
+  await setMeta(env.DB, 'research:cursor', String((cursor + batch) % Math.max(1, sups.length)));
+  return result;
+}
+
 export default {
   fetch: app.fetch,
   /** Cron trigger (see wrangler.jsonc): writes a few missing articles per run until the catalogue is complete. */
@@ -662,11 +674,16 @@ export default {
           .then(() => repairNotes(env, 10))
           .then(async (repaired) => {
             if (repaired.filled.length || repaired.failed.length) console.log(`research repaired: ${JSON.stringify(repaired)}`);
+            // A few supplements through the PubMed check every hour as well (RESEARCH_HOURLY, default 4, 0 to switch
+            // off), so the research page fills in a day instead of a week; the daily run keeps the same cursor.
+            const hourly = Math.max(0, Number(env.RESEARCH_HOURLY ?? '4') || 0);
+            const research = hourly ? await researchStep(env, hourly) : null;
+            if (research && (research.added.length || research.failed.length)) console.log(`research: ${JSON.stringify(research)}`);
             const built = await buildQueue(env);
             if (built.queued.length) console.log(`social queued: ${built.queued.join(', ')}`);
             const result = await postDue(env);
             if (result.posted.length || result.failed.length) console.log(`social: ${JSON.stringify(result)}`);
-            await setMeta(env.DB, 'social:last', JSON.stringify({ at: new Date().toISOString(), ...result, repaired }));
+            await setMeta(env.DB, 'social:last', JSON.stringify({ at: new Date().toISOString(), ...result, repaired, research }));
           })
           .catch((err) => console.error(`social failed: ${String(err)}`)),
       );
@@ -677,12 +694,7 @@ export default {
       ctx.waitUntil(
         ensureDatabase(env.DB)
           .then(async () => {
-            const sups = await listSupplements(env.DB, 500, true);
-            const batch = Math.max(1, Number(env.RESEARCH_BATCH ?? '15') || 15);
-            const cursor = Number((await getMeta(env.DB, 'research:cursor')) ?? '0') || 0;
-            const slice = [...sups.slice(cursor, cursor + batch), ...sups.slice(0, Math.max(0, cursor + batch - sups.length))];
-            const result = await researchBatch(env, slice, batch);
-            await setMeta(env.DB, 'research:cursor', String((cursor + batch) % Math.max(1, sups.length)));
+            const result = await researchStep(env, Math.max(1, Number(env.RESEARCH_BATCH ?? '15') || 15));
             const repaired = await repairNotes(env, 10);
             await setMeta(env.DB, 'research:last', JSON.stringify({ at: new Date().toISOString(), ...result, repaired }));
             console.log(`research: ${JSON.stringify(result)}`);
