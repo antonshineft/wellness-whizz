@@ -430,3 +430,24 @@ img.ww-opaque { mix-blend-mode: multiply; }
   .ww-share-preview { grid-column: auto; grid-row: auto; }
   .ww-share-note { grid-column: auto; }
 }
+
+/* ---------- supplement page: "Common Questions" accordion (answers to what people search for) ---------- */
+.ww-qa { grid-row-gap: 0; row-gap: 0; }
+.ww-qa .heading-2 { margin-bottom: 40px; }
+.ww-qa-list { width: 100%; max-width: 1200px; border-top: 1px solid rgba(255, 255, 255, 0.14); }
+.ww-qa-item { border-bottom: 1px solid rgba(255, 255, 255, 0.14); }
+.ww-qa-q { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 0; }
+.ww-qa-q::-webkit-details-marker { display: none; }
+.ww-qa-q::marker { content: ''; }
+.ww-qa-q h3 { margin: 0; font-family: Aeonik, sans-serif; font-size: 24px; line-height: 32px; font-weight: 400; color: #fff; }
+.ww-qa-q:hover h3 { color: #87d581; }
+.ww-qa-chevron { flex: 0 0 auto; width: 12px; height: 12px; margin: 0 6px 6px 0; border-right: 2px solid #87d581; border-bottom: 2px solid #87d581; transform: rotate(45deg); transition: transform 0.2s; }
+.ww-qa-item[open] .ww-qa-chevron { transform: rotate(-135deg); margin: 6px 6px 0 0; }
+.ww-qa-a { color: #fff; font-size: 16px; line-height: 30px; max-width: 900px; padding: 0 0 24px; opacity: 0.92; }
+.ww-qa-a p { margin: 0; }
+@media (max-width: 767px) {
+  .ww-qa .heading-2 { margin-bottom: 24px; }
+  .ww-qa-q { padding: 16px 0; gap: 16px; }
+  .ww-qa-q h3 { font-size: 18px; line-height: 26px; }
+  .ww-qa-a { font-size: 15px; line-height: 26px; padding-bottom: 18px; }
+}

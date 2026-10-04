@@ -31,6 +31,8 @@ interface BundledSupplement {
   holistic_html: string;
   studies_html: string;
   products: Product[];
+  /** Optional: "Common Questions" exported from a live database (/api/admin/export). */
+  faqs?: { q: string; a: string }[];
 }
 
 interface BundledSession {
@@ -49,6 +51,7 @@ const TABLES = ['supplements', 'sessions', 'session_supplements', 'meta', 'event
 /** Columns added after the first release; created on databases that predate them. */
 const LATER_COLUMNS: [table: string, column: string, definition: string][] = [
   ['supplements', 'image', "TEXT NOT NULL DEFAULT ''"],
+  ['supplements', 'faq_json', "TEXT NOT NULL DEFAULT ''"],
 ];
 let ready: Promise<void> | null = null;
 
@@ -150,14 +153,14 @@ async function loadSessions(db: D1Database, sessions: BundledSession[]): Promise
 const COLUMNS = [
   'slug', 'name', 'name_key', 'category', 'form_type', 'fda_status', 'safety_status', 'effectivity', 'safety', 'summary',
   'benefits_html', 'contraindications_html', 'enhancing_html', 'interactions_html', 'why_consider', 'holistic_html',
-  'studies_html', 'products_json', 'source',
+  'studies_html', 'products_json', 'source', 'faq_json',
 ];
 // Existing rows are refreshed by name or by slug; slugs are never rewritten (old links must keep working).
 // Text fields that are empty in the bundle keep whatever the database already holds (for example articles the
 // site wrote itself with the content backfill).
 const KEEP_IF_BUNDLE_EMPTY = new Set([
   'summary', 'benefits_html', 'contraindications_html', 'enhancing_html', 'interactions_html', 'why_consider',
-  'holistic_html', 'studies_html',
+  'holistic_html', 'studies_html', 'faq_json',
 ]);
 const assignment = (c: string) => {
   if (KEEP_IF_BUNDLE_EMPTY.has(c)) return `${c} = CASE WHEN excluded.${c} != '' THEN excluded.${c} ELSE supplements.${c} END`;
@@ -193,6 +196,7 @@ function upsertSupplement(db: D1Database, s: BundledSupplement): D1PreparedState
       s.studies_html ?? '',
       JSON.stringify(s.products ?? []),
       'cms',
+      s.faqs?.length ? JSON.stringify(s.faqs) : '',
     );
 }
 

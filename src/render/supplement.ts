@@ -187,6 +187,26 @@ function studiesSection(sup: Supplement): string {
     </div>`;
 }
 
+/** "Common Questions": the answers to what people search for about this supplement, as an accordion. */
+function faqSection(sup: Supplement): string {
+  if (!sup.faqs.length) return '';
+  const items = sup.faqs
+    .map(
+      (f, i) => `
+        <details class="ww-qa-item"${i === 0 ? ' open' : ''}>
+          <summary class="ww-qa-q"><h3>${escapeHtml(f.q)}</h3><span class="ww-qa-chevron" aria-hidden="true"></span></summary>
+          <div class="ww-qa-a"><p>${escapeHtml(f.a)}</p></div>
+        </details>`,
+    )
+    .join('');
+  return `
+    <div class="frame-202 ww-qa" id="faq">
+      <h2 class="heading-2">Common Questions</h2>
+      <div class="ww-qa-list">${items}
+      </div>
+    </div>`;
+}
+
 export interface SupplementPageExtras {
   related?: Supplement[];
   /** Site origin for canonical URL and structured data. */
@@ -222,10 +242,21 @@ function seoHead(sup: Supplement, origin: string): string {
       { '@type': 'ListItem', position: 3, name: sup.name, item: url },
     ],
   };
+  const faqPage = sup.faqs.length
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: sup.faqs.map((f) => ({
+          '@type': 'Question',
+          name: f.q,
+          acceptedAnswer: { '@type': 'Answer', text: f.a },
+        })),
+      }
+    : null;
   return `
   <link rel="canonical" href="${escapeHtml(url)}">${image ? `\n  <meta property="og:image" content="${escapeHtml(image)}">\n  <meta name="twitter:image" content="${escapeHtml(image)}">` : ''}
   <script type="application/ld+json">${safe(webPage)}</script>
-  <script type="application/ld+json">${safe(breadcrumbs)}</script>`;
+  <script type="application/ld+json">${safe(breadcrumbs)}</script>${faqPage ? `\n  <script type="application/ld+json">${safe(faqPage)}</script>` : ''}`;
 }
 
 /** Keep titles under about 60 characters including the site name the layout appends. */
@@ -305,7 +336,7 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
       })}
     </div>${productCards(env, sup)}
   </div>
-  <section class="info">${synergySection(sup)}${insightsSection(sup)}${studiesSection(sup)}
+  <section class="info">${synergySection(sup)}${insightsSection(sup)}${studiesSection(sup)}${faqSection(sup)}
   </section>${relatedSection(extras.related ?? [])}${exploreSection(explore)}${footer()}${stickyBuyBar(env, sup)}`;
 
   return page({

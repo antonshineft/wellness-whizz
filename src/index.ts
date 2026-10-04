@@ -15,6 +15,7 @@ import { Hono, type Context } from 'hono';
 import { POSTS, getPost, supplementSlugsUsed } from './blog';
 import { ensureDatabase } from './bootstrap';
 import { MIN_ARTICLE_LENGTH, generateArticle } from './content';
+import { generateFaqs } from './faq';
 import { generateSupplementImage, imageGenerationEnabled, loadImage, storeImage, supplementsNeedingImage } from './images';
 import { attachIherbProducts, supplementsWithoutPhotos } from './products';
 import { emailEnabled, resultsEmail, sendEmail } from './email';
@@ -28,6 +29,7 @@ import {
   resolveSupplementSlug, statsSummary, supplementsNeedingContent, updateSupplementContent, type EventInput,
   type EventType, type QuizProfile, countSupplements, getSupplementsBySlugs, listSupplementSlugs,
   addSubscriber, contentProgress, countRecentSubscriptions, getMeta, listSubscribers, markSubscriberSent, relatedSupplements, setMeta,
+  countSupplementsNeedingFaqs, supplementsNeedingFaqs, updateSupplementFaqs,
 } from './db';
 import { runQuizPipeline } from './pipeline';
 import { renderBlogIndex, renderBlogPost } from './render/blog';
@@ -560,9 +562,27 @@ app.get('/api/admin/backfill', async (c) => {
   c.header('cache-control', 'no-store');
   const merged = await mergeDuplicateSupplements(c.env.DB);
   const content = await backfillContent(c.env, limit);
+  const faqs = await backfillFaqs(c.env, limit);
   const photos = await backfillProductPhotos(c.env, Math.min(limit, 3));
   const images = await backfillImages(c.env, Math.min(limit, 3));
-  return c.json({ ...content, merged: merged.merged, photos, illustrations: images });
+  return c.json({ ...content, merged: merged.merged, faqs, photos, illustrations: images });
+});
+
+/** Write "Common Questions" blocks now: ?limit=N (default 3) for the next supplements without one, or ?slug=X to (re)write one page. */
+app.get('/api/admin/faq', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  c.header('cache-control', 'no-store');
+  const slug = c.req.query('slug');
+  if (slug) {
+    const sup = await getSupplementBySlug(c.env.DB, slug);
+    if (!sup) return c.json({ error: 'Unknown supplement' }, 404);
+    const faqs = await generateFaqs(c.env, sup);
+    await updateSupplementFaqs(c.env.DB, sup.id, faqs);
+    return c.json({ slug: sup.slug, faqs });
+  }
+  const limit = Math.min(10, Math.max(1, Number(c.req.query('limit') ?? '3') || 3));
+  return c.json(await backfillFaqs(c.env, limit));
 });
 
 /** The whole catalogue as JSON, in the shape of data/supplements.json (to bundle AI-written content into the repo). */
@@ -648,12 +668,14 @@ export default {
         .then(() => backfillContent(env, batch))
         .then(async (content) => {
           console.log(`backfill: ${JSON.stringify(content)}`);
+          const faqs = await backfillFaqs(env, batch);
+          if (faqs.written.length || faqs.failed.length) console.log(`faqs: ${JSON.stringify(faqs)}`);
           const photos = await backfillProductPhotos(env, 2);
           if (photos.attached.length || photos.failed.length) console.log(`product photos: ${JSON.stringify(photos)}`);
           const images = await backfillImages(env, 2);
           if (images.generated.length || images.failed.length) console.log(`illustrations: ${JSON.stringify(images)}`);
           // Visible on /api/stats as content.last_cron, so progress and failures can be checked without logs.
-          await setMeta(env.DB, 'cron:last', JSON.stringify({ at: new Date().toISOString(), batch, articles: content, photos, illustrations: images }));
+          await setMeta(env.DB, 'cron:last', JSON.stringify({ at: new Date().toISOString(), batch, articles: content, faqs, photos, illustrations: images }));
         })
         .catch((err) => console.error(`backfill failed: ${String(err)}`)),
     );
@@ -735,6 +757,30 @@ async function backfillContent(env: Bindings, limit: number): Promise<BackfillRe
     }
   });
   return { written, failed, remaining: await countSupplementsNeedingContent(env.DB, MIN_ARTICLE_LENGTH) };
+}
+
+/** "Common Questions" for up to `limit` supplements that have none yet. */
+async function backfillFaqs(env: Bindings, limit: number): Promise<BackfillResult> {
+  if (!env.OPENAI_API_KEY && env.DEV_FAKE_AI !== 'true') {
+    return { written: [], failed: ['OPENAI_API_KEY is not configured'], remaining: await countSupplementsNeedingFaqs(env.DB) };
+  }
+  const todo = await supplementsNeedingFaqs(env.DB, limit);
+  const settled = await Promise.allSettled(
+    todo.map(async (sup) => {
+      await updateSupplementFaqs(env.DB, sup.id, await generateFaqs(env, sup));
+      return sup.slug;
+    }),
+  );
+  const written: string[] = [];
+  const failed: string[] = [];
+  settled.forEach((outcome, i) => {
+    if (outcome.status === 'fulfilled') written.push(outcome.value);
+    else {
+      failed.push(`${todo[i].slug}: ${String(outcome.reason).slice(0, 160)}`);
+      console.error(`faq for ${todo[i].slug} failed: ${String(outcome.reason)}`);
+    }
+  });
+  return { written, failed, remaining: await countSupplementsNeedingFaqs(env.DB) };
 }
 
 /** Record a funnel event without delaying the response. Never throws. */

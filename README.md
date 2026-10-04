@@ -131,6 +131,26 @@ is left; afterwards each run is a single cheap database query. Each article come
   save it over that file and commit to carry AI-written content into the repository (bundled text never overwrites
   content the database already has when the bundle's field is empty).
 
+### "Common Questions" on supplement pages (FAQ writer)
+
+Semrush's keyword export showed that most searches about a supplement are questions the page never answered
+("how much ashwagandha per day", "does ashwagandha make you sleepy", "magnesium oxide vs glycinate"). Each supplement
+page now ends with a **Common Questions** accordion (five or six answers, with `FAQPage` structured data) written from
+exactly those phrases:
+
+- `scripts/semrush-faq-questions.mjs <keyword_strategy.csv>` turns a Semrush *Keyword Strategy Builder* export into
+  `data/faq-questions.json`: the top 10 search phrases per supplement (keywords Semrush mapped to the page, plus the
+  ones it could not place that name the supplement), with brand terms, other languages and "where to buy" phrases
+  dropped and near duplicates merged. Re-run it when you export a fresh keyword list; supplements without data get a
+  generic question set.
+- `src/faq.ts` asks the model for 5 or 6 question-and-answer pairs that merge equivalent phrases, keep the words people
+  search for, stay consistent with the page's benefits and contraindications, and add a safety sentence where the
+  question calls for one. Answers are stored in `supplements.faq_json` (a column the Worker adds on first start).
+- The 5-minute cron writes `BACKFILL_BATCH` (default 3) blocks per run after the articles, so a fresh catalogue is
+  complete in a few hours. `GET /api/admin/faq?key=<STATS_KEY>&limit=5` writes the next five now;
+  `&slug=<slug>` rewrites one page (for example after the question list changed). `/api/stats` reports `with_faqs`
+  and the last cron run lists what it wrote.
+
 ### Product photos for supplements the quiz creates
 
 Supplements created by the quiz get real iHerb products: the Worker searches iHerb for the supplement name, keeps up

@@ -6,6 +6,12 @@ export type SafetyStatus = 'safe' | 'ok' | 'not_safe' | 'prescription';
 export type SessionStatus = 'pending' | 'ready' | 'failed';
 export type SupplementSource = 'cms' | 'ai';
 
+/** One entry of the "Common Questions" block on a supplement page (written from the phrases people search for). */
+export interface Faq {
+  q: string;
+  a: string;
+}
+
 export const FORM_TYPES: readonly FormType[] = ['capsule', 'softgel', 'small_softgel', 'tablet', 'powder', 'gummy', 'bar', 'drops'];
 export const FDA_STATUSES: readonly FdaStatus[] = ['approved', 'probably_ok', 'not_approved'];
 export const SAFETY_STATUSES: readonly SafetyStatus[] = ['safe', 'ok', 'not_safe', 'prescription'];
@@ -43,13 +49,15 @@ export interface Supplement {
   holistic_html: string;
   studies_html: string;
   products: Product[];
+  /** Questions and answers shown under "Common Questions"; empty until the FAQ writer has run for this page. */
+  faqs: Faq[];
   source: SupplementSource;
   /** Generated illustration path (supplements without product photos), empty otherwise. */
   image: string;
   created_at: string;
 }
 
-export type SupplementInput = Omit<Supplement, 'id' | 'slug' | 'created_at' | 'source' | 'image'>;
+export type SupplementInput = Omit<Supplement, 'id' | 'slug' | 'created_at' | 'source' | 'image' | 'faqs'>;
 
 export interface QuizProfile {
   sex: string;
@@ -73,7 +81,7 @@ export interface ResultItem {
   supplement: Supplement;
 }
 
-type SupplementRow = Omit<Supplement, 'products'> & { products_json: string; name_key: string };
+type SupplementRow = Omit<Supplement, 'products' | 'faqs'> & { products_json: string; faq_json: string | null; name_key: string };
 
 // ---------- helpers ----------
 
@@ -143,10 +151,24 @@ export function parseProducts(json: string | null | undefined): Product[] {
   }
 }
 
+export function parseFaqs(json: string | null | undefined): Faq[] {
+  if (!json) return [];
+  try {
+    const raw = JSON.parse(json);
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((f) => ({ q: String(f?.q ?? '').trim(), a: String(f?.a ?? '').trim() }))
+      .filter((f) => f.q && f.a);
+  } catch {
+    return [];
+  }
+}
+
 function rowToSupplement(row: SupplementRow): Supplement {
-  const { products_json, name_key: _nameKey, ...rest } = row;
+  const { products_json, faq_json, name_key: _nameKey, ...rest } = row;
   return {
     ...rest,
+    faqs: parseFaqs(faq_json),
     form_type: asFormType(rest.form_type),
     fda_status: asFdaStatus(rest.fda_status),
     safety_status: asSafetyStatus(rest.safety_status),
@@ -161,7 +183,7 @@ function rowToSupplement(row: SupplementRow): Supplement {
 const SUPPLEMENT_COLUMNS =
   'id, slug, name, name_key, category, form_type, fda_status, safety_status, effectivity, safety, summary, ' +
   'benefits_html, contraindications_html, enhancing_html, interactions_html, why_consider, holistic_html, ' +
-  'studies_html, products_json, source, image, created_at';
+  'studies_html, products_json, source, image, faq_json, created_at';
 
 // ---------- supplements ----------
 
@@ -449,6 +471,26 @@ export async function updateSupplementContent(
     .run();
 }
 
+// ---------- FAQ backfill ----------
+
+/** Supplements whose "Common Questions" block has not been written yet (curated catalogue first). */
+export async function supplementsNeedingFaqs(db: D1Database, limit: number): Promise<Supplement[]> {
+  const { results } = await db
+    .prepare(`SELECT ${SUPPLEMENT_COLUMNS} FROM supplements WHERE faq_json = '' ORDER BY source = 'cms' DESC, id LIMIT ?`)
+    .bind(limit)
+    .all<SupplementRow>();
+  return results.map(rowToSupplement);
+}
+
+export async function countSupplementsNeedingFaqs(db: D1Database): Promise<number> {
+  const row = await db.prepare(`SELECT COUNT(*) AS n FROM supplements WHERE faq_json = ''`).first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+export async function updateSupplementFaqs(db: D1Database, id: number, faqs: Faq[]): Promise<void> {
+  await db.prepare('UPDATE supplements SET faq_json = ? WHERE id = ?').bind(JSON.stringify(faqs), id).run();
+}
+
 /** Everything in the catalogue, for exporting back into data/supplements.json. */
 export async function exportSupplements(db: D1Database): Promise<Supplement[]> {
   const { results } = await db.prepare(`SELECT ${SUPPLEMENT_COLUMNS} FROM supplements ORDER BY id`).all<SupplementRow>();
@@ -622,6 +664,7 @@ export interface ContentProgress {
   supplements: number;
   with_article: number;
   with_studies: number;
+  with_faqs: number;
   without_product_photos: number;
   subscribers: number;
 }
@@ -633,16 +676,18 @@ export async function contentProgress(db: D1Database, minArticleLength: number):
       `SELECT COUNT(*) AS supplements,
               SUM(CASE WHEN length(holistic_html) >= ? THEN 1 ELSE 0 END) AS with_article,
               SUM(CASE WHEN studies_html != '' THEN 1 ELSE 0 END) AS with_studies,
+              SUM(CASE WHEN faq_json != '' THEN 1 ELSE 0 END) AS with_faqs,
               SUM(CASE WHEN products_json NOT LIKE '%"image":%' THEN 1 ELSE 0 END) AS without_product_photos
        FROM supplements`,
     )
     .bind(minArticleLength)
-    .first<{ supplements: number; with_article: number; with_studies: number; without_product_photos: number }>();
+    .first<{ supplements: number; with_article: number; with_studies: number; with_faqs: number; without_product_photos: number }>();
   const subs = await db.prepare('SELECT COUNT(*) AS n FROM subscribers WHERE unsubscribed_at IS NULL').first<{ n: number }>();
   return {
     supplements: Number(row?.supplements ?? 0),
     with_article: Number(row?.with_article ?? 0),
     with_studies: Number(row?.with_studies ?? 0),
+    with_faqs: Number(row?.with_faqs ?? 0),
     without_product_photos: Number(row?.without_product_photos ?? 0),
     subscribers: Number(subs?.n ?? 0),
   };
