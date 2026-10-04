@@ -211,11 +211,17 @@ The site keeps its own X account busy without anyone logging in:
   the model, shown on `/research` and posted at most twice a week.
 
 Posts are drafted by the model into a queue (`social_posts`) and sent from the hourly cron inside a daytime window,
-`X_POSTS_PER_DAY` (default 2) at most, never two within 2.5 hours. Setup: create a free X developer app at
+`X_POSTS_PER_DAY` (default 2, set to 3 in `wrangler.jsonc`) at most, never two within 2.5 hours. Each kind has its
+own lane: at most three article threads wait at a time, facts and research notes are drafted regardless of the
+article backlog, and the sender prefers a kind that has not been posted in the last 24 hours (research, then fact,
+then article), so a batch of new articles never silences the research notes. Setup: create a free X developer app at
 https://developer.x.com with **Read and write** permission for the account, generate the four keys and store them as
 secrets: `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_SECRET`. `X_AUTOPOST=false` keeps drafting without
 sending. `GET /api/admin/social?key=<STATS_KEY>` shows the queue; `&action=build`, `&action=post` and
 `&action=research` run the three steps by hand; `&action=skip&id=N` and `&action=retry&id=N` manage one item.
+The plain listing also carries a `posting` block: whether the four X keys are configured, whether autoposting is on,
+the daily cap, whether the current hour is inside the posting window, and what the last hourly run did or why it
+skipped (for example `X keys not configured`).
 `/api/stats` reports the last social and research runs.
 
 ### Pages, blog and sitemap

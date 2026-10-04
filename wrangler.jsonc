@@ -39,7 +39,7 @@
     "CANONICAL_HOST": "aiww.io",
     // X posting: "false" keeps posts queued (visible at /api/admin/social) without sending; posts per day cap.
     "X_AUTOPOST": "true",
-    "X_POSTS_PER_DAY": "2",
+    "X_POSTS_PER_DAY": "3",
     // Illustrations (OpenAI image model) for supplements without product photos; "false" switches them off.
     "IMAGE_GENERATION": "false"
     // Optional Cloudflare Turnstile bot protection: add TURNSTILE_SITE_KEY (variable) and TURNSTILE_SECRET_KEY (secret)

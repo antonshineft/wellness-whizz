@@ -23,6 +23,7 @@ import { listResearchNotes, researchBatch } from './research';
 import { renderResearchPage } from './render/research';
 import { renderSupplementsIndex } from './render/supplements-index';
 import { buildQueue, listSocialPosts, postDue, setSocialStatus } from './social/content';
+import { xEnabled } from './social/x';
 import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
   getSessionResults, getSupplementBySlug, listSupplements, logEvent, markSession, mergeDuplicateSupplements,
@@ -354,7 +355,18 @@ app.get('/api/admin/social', async (c) => {
     const sups = await listSupplements(c.env.DB, 500, true);
     return c.json({ result: await researchBatch(c.env, sups.sort(() => Math.random() - 0.5), 5), notes: (await listResearchNotes(c.env.DB, 10)).length });
   }
-  return c.json({ posts: await listSocialPosts(c.env.DB) });
+  // "Why is nothing going out?" is the usual question, so the listing says what the sender would do right now.
+  const hour = new Date().getUTCHours();
+  const lastRun = await getMeta(c.env.DB, 'social:last');
+  const posting = {
+    x_keys_configured: xEnabled(c.env),
+    autopost: c.env.X_AUTOPOST !== 'false',
+    posts_per_day: Math.max(1, Number(c.env.X_POSTS_PER_DAY ?? '2') || 2),
+    inside_posting_window: hour >= 7 && hour < 20,
+    utc_hour: hour,
+    last_hourly_run: lastRun ? JSON.parse(lastRun) : null,
+  };
+  return c.json({ posting, posts: await listSocialPosts(c.env.DB) });
 });
 
 app.get('/sitemap.xml', async (c) => {

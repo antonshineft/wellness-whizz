@@ -4,6 +4,8 @@
  *   fact     - one post a day with a fact from a supplement page, rotating through the catalogue
  *   research - a post per new research note (at most a couple a week)
  * Posts wait in social_posts and go out from the hourly cron inside a daytime window, a few per day at most.
+ * Each kind has its own lane: a backlog of article threads never stops facts or research notes from being drafted,
+ * and the sender rotates between kinds so a research note goes out even while a dozen threads are queued.
  */
 import { POSTS, type BlogPost } from '../blog';
 import { getMeta, listSupplements, setMeta, type Supplement } from '../db';
@@ -124,12 +126,16 @@ async function factPost(env: SocialEnv, sup: Supplement): Promise<string[]> {
 
 export async function buildQueue(env: SocialEnv): Promise<{ queued: string[] }> {
   const queued: string[] = [];
-  const pending = await env.DB.prepare("SELECT COUNT(*) AS n FROM social_posts WHERE status = 'queued'").first<{ n: number }>();
-  if ((pending?.n ?? 0) >= 4) return { queued };
   const now = new Date();
+  const pendingByKind = new Map<string, number>();
+  for (const row of (await env.DB.prepare("SELECT kind, COUNT(*) AS n FROM social_posts WHERE status = 'queued' GROUP BY kind").all<{ kind: string; n: number }>()).results) {
+    pendingByKind.set(row.kind, Number(row.n));
+  }
+  const pending = (kind: string) => pendingByKind.get(kind) ?? 0;
 
-  // 1. One thread per article, never twice (meta flag). Space new ones a day apart.
+  // 1. One thread per article, never twice (meta flag); drafted one per run while fewer than three threads wait.
   for (const post of POSTS) {
+    if (pending('article') >= 3) break;
     const flag = `x:article:${post.slug}`;
     if (await getMeta(env.DB, flag)) continue;
     const tweets = await articleThread(env, post);
@@ -145,7 +151,7 @@ export async function buildQueue(env: SocialEnv): Promise<{ queued: string[] }> 
     .prepare("SELECT COUNT(*) AS n FROM social_posts WHERE kind = 'fact' AND substr(created_at, 1, 10) = ?")
     .bind(today)
     .first<{ n: number }>();
-  if (!(factToday?.n ?? 0)) {
+  if (!(factToday?.n ?? 0) && pending('fact') < 2) {
     const all = (await listSupplements(env.DB, 500, true)).filter((s) => s.holistic_html.length > 400);
     const done = new Set((await env.DB.prepare("SELECT ref FROM social_posts WHERE kind = 'fact'").all<{ ref: string }>()).results.map((r) => r.ref));
     const candidates = all.filter((s) => !done.has(s.slug));
@@ -158,7 +164,7 @@ export async function buildQueue(env: SocialEnv): Promise<{ queued: string[] }> 
     }
   }
 
-  // 3. Research notes: at most two queued per 7 days.
+  // 3. Research notes: at most two queued per 7 days, drafted regardless of the article backlog.
   const recentResearch = await env.DB
     .prepare("SELECT COUNT(*) AS n FROM social_posts WHERE kind = 'research' AND created_at >= datetime('now', '-7 days')")
     .first<{ n: number }>();
@@ -193,9 +199,7 @@ export async function postDue(env: SocialEnv): Promise<{ posted: string[]; faile
   const last = await env.DB.prepare("SELECT MAX(posted_at) AS t FROM social_posts WHERE status = 'posted'").first<{ t: string | null }>();
   if (last?.t && now.getTime() - Date.parse(last.t + 'Z') < MIN_GAP_MINUTES * 60_000) return { posted, failed, skipped: 'too soon after the last post' };
 
-  const next = await env.DB
-    .prepare("SELECT * FROM social_posts WHERE status = 'queued' AND scheduled_at <= datetime('now') ORDER BY scheduled_at, id LIMIT 1")
-    .first<SocialPost>();
+  const next = await nextDue(env.DB);
   if (!next) return { posted, failed, skipped: 'nothing due' };
   try {
     const tweets = JSON.parse(next.thread_json) as string[];
@@ -207,6 +211,29 @@ export async function postDue(env: SocialEnv): Promise<{ posted: string[]; faile
     failed.push(`${next.kind}:${next.ref}: ${String(err).slice(0, 160)}`);
   }
   return { posted, failed, skipped: '' };
+}
+
+/**
+ * The next post to send: among everything due, prefer a kind that has not been posted in the last 24 hours
+ * (research, then fact, then article when all are fresh), oldest first within a kind. A long article backlog
+ * therefore still leaves room for the daily fact and the research notes.
+ */
+export async function nextDue(db: D1Database): Promise<SocialPost | null> {
+  const due = (
+    await db
+      .prepare("SELECT * FROM social_posts WHERE status = 'queued' AND scheduled_at <= datetime('now') ORDER BY scheduled_at, id LIMIT 20")
+      .all<SocialPost>()
+  ).results;
+  if (!due.length) return null;
+  const recent = new Set(
+    (
+      await db
+        .prepare("SELECT DISTINCT kind FROM social_posts WHERE status = 'posted' AND posted_at >= datetime('now', '-24 hours')")
+        .all<{ kind: string }>()
+    ).results.map((r) => r.kind),
+  );
+  const rank = (kind: string) => (recent.has(kind) ? 10 : 0) + (kind === 'research' ? 0 : kind === 'fact' ? 1 : 2);
+  return [...due].sort((a, b) => rank(a.kind) - rank(b.kind) || a.scheduled_at.localeCompare(b.scheduled_at) || a.id - b.id)[0];
 }
 
 export async function listSocialPosts(db: D1Database, limit = 50): Promise<SocialPost[]> {
