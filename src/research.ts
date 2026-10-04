@@ -48,8 +48,27 @@ function withKey(env: ResearchEnv, url: string): string {
   return env.NCBI_API_KEY ? `${tagged}&api_key=${encodeURIComponent(env.NCBI_API_KEY)}` : tagged;
 }
 
-/** PubMed ids of recent trials and reviews whose title mentions the supplement. */
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * NCBI allows 3 requests a second per IP address without a key (10 with one) and answers 429 beyond that. The
+ * search, the summaries and the abstract of one supplement used to go out within a second, so the abstract request
+ * was the one refused. Every request now waits its turn, and a refused one is retried once after a pause.
+ */
+let lastRequest = 0;
+async function ncbiFetch(env: ResearchEnv, url: string): Promise<Response> {
+  const gap = env.NCBI_API_KEY ? 120 : 400;
+  for (let attempt = 0; ; attempt++) {
+    const wait = lastRequest + gap - Date.now();
+    if (wait > 0) await sleep(wait);
+    lastRequest = Date.now();
+    const res = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(15_000) });
+    if (res.status !== 429 || attempt) return res;
+    await sleep(1500);
+  }
+}
+
+/** PubMed ids of recent trials and reviews whose title mentions the supplement. */
 
 export async function searchPubmed(env: ResearchEnv, name: string, days = 90, max = 5): Promise<string[]> {
   // Oral dietary-supplement studies only: no intravenous, surgical or obstetric uses of the same molecule.
@@ -58,7 +77,7 @@ export async function searchPubmed(env: ResearchEnv, name: string, days = 90, ma
     'AND (randomized controlled trial[pt] OR meta-analysis[pt] OR systematic review[pt]) AND humans[mh] ' +
     'NOT (intravenous[Title] OR infusion[Title] OR anesthesia[Title] OR anaesthesia[Title] OR surgery[Title] OR surgical[Title] OR preterm[Title] OR intensive care[Title])';
   const url = withKey(env, `${EUTILS}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(term)}&reldate=${days}&datetype=pdat&retmode=json&retmax=${max}`);
-  const res = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(15_000) });
+  const res = await ncbiFetch(env, url);
   if (!res.ok) throw new Error(`PubMed esearch ${res.status}`);
   const data = (await res.json()) as { esearchresult?: { idlist?: string[] } };
   return data.esearchresult?.idlist ?? [];
@@ -67,7 +86,7 @@ export async function searchPubmed(env: ResearchEnv, name: string, days = 90, ma
 export async function pubmedSummaries(env: ResearchEnv, pmids: string[]): Promise<PubmedSummary[]> {
   if (!pmids.length) return [];
   const url = withKey(env, `${EUTILS}/esummary.fcgi?db=pubmed&id=${pmids.join(',')}&retmode=json`);
-  const res = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(15_000) });
+  const res = await ncbiFetch(env, url);
   if (!res.ok) throw new Error(`PubMed esummary ${res.status}`);
   const data = (await res.json()) as { result?: Record<string, PubmedSummary | string[]> };
   return pmids.map((id) => data.result?.[id]).filter((r): r is PubmedSummary => !!r && typeof r === 'object' && 'title' in r);
@@ -86,7 +105,7 @@ export interface PubmedArticle {
  */
 export async function pubmedArticle(env: ResearchEnv, pmid: string): Promise<PubmedArticle> {
   const url = withKey(env, `${EUTILS}/efetch.fcgi?db=pubmed&id=${pmid}&retmode=xml`);
-  const res = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(15_000) });
+  const res = await ncbiFetch(env, url);
   if (!res.ok) throw new Error(`PubMed efetch ${res.status}`);
   const xml = await res.text();
   if (!/<Pubmed(Book)?Article[\s>]/.test(xml)) throw new Error('PubMed efetch: no article in the answer');
@@ -158,12 +177,10 @@ export async function researchBatch(env: ResearchEnv, supplements: Supplement[],
   for (const sup of supplements.slice(0, batch)) {
     checked.push(sup.slug);
     try {
-      await sleep(400); // NCBI allows 3 requests a second without an API key
       const ids = (await searchPubmed(env, sup.name)).filter((id) => !known.has(id)).slice(0, 2);
       if (!ids.length) continue;
       const summaries = await pubmedSummaries(env, ids);
       for (const s of summaries) {
-        await sleep(400);
         const abstractText = await pubmedAbstract(env, s.uid);
         known.add(s.uid);
         if (!abstractText) {
@@ -209,7 +226,6 @@ export async function repairNotes(env: ResearchEnv, limit = 10): Promise<{ check
     .all<ResearchNote>();
   for (const note of results) {
     try {
-      await sleep(400);
       const article = await pubmedArticle(env, note.pmid);
       if (!article.abstract) {
         await env.DB.prepare("UPDATE research_notes SET pub_type = 'no-abstract-checked' WHERE id = ?").bind(note.id).run();

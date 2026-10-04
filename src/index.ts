@@ -657,14 +657,16 @@ export default {
       ctx.waitUntil(
         ensureDatabase(env.DB)
           .then(() => pruneAbstractlessNotes(env.DB))
-          .then(() => buildQueue(env))
-          .then((built) => {
+          // Research notes filed without an abstract get a second look here, ten an hour, so the page fills up
+          // within hours rather than waiting for the daily research run.
+          .then(() => repairNotes(env, 10))
+          .then(async (repaired) => {
+            if (repaired.filled.length || repaired.failed.length) console.log(`research repaired: ${JSON.stringify(repaired)}`);
+            const built = await buildQueue(env);
             if (built.queued.length) console.log(`social queued: ${built.queued.join(', ')}`);
-            return postDue(env);
-          })
-          .then((result) => {
+            const result = await postDue(env);
             if (result.posted.length || result.failed.length) console.log(`social: ${JSON.stringify(result)}`);
-            return setMeta(env.DB, 'social:last', JSON.stringify({ at: new Date().toISOString(), ...result }));
+            await setMeta(env.DB, 'social:last', JSON.stringify({ at: new Date().toISOString(), ...result, repaired }));
           })
           .catch((err) => console.error(`social failed: ${String(err)}`)),
       );
