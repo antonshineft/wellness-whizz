@@ -362,6 +362,9 @@ app.get('/api/admin/social', async (c) => {
   const lastRun = await getMeta(c.env.DB, 'social:last');
   const posting = {
     x_keys_configured: xEnabled(c.env),
+    // Last characters only, to compare with "Reveal API Key hint" in the X developer portal.
+    x_api_key_hint: c.env.X_API_KEY ? `…${c.env.X_API_KEY.slice(-4)}` : null,
+    x_access_token_hint: c.env.X_ACCESS_TOKEN ? `${c.env.X_ACCESS_TOKEN.slice(0, 6)}…${c.env.X_ACCESS_TOKEN.slice(-4)}` : null,
     autopost: c.env.X_AUTOPOST !== 'false',
     posts_per_day: Math.max(1, Number(c.env.X_POSTS_PER_DAY ?? '2') || 2),
     inside_posting_window: hour >= 7 && hour < 20,
