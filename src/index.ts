@@ -19,7 +19,7 @@ import { generateFaqs } from './faq';
 import { generateSupplementImage, imageGenerationEnabled, loadImage, storeImage, supplementsNeedingImage } from './images';
 import { attachIherbProducts, supplementsWithoutPhotos } from './products';
 import { emailEnabled, resultsEmail, sendEmail } from './email';
-import { listResearchNotes, researchBatch } from './research';
+import { listResearchNotes, pruneAbstractlessNotes, researchBatch } from './research';
 import { renderResearchPage } from './render/research';
 import { renderSupplementsIndex } from './render/supplements-index';
 import { buildQueue, listSocialPosts, postDue, setSocialStatus } from './social/content';
@@ -347,13 +347,15 @@ app.get('/api/admin/social', async (c) => {
     else if (action === 'retry') await setSocialStatus(c.env.DB, id, 'queued', new Date().toISOString().slice(0, 19).replace('T', ' '));
   }
   if (action === 'build') {
+    await pruneAbstractlessNotes(c.env.DB);
     const built = await buildQueue(c.env);
     return c.json({ built, posts: await listSocialPosts(c.env.DB) });
   }
   if (action === 'post') return c.json({ result: await postDue(c.env), posts: await listSocialPosts(c.env.DB) });
   if (action === 'research') {
     const sups = await listSupplements(c.env.DB, 500, true);
-    return c.json({ result: await researchBatch(c.env, sups.sort(() => Math.random() - 0.5), 5), notes: (await listResearchNotes(c.env.DB, 10)).length });
+    const pruned = await pruneAbstractlessNotes(c.env.DB);
+    return c.json({ pruned, result: await researchBatch(c.env, sups.sort(() => Math.random() - 0.5), 5), notes: (await listResearchNotes(c.env.DB, 10)).length });
   }
   // "Why is nothing going out?" is the usual question, so the listing says what the sender would do right now.
   const hour = new Date().getUTCHours();
@@ -638,6 +640,7 @@ export default {
       // Hourly: build the X queue from the site's own content and send what is due.
       ctx.waitUntil(
         ensureDatabase(env.DB)
+          .then(() => pruneAbstractlessNotes(env.DB))
           .then(() => buildQueue(env))
           .then((built) => {
             if (built.queued.length) console.log(`social queued: ${built.queued.join(', ')}`);

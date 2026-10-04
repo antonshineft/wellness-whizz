@@ -148,8 +148,15 @@ export async function researchBatch(env: ResearchEnv, supplements: Supplement[],
       for (const s of summaries) {
         await sleep(400);
         const abstractText = await pubmedAbstract(env, s.uid);
-        const draft = await draftNote(env, sup, s, abstractText);
         known.add(s.uid);
+        if (!abstractText) {
+          // Nothing to summarise from a title alone: remember the id, keep it off the page and off X.
+          await env.DB.prepare('INSERT OR IGNORE INTO research_notes (pmid, supplement_id, title, journal, pub_date, pub_type, summary, takeaway, tweet) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+            .bind(s.uid, sup.id, s.title, s.fulljournalname || s.source || '', s.pubdate || '', 'no-abstract', '', '', '')
+            .run();
+          continue;
+        }
+        const draft = await draftNote(env, sup, s, abstractText);
         if (!draft.relevant) {
           // Remember the id so it is not re-summarised next week, but keep it off the page.
           await env.DB.prepare('INSERT OR IGNORE INTO research_notes (pmid, supplement_id, title, journal, pub_date, pub_type, summary, takeaway, tweet) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
@@ -164,6 +171,24 @@ export async function researchBatch(env: ResearchEnv, supplements: Supplement[],
     }
   }
   return { checked, added, failed };
+}
+
+/**
+ * Notes written before abstracts were required say things like "the abstract was not available"; take them off the
+ * page and out of the X queue. Returns how many were pruned.
+ */
+export async function pruneAbstractlessNotes(db: D1Database): Promise<{ notes: number; posts: number }> {
+  const notes = await db
+    .prepare(
+      `UPDATE research_notes SET summary = '', takeaway = '', tweet = '', pub_type = 'no-abstract'
+       WHERE summary != '' AND (summary LIKE '%abstract%not available%' OR summary LIKE '%abstract was not available%'
+         OR tweet LIKE '%not available from the summary%' OR tweet LIKE '%abstract%not available%' OR tweet LIKE '%abstract%unavailable%')`,
+    )
+    .run();
+  const posts = await db
+    .prepare("UPDATE social_posts SET status = 'skipped' WHERE kind = 'research' AND status = 'queued' AND ref IN (SELECT pmid FROM research_notes WHERE summary = '')")
+    .run();
+  return { notes: notes.meta?.changes ?? 0, posts: posts.meta?.changes ?? 0 };
 }
 
 export async function listResearchNotes(db: D1Database, limit = 100): Promise<ResearchNote[]> {
