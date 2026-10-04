@@ -11,7 +11,7 @@ const post: BlogPost = {
   date: '2026-10-03',
   readingMinutes: 9,
   category: 'Minerals',
-  tags: ['magnesium', 'minerals', 'sleep', 'muscle cramps', 'migraine', 'supplement forms'],
+  tags: ['magnesium', 'minerals', 'sleep', 'muscle cramps', 'migraine', 'supplement forms', 'magnesium oxide'],
   heroSupplement: 'magnesium-32aa0',
   shop: ['magnesium-32aa0', 'zma-zinc-magnesium-aspartate-336bd', 'zinc-fe1df'],
   html: `
@@ -84,6 +84,14 @@ const post: BlogPost = {
 
 <blockquote>Once absorbed, magnesium is magnesium. Choose a form for how much it carries, how well it is absorbed and how your gut tolerates it, not for the claims on the front of the bottle.</blockquote>
 
+<h2>Magnesium oxide vs glycinate (and citrate): the cheap form against the gentle one</h2>
+
+<p>Magnesium oxide vs glycinate is the comparison people make at the pharmacy shelf, because oxide is the form in most cheap tablets and glycinate is the one recommended for sleep. They sit at opposite ends of the table above. Oxide is about 60 percent magnesium by weight, so a small tablet carries a large nominal dose, but only a small fraction of it is absorbed: in fractional-absorption studies oxide came in well below citrate, chloride and the amino-acid chelates, in some trials in the single digits. Most of the dose stays in the gut, draws in water and loosens stools. Glycinate is only about 14 percent magnesium, so you swallow more capsules for the same elemental dose, but a far larger share of it is absorbed and it rarely affects the bowel.</p>
+
+<p>In practice: if you want to raise your magnesium status, for sleep, cramps, migraine prevention or a low-intake diet, glycinate or citrate will get more magnesium into you per milligram and with fewer surprises. If you want a laxative, or you are on a tight budget and happy to take a larger dose, oxide works; it is the form used in many of the older trials, including some of the migraine studies. The one thing oxide does not do well is deliver a modest, well-tolerated dose, which is what most supplement users are after.</p>
+
+<p>Magnesium citrate vs oxide is a closer call. Both loosen stools at higher doses, citrate because it is osmotic, oxide because so much of it stays unabsorbed. Citrate is absorbed far better, so at the same elemental dose you get more magnesium and a milder laxative effect, for slightly more money. For constipation either works; for everything else, citrate.</p>
+
 <h2>Which form for which goal</h2>
 
 <h3>Sleep and relaxation</h3>
@@ -131,6 +139,10 @@ const post: BlogPost = {
 <ww-quiz></ww-quiz>
 `,
   faq: [
+    {
+      q: 'Magnesium oxide vs glycinate: which is better?',
+      a: 'For raising your magnesium level, glycinate: it is absorbed several times better than oxide and rarely upsets the bowel, so a 200 to 400 mg elemental dose is comfortable. Oxide packs more magnesium into a small tablet and costs less, but most of it stays in the gut and acts as a laxative, which is the one job it does reliably. Citrate sits between them: well absorbed, inexpensive and mildly laxative at higher doses.',
+    },
     {
       q: 'Can I take magnesium glycinate and citrate together?',
       a: 'Yes. They are the same mineral with different partners, so what matters is the total elemental magnesium. Add the two labels together and keep supplemental magnesium at or below 350 mg a day unless a doctor has told you otherwise. A common split is citrate with breakfast and glycinate at night.',

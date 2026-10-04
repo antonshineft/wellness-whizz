@@ -151,6 +151,14 @@ exactly those phrases:
   `&slug=<slug>` rewrites one page (for example after the question list changed). `/api/stats` reports `with_faqs`
   and the last cron run lists what it wrote.
 
+### Search-friendly titles on supplement pages
+
+Supplement pages are titled "<Name>: Benefits, Dosage, Safety & Where to Buy" by default. `SEO_TITLES` in
+`src/render/supplement.ts` overrides that for pages where people search differently (for example "best vitamins for
+women", "super greens powder", "best protein bars for weight loss"); keep entries under 60 characters. The "Top 5"
+product block is headed "Best <Name> Supplements: Top 5 Picks" so the page matches "best <supplement>" searches, and
+the quiz page is titled "Vitamin Quiz" because that is the phrase people use.
+
 ### Product photos for supplements the quiz creates
 
 Supplements created by the quiz get real iHerb products: the Worker searches iHerb for the supplement name, keeps up

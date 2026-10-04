@@ -113,7 +113,7 @@ function productCards(env: LinkEnv, sup: Supplement): string {
     <section class="gallery-scroll-2">
       <div class="columns-2">
         <div class="column-12">
-          <h3 class="heading-3">Top 5 Available Supplements</h3>
+          <h3 class="heading-3">${escapeHtml(picksHeading(sup))}</h3>
           <div class="frame-191">
             ${names}
           </div>
@@ -259,8 +259,48 @@ function seoHead(sup: Supplement, origin: string): string {
   <script type="application/ld+json">${safe(breadcrumbs)}</script>${faqPage ? `\n  <script type="application/ld+json">${safe(faqPage)}</script>` : ''}`;
 }
 
+/**
+ * Titles that match how people actually search for a page (from the Semrush keyword export), keyed by the slug
+ * without its hash. Everything else gets the generic "Name: Benefits, Dosage, Safety & Where to Buy" pattern.
+ */
+const SEO_TITLES: Record<string, string> = {
+  'green-superfood-powders': 'Super Greens Powder: Benefits, Best Picks & Safety',
+  'whey-protein-isolate': 'Whey Isolate vs Whey Protein: Benefits & Best Picks',
+  'womens-health-supplements': 'Best Vitamins for Women: Daily Picks, Dosage & Safety',
+  'mens-health-supplements': 'Best Supplements for Men: Picks, Dosage & Safety',
+  'protein-bars': 'Best Protein Bars for Weight Loss: Picks & Safety',
+  'prenatal-vitamins': 'Best Prenatal Vitamins: What to Look For & Safety',
+  'fiber-supplements': 'Best Fiber Supplements & Gummies: Picks & Safety',
+  'electrolyte-drinks': 'Electrolytes: What They Are, When to Take & Safety',
+  'sleep-aids': 'Best Natural Sleep Aids: What Works & Safety',
+  'meal-replacement-shakes': 'Best Meal Replacement Shakes for Weight Loss & Safety',
+  'weight-management-supplements': 'Weight Loss Supplements: What Works, Safety & Picks',
+  'pre-workout-supplements': 'Best Pre Workout Supplements: Picks, Dosage & Safety',
+  'resveratrol': 'Best Resveratrol Supplement: Dosage, Safety & Picks',
+  'l-theanine': 'Best L-Theanine Supplement: Dosage, Safety & Picks',
+  'quercetin': 'Best Quercetin Supplement: Dosage, Safety & Picks',
+  'choline': 'Best Choline Supplements: Dosage, Safety & Picks',
+  'thyroid-support-supplements': 'Thyroid Support Supplements: What Helps & Safety',
+  'urinary-tract-support-supplements': 'Urinary Tract Health Supplements: Picks & Safety',
+  'heart-health-supplements': 'Heart Health Supplements: What Helps & Safety',
+  'joint-health-supplements': 'Joint Health Supplements: What Helps & Safety',
+  'energy-bars': 'Energy Bars: Benefits, Best Picks & Safety',
+};
+
+/** "Top 5" heading phrased the way buyers search ("best magnesium supplements"). */
+function picksHeading(sup: Supplement): string {
+  const name = sup.name.trim();
+  if (/\b(health|management|support)$/i.test(name)) return `Best ${name} Supplements: Top 5 Picks`;
+  if (/(supplements?|vitamins|bars|shakes|powders|proteins?|boosters|aids|extracts?|oil|drinks|pollen|isolate)$/i.test(name) || name.includes('(')) {
+    return `Best ${name}: Top 5 Picks`;
+  }
+  return `Best ${name} Supplements: Top 5 Picks`;
+}
+
 /** Keep titles under about 60 characters including the site name the layout appends. */
 function seoTitle(sup: Supplement): string {
+  const custom = SEO_TITLES[sup.slug.replace(/-[0-9a-f]{5}$/, '')];
+  if (custom) return custom;
   const suffix = ' | Wellness Whizz'.length;
   for (const candidate of [
     `${sup.name}: Benefits, Dosage, Safety & Where to Buy`,
