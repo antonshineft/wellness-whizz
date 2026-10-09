@@ -374,6 +374,26 @@ img.ww-opaque { mix-blend-mode: multiply; }
 /* The research page's short explainer: centred above the notes, in a rounded frame of the same width. */
 .ww-research-intro { max-width: 780px; margin: 0 auto 28px; padding: 22px 30px; box-sizing: border-box; border: 1px solid #1d272d1f; border-radius: 24px; background: #fff; text-align: center; font-size: 17px; line-height: 28px; color: #1d272d; }
 .ww-notes { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+/* Research filters: two rows of chips (category, study type), the count line, and the "Show more" button. */
+.ww-rfilter { max-width: 780px; margin: 0 auto 22px; display: flex; flex-direction: column; gap: 10px; }
+.ww-rfilter-row { display: flex; align-items: flex-start; gap: 12px; }
+.ww-rfilter-label { flex: 0 0 92px; padding-top: 6px; font-family: Aeonik, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .6; }
+.ww-rfilter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ww-rchip { border: 0; cursor: pointer; font: inherit; appearance: none; -webkit-appearance: none; }
+.ww-rchip b { background: #1d272d1f; color: #1d272d; width: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; font-size: 11px; }
+.ww-rchip:hover { background: #1d272d24; }
+.ww-rchip.is-active { background: #1d272d; color: #fff; }
+.ww-rchip.is-active b { background: #87d581; color: #1d272d; }
+.ww-rchip:focus-visible { outline: 2px solid #87d581; outline-offset: 2px; }
+.ww-rfilter-count { margin: 4px 0 0 104px; font-size: 14px; line-height: 20px; opacity: .7; min-height: 20px; }
+.ww-rmore { max-width: 780px; margin: 22px auto 0; display: flex; justify-content: center; }
+.ww-rmore .fakebutton { padding: 14px 28px; border-radius: 16px; font-size: 16px; }
+.ww-note:focus { outline: none; }
+@media (max-width: 767px) {
+  .ww-rfilter-row { flex-direction: column; gap: 6px; }
+  .ww-rfilter-label { flex-basis: auto; padding-top: 0; }
+  .ww-rfilter-count { margin-left: 0; }
+}
 @media (max-width: 767px) { .ww-research-intro { padding: 18px 20px; font-size: 16px; line-height: 26px; border-radius: 20px; } }
 .ww-note { background: #ecf3f6; border-radius: 24px; padding: 22px 26px; font-family: Aeonik, sans-serif; color: #1d272d; }
 .ww-note-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; opacity: .8; margin-bottom: 10px; }

@@ -29,6 +29,7 @@ export interface ResearchNote {
   /** joined */
   supplement_name?: string;
   supplement_slug?: string;
+  supplement_category?: string;
 }
 
 interface PubmedSummary {
@@ -270,7 +271,7 @@ export async function pruneAbstractlessNotes(db: D1Database): Promise<{ notes: n
 export async function listResearchNotes(db: D1Database, limit = 100): Promise<ResearchNote[]> {
   const { results } = await db
     .prepare(
-      `SELECT n.*, s.name AS supplement_name, s.slug AS supplement_slug FROM research_notes n
+      `SELECT n.*, s.name AS supplement_name, s.slug AS supplement_slug, s.category AS supplement_category FROM research_notes n
        JOIN supplements s ON s.id = n.supplement_id WHERE n.summary != '' ORDER BY n.created_at DESC, n.id DESC LIMIT ?`,
     )
     .bind(limit)
