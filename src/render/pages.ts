@@ -64,7 +64,7 @@ const HOW_FAQ = [
   { q: 'What if the advisor suggests something that is not in the catalogue?', a: 'When your answers call for a supplement we have not profiled yet, the advisor writes a new profile with the same structure, ratings and warnings as the rest of the catalogue, and it joins the catalogue for everyone.' },
 ];
 
-export function renderHowItWorks(catalogueSize: number): string {
+export function renderHowItWorks(catalogueSize: number, origin: string): string {
   const n = catalogueSize >= 50 ? `${Math.floor(catalogueSize / 10) * 10}+` : 'our';
   const body = `
       <section class="ww-steps">
@@ -109,13 +109,14 @@ export function renderHowItWorks(catalogueSize: number): string {
     description: 'How Wellness Whizz turns a two-minute quiz into a short, explained list of supplements with safety ratings, evidence scores and iHerb product picks.',
     pageId: WF_PAGE_IDS.supplement,
     bodyClass: 'body-2',
+    head: `\n  <link rel="canonical" href="${escapeHtml(origin)}/how-it-works">`,
     body: body2,
   });
 }
 
 // ---------- Terms and Conditions ----------
 
-export function renderTerms(): string {
+export function renderTerms(origin: string): string {
   const body = `
       <section class="ww-prose ww-legal">
         <p class="ww-legal-updated">Last updated: ${TERMS_UPDATED}</p>
@@ -175,6 +176,7 @@ export function renderTerms(): string {
     description: 'Terms of use, medical disclaimer, affiliate disclosure and privacy practices of Wellness Whizz, the AI supplement advisor.',
     pageId: WF_PAGE_IDS.supplement,
     bodyClass: 'body-2',
+    head: `\n  <link rel="canonical" href="${escapeHtml(origin)}/terms">`,
     body: shell,
   });
 }

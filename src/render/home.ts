@@ -26,6 +26,12 @@ export async function renderHome(
   const cards = [...withPhoto, ...candidates.filter((s) => !withPhoto.includes(s))].slice(0, 10);
 
   const rewriter = new HTMLRewriter()
+    // The home page answers on several URLs (query strings, the old index.html); one canonical for all of them.
+    .on('head', {
+      element(el) {
+        el.append(`<link rel="canonical" href="${blogCtx.origin}/">`, { html: true });
+      },
+    })
     .on('.ww-carousel-track', {
       element(el) {
         if (cards.length) el.setInnerContent(cards.map(homeCard).join(''), { html: true });

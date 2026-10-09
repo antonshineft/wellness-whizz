@@ -259,12 +259,12 @@ app.get('/supplement/:slug', async (c) => {
 app.get('/how-it-works', async (c) => {
   const n = await countSupplements(c.env.DB);
   track(c, { type: 'page_view', page: '/how-it-works' });
-  return c.body(renderHowItWorks(n), 200, htmlHeaders('public, max-age=600'));
+  return c.body(renderHowItWorks(n, new URL(c.req.url).origin), 200, htmlHeaders('public, max-age=600'));
 });
 
 app.get('/terms', (c) => {
   track(c, { type: 'page_view', page: '/terms' });
-  return c.body(renderTerms(), 200, htmlHeaders('public, max-age=600'));
+  return c.body(renderTerms(new URL(c.req.url).origin), 200, htmlHeaders('public, max-age=600'));
 });
 
 app.get('/blog', async (c) => {
