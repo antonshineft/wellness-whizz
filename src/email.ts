@@ -10,10 +10,19 @@ import { primaryProduct, shopUrl, type LinkEnv } from './links';
 export interface EmailEnv extends LinkEnv {
   RESEND_API_KEY?: string;
   EMAIL_FROM?: string;
+  /** Where the site's own mail to the owner goes (failure alerts, the Monday numbers); default: the EMAIL_FROM address. */
+  ALERT_EMAIL?: string;
 }
 
 export function emailEnabled(env: EmailEnv): boolean {
   return !!env.RESEND_API_KEY && !!env.EMAIL_FROM;
+}
+
+/** The owner's address for alerts and reports, or null when email is not configured. */
+export function alertRecipient(env: EmailEnv): string | null {
+  if (!emailEnabled(env)) return null;
+  const from = env.EMAIL_FROM ?? '';
+  return (env.ALERT_EMAIL ?? '').trim() || /<([^>]+)>/.exec(from)?.[1] || from.trim() || null;
 }
 
 export async function sendEmail(env: EmailEnv, to: string, subject: string, html: string, text: string): Promise<void> {

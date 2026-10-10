@@ -8,6 +8,7 @@
  *   GET  /api/config       public client configuration (Turnstile site key)
  *   POST /api/event        funnel events sent by the browser (quiz views, outbound clicks)
  *   GET  /api/stats        funnel numbers, protected by the STATS_KEY secret
+ *   GET  /api/admin/report the Monday numbers email (preview; &send=1 sends it now)
  *   /result/:id            personalised results page
  *   /supplement/:slug      supplement detail page
  */
@@ -18,18 +19,19 @@ import { MIN_ARTICLE_LENGTH, generateArticle } from './content';
 import { generateFaqs } from './faq';
 import { generateSupplementImage, imageGenerationEnabled, loadImage, storeImage, supplementsNeedingImage } from './images';
 import { attachIherbProducts, supplementsWithoutPhotos } from './products';
-import { emailEnabled, resultsEmail, sendEmail } from './email';
+import { alertRecipient, emailEnabled, resultsEmail, sendEmail } from './email';
+import { weeklyReportEmail } from './report';
 import { listResearchNotes, pruneAbstractlessNotes, repairNotes, researchBatch } from './research';
 import { renderResearchPage } from './render/research';
 import { renderSupplementsIndex } from './render/supplements-index';
-import { buildQueue, listSocialPosts, postDue, postingPlan, sendState, setSocialStatus } from './social/content';
+import { buildQueue, listSocialPosts, postDue, postingPlan, sendState, setSocialStatus, siteOrigin } from './social/content';
 import { xEnabled } from './social/x';
 import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
   getSessionResults, getSupplementBySlug, listSupplements, logEvent, markSession, mergeDuplicateSupplements,
   resolveSupplementSlug, statsSummary, supplementsNeedingContent, updateSupplementContent, type EventInput,
   type EventType, type QuizProfile, countSupplements, getSupplementsBySlugs, listSupplementSlugs,
-  addSubscriber, contentProgress, countRecentSubscriptions, getMeta, listSubscribers, markSubscriberSent, relatedSupplements, setMeta,
+  addSubscriber, contentProgress, countRecentSubscriptions, getMeta, listSubscribers, markSubscriberSent, relatedSupplements, setMeta, weeklyNumbers,
   countSupplementsNeedingFaqs, supplementsNeedingFaqs, updateSupplementFaqs,
 } from './db';
 import { runQuizPipeline } from './pipeline';
@@ -67,7 +69,7 @@ export interface Bindings {
   X_POSTS_PER_WEEK?: string;
   X_POST_DAYS?: string;
   X_POST_HOUR_UTC?: string;
-  /** Where a "post failed" email goes (default: the EMAIL_FROM address). */
+  /** Where a "post failed" email and the Monday numbers go (default: the EMAIL_FROM address). */
   ALERT_EMAIL?: string;
   /** Optional NCBI key for faster PubMed requests; RESEARCH_BATCH supplements checked per daily run (default 15) and
    *  RESEARCH_HOURLY per hourly run (default 4, 0 switches the hourly check off). */
@@ -91,8 +93,8 @@ const SEXES = ['Female', 'Male'];
 const SESSION_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 /** A session still pending after this long has lost its Worker (client disconnected); it is marked failed. */
 const PENDING_TIMEOUT_MS = 4 * 60 * 1000;
-/** Event types the browser may report; page views are recorded server-side. */
-const CLIENT_EVENT_TYPES: readonly EventType[] = ['quiz_view', 'outbound_click', 'subscribe', 'share'];
+/** Event types the browser may report; page views and subscriptions are recorded server-side. */
+const CLIENT_EVENT_TYPES: readonly EventType[] = ['quiz_view', 'outbound_click', 'share'];
 
 const htmlHeaders = (cacheControl: string) => ({ 'content-type': 'text/html; charset=utf-8', 'cache-control': cacheControl });
 const curatedOnly = (env: Bindings) => env.LIST_AI_SUPPLEMENTS === 'false';
@@ -383,7 +385,7 @@ app.get('/api/admin/social', async (c) => {
     why_not_now: state.ok ? null : state.reason,
     last_post_at: state.last_post_at,
     next_slot_utc: state.next_slot,
-    alert_email: emailEnabled(c.env) ? (c.env.ALERT_EMAIL ?? '').trim() || /<([^>]+)>/.exec(c.env.EMAIL_FROM ?? '')?.[1] || c.env.EMAIL_FROM : null,
+    alert_email: alertRecipient(c.env),
     last_hourly_run: lastRun ? JSON.parse(lastRun) : null,
   };
   return c.json({ posting, posts: await listSocialPosts(c.env.DB) });
@@ -569,21 +571,53 @@ app.get('/api/stats', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   c.header('cache-control', 'no-store');
-  const [stats, content, lastCron, lastSocial, lastResearch] = await Promise.all([
+  const [stats, content, lastCron, lastSocial, lastResearch, lastReport] = await Promise.all([
     statsSummary(c.env.DB),
     contentProgress(c.env.DB, MIN_ARTICLE_LENGTH),
     getMeta(c.env.DB, 'cron:last'),
     getMeta(c.env.DB, 'social:last'),
     getMeta(c.env.DB, 'research:last'),
+    getMeta(c.env.DB, 'report:last'),
   ]);
-  const parse = (v: string | null): unknown => {
-    try {
-      return v ? JSON.parse(v) : null;
-    } catch {
-      return v;
-    }
-  };
-  return c.json({ ...stats, content: { ...content, last_cron: parse(lastCron) }, social: { last_run: parse(lastSocial) }, research: { last_run: parse(lastResearch) } });
+  return c.json({
+    ...stats,
+    content: { ...content, last_cron: parseMeta(lastCron) },
+    social: { last_run: parseMeta(lastSocial) },
+    research: { last_run: parseMeta(lastResearch) },
+    report: { last_sent: parseMeta(lastReport) },
+  });
+});
+
+/** Meta values are JSON written by the crons; an old plain value is returned as is. */
+function parseMeta(value: string | null): unknown {
+  try {
+    return value ? JSON.parse(value) : null;
+  } catch {
+    return value;
+  }
+}
+
+/** The Monday numbers email for the current week. */
+async function weeklyReport(env: Bindings): Promise<{ subject: string; html: string; text: string }> {
+  const [numbers, content] = await Promise.all([weeklyNumbers(env.DB), contentProgress(env.DB, MIN_ARTICLE_LENGTH)]);
+  return weeklyReportEmail(siteOrigin(env), numbers, content);
+}
+
+/** Owner-only: the Monday numbers email as the cron would send it. ?format=html shows it; &send=1 sends it now. */
+app.get('/api/admin/report', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  c.header('cache-control', 'no-store');
+  const mail = await weeklyReport(c.env);
+  const to = alertRecipient(c.env);
+  if (c.req.query('send') === '1') {
+    if (!to) return c.json({ error: 'Email is not configured (RESEND_API_KEY and EMAIL_FROM).' }, 400);
+    await sendEmail(c.env, to, mail.subject, mail.html, mail.text);
+    await setMeta(c.env.DB, 'report:last', JSON.stringify({ at: new Date().toISOString(), to, subject: mail.subject, manual: true }));
+    return c.json({ sent: true, to, subject: mail.subject });
+  }
+  if (c.req.query('format') === 'html') return c.html(mail.html);
+  return c.json({ to, subject: mail.subject, text: mail.text, last_sent: parseMeta(await getMeta(c.env.DB, 'report:last')) });
 });
 
 /** Write missing articles now (the cron does the same a few at a time). ?limit=N, default 3. */
@@ -686,6 +720,22 @@ export default {
             await setMeta(env.DB, 'social:last', JSON.stringify({ at: new Date().toISOString(), ...result, repaired, research }));
           })
           .catch((err) => console.error(`social failed: ${String(err)}`)),
+      );
+      return;
+    }
+    if (event.cron === '0 7 * * 1') {
+      // Monday morning: the week's numbers by email to the owner (src/report.ts); skipped quietly without Resend.
+      ctx.waitUntil(
+        ensureDatabase(env.DB)
+          .then(async () => {
+            const to = alertRecipient(env);
+            if (!to) return;
+            const mail = await weeklyReport(env);
+            await sendEmail(env, to, mail.subject, mail.html, mail.text);
+            await setMeta(env.DB, 'report:last', JSON.stringify({ at: new Date().toISOString(), to, subject: mail.subject }));
+            console.log(`weekly report sent to ${to}`);
+          })
+          .catch((err) => console.error(`weekly report failed: ${String(err)}`)),
       );
       return;
     }
@@ -838,6 +888,7 @@ interface TrackContext {
 
 function track(c: TrackContext, event: EventInput): void {
   const request = c.req.raw;
+  if (isBot(request)) return;
   const ip = c.req.header('cf-connecting-ip') ?? '';
   const referrer = event.referrer ?? externalReferrer(c.req.header('referer'), request.url);
   c.executionCtx.waitUntil(
@@ -845,6 +896,23 @@ function track(c: TrackContext, event: EventInput): void {
       .then((ip_hash) => logEvent(c.env.DB, { ...event, referrer, ip_hash }))
       .catch((err) => console.error(`event not recorded: ${String(err)}`)),
   );
+}
+
+/**
+ * Crawlers, link-preview fetchers, monitors and scripts are not visitors, so they stay out of the statistics.
+ * Cloudflare marks verified bots on every plan; the rest is the usual user-agent vocabulary ("bot" alone covers
+ * Googlebot, Bingbot, Twitterbot, LinkedInBot and most others), and an empty user-agent is never a browser. The
+ * in-app browsers of X, LinkedIn and Facebook do not match: those are real visitors.
+ */
+const BOT_UA =
+  /bot|crawl|spider|slurp|fetch|scan|monitor|preview|validator|lighthouse|headless|phantom|selenium|playwright|puppeteer|curl|wget|httpie|python|java\/|go-http|okhttp|axios|libwww|perl|ruby|php|node|undici|semrush|ahrefs|mj12|petal|yandex|baiduspider|duckduckbot|gpt|openai|anthropic|claude|perplexity|cohere|bytespider|ccbot|applebot|facebookexternalhit|whatsapp|telegram|discord|slack|skype|embedly|quora|rss|feed|archive|dataprovider|netcraft|censys|shodan|uptime|pingdom|statuscake|site24x7|gtmetrix|pagespeed/i;
+
+function isBot(request: Request): boolean {
+  const ua = request.headers.get('user-agent') ?? '';
+  if (!ua.trim()) return true;
+  const cf = (request as Request & { cf?: { botManagement?: { verifiedBot?: boolean }; verifiedBotCategory?: string } }).cf;
+  if (cf?.botManagement?.verifiedBot || cf?.verifiedBotCategory) return true;
+  return BOT_UA.test(ua);
 }
 
 /** Referrer host when it is another site (own-site navigation is not interesting). */

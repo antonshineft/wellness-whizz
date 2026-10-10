@@ -108,11 +108,19 @@ redeploys.
 
 ### Measuring what works
 
-The Worker records funnel events in the `events` table: home views, quiz views, result views, supplement views and
-outbound clicks on iHerb links (with the supplement and product clicked). No personal data is stored beyond a hashed
-IP. Set a secret `STATS_KEY` (`npx wrangler secret put STATS_KEY`, or in the dashboard) and open
-`https://<your-site>/api/stats?key=<the key>` for the last 7 and 30 days: the funnel, quizzes started and completed,
-the most clicked supplements and products, and where visitors came from.
+The Worker records funnel events in the `events` table: home views, quiz views, result views, supplement views,
+outbound clicks on iHerb links (with the supplement and product clicked), subscriptions and shares. No personal data
+is stored beyond a hashed IP. Crawlers, link-preview fetchers, monitors and scripts are not counted (`isBot` in
+`src/index.ts`: Cloudflare's verified-bot flag plus the usual user-agent vocabulary; an empty user-agent counts as a
+bot), so the numbers are visitors, not Googlebot. Set a secret `STATS_KEY` (`npx wrangler secret put STATS_KEY`, or in
+the dashboard) and open `https://<your-site>/api/stats?key=<the key>` for the last 7 and 30 days: the funnel, quizzes
+started and completed, the most clicked supplements and products, and where visitors came from.
+
+Every Monday at 07:00 UTC the Worker also emails the week's numbers (`src/report.ts`) to `ALERT_EMAIL` (default: the
+`EMAIL_FROM` address) when Resend is configured: each funnel step against the week before, quizzes completed, the
+supplements most clicked through to iHerb and most viewed, referrers, subscribers, what X and the research run did,
+and the catalogue's content progress. `GET /api/admin/report?key=<STATS_KEY>` previews it (`&format=html` as the
+email looks, `&send=1` sends it now); `/api/stats` shows when it last went out under `report.last_sent`.
 
 Every "Buy on iHerb" button and product photo is an affiliate link with your referral code; the result cards and the
 "Top picks on iHerb" strip on each supplement page are the main places people click out.

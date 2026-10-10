@@ -47,7 +47,8 @@
     // Optional Cloudflare Turnstile bot protection: add TURNSTILE_SITE_KEY (variable) and TURNSTILE_SECRET_KEY (secret)
     // in the Cloudflare dashboard under the Worker's Settings -> Variables and Secrets. Both are needed to enable it.
   },
-  // Article writer: every 10 minutes write BACKFILL_BATCH missing "Holistic Highlights" articles (src/content.ts).
-  "triggers": { "crons": ["*/5 * * * *", "0 * * * *", "0 6 * * *"] },
+  // Every 5 minutes: the article writer (src/content.ts). Hourly: research repair, PubMed check and X posting.
+  // 06:00 UTC daily: the PubMed research run. 07:00 UTC on Mondays: the week's numbers by email (src/report.ts).
+  "triggers": { "crons": ["*/5 * * * *", "0 * * * *", "0 6 * * *", "0 7 * * 1"] },
   "observability": { "enabled": true }
 }

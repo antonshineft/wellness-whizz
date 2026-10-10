@@ -585,6 +585,111 @@ export async function statsSummary(db: D1Database): Promise<Stats> {
   };
 }
 
+export interface WeeklyNumbers {
+  /** The week covered: [from, to) as ISO dates, and the week before it for comparison. */
+  from: string;
+  to: string;
+  events: Record<EventType, { this_week: number; last_week: number }>;
+  quizzes: { this_week: number; last_week: number; completed_this_week: number; failed_this_week: number };
+  subscribers: { this_week: number; last_week: number; total: number };
+  top_clicked: { slug: string; name: string; clicks: number }[];
+  top_products: { slug: string; product: string; clicks: number }[];
+  top_viewed: { slug: string; name: string; views: number }[];
+  referrers: { referrer: string; views: number }[];
+  social: { posted_this_week: number; failed_this_week: number; queued: number };
+  research: { notes: number; notes_this_week: number };
+}
+
+/** The last seven days against the seven before them (the Monday report email, src/report.ts). */
+export async function weeklyNumbers(db: D1Database): Promise<WeeklyNumbers> {
+  const [byType, quizzes, subs, topClicked, topProducts, topViewed, referrers, social, research] = await Promise.all([
+    db
+      .prepare(
+        `SELECT type, SUM(ts >= datetime('now', '-7 days')) AS w1, SUM(ts < datetime('now', '-7 days')) AS w0
+         FROM events WHERE ts >= datetime('now', '-14 days') GROUP BY type`,
+      )
+      .all<{ type: string; w1: number; w0: number }>(),
+    db
+      .prepare(
+        `SELECT SUM(created_at >= datetime('now', '-7 days')) AS w1, SUM(created_at < datetime('now', '-7 days')) AS w0,
+                SUM(created_at >= datetime('now', '-7 days') AND status = 'ready') AS ready,
+                SUM(created_at >= datetime('now', '-7 days') AND status = 'failed') AS failed
+         FROM sessions WHERE created_at >= datetime('now', '-14 days') AND sex != ''`,
+      )
+      .first<{ w1: number; w0: number; ready: number; failed: number }>(),
+    db
+      .prepare(
+        `SELECT SUM(created_at >= datetime('now', '-7 days')) AS w1,
+                SUM(created_at >= datetime('now', '-14 days') AND created_at < datetime('now', '-7 days')) AS w0,
+                SUM(unsubscribed_at IS NULL) AS total
+         FROM subscribers`,
+      )
+      .first<{ w1: number; w0: number; total: number }>(),
+    db
+      .prepare(
+        `SELECT e.slug, COALESCE(s.name, e.slug) AS name, COUNT(*) AS clicks FROM events e LEFT JOIN supplements s ON s.slug = e.slug
+         WHERE e.type = 'outbound_click' AND e.ts >= datetime('now', '-7 days') AND e.slug IS NOT NULL
+         GROUP BY e.slug ORDER BY clicks DESC LIMIT 8`,
+      )
+      .all<{ slug: string; name: string; clicks: number }>(),
+    db
+      .prepare(
+        `SELECT slug, product, COUNT(*) AS clicks FROM events
+         WHERE type = 'outbound_click' AND ts >= datetime('now', '-7 days') AND product IS NOT NULL
+         GROUP BY slug, product ORDER BY clicks DESC LIMIT 8`,
+      )
+      .all<{ slug: string; product: string; clicks: number }>(),
+    db
+      .prepare(
+        `SELECT e.slug, COALESCE(s.name, e.slug) AS name, COUNT(*) AS views FROM events e LEFT JOIN supplements s ON s.slug = e.slug
+         WHERE e.type = 'supplement_view' AND e.ts >= datetime('now', '-7 days') AND e.slug IS NOT NULL
+         GROUP BY e.slug ORDER BY views DESC LIMIT 8`,
+      )
+      .all<{ slug: string; name: string; views: number }>(),
+    db
+      .prepare(
+        `SELECT referrer, COUNT(*) AS views FROM events
+         WHERE referrer IS NOT NULL AND ts >= datetime('now', '-7 days')
+         GROUP BY referrer ORDER BY views DESC LIMIT 8`,
+      )
+      .all<{ referrer: string; views: number }>(),
+    db
+      .prepare(
+        `SELECT SUM(status = 'posted' AND posted_at >= datetime('now', '-7 days')) AS posted,
+                SUM(status = 'failed' AND created_at >= datetime('now', '-7 days')) AS failed,
+                SUM(status = 'queued') AS queued
+         FROM social_posts`,
+      )
+      .first<{ posted: number; failed: number; queued: number }>(),
+    db
+      .prepare(`SELECT COUNT(*) AS notes, SUM(created_at >= datetime('now', '-7 days')) AS fresh FROM research_notes WHERE summary != ''`)
+      .first<{ notes: number; fresh: number }>(),
+  ]);
+  const events = {} as WeeklyNumbers['events'];
+  for (const type of EVENT_TYPES) events[type] = { this_week: 0, last_week: 0 };
+  for (const row of byType.results) if ((EVENT_TYPES as readonly string[]).includes(row.type)) events[row.type as EventType] = { this_week: Number(row.w1 ?? 0), last_week: Number(row.w0 ?? 0) };
+  const day = 24 * 60 * 60 * 1000;
+  const to = new Date();
+  return {
+    from: new Date(to.getTime() - 7 * day).toISOString().slice(0, 10),
+    to: to.toISOString().slice(0, 10),
+    events,
+    quizzes: {
+      this_week: Number(quizzes?.w1 ?? 0),
+      last_week: Number(quizzes?.w0 ?? 0),
+      completed_this_week: Number(quizzes?.ready ?? 0),
+      failed_this_week: Number(quizzes?.failed ?? 0),
+    },
+    subscribers: { this_week: Number(subs?.w1 ?? 0), last_week: Number(subs?.w0 ?? 0), total: Number(subs?.total ?? 0) },
+    top_clicked: topClicked.results,
+    top_products: topProducts.results,
+    top_viewed: topViewed.results,
+    referrers: referrers.results,
+    social: { posted_this_week: Number(social?.posted ?? 0), failed_this_week: Number(social?.failed ?? 0), queued: Number(social?.queued ?? 0) },
+    research: { notes: Number(research?.notes ?? 0), notes_this_week: Number(research?.fresh ?? 0) },
+  };
+}
+
 // ---------- related supplements, subscribers, content progress ----------
 
 /** Supplements of the same category (random order), falling back to random ones; never the supplement itself. */

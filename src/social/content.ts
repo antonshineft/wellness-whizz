@@ -11,7 +11,7 @@
  */
 import { POSTS, type BlogPost } from '../blog';
 import { getMeta, listSupplements, setMeta, type Supplement } from '../db';
-import { emailEnabled, sendEmail, type EmailEnv } from '../email';
+import { alertRecipient, sendEmail, type EmailEnv } from '../email';
 import { escapeHtml } from '../html';
 import { chatJson, useFakeAi, type AiEnv } from '../openai';
 import { pubmedUrl, unqueuedNotes } from '../research';
@@ -28,8 +28,6 @@ export interface SocialEnv extends AiEnv, XEnv, EmailEnv {
   X_POST_DAYS?: string;
   /** UTC hour of the post on a posting day (default 14: 16:00 in Madrid in summer, 10:00 in New York). */
   X_POST_HOUR_UTC?: string;
-  /** Where the "post failed" email goes (default: the address in EMAIL_FROM). */
-  ALERT_EMAIL?: string;
 }
 
 export interface SocialPost {
@@ -340,9 +338,7 @@ export async function postDue(env: SocialEnv): Promise<{ posted: string[]; faile
 
 /** One email per failed send, through Resend when it is configured; never throws. */
 async function alertFailure(env: SocialEnv, post: SocialPost, message: string, parked: boolean): Promise<void> {
-  if (!emailEnabled(env)) return;
-  const from = env.EMAIL_FROM ?? '';
-  const to = (env.ALERT_EMAIL ?? '').trim() || /<([^>]+)>/.exec(from)?.[1] || from.trim();
+  const to = alertRecipient(env);
   if (!to) return;
   const first = (() => {
     try {

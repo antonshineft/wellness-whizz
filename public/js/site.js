@@ -45,7 +45,6 @@
         say(/already/i.test(res.body.message || '') ? res.body.message : thanks, 'is-success');
         form.classList.add('is-done');
         if (input) input.value = '';
-        window.wwTrack({ type: 'subscribe', slug: form.getAttribute('data-source') || 'newsletter', page: window.location.pathname });
       })
       .catch(function () { say('Something went wrong. Please try again.', 'is-error'); if (button) button.disabled = false; });
   }, true);
