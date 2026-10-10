@@ -919,8 +919,9 @@ function isBot(request: Request): boolean {
 function externalReferrer(referer: string | undefined, ownUrl: string): string | null {
   if (!referer) return null;
   try {
+    const bare = (h: string) => h.replace(/^www\./, '');
     const host = new URL(referer).hostname;
-    return host && host !== new URL(ownUrl).hostname ? host.slice(0, 120) : null;
+    return host && bare(host) !== bare(new URL(ownUrl).hostname) ? host.slice(0, 120) : null;
   } catch {
     return null;
   }

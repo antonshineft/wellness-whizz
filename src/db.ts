@@ -600,6 +600,14 @@ export interface WeeklyNumbers {
   research: { notes: number; notes_this_week: number };
 }
 
+/** "blog:magnesium-glycinate-vs-citrate" (an article's buy button) reads as "Article: Magnesium glycinate vs citrate". */
+function readableRef(ref: string): string {
+  const m = /^blog:(.+)$/.exec(ref);
+  if (!m) return ref;
+  const words = m[1].replace(/-/g, ' ');
+  return `Article: ${words.charAt(0).toUpperCase()}${words.slice(1)}`;
+}
+
 /** The last seven days against the seven before them (the Monday report email, src/report.ts). */
 export async function weeklyNumbers(db: D1Database): Promise<WeeklyNumbers> {
   const [byType, quizzes, subs, topClicked, topProducts, topViewed, referrers, social, research] = await Promise.all([
@@ -681,7 +689,7 @@ export async function weeklyNumbers(db: D1Database): Promise<WeeklyNumbers> {
       failed_this_week: Number(quizzes?.failed ?? 0),
     },
     subscribers: { this_week: Number(subs?.w1 ?? 0), last_week: Number(subs?.w0 ?? 0), total: Number(subs?.total ?? 0) },
-    top_clicked: topClicked.results,
+    top_clicked: topClicked.results.map((r) => ({ ...r, name: readableRef(r.name) })),
     top_products: topProducts.results,
     top_viewed: topViewed.results,
     referrers: referrers.results,

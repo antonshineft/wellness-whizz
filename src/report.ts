@@ -52,7 +52,8 @@ export function weeklyReportEmail(origin: string, n: WeeklyNumbers, content: Con
   const period = `${longDate(n.from)} to ${longDate(n.to)}`;
   const conversion = n.quizzes.this_week ? Math.round((n.quizzes.completed_this_week / n.quizzes.this_week) * 100) : 0;
   const botNote = n.from < BOT_FILTER_SINCE ? `Crawlers and bots are left out of the counts since ${longDate(BOT_FILTER_SINCE)}; earlier days still include them, so the first comparisons overstate last week.` : 'Crawlers and bots are left out of the counts.';
-  const supplementUrl = (slug: string) => `${origin}/supplement/${slug}`;
+  /** Clicks are filed under the supplement slug, or "blog:<slug>" for an article's buy button. */
+  const supplementUrl = (slug: string) => (slug.startsWith('blog:') ? `${origin}/blog/${slug.slice(5)}` : `${origin}/supplement/${slug}`);
   const posts = `${n.social.posted_this_week} ${n.social.posted_this_week === 1 ? 'post' : 'posts'} went out this week`;
 
   // ----- text -----
