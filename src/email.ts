@@ -25,7 +25,8 @@ export function alertRecipient(env: EmailEnv): string | null {
   return (env.ALERT_EMAIL ?? '').trim() || /<([^>]+)>/.exec(from)?.[1] || from.trim() || null;
 }
 
-export async function sendEmail(env: EmailEnv, to: string, subject: string, html: string, text: string): Promise<void> {
+/** Sends through Resend and returns Resend's id for the message (null if the response carried none). */
+export async function sendEmail(env: EmailEnv, to: string, subject: string, html: string, text: string): Promise<string | null> {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${env.RESEND_API_KEY}` },
@@ -33,6 +34,18 @@ export async function sendEmail(env: EmailEnv, to: string, subject: string, html
     signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const body = (await res.json().catch(() => ({}))) as { id?: string };
+  return typeof body.id === 'string' ? body.id : null;
+}
+
+/** What became of a sent message, from Resend: last_event is sent, delivered, delivery_delayed, bounced or complained. */
+export async function emailStatus(env: EmailEnv, id: string): Promise<Record<string, unknown>> {
+  const res = await fetch(`https://api.resend.com/emails/${encodeURIComponent(id)}`, {
+    headers: { authorization: `Bearer ${env.RESEND_API_KEY}` },
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  return (await res.json()) as Record<string, unknown>;
 }
 
 /** The results email: the recommended supplements with a Buy on iHerb link each and a link back to the page. */

@@ -19,7 +19,7 @@ import { MIN_ARTICLE_LENGTH, generateArticle } from './content';
 import { generateFaqs } from './faq';
 import { generateSupplementImage, imageGenerationEnabled, loadImage, storeImage, supplementsNeedingImage } from './images';
 import { attachIherbProducts, supplementsWithoutPhotos } from './products';
-import { alertRecipient, emailEnabled, resultsEmail, sendEmail } from './email';
+import { alertRecipient, emailEnabled, emailStatus, resultsEmail, sendEmail } from './email';
 import { weeklyReportEmail } from './report';
 import { listResearchNotes, pruneAbstractlessNotes, repairNotes, researchBatch } from './research';
 import { renderResearchPage } from './render/research';
@@ -603,21 +603,29 @@ async function weeklyReport(env: Bindings): Promise<{ subject: string; html: str
   return weeklyReportEmail(siteOrigin(env), numbers, content);
 }
 
-/** Owner-only: the Monday numbers email as the cron would send it. ?format=html shows it; &send=1 sends it now. */
+/**
+ * Owner-only: the Monday numbers email as the cron would send it. ?format=html shows it; &send=1 sends it now;
+ * &status=1 asks Resend what became of the last one (delivered, bounced, ...).
+ */
 app.get('/api/admin/report', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   c.header('cache-control', 'no-store');
+  const last = parseMeta(await getMeta(c.env.DB, 'report:last')) as { id?: string } | null;
+  if (c.req.query('status') === '1') {
+    if (!last?.id) return c.json({ error: 'No report has been sent yet (or the last send has no Resend id).' }, 404);
+    return c.json({ last_sent: last, resend: await emailStatus(c.env, last.id) });
+  }
   const mail = await weeklyReport(c.env);
   const to = alertRecipient(c.env);
   if (c.req.query('send') === '1') {
     if (!to) return c.json({ error: 'Email is not configured (RESEND_API_KEY and EMAIL_FROM).' }, 400);
-    await sendEmail(c.env, to, mail.subject, mail.html, mail.text);
-    await setMeta(c.env.DB, 'report:last', JSON.stringify({ at: new Date().toISOString(), to, subject: mail.subject, manual: true }));
-    return c.json({ sent: true, to, subject: mail.subject });
+    const id = await sendEmail(c.env, to, mail.subject, mail.html, mail.text);
+    await setMeta(c.env.DB, 'report:last', JSON.stringify({ at: new Date().toISOString(), to, subject: mail.subject, id, manual: true }));
+    return c.json({ sent: true, to, subject: mail.subject, id });
   }
   if (c.req.query('format') === 'html') return c.html(mail.html);
-  return c.json({ to, subject: mail.subject, text: mail.text, last_sent: parseMeta(await getMeta(c.env.DB, 'report:last')) });
+  return c.json({ to, subject: mail.subject, text: mail.text, last_sent: last });
 });
 
 /** Write missing articles now (the cron does the same a few at a time). ?limit=N, default 3. */
@@ -731,8 +739,8 @@ export default {
             const to = alertRecipient(env);
             if (!to) return;
             const mail = await weeklyReport(env);
-            await sendEmail(env, to, mail.subject, mail.html, mail.text);
-            await setMeta(env.DB, 'report:last', JSON.stringify({ at: new Date().toISOString(), to, subject: mail.subject }));
+            const id = await sendEmail(env, to, mail.subject, mail.html, mail.text);
+            await setMeta(env.DB, 'report:last', JSON.stringify({ at: new Date().toISOString(), to, subject: mail.subject, id }));
             console.log(`weekly report sent to ${to}`);
           })
           .catch((err) => console.error(`weekly report failed: ${String(err)}`)),
