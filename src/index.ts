@@ -91,6 +91,7 @@ const AGES = ['<18', '18-25', '26-40', '41-65', '65+'];
 const ACTIVITIES = ['Sedentary', 'Lightly Active', 'Moderately Active', 'Very Active', 'Extra Active'];
 const SEXES = ['Female', 'Male'];
 const SESSION_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 /** A session still pending after this long has lost its Worker (client disconnected); it is marked failed. */
 const PENDING_TIMEOUT_MS = 4 * 60 * 1000;
 /** Event types the browser may report; page views and subscriptions are recorded server-side. */
@@ -518,7 +519,7 @@ app.post('/api/event', async (c) => {
 app.post('/api/subscribe', async (c) => {
   const body = await readJson(c.req.raw);
   const email = String(body.email ?? '').trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 254) return c.json({ error: 'Please enter a valid email address.' }, 400);
+  if (!EMAIL_RE.test(email) || email.length > 254) return c.json({ error: 'Please enter a valid email address.' }, 400);
   const source = body.source === 'results' ? 'results' : 'newsletter';
   const sessionId = typeof body.session_id === 'string' && SESSION_ID_RE.test(body.session_id) ? body.session_id : null;
   const ipHash = await hashIp(c.req.header('cf-connecting-ip') ?? '');
@@ -604,8 +605,8 @@ async function weeklyReport(env: Bindings): Promise<{ subject: string; html: str
 }
 
 /**
- * Owner-only: the Monday numbers email as the cron would send it. ?format=html shows it; &send=1 sends it now;
- * &status=1 asks Resend what became of the last one (delivered, bounced, ...).
+ * Owner-only: the Monday numbers email as the cron would send it. ?format=html shows it; &send=1 sends it now
+ * (&to=<address> to somewhere else); &status=1 asks Resend what became of the last one (needs a full-access key).
  */
 app.get('/api/admin/report', async (c) => {
   const denied = authorized(c);
@@ -622,7 +623,9 @@ app.get('/api/admin/report', async (c) => {
     }
   }
   const mail = await weeklyReport(c.env);
-  const to = alertRecipient(c.env);
+  // &to=<address> sends this one copy somewhere else (a colleague, or a delivery test); the cron keeps its address.
+  const override = (c.req.query('to') ?? '').trim().toLowerCase();
+  const to = (EMAIL_RE.test(override) ? override : null) ?? alertRecipient(c.env);
   if (c.req.query('send') === '1') {
     if (!to) return c.json({ error: 'Email is not configured (RESEND_API_KEY and EMAIL_FROM).' }, 400);
     const id = await sendEmail(c.env, to, mail.subject, mail.html, mail.text);
