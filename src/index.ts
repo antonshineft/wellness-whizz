@@ -614,7 +614,12 @@ app.get('/api/admin/report', async (c) => {
   const last = parseMeta(await getMeta(c.env.DB, 'report:last')) as { id?: string } | null;
   if (c.req.query('status') === '1') {
     if (!last?.id) return c.json({ error: 'No report has been sent yet (or the last send has no Resend id).' }, 404);
-    return c.json({ last_sent: last, resend: await emailStatus(c.env, last.id) });
+    try {
+      return c.json({ last_sent: last, resend: await emailStatus(c.env, last.id) });
+    } catch (err) {
+      // A "sending access" API key cannot read a message back; the Resend answer says so.
+      return c.json({ last_sent: last, error: String(err).slice(0, 300) }, 502);
+    }
   }
   const mail = await weeklyReport(c.env);
   const to = alertRecipient(c.env);
