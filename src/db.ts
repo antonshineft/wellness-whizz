@@ -228,11 +228,15 @@ const WEBFLOW_SUFFIX = /-[0-9a-f]{5}$/;
 export async function resolveSupplementSlug(db: D1Database, requested: string): Promise<string | null> {
   const clean = requested.toLowerCase();
   if (!/^[a-z0-9-]{1,100}$/.test(clean)) return null;
+  // No LIKE or GLOB here: D1 rejects patterns longer than 50 characters ("pattern too complex"), which the old
+  // GLOB with five [0-9a-f] classes hit for any slug of ten characters or more. Prefix and length are enough for
+  // the query; the hex suffix is checked in JavaScript.
   const { results } = await db
-    .prepare('SELECT slug FROM supplements WHERE slug GLOB ? LIMIT 2')
-    .bind(`${clean}-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]`)
+    .prepare('SELECT slug FROM supplements WHERE length(slug) = ? AND substr(slug, 1, ?) = ? LIMIT 3')
+    .bind(clean.length + 6, clean.length + 1, `${clean}-`)
     .all<{ slug: string }>();
-  if (results.length === 1) return results[0].slug;
+  const matches = results.filter((r) => WEBFLOW_SUFFIX.test(r.slug));
+  if (matches.length === 1) return matches[0].slug;
   if (WEBFLOW_SUFFIX.test(clean)) {
     const bare = clean.replace(WEBFLOW_SUFFIX, '');
     const row = await db.prepare('SELECT slug FROM supplements WHERE slug = ?').bind(bare).first<{ slug: string }>();
