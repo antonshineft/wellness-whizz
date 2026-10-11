@@ -322,6 +322,9 @@ function seoDescription(sup: Supplement): string {
   return text.slice(0, 300);
 }
 
+/** A word the giant hero heading cannot wrap ("Acetylcysteine") gets a smaller size (.heading--long in wellness-extras.css). */
+const longWord = (name: string) => name.split(/\s+/).some((w) => w.replace(/[()]/g, '').length > 11);
+
 /** Generated rich text sometimes contains <h1>; a page keeps one h1 (the supplement name), so inner ones become h2. */
 const demoteH1 = <T extends string | null | undefined>(html: T): T => (html ? (html.replace(/<(\/?)h1\b/gi, '<$1h2') as T) : html);
 
@@ -340,7 +343,7 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
     <div data-w-id="2841e5e2-b1d4-d414-f4f8-0c4efba35753" style="-webkit-transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-moz-transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-ms-transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);transform:translate3d(0, 34px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);opacity:0.4" class="frame-48">
       <div class="frame-49">
         <div data-w-id="2841e5e2-b1d4-d414-f4f8-0c4efba35755" style="opacity:0" class="mask-container">
-          <h1 class="heading">${escapeHtml(sup.name)}</h1>
+          <h1 class="heading${longWord(sup.name) ? ' heading--long' : ''}">${escapeHtml(sup.name)}</h1>
         </div>
         <div class="frame-50">
           <div class="frame-51">

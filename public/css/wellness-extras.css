@@ -493,3 +493,10 @@ img.ww-opaque { mix-blend-mode: multiply; }
   .ww-nav-link:last-child { border-bottom: none; margin-bottom: 6px; }
   .ww-nav-link:hover, .ww-nav-link:focus-visible { color: #56b06f; }
 }
+
+/* Supplement hero: a name with a word the 15.5ch heading cannot wrap (N-Acetylcysteine) is set smaller so it stays
+   inside the card instead of running over the summary. */
+.heading.heading--long { font-size: 9ch; overflow-wrap: anywhere; }
+@media screen and (max-width: 991px) { .heading.heading--long { font-size: 7ch; } }
+@media screen and (max-width: 767px) { .heading.heading--long { font-size: 8.5vw; } }
+@media screen and (max-width: 479px) { .heading.heading--long { font-size: 8.6vw; } }
