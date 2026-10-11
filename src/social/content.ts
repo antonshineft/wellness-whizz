@@ -74,7 +74,7 @@ function clampTweet(text: string, max = MAX_TWEET): string {
   return t;
 }
 
-async function enqueue(db: D1Database, kind: string, ref: string, tweets: string[], when: Date): Promise<void> {
+export async function enqueue(db: D1Database, kind: string, ref: string, tweets: string[], when: Date): Promise<void> {
   await db
     .prepare('INSERT INTO social_posts (channel, kind, ref, thread_json, scheduled_at) VALUES (?, ?, ?, ?, ?)')
     .bind('x', kind, ref, JSON.stringify(tweets.map((t) => clampTweet(t))), when.toISOString().slice(0, 19).replace('T', ' '))

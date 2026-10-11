@@ -16,15 +16,16 @@ import { Hono, type Context } from 'hono';
 import { POSTS, getPost, supplementSlugsUsed } from './blog';
 import { ensureDatabase } from './bootstrap';
 import { MIN_ARTICLE_LENGTH, generateArticle } from './content';
+import { generateSupplementProfile } from './openai';
 import { generateFaqs } from './faq';
 import { generateSupplementImage, imageGenerationEnabled, loadImage, storeImage, supplementsNeedingImage } from './images';
 import { attachIherbProducts, supplementsWithoutPhotos } from './products';
 import { alertRecipient, emailEnabled, emailStatus, resultsEmail, sendEmail } from './email';
 import { weeklyReportEmail } from './report';
-import { listResearchNotes, pruneAbstractlessNotes, repairNotes, researchBatch } from './research';
+import { fileNote, listResearchNotes, pruneAbstractlessNotes, pubmedUrl, repairNotes, researchBatch, type NoteOverrides } from './research';
 import { renderResearchPage } from './render/research';
 import { renderSupplementsIndex } from './render/supplements-index';
-import { buildQueue, listSocialPosts, postDue, postingPlan, sendState, setSocialStatus, siteOrigin } from './social/content';
+import { buildQueue, enqueue, listSocialPosts, postDue, postingPlan, sendState, setSocialStatus, siteOrigin } from './social/content';
 import { xEnabled } from './social/x';
 import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
@@ -32,7 +33,7 @@ import {
   resolveSupplementSlug, statsSummary, supplementsNeedingContent, updateSupplementContent, type EventInput,
   type EventType, type QuizProfile, countSupplements, getSupplementsBySlugs, listSupplementSlugs,
   addSubscriber, contentProgress, countRecentSubscriptions, getMeta, listSubscribers, markSubscriberSent, relatedSupplements, setMeta, weeklyNumbers,
-  countSupplementsNeedingFaqs, supplementsNeedingFaqs, updateSupplementFaqs,
+  countSupplementsNeedingFaqs, supplementsNeedingFaqs, updateSupplementFaqs, CATEGORIES, asFormType, insertSupplement, getSupplementByNameKey, normalizeNameKey,
 } from './db';
 import { runQuizPipeline } from './pipeline';
 import { renderBlogIndex, renderBlogPost } from './render/blog';
@@ -634,6 +635,68 @@ app.get('/api/admin/report', async (c) => {
   }
   if (c.req.query('format') === 'html') return c.html(mail.html);
   return c.json({ to, subject: mail.subject, text: mail.text, last_sent: last });
+});
+
+/**
+ * Owner-only: add a supplement by name (the quiz pipeline's profile writer, then iHerb products). The article, FAQ and
+ * photo backfills pick it up on their next runs. ?name=Glycine&category=Amino%20Acid&form=powder
+ */
+app.get('/api/admin/supplement', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  c.header('cache-control', 'no-store');
+  const name = (c.req.query('name') ?? '').trim();
+  if (name.length < 2 || name.length > 80) return c.json({ error: 'name (2-80 characters) is required' }, 400);
+  const category = CATEGORIES.includes(c.req.query('category') ?? '') ? (c.req.query('category') as string) : 'Other';
+  const rec = { name, category, form_type: asFormType(c.req.query('form')), reason: '' };
+  const before = await getSupplementByNameKey(c.env.DB, normalizeNameKey(name));
+  if (before) return c.json({ created: false, slug: before.slug, name: before.name, category: before.category, page: `${siteOrigin(c.env)}/supplement/${before.slug}` });
+  const sup = await insertSupplement(c.env.DB, await generateSupplementProfile(c.env, rec), 'ai');
+  let products = 0;
+  try {
+    products = await attachIherbProducts(c.env, sup);
+  } catch (err) {
+    console.error(`iHerb products for ${sup.slug} failed: ${String(err)}`);
+  }
+  return c.json({ created: true, slug: sup.slug, name: sup.name, category: sup.category, products, page: `${siteOrigin(c.env)}/supplement/${sup.slug}` });
+});
+
+/**
+ * Owner-only: file one PubMed paper as a research note under a supplement. GET ?pmid=…&slug=… lets the model draft it
+ * from the abstract; POST with a JSON body {pmid, slug, summary, takeaway, tweet, title?, journal?, pub_date?,
+ * pub_type?} files the given text. &queue=1 (or "queue": true) also queues the X post now; &post=<blog slug> makes
+ * that post link the article instead of the supplement profile.
+ */
+app.on(['GET', 'POST'], '/api/admin/note', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  c.header('cache-control', 'no-store');
+  const body = c.req.method === 'POST' ? await readJson(c.req.raw) : {};
+  const param = (k: string) => {
+    const v = body[k] ?? c.req.query(k);
+    return typeof v === 'string' ? v.trim() : '';
+  };
+  const pmid = param('pmid').replace(/\D/g, '');
+  const slug = param('slug');
+  if (!pmid || !slug) return c.json({ error: 'pmid and slug are required' }, 400);
+  const sup = (await getSupplementBySlug(c.env.DB, slug)) ?? (await getSupplementBySlug(c.env.DB, (await resolveSupplementSlug(c.env.DB, slug)) ?? ''));
+  if (!sup) return c.json({ error: `No supplement with slug ${slug}` }, 404);
+  const overrides: NoteOverrides = {};
+  for (const k of ['summary', 'takeaway', 'tweet', 'title', 'journal', 'pub_date', 'pub_type'] as const) if (param(k)) overrides[k] = param(k);
+  const result = await fileNote(c.env, sup, pmid, overrides);
+  const queue = param('queue') === '1' || body.queue === true;
+  let queued: string | null = null;
+  if (queue) {
+    const already = await c.env.DB.prepare("SELECT 1 AS x FROM social_posts WHERE kind = 'research' AND ref = ? AND status IN ('queued', 'posted')").bind(pmid).first();
+    if (!already) {
+      const postSlug = param('post');
+      const link = postSlug && getPost(postSlug) ? `Our write-up: ${siteOrigin(c.env)}/blog/${postSlug}` : `Our ${sup.name} profile: ${siteOrigin(c.env)}/supplement/${sup.slug}`;
+      queued = `${(result.note.tweet ?? '').trim()} Study: ${pubmedUrl(pmid)} ${link}`;
+      await enqueue(c.env.DB, 'research', pmid, [queued], new Date());
+      await c.env.DB.prepare('UPDATE research_notes SET queued = 1 WHERE pmid = ?').bind(pmid).run();
+    }
+  }
+  return c.json({ added: result.added, supplement: sup.slug, note: result.note, queued, page: `${siteOrigin(c.env)}/research` });
 });
 
 /** Write missing articles now (the cron does the same a few at a time). ?limit=N, default 3. */

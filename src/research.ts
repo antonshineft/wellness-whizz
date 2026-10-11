@@ -169,6 +169,46 @@ export async function insertNote(db: D1Database, sup: Supplement, s: PubmedSumma
   return (result.meta?.changes ?? 0) > 0;
 }
 
+/** Text the owner supplies for a note instead of the model's draft (the admin endpoint); any field left out is drafted. */
+export interface NoteOverrides {
+  summary?: string;
+  takeaway?: string;
+  tweet?: string;
+  title?: string;
+  journal?: string;
+  pub_date?: string;
+  pub_type?: string;
+}
+
+/**
+ * File one paper under one supplement by PubMed id (the admin endpoint). The title, journal, date and type come from
+ * PubMed unless given; the summary, takeaway and tweet come from the model unless given. Returns false when a note
+ * for that PMID already exists.
+ */
+export async function fileNote(env: ResearchEnv, sup: Supplement, pmid: string, overrides: NoteOverrides = {}): Promise<{ added: boolean; note: NoteOverrides }> {
+  const id = pmid.replace(/\D/g, '');
+  if (!id) throw new Error('A numeric PubMed id is needed');
+  const given = overrides.title && overrides.journal && overrides.pub_date && overrides.pub_type;
+  const meta: PubmedSummary = given
+    ? { uid: id, title: overrides.title!, fulljournalname: overrides.journal, pubdate: overrides.pub_date, pubtype: overrides.pub_type!.split(/,\s*/) }
+    : (await pubmedSummaries(env, [id]))[0];
+  if (!meta) throw new Error(`PubMed has no record for ${id}`);
+  let draft: NoteDraft;
+  if (overrides.summary && overrides.takeaway && overrides.tweet) {
+    draft = { relevant: true, summary: overrides.summary, takeaway: overrides.takeaway, tweet: overrides.tweet };
+  } else {
+    const article = await pubmedArticle(env, id);
+    if (!meta.pubtype?.length && article.pubTypes.length) meta.pubtype = article.pubTypes;
+    draft = await draftNote(env, sup, meta, article.abstract);
+    draft = { ...draft, summary: overrides.summary ?? draft.summary, takeaway: overrides.takeaway ?? draft.takeaway, tweet: overrides.tweet ?? draft.tweet };
+  }
+  const added = await insertNote(env.DB, sup, meta, draft);
+  return {
+    added,
+    note: { title: meta.title, journal: meta.fulljournalname || meta.source || '', pub_date: meta.pubdate || '', pub_type: (meta.pubtype || []).join(', '), summary: draft.summary, takeaway: draft.takeaway, tweet: draft.tweet },
+  };
+}
+
 /** Look for new papers about up to `batch` supplements (cursor in meta so the catalogue is cycled weekly). */
 export async function researchBatch(env: ResearchEnv, supplements: Supplement[], batch: number): Promise<{ checked: string[]; added: string[]; failed: string[] }> {
   const checked: string[] = [];

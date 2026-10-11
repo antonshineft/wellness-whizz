@@ -135,6 +135,13 @@ is left; afterwards each run is a single cheap database query. Each article come
 `BACKFILL_BATCH` to `0` to switch it off.
 
 - `GET /api/admin/backfill?key=<STATS_KEY>&limit=5` writes up to 5 articles right now and reports what is left.
+- `GET /api/admin/supplement?key=<STATS_KEY>&name=Glycine&category=Amino%20Acid&form=powder` adds a supplement by
+  name: the quiz pipeline's profile writer creates the row, iHerb products are attached, and the article, FAQ and
+  photo backfills complete it on their next runs. An existing name is returned, not duplicated.
+- `GET /api/admin/note?key=<STATS_KEY>&pmid=35975308&slug=glycine` files one PubMed paper as a research note under a
+  supplement (the model drafts the summary from the abstract); `POST` the same with a JSON body carrying `summary`,
+  `takeaway` and `tweet` (and optionally `title`, `journal`, `pub_date`, `pub_type`) to file your own text.
+  `&queue=1` also queues the X post right away, and `&post=<blog slug>` makes it link that article.
 - `GET /api/admin/export?key=<STATS_KEY>` downloads the whole catalogue in the shape of `data/supplements.json`;
   save it over that file and commit to carry AI-written content into the repository (bundled text never overwrites
   content the database already has when the bundle's field is empty).

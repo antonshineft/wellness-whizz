@@ -8,6 +8,7 @@ import caseinVsWhey from './posts/casein-vs-whey-protein';
 import citrullineVsCitrullineMalate from './posts/citrulline-vs-citrulline-malate';
 import coq10VsUbiquinol from './posts/coq10-vs-ubiquinol';
 import creatineMonohydrateVsHcl from './posts/creatine-monohydrate-vs-hcl';
+import glynacAgingTrial from './posts/glynac-glycine-nac-aging-trial';
 import magnesiumForms from './posts/magnesium-forms';
 import omega3Guide from './posts/omega-3-guide';
 import supplementsForEnergyAndFocus from './posts/supplements-for-energy-and-focus';
@@ -20,6 +21,7 @@ import zincPicolinateVsGluconate from './posts/zinc-picolinate-vs-zinc-gluconate
 export type { BlogPost } from './types';
 
 export const POSTS: readonly BlogPost[] = [
+  glynacAgingTrial,
   bestVitaminsForWomen,
   bestSupplementsForAnxiety,
   bestSupplementsForEyeHealth,
