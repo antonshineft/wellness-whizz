@@ -802,7 +802,7 @@ export default {
       );
       return;
     }
-    if (event.cron === '0 7 * * 1') {
+    if (event.cron === '0 7 * * MON') {
       // Monday morning: the week's numbers by email to the owner (src/report.ts); skipped quietly without Resend.
       ctx.waitUntil(
         ensureDatabase(env.DB)
