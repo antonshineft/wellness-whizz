@@ -42,6 +42,7 @@ export function page(opts: PageOptions): string {
   <script type="text/javascript">!function(o,c){var n=c.documentElement,t=" w-mod-";n.className+=t+"js",("ontouchstart"in o||o.DocumentTouch&&c instanceof DocumentTouch)&&(n.className+=t+"touch")}(window,document);</script>
   <link href="/images/favicon.png" rel="shortcut icon" type="image/x-icon">
   <link href="/images/webclip.png" rel="apple-touch-icon">
+  <link href="/feed.xml" rel="alternate" type="application/rss+xml" title="Wellness Whizz: articles and research notes">
   <script async src="https://www.googletagmanager.com/gtag/js?id=AW-11471478571"></script>
   <script>window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'AW-11471478571');</script>
 ${opts.head ?? ''}

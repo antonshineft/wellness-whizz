@@ -62,7 +62,7 @@ export async function generateSupplementImage(env: ImageEnv, sup: Supplement): P
   const key = `supplement-${sup.slug}`;
   await storeImage(env.DB, key, 'image/webp', bytes);
   const path = `/images/generated/${key}.webp`;
-  await env.DB.prepare('UPDATE supplements SET image = ? WHERE id = ?').bind(path, sup.id).run();
+  await env.DB.prepare("UPDATE supplements SET image = ?, updated_at = datetime('now') WHERE id = ?").bind(path, sup.id).run();
   return path;
 }
 

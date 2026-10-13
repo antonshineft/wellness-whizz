@@ -263,13 +263,6 @@ export async function countSupplements(db: D1Database): Promise<number> {
 }
 
 /** Slugs and creation dates of the whole catalogue (sitemap). */
-export async function listSupplementSlugs(db: D1Database, curatedOnly = false): Promise<{ slug: string; created_at: string }[]> {
-  const { results } = await db
-    .prepare(`SELECT slug, created_at FROM supplements${curatedOnly ? " WHERE source = 'cms'" : ''} ORDER BY name`)
-    .all<{ slug: string; created_at: string }>();
-  return results;
-}
-
 export async function getSupplementByNameKey(db: D1Database, key: string): Promise<Supplement | null> {
   const row = await db.prepare(`SELECT ${SUPPLEMENT_COLUMNS} FROM supplements WHERE name_key = ?`).bind(key).first<SupplementRow>();
   return row ? rowToSupplement(row) : null;
@@ -468,7 +461,8 @@ export async function updateSupplementContent(
     .prepare(
       `UPDATE supplements SET
          holistic_html = CASE WHEN ? != '' THEN ? ELSE holistic_html END,
-         studies_html = CASE WHEN studies_html = '' AND ? != '' THEN ? ELSE studies_html END
+         studies_html = CASE WHEN studies_html = '' AND ? != '' THEN ? ELSE studies_html END,
+         updated_at = datetime('now')
        WHERE id = ?`,
     )
     .bind(content.holistic_html ?? '', content.holistic_html ?? '', content.studies_html ?? '', content.studies_html ?? '', id)
@@ -492,7 +486,7 @@ export async function countSupplementsNeedingFaqs(db: D1Database): Promise<numbe
 }
 
 export async function updateSupplementFaqs(db: D1Database, id: number, faqs: Faq[]): Promise<void> {
-  await db.prepare('UPDATE supplements SET faq_json = ? WHERE id = ?').bind(JSON.stringify(faqs), id).run();
+  await db.prepare("UPDATE supplements SET faq_json = ?, updated_at = datetime('now') WHERE id = ?").bind(JSON.stringify(faqs), id).run();
 }
 
 /** Everything in the catalogue, for exporting back into data/supplements.json. */

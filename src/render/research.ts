@@ -44,7 +44,7 @@ export function renderResearchPage(notes: ResearchNote[], origin: string): strin
     ? notes
         .map(
           (n) => `
-        <article class="ww-note" data-category="${escapeHtml(slugify((n.supplement_category ?? '').trim() || 'Other'))}" data-types="${escapeHtml(studyTypes(n).join(' '))}">
+        <article class="ww-note" id="pmid-${escapeHtml(n.pmid)}" data-category="${escapeHtml(slugify((n.supplement_category ?? '').trim() || 'Other'))}" data-types="${escapeHtml(studyTypes(n).join(' '))}">
           <div class="ww-note-meta"><a class="ww-tag" href="/supplement/${escapeHtml(n.supplement_slug ?? '')}">${escapeHtml(n.supplement_name ?? '')}</a><span>${noteLabel(n)}</span>${n.pub_type ? `<span>${escapeHtml(n.pub_type)}</span>` : ''}</div>
           <h2><a href="${escapeHtml(pubmedUrl(n.pmid))}" target="_blank" rel="noopener">${escapeHtml(n.title)}</a></h2>
           <p>${escapeHtml(n.summary)}</p>

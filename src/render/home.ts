@@ -29,7 +29,7 @@ export async function renderHome(
     // The home page answers on several URLs (query strings, the old index.html); one canonical for all of them.
     .on('head', {
       element(el) {
-        el.append(`<link rel="canonical" href="${blogCtx.origin}/">`, { html: true });
+        el.append(`<link rel="canonical" href="${blogCtx.origin}/">` + '<link href="/feed.xml" rel="alternate" type="application/rss+xml" title="Wellness Whizz: articles and research notes">', { html: true });
       },
     })
     .on('.ww-carousel-track', {

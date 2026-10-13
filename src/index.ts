@@ -11,6 +11,7 @@
  *   GET  /api/admin/report the Monday numbers email (preview; &send=1 sends it now)
  *   /result/:id            personalised results page
  *   /supplement/:slug      supplement detail page
+ *   /sitemap.xml /feed.xml  for search engines and feed readers (src/indexing.ts; the hourly cron pings IndexNow and WebSub)
  */
 import { Hono, type Context } from 'hono';
 import { POSTS, getPost, supplementSlugsUsed } from './blog';
@@ -23,6 +24,7 @@ import { attachIherbProducts, supplementsWithoutPhotos } from './products';
 import { alertRecipient, emailEnabled, emailStatus, resultsEmail, sendEmail } from './email';
 import { weeklyReportEmail } from './report';
 import { fileNote, listResearchNotes, pruneAbstractlessNotes, pubmedUrl, repairNotes, researchBatch, type NoteOverrides } from './research';
+import { feedXml, indexSync, renderSitemap, sitemapEntries } from './indexing';
 import { renderResearchPage } from './render/research';
 import { renderSupplementsIndex } from './render/supplements-index';
 import { buildQueue, enqueue, listSocialPosts, postDue, postingPlan, sendState, setSocialStatus, siteOrigin } from './social/content';
@@ -31,7 +33,7 @@ import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
   getSessionResults, getSupplementBySlug, listSupplements, logEvent, markSession, mergeDuplicateSupplements,
   resolveSupplementSlug, statsSummary, supplementsNeedingContent, updateSupplementContent, type EventInput,
-  type EventType, type QuizProfile, countSupplements, getSupplementsBySlugs, listSupplementSlugs,
+  type EventType, type QuizProfile, countSupplements, getSupplementsBySlugs,
   addSubscriber, contentProgress, countRecentSubscriptions, getMeta, listSubscribers, markSubscriberSent, relatedSupplements, setMeta, weeklyNumbers,
   countSupplementsNeedingFaqs, supplementsNeedingFaqs, updateSupplementFaqs, CATEGORIES, asFormType, insertSupplement, getSupplementByNameKey, normalizeNameKey,
 } from './db';
@@ -83,6 +85,9 @@ export interface Bindings {
   RESEND_API_KEY?: string;
   EMAIL_FROM?: string;
   IMAGE_MODEL?: string;
+  /** IndexNow key (32 hex characters, served as /<key>.txt); INDEXNOW="false" switches the search-engine pings off. */
+  INDEXNOW_KEY?: string;
+  INDEXNOW?: string;
 }
 
 type AppContext = { Bindings: Bindings };
@@ -394,29 +399,15 @@ app.get('/api/admin/social', async (c) => {
 });
 
 app.get('/sitemap.xml', async (c) => {
-  const origin = new URL(c.req.url).origin;
-  const supplements = await listSupplementSlugs(c.env.DB, curatedOnly(c.env));
-  const urls: { loc: string; lastmod?: string; priority: string }[] = [
-    { loc: '/', priority: '1.0' },
-    { loc: '/wellness-quiz', priority: '0.9' },
-    { loc: '/blog', priority: '0.8' },
-    { loc: '/supplements', priority: '0.8' },
-    { loc: '/research', priority: '0.7' },
-    { loc: '/how-it-works', priority: '0.6' },
-    { loc: '/terms', priority: '0.2' },
-    ...POSTS.map((p) => ({ loc: `/blog/${p.slug}`, lastmod: p.date, priority: '0.8' })),
-    ...supplements.map((s) => ({ loc: `/supplement/${s.slug}`, lastmod: s.created_at.slice(0, 10), priority: '0.7' })),
-  ];
-  const xml =
-    '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-    urls
-      .map(
-        (u) =>
-          `  <url><loc>${origin}${u.loc}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ''}<priority>${u.priority}</priority></url>`,
-      )
-      .join('\n') +
-    '\n</urlset>\n';
+  const entries = await sitemapEntries(c.env.DB, curatedOnly(c.env));
+  const xml = renderSitemap(new URL(c.req.url).origin, entries);
   return c.body(xml, 200, { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' });
+});
+
+/** RSS feed of the articles and research notes; every page's <head> links it and the hourly cron announces changes to Google's WebSub hub. */
+app.get('/feed.xml', async (c) => {
+  const xml = await feedXml(c.env.DB, new URL(c.req.url).origin);
+  return c.body(xml, 200, { 'content-type': 'application/rss+xml; charset=utf-8', 'cache-control': 'public, max-age=600' });
 });
 
 // ---------- API ----------
@@ -573,13 +564,14 @@ app.get('/api/stats', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   c.header('cache-control', 'no-store');
-  const [stats, content, lastCron, lastSocial, lastResearch, lastReport] = await Promise.all([
+  const [stats, content, lastCron, lastSocial, lastResearch, lastReport, lastIndexing] = await Promise.all([
     statsSummary(c.env.DB),
     contentProgress(c.env.DB, MIN_ARTICLE_LENGTH),
     getMeta(c.env.DB, 'cron:last'),
     getMeta(c.env.DB, 'social:last'),
     getMeta(c.env.DB, 'research:last'),
     getMeta(c.env.DB, 'report:last'),
+    getMeta(c.env.DB, 'indexing:last'),
   ]);
   return c.json({
     ...stats,
@@ -587,6 +579,7 @@ app.get('/api/stats', async (c) => {
     social: { last_run: parseMeta(lastSocial) },
     research: { last_run: parseMeta(lastResearch) },
     report: { last_sent: parseMeta(lastReport) },
+    indexing: { last_submission: parseMeta(lastIndexing) },
   });
 });
 
@@ -699,6 +692,20 @@ app.on(['GET', 'POST'], '/api/admin/note', async (c) => {
   return c.json({ added: result.added, supplement: sup.slug, note: result.note, queued, page: `${siteOrigin(c.env)}/research` });
 });
 
+/**
+ * Owner-only: tell the search engines about changed pages now (the hourly cron does the same). Without parameters
+ * only what changed since the last run is submitted; &all=1 submits every page in the sitemap, &urls=/a,/b adds
+ * specific paths, &dry=1 shows the list without sending or recording anything.
+ */
+app.get('/api/admin/indexnow', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  c.header('cache-control', 'no-store');
+  const paths = (c.req.query('urls') ?? '').split(',').map((p) => p.trim()).filter(Boolean);
+  const result = await indexSync(c.env, { all: c.req.query('all') === '1', dry: c.req.query('dry') === '1', paths, curatedOnly: curatedOnly(c.env) });
+  return c.json(result);
+});
+
 /** Write missing articles now (the cron does the same a few at a time). ?limit=N, default 3. */
 app.get('/api/admin/backfill', async (c) => {
   const denied = authorized(c);
@@ -797,6 +804,9 @@ export default {
             const result = await postDue(env);
             if (result.posted.length || result.failed.length) console.log(`social: ${JSON.stringify(result)}`);
             await setMeta(env.DB, 'social:last', JSON.stringify({ at: new Date().toISOString(), ...result, repaired, research }));
+            // New or changed pages since the last hour go to the IndexNow engines; a changed feed is announced to WebSub.
+            const indexed = await indexSync(env, { curatedOnly: curatedOnly(env) });
+            if (indexed.paths.length) console.log(`indexing: ${JSON.stringify(indexed)}`);
           })
           .catch((err) => console.error(`social failed: ${String(err)}`)),
       );

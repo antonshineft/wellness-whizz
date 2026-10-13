@@ -269,10 +269,24 @@ address, and what the last hourly run did or why it skipped (for example `X keys
   it is (five questions, goals in the user's own words) rather than promising checks it does not make.
 - On phones and tablets the header menu lists Take the quiz, Supplements, Blog, Research and How it works above the
   social icons (`.ww-nav-links`, hidden on desktop where the header stays minimal).
-- `/sitemap.xml` lists the pages, the articles and every supplement page; `/robots.txt` (served by the Worker, with an
-  absolute sitemap URL) points search engines at it and `/llms.txt` gives AI assistants a plain-text map of the site.
+- `/sitemap.xml` lists the pages, the articles and every supplement page with the date each last changed (Google
+  reads `lastmod` and ignores `priority`; static pages carry no date, supplement pages carry their last content
+  change, the lists carry their newest item); `/robots.txt` (served by the Worker, with an absolute sitemap URL)
+  points search engines at it and `/llms.txt` gives AI assistants a plain-text map of the site.
   Note: Cloudflare's "managed robots.txt" / "block AI bots" settings prepend their own rules to robots.txt; turn
   them off in the dashboard (Security → Settings) if AI crawlers should be allowed in.
+- `/feed.xml` is an RSS feed of the articles and the research notes (every page's `<head>` links it); it names
+  Google's WebSub hub, and the Worker announces each change to that hub so feed fetchers come straight away.
+- Telling search engines about new pages (`src/indexing.ts`): every hour the Worker works out which pages changed
+  (new or updated supplement pages, new articles, new research notes) and submits them to IndexNow, which feeds
+  Bing, Yandex, Naver, Seznam and, through Bing, DuckDuckGo and ChatGPT search. Google does not take part in
+  IndexNow: for Google, request indexing of important pages in Search Console and keep the sitemap submitted there.
+  The key in `INDEXNOW_KEY` (`wrangler.jsonc`) is public by design and is also served as `/<key>.txt`
+  (`public/<key>.txt`); `INDEXNOW=false` switches the pings off (set in `.dev.vars` for local work).
+  `GET /api/admin/indexnow?key=<STATS_KEY>` submits what changed now, `&all=1` resubmits every page in the sitemap,
+  `&urls=/a,/b` adds specific paths and `&dry=1` only shows the list. `/api/stats` reports the last submission.
+  Create a free Bing Webmaster Tools account (it imports the site from Google Search Console in one click) to see
+  the submissions arrive.
 - Plain `http://` requests and `www.` are redirected (301) to `https://` on the canonical host, and every response
   carries `Strict-Transport-Security` and `X-Content-Type-Options` (Worker middleware in `src/index.ts`; `public/_headers`
   for static assets).

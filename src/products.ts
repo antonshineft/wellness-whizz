@@ -115,7 +115,7 @@ export async function attachIherbProducts(env: LinkEnv & { DB: D1Database }, sup
   if (!products.some((p) => p.image)) return 0;
   const kept = sup.products.filter((p) => p.image);
   const merged = [...kept, ...products.filter((p) => !kept.some((k) => k.name.toLowerCase() === p.name.toLowerCase()))].slice(0, 5);
-  await env.DB.prepare('UPDATE supplements SET products_json = ? WHERE id = ?').bind(JSON.stringify(merged), sup.id).run();
+  await env.DB.prepare("UPDATE supplements SET products_json = ?, updated_at = datetime('now') WHERE id = ?").bind(JSON.stringify(merged), sup.id).run();
   return products.filter((p) => p.image).length;
 }
 

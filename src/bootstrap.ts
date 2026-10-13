@@ -52,6 +52,8 @@ const TABLES = ['supplements', 'sessions', 'session_supplements', 'meta', 'event
 const LATER_COLUMNS: [table: string, column: string, definition: string][] = [
   ['supplements', 'image', "TEXT NOT NULL DEFAULT ''"],
   ['supplements', 'faq_json', "TEXT NOT NULL DEFAULT ''"],
+  // Last content change (src/indexing.ts reads it for the sitemap and the search-engine pings).
+  ['supplements', 'updated_at', "TEXT NOT NULL DEFAULT ''"],
 ];
 let ready: Promise<void> | null = null;
 
@@ -167,8 +169,16 @@ const assignment = (c: string) => {
   if (c === 'products_json') return `${c} = CASE WHEN excluded.${c} NOT IN ('', '[]') THEN excluded.${c} ELSE supplements.${c} END`;
   return `${c} = excluded.${c}`;
 };
-const UPDATE_BY_NAME = COLUMNS.filter((c) => c !== 'name_key' && c !== 'slug').map(assignment).join(', ');
-const UPDATE_BY_SLUG = COLUMNS.filter((c) => c !== 'slug').map(assignment).join(', ');
+// A refreshed row is stamped updated_at only when a field really changes, so sitemap dates stay honest.
+const changed = (c: string) => {
+  if (KEEP_IF_BUNDLE_EMPTY.has(c)) return `(excluded.${c} != '' AND excluded.${c} IS NOT supplements.${c})`;
+  if (c === 'products_json') return `(excluded.${c} NOT IN ('', '[]') AND excluded.${c} IS NOT supplements.${c})`;
+  return `excluded.${c} IS NOT supplements.${c}`;
+};
+const stamp = (skip: string[]) =>
+  `updated_at = CASE WHEN ${COLUMNS.filter((c) => !skip.includes(c)).map(changed).join(' OR ')} THEN datetime('now') ELSE supplements.updated_at END`;
+const UPDATE_BY_NAME = [...COLUMNS.filter((c) => c !== 'name_key' && c !== 'slug').map(assignment), stamp(['name_key', 'slug', 'source'])].join(', ');
+const UPDATE_BY_SLUG = [...COLUMNS.filter((c) => c !== 'slug').map(assignment), stamp(['slug', 'source'])].join(', ');
 const UPSERT_SQL =
   `INSERT INTO supplements (${COLUMNS.join(', ')}) VALUES (${COLUMNS.map(() => '?').join(', ')}) ` +
   `ON CONFLICT(name_key) DO UPDATE SET ${UPDATE_BY_NAME} ON CONFLICT(slug) DO UPDATE SET ${UPDATE_BY_SLUG}`;
