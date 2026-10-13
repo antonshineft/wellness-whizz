@@ -48,7 +48,9 @@ export interface IndexSyncResult {
   paths: string[];
   feedChanged: boolean;
   dry: boolean;
-  indexnow: { enabled: boolean; status: number | null; endpoint?: string; error?: string } | null;
+  indexnow: { enabled: boolean; status: number | null; endpoint?: string; error?: string; attempts?: { endpoint: string; status: number | null }[] } | null;
+  /** Paths (and a feed announcement) carried over to the next run because no endpoint accepted them this time. */
+  pending: number;
   websub: { status: number | null; error?: string } | null;
 }
 
@@ -59,7 +61,13 @@ interface SyncState {
   posts: string[];
   /** Research notes with a summary at the previous run (the feed and /research change when it moves). */
   notes: number;
+  /** Submissions no endpoint accepted yet; retried on the next run (the shared IndexNow endpoints rate-limit by IP). */
+  pending?: string[];
+  pendingFeed?: boolean;
 }
+
+/** How many unsent paths are carried over before the oldest are dropped. */
+const PENDING_LIMIT = 2000;
 
 export function indexingEnabled(env: IndexingEnv): boolean {
   return env.INDEXNOW !== 'false' && KEY_RE.test((env.INDEXNOW_KEY ?? '').trim());
@@ -216,17 +224,20 @@ async function submitIndexNow(env: IndexingEnv, paths: string[]): Promise<IndexS
   const site = origin(env);
   const key = (env.INDEXNOW_KEY ?? '').trim();
   const body = JSON.stringify({ host: new URL(site).host, key, keyLocation: `${site}/${key}.txt`, urlList: paths.slice(0, 10000).map((p) => site + p) });
+  const attempts: { endpoint: string; status: number | null }[] = [];
   let last: IndexSyncResult['indexnow'] = { enabled: true, status: null };
   for (const endpoint of INDEXNOW_ENDPOINTS) {
     try {
       const res = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json; charset=utf-8' }, body });
+      attempts.push({ endpoint, status: res.status });
       // 200 and 202 both mean accepted (202 while the key file has not been verified yet).
-      if (res.status === 200 || res.status === 202) return { enabled: true, status: res.status, endpoint };
-      last = { enabled: true, status: res.status, endpoint, error: (await res.text()).slice(0, 200) };
-      // Anything but rate limiting is about the key or the payload and will not improve at another endpoint.
-      if (res.status !== 429) return last;
+      if (res.status === 200 || res.status === 202) return { enabled: true, status: res.status, endpoint, attempts };
+      last = { enabled: true, status: res.status, endpoint, error: (await res.text()).slice(0, 200), attempts };
+      // A 4xx other than rate limiting is about the key or the payload and will not improve at another endpoint.
+      if (res.status >= 400 && res.status < 500 && res.status !== 429) return last;
     } catch (err) {
-      last = { enabled: true, status: null, endpoint, error: String(err).slice(0, 200) };
+      attempts.push({ endpoint, status: null });
+      last = { enabled: true, status: null, endpoint, error: String(err).slice(0, 200), attempts };
     }
   }
   return last;
@@ -248,7 +259,13 @@ async function loadState(db: D1Database): Promise<SyncState | null> {
     const raw = await getMeta(db, STATE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<SyncState>;
-    return { since: String(parsed.since ?? ''), posts: Array.isArray(parsed.posts) ? parsed.posts.map(String) : [], notes: Number(parsed.notes ?? 0) || 0 };
+    return {
+      since: String(parsed.since ?? ''),
+      posts: Array.isArray(parsed.posts) ? parsed.posts.map(String) : [],
+      notes: Number(parsed.notes ?? 0) || 0,
+      pending: Array.isArray(parsed.pending) ? parsed.pending.map(String) : [],
+      pendingFeed: Boolean(parsed.pendingFeed),
+    };
   } catch {
     return null;
   }
@@ -307,15 +324,23 @@ export async function indexSync(env: IndexingEnv, opts: IndexSyncOptions = {}): 
     }
   }
   for (const p of opts.paths ?? []) if (/^\/[A-Za-z0-9/_.%-]*$/.test(p)) paths.add(p);
+  // What the previous runs could not deliver comes along; the oldest entries are dropped past the limit.
+  const carried = state?.pending ?? [];
+  for (const p of carried) paths.add(p);
+  if (state?.pendingFeed) feedChanged = true;
   if (feedChanged) paths.add(FEED_PATH);
 
-  const list = [...paths];
-  const result: IndexSyncResult = { at: new Date().toISOString(), paths: list, feedChanged, dry: Boolean(opts.dry), indexnow: null, websub: null };
+  const list = [...paths].slice(-PENDING_LIMIT);
+  const result: IndexSyncResult = { at: new Date().toISOString(), paths: list, feedChanged, dry: Boolean(opts.dry), indexnow: null, websub: null, pending: 0 };
   if (opts.dry) return result;
 
   if (list.length) result.indexnow = await submitIndexNow(env, list);
   if (feedChanged) result.websub = await publishFeed(env);
-  await setMeta(db, STATE_KEY, JSON.stringify({ since: now, posts: postSlugs, notes: noteCount } satisfies SyncState));
+  const accepted = !list.length || !result.indexnow?.enabled || result.indexnow.status === 200 || result.indexnow.status === 202;
+  const pending = accepted ? [] : list;
+  const pendingFeed = feedChanged && !(result.websub?.status === 204 || result.websub?.status === 200);
+  result.pending = pending.length + (pendingFeed ? 1 : 0);
+  await setMeta(db, STATE_KEY, JSON.stringify({ since: now, posts: postSlugs, notes: noteCount, pending, pendingFeed } satisfies SyncState));
   if (list.length || state === null) await setMeta(db, LAST_KEY, JSON.stringify(result));
   return result;
 }
