@@ -26,7 +26,9 @@ export interface IndexingEnv {
   CANONICAL_HOST?: string;
 }
 
-const INDEXNOW_ENDPOINT = 'https://api.indexnow.org/indexnow';
+// One submission reaches every IndexNow engine whichever endpoint takes it. The shared endpoint rate-limits by IP,
+// and Cloudflare Workers share their outbound addresses, so a 429 there is retried at Bing's and Yandex's own endpoints.
+const INDEXNOW_ENDPOINTS = ['https://api.indexnow.org/indexnow', 'https://www.bing.com/indexnow', 'https://yandex.com/indexnow'];
 const WEBSUB_HUB = 'https://pubsubhubbub.appspot.com/';
 const FEED_PATH = '/feed.xml';
 const FEED_ITEMS = 40;
@@ -46,7 +48,7 @@ export interface IndexSyncResult {
   paths: string[];
   feedChanged: boolean;
   dry: boolean;
-  indexnow: { enabled: boolean; status: number | null; error?: string } | null;
+  indexnow: { enabled: boolean; status: number | null; endpoint?: string; error?: string } | null;
   websub: { status: number | null; error?: string } | null;
 }
 
@@ -209,23 +211,25 @@ export async function feedXml(db: D1Database, site: string): Promise<string> {
 
 // ---------- pings ----------
 
-async function submitIndexNow(env: IndexingEnv, paths: string[]): Promise<{ enabled: boolean; status: number | null; error?: string }> {
+async function submitIndexNow(env: IndexingEnv, paths: string[]): Promise<IndexSyncResult['indexnow']> {
   if (!indexingEnabled(env)) return { enabled: false, status: null };
   const site = origin(env);
   const key = (env.INDEXNOW_KEY ?? '').trim();
-  const body = { host: new URL(site).host, key, keyLocation: `${site}/${key}.txt`, urlList: paths.slice(0, 10000).map((p) => site + p) };
-  try {
-    const res = await fetch(INDEXNOW_ENDPOINT, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json; charset=utf-8' },
-      body: JSON.stringify(body),
-    });
-    // 200 and 202 both mean accepted (202 while the key file has not been verified yet).
-    if (res.status === 200 || res.status === 202) return { enabled: true, status: res.status };
-    return { enabled: true, status: res.status, error: (await res.text()).slice(0, 200) };
-  } catch (err) {
-    return { enabled: true, status: null, error: String(err).slice(0, 200) };
+  const body = JSON.stringify({ host: new URL(site).host, key, keyLocation: `${site}/${key}.txt`, urlList: paths.slice(0, 10000).map((p) => site + p) });
+  let last: IndexSyncResult['indexnow'] = { enabled: true, status: null };
+  for (const endpoint of INDEXNOW_ENDPOINTS) {
+    try {
+      const res = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json; charset=utf-8' }, body });
+      // 200 and 202 both mean accepted (202 while the key file has not been verified yet).
+      if (res.status === 200 || res.status === 202) return { enabled: true, status: res.status, endpoint };
+      last = { enabled: true, status: res.status, endpoint, error: (await res.text()).slice(0, 200) };
+      // Anything but rate limiting is about the key or the payload and will not improve at another endpoint.
+      if (res.status !== 429) return last;
+    } catch (err) {
+      last = { enabled: true, status: null, endpoint, error: String(err).slice(0, 200) };
+    }
   }
+  return last;
 }
 
 async function publishFeed(env: IndexingEnv): Promise<{ status: number | null; error?: string }> {
