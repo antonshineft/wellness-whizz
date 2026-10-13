@@ -285,8 +285,14 @@ address, and what the last hourly run did or why it skipped (for example `X keys
   (`public/<key>.txt`); `INDEXNOW=false` switches the pings off (set in `.dev.vars` for local work).
   `GET /api/admin/indexnow?key=<STATS_KEY>` submits what changed now, `&all=1` resubmits every page in the sitemap,
   `&urls=/a,/b` adds specific paths and `&dry=1` only shows the list. `/api/stats` reports the last submission.
-  Create a free Bing Webmaster Tools account (it imports the site from Google Search Console in one click) to see
-  the submissions arrive.
+  The IndexNow endpoints rate-limit by address and Cloudflare Workers share theirs, so the Worker's submissions are
+  often answered 429 (the result lists every endpoint tried); pages no endpoint accepted wait in the state and go
+  out with the next run that gets through (`/api/stats` → `indexing.last_submission.pending`). Two things cover
+  the gap: Cloudflare's own Crawler Hints (dashboard → Caching → Configuration → Crawler Hints, free) send IndexNow
+  signals from Cloudflare's side, and a sitemap submitted in Bing Webmaster Tools (free; it imports the site from
+  Google Search Console in one click) is read there daily. A one-off submission of every page also works from any
+  other machine: POST `{"host":"aiww.io","key":"<INDEXNOW_KEY>","keyLocation":"https://aiww.io/<INDEXNOW_KEY>.txt",
+  "urlList":[…]}` as JSON to `https://api.indexnow.org/indexnow` (200 or 202 means accepted).
 - Plain `http://` requests and `www.` are redirected (301) to `https://` on the canonical host, and every response
   carries `Strict-Transport-Security` and `X-Content-Type-Options` (Worker middleware in `src/index.ts`; `public/_headers`
   for static assets).
