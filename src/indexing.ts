@@ -27,8 +27,8 @@ export interface IndexingEnv {
 }
 
 // One submission reaches every IndexNow engine whichever endpoint takes it. The shared endpoint rate-limits by IP,
-// and Cloudflare Workers share their outbound addresses, so a 429 there is retried at Bing's and Yandex's own endpoints.
-const INDEXNOW_ENDPOINTS = ['https://api.indexnow.org/indexnow', 'https://www.bing.com/indexnow', 'https://yandex.com/indexnow'];
+// and Cloudflare Workers share their outbound addresses, so a 429 there is retried at Bing's, Seznam's and Yandex's own endpoints.
+const INDEXNOW_ENDPOINTS = ['https://api.indexnow.org/indexnow', 'https://www.bing.com/indexnow', 'https://search.seznam.cz/indexnow', 'https://yandex.com/indexnow'];
 const WEBSUB_HUB = 'https://pubsubhubbub.appspot.com/';
 const FEED_PATH = '/feed.xml';
 const FEED_ITEMS = 40;
