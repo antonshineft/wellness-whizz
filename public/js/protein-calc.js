@@ -5,7 +5,7 @@
     fatloss: { lo: 1.8, hi: 2.4, label: 'losing fat while keeping muscle', note: 'In a calorie deficit, higher protein protects muscle and keeps you fuller. The leaner you already are and the deeper the deficit, the closer to the top of the range you should sit.' },
     maintain: { lo: 1.2, hi: 1.6, label: 'staying healthy and moderately active', note: 'The RDA of 0.8 g per kilogram prevents deficiency; 1.2 to 1.6 g is where studies on active adults see better body composition, strength and appetite control.' },
     endurance: { lo: 1.4, hi: 1.8, label: 'endurance training', note: 'Runners, cyclists and swimmers need more than sedentary adults to repair muscle and to spare it during long sessions, especially when carbohydrate intake is low.' },
-    older: { lo: 1.2, hi: 1.6, label: 'adults over 65', note: 'Older muscle responds less to each meal, so expert groups recommend at least 1.2 g per kilogram a day and 25 to 40 g of protein at each meal rather than one large dinner.' },
+    older: { lo: 1.2, hi: 1.6, label: 'adults over 65', note: 'Older muscle responds less to each meal. Expert groups put the floor at 1.0 to 1.2 g per kilogram a day and 1.2 to 1.5 g when ill or training, with 25 to 40 g of protein at each meal rather than one large dinner.' },
     sedentary: { lo: 0.8, hi: 1.2, label: 'a mostly sedentary lifestyle', note: '0.8 g per kilogram is the minimum that prevents deficiency in healthy adults, not an optimum. 1.0 to 1.2 g is a better everyday target and costs nothing in side effects.' }
   };
   var FOODS = [
