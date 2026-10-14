@@ -5,11 +5,11 @@ const post: BlogPost = {
   title: 'Melatonin Dosage: Why 0.5 mg Often Works Better Than 10 mg',
   seoTitle: 'Melatonin Dosage: Why Less Often Works Better',
   description:
-    'Melatonin dosage: start at 0.5 to 1 mg, 30 to 60 minutes before bed. Why 10 mg gummies are a marketing dose, what jet lag needs, side effects and who should ask first.',
+    'Melatonin dosage: start at 0.5 to 1 mg, 30 to 60 minutes before bed. Why 10 mg gummies are a marketing dose, what jet lag needs and who should ask first.',
   excerpt:
     'Melatonin is a timing signal, not a sedative, and the MIT dose-response work found 0.3 mg as effective as 1 to 3 mg for falling asleep. Here is how much to take for sleep, jet lag and a late body clock, and when.',
   date: '2026-10-14',
-  readingMinutes: 7,
+  readingMinutes: 8,
   category: 'Dosage guides',
   tags: ['melatonin', 'dosage', 'sleep', 'jet lag', 'timing', 'circadian rhythm'],
   heroSupplement: 'melatonin',
@@ -21,7 +21,7 @@ const post: BlogPost = {
 
 <h2>How much melatonin should I take? The short answer</h2>
 
-<p>Begin at the lowest dose you can buy or measure, often 0.5 mg, and stay there for a week. If nothing changes, try 1 mg, then up to 3 mg. Beyond 3 to 5 mg the trials show no added benefit, only more chance of morning grogginess.</p>
+<p>Begin at the lowest dose you can buy or measure, often 0.5 mg, and stay there for a week. If nothing changes, try 1 mg, then up to 3 mg. Beyond that the trials show no added benefit, only more morning grogginess.</p>
 
 <table>
 <thead>
@@ -41,19 +41,19 @@ const post: BlogPost = {
 
 <h3>The MIT dose-response work</h3>
 
-<p>Researchers at MIT gave volunteers doses from 0.1 to 10 mg. In a 1994 study of 20 healthy men, doses of 0.1 and 0.3 mg raised blood melatonin to the normal night-time range, and every dose shortened the time to fall asleep. In a 2001 study of people over 50, 0.3 mg restored sleep efficiency. A 3 mg dose also improved sleep, but left melatonin elevated into the daylight hours and lowered body temperature. Normal sleepers in the 2001 study were unaffected by any dose, so the effect showed up in people whose own night-time signal was weak, and the low dose was enough for them.</p>
+<p>Researchers at MIT gave volunteers doses from 0.1 to 10 mg. In a 1994 study of 20 healthy men, doses of 0.1 and 0.3 mg raised blood melatonin to the normal night-time range, and every dose shortened the time to fall asleep. In a 2001 study of people over 50, 0.3 mg restored sleep efficiency. A 3 mg dose also improved sleep, but left melatonin elevated into the daylight hours and lowered body temperature. Normal sleepers in that study were unaffected by any dose.</p>
 
 <h3>Insomnia</h3>
 
-<p>The 2013 analysis found modest gains: about 7 minutes faster to fall asleep and about 8 minutes more sleep. Trials with higher doses and longer duration showed slightly larger effects on how fast people fell asleep, so the case for starting low is not that high doses never work. It is that low doses work for many people and cause fewer next-morning effects, and you can always step up.</p>
+<p>The 2013 analysis found modest gains: about 7 minutes faster to fall asleep and about 8 minutes more sleep. Trials with higher doses showed slightly larger effects on falling asleep, so the case for starting low is not that high doses never work. It is that low doses work for many people, cause fewer next-morning effects, and you can always step up.</p>
 
 <h3>Jet lag</h3>
 
-<p>A Cochrane review of ten trials found that nine showed melatonin, taken close to the target bedtime at the destination (10 pm to midnight), reduced jet lag after flights across five or more time zones. Doses of 0.5 to 5 mg were similarly effective, though 5 mg helped people fall asleep faster; doses above 5 mg were no better. Benefit was less for westward flights, and taking it early in the day caused sleepiness and delayed adaptation. The trials mostly dosed near bedtime, so the earlier 2 to 3 hour timing for shifting the clock is an extension of that evidence.</p>
+<p>A Cochrane review of ten trials found that nine showed melatonin, taken close to the target bedtime at the destination (10 pm to midnight), reduced jet lag after flights across five or more time zones. Doses of 0.5 to 5 mg were similarly effective, though 5 mg helped people fall asleep faster, and doses above 5 mg were no better. Benefit was less for westward flights, and taking it early in the day delayed adaptation. The trials mostly dosed near bedtime, so the earlier 2 to 3 hour timing for shifting the clock is an extension of that evidence.</p>
 
 <h3>Why 10 mg gummies are a marketing dose</h3>
 
-<p>A 2023 analysis of melatonin gummies sold in the US found the actual melatonin content ranged from 74 to 347 percent of the label. So the number on the front may not be what you swallow, and a 10 mg label can mean far more or less. Nothing in the research supports 10 mg over 0.5 to 3 mg.</p>
+<p>A 2023 analysis of melatonin gummies sold in the US found the actual melatonin content ranged from 74 to 347 percent of the label. So a 10 mg label can mean far more or less. Nothing in the research supports 10 mg over 0.5 to 3 mg.</p>
 
 <h2>When to take melatonin</h2>
 
@@ -65,7 +65,7 @@ const post: BlogPost = {
 
 <h2>How long before it works</h2>
 
-<p>An immediate-release tablet starts to act within 30 to 60 minutes. For falling asleep, give one dose a week before judging it; in the 2013 analysis the benefit did not fade with continued use. For timing problems, the body clock typically shifts by an hour or less a day, so a large time change takes days whatever you take, and a late body clock takes one to two weeks of consistent dosing plus morning light.</p>
+<p>An immediate-release tablet starts to act within 30 to 60 minutes. For falling asleep, give one dose a week before judging it; in the 2013 analysis the benefit did not fade with continued use. The body clock typically shifts by an hour or less a day, so a big time change takes days whatever you take, and a late body clock takes one to two weeks of consistent dosing plus morning light.</p>
 
 <p>Long-term nightly use has weaker data than short-term use. If you need melatonin every night for more than a few weeks, see your doctor: persistent insomnia has treatments with better long-term evidence, such as cognitive behavioural therapy for insomnia.</p>
 
@@ -91,7 +91,7 @@ const post: BlogPost = {
 
 <p>Most products contain 3, 5 or 10 mg, which are too high for a first try. Look for 0.3 to 1 mg, such as a <a href="iherb:melatonin 0.5 mg">0.5 mg melatonin tablet</a>, or a liquid you can measure in drops. Gummies are the form with the worst-documented accuracy, given that spread of 74 to 347 percent. Choose a tablet, capsule or liquid with third-party testing, such as a USP Verified or NSF label. Prolonged-release melatonin (2 mg) is a prescription product in the UK and EU for older adults. In the jet lag review, slow-release 2 mg was relatively ineffective, suggesting a short, sharp peak works better.</p>
 
-<p>For sleep without a timing problem, other options stack well with good habits. Magnesium glycinate in the evening is explained in our guide on <a href="/blog/when-to-take-magnesium">when to take magnesium</a>, and our <a href="/supplement/glycine">glycine page</a> covers the small trials of about 3 g before bed. Our <a href="/supplement/melatonin">melatonin page</a> lists the products we have reviewed.</p>
+<p>If the problem is not timing, other options exist. Our guide on <a href="/blog/when-to-take-magnesium">when to take magnesium</a> covers an evening dose, and the <a href="/supplement/glycine">glycine page</a> covers small trials of about 3 g before bed. Our <a href="/supplement/melatonin">melatonin page</a> lists the products we have reviewed.</p>
 
 <ww-shop slugs="melatonin,magnesium-32aa0,glycine"></ww-shop>
 

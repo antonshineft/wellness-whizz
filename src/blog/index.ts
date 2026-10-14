@@ -14,6 +14,10 @@ import nacDosage from './posts/nac-dosage';
 import berberineDosage from './posts/berberine-dosage';
 import taurineDosage from './posts/taurine-dosage';
 import alphaGpcDosage from './posts/alpha-gpc-dosage';
+import lTyrosineDosage from './posts/l-tyrosine-dosage';
+import gabaDosage from './posts/gaba-dosage';
+import melatoninDosage from './posts/melatonin-dosage';
+import lemonBalmDosage from './posts/lemon-balm-dosage';
 import magnesiumForms from './posts/magnesium-forms';
 import omega3Guide from './posts/omega-3-guide';
 import supplementsForEnergyAndFocus from './posts/supplements-for-energy-and-focus';
@@ -31,6 +35,10 @@ export const POSTS: readonly BlogPost[] = [
   berberineDosage,
   taurineDosage,
   alphaGpcDosage,
+  lTyrosineDosage,
+  gabaDosage,
+  melatoninDosage,
+  lemonBalmDosage,
   glynacAgingTrial,
   bestVitaminsForWomen,
   bestSupplementsForAnxiety,

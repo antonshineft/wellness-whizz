@@ -5,7 +5,7 @@ const post: BlogPost = {
   title: 'GABA Supplement Dosage: How Much to Take, and Does It Get Into the Brain?',
   seoTitle: 'GABA Dosage: How Much to Take, and Does It Work?',
   description:
-    'GABA dosage: trials used 100 to 300 mg, up to 750 mg a day split, 30 to 60 minutes before bed or an event. Whether it reaches the brain, side effects and cautions.',
+    'GABA dosage: trials used 100 to 300 mg, up to 750 mg a day split, 30 to 60 minutes beforehand. Does it reach the brain? Side effects and cautions.',
   excerpt:
     'Studies of GABA supplements used 100 to 300 mg for relaxation and falling asleep, but oral GABA barely crosses the blood-brain barrier and the trials are small. Here are the doses, the timing, the cautions and how GABA compares with L-theanine and magnesium.',
   date: '2026-10-14',

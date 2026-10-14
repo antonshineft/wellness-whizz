@@ -112,7 +112,7 @@ const post: BlogPost = {
     },
     {
       q: 'How much lemon balm per day is safe?',
-      a: 'The studied range is 300 to 600 mg of extract once or twice a day, up to about 600 to 1,200 mg in total, or 1 to 2 g of leaf as tea. A 2011 open-label study used 600 mg a day for 15 days. Long-term data are limited. Check with a doctor or pharmacist if you take sedatives or thyroid medicine.',
+      a: 'The studied range is 300 to 600 mg of extract once or twice a day, up to 1,200 mg in total, or 1 to 2 g of leaf as tea. A 2011 open-label study used 600 mg a day for 15 days. Long-term data are limited. Check with a doctor or pharmacist if you take sedatives or thyroid medicine.',
     },
     {
       q: 'When is the best time to take lemon balm?',
@@ -120,7 +120,7 @@ const post: BlogPost = {
     },
     {
       q: 'Can I take lemon balm every day?',
-      a: 'Daily use for around two weeks has been studied and was well tolerated, and lemon balm tea is traditionally drunk daily. Long-term data on extracts are lacking. If you take it every day for more than a few weeks, review it with your doctor, and stop if you feel drowsy by day or have nausea.',
+      a: 'Daily use for around two weeks has been studied, and lemon balm tea is traditionally drunk daily. Long-term data on extracts are lacking. If you take it every day for more than a few weeks, review it with your doctor, and stop if you feel drowsy by day or have nausea.',
     },
     {
       q: 'What are the side effects of lemon balm?',
@@ -157,7 +157,7 @@ const post: BlogPost = {
       href: 'https://pubmed.ncbi.nlm.nih.gov/?term=Pilot+trial+of+Melissa+officinalis+L.+leaf+extract+mild-to-moderate+anxiety+disorders+sleep+disturbances',
     },
     {
-      label: 'PubMed search — valerian and lemon balm for restlessness and dyssomnia in children (Muller and Klement, 2006)',
+      label: 'PubMed search — valerian and lemon balm for restlessness and dyssomnia in children (Müller and Klement, 2006)',
       href: 'https://pubmed.ncbi.nlm.nih.gov/?term=A+combination+of+valerian+and+lemon+balm+is+effective+in+the+treatment+of+restlessness+and+dyssomnia+in+children',
     },
     {

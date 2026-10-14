@@ -122,8 +122,8 @@ const post: BlogPost = {
   ],
   sources: [
     {
-      label: 'MedlinePlus — Herbs and Supplements (look up tyrosine)',
-      href: 'https://medlineplus.gov/druginfo/herb_All.html',
+      label: 'MedlinePlus — Dietary supplements (health topic)',
+      href: 'https://medlineplus.gov/dietarysupplements.html',
     },
     {
       label: 'NIH Office of Dietary Supplements — Dietary Supplements: What You Need To Know',
