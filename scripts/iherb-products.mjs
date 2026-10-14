@@ -11,6 +11,7 @@
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import sharp from 'sharp';
+import { stripBackground } from './strip-background.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, fallback) => {
@@ -100,12 +101,12 @@ function shortName(title, brand) {
   return name;
 }
 
-/** Download, shrink to 612 px WebP and make the flat background transparent (flood fill from the edges). */
+/** Download, shrink to 600 px WebP and make the flat background transparent (see strip-background.mjs). */
 export async function fetchProductImage(url, fileName) {
   const res = await fetch(url, { headers: { 'user-agent': UA, accept: 'image/*' } });
   if (!res.ok) throw new Error(`image ${res.status}`);
   const buffer = Buffer.from(await res.arrayBuffer());
-  const resized = await sharp(buffer).resize({ width: 612, withoutEnlargement: true }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const resized = await sharp(buffer).resize({ width: 600, withoutEnlargement: true }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { data, info } = resized;
   stripBackground(data, info.width, info.height, info.channels);
   const out = await sharp(data, { raw: { width: info.width, height: info.height, channels: info.channels } }).webp({ quality: 86 }).toBuffer();
@@ -113,34 +114,6 @@ export async function fetchProductImage(url, fileName) {
   return `/images/products/${fileName}`;
 }
 
-function stripBackground(data, w, h, channels, TOLERANCE = 28, FEATHER = 22) {
-  const corners = [0, (w - 1) * channels, (h - 1) * w * channels, ((h - 1) * w + w - 1) * channels];
-  const bg = [0, 1, 2].map((c) => Math.round(corners.reduce((s, i) => s + data[i + c], 0) / corners.length));
-  const dist = (i) => Math.hypot(data[i] - bg[0], data[i + 1] - bg[1], data[i + 2] - bg[2]);
-  const limit = TOLERANCE + FEATHER;
-  const visited = new Uint8Array(w * h);
-  const queue = [];
-  const push = (x, y) => {
-    const p = y * w + x;
-    if (visited[p]) return;
-    visited[p] = 1;
-    if (dist(p * channels) <= limit) queue.push(p);
-    else visited[p] = 2;
-  };
-  for (let x = 0; x < w; x++) { push(x, 0); push(x, h - 1); }
-  for (let y = 0; y < h; y++) { push(0, y); push(w - 1, y); }
-  while (queue.length) {
-    const p = queue.pop();
-    const x = p % w;
-    const y = (p - x) / w;
-    const d = dist(p * channels);
-    data[p * channels + 3] = d <= TOLERANCE ? 0 : Math.round((255 * (d - TOLERANCE)) / FEATHER);
-    if (x > 0) push(x - 1, y);
-    if (x < w - 1) push(x + 1, y);
-    if (y > 0) push(x, y - 1);
-    if (y < h - 1) push(x, y + 1);
-  }
-}
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   if (!QUERY || !SLUG) {
