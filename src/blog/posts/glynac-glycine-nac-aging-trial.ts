@@ -87,6 +87,21 @@ const post: BlogPost = {
 
 <ww-shop slugs="n-acetylcysteine-nac,glycine"></ww-shop>
 
+<h2>GlyNAC dosage: what the trial used, and how people scale it</h2>
+
+<p>The trial dosed by body weight: 100 mg of glycine and 100 mg of NAC per kilogram per day, each split into two servings with meals. That works out as follows.</p>
+
+<table>
+<thead><tr><th>Body weight</th><th>Glycine a day</th><th>NAC a day</th><th>Per serving (twice a day)</th></tr></thead>
+<tbody>
+<tr><td>55 kg (121 lb)</td><td>5.5 g</td><td>5.5 g</td><td>2.75 g of each</td></tr>
+<tr><td>70 kg (154 lb)</td><td>7 g</td><td>7 g</td><td>3.5 g of each</td></tr>
+<tr><td>85 kg (187 lb)</td><td>8.5 g</td><td>8.5 g</td><td>4.25 g of each</td></tr>
+</tbody>
+</table>
+
+<p>Three practical notes. NAC usually comes in 600 mg capsules, so the full trial dose is 11 to 14 capsules a day; a powder is cheaper and easier at this scale. Many people who try the protocol start at half the dose for the first two weeks, because NAC on an empty stomach causes nausea in a minority and glycine at several grams can loosen stools until the gut adapts. And the ratio matters more than the exact number: the trial's premise is that both precursors are needed together, so taking 7 g of glycine with 600 mg of NAC is not GlyNAC, it is glycine.</p>
+
 <h2>How Wellness Whizz uses this</h2>
 
 <p>Our supplement profiles for <a href="/supplement/n-acetylcysteine-nac">NAC</a> and <a href="/supplement/glycine">glycine</a> carry this trial under their studies, and our <a href="/research">research page</a> tracks new PubMed papers on both. The quiz does not recommend the full GlyNAC protocol to anyone; it may suggest NAC or glycine individually where they fit your goals, with the usual advice to check interactions with your pharmacist. If a larger, independent trial confirms these results, we will say so here.</p>

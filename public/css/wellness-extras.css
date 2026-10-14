@@ -500,3 +500,18 @@ img.ww-opaque { mix-blend-mode: multiply; }
 @media screen and (max-width: 991px) { .heading.heading--long { font-size: 7ch; } }
 @media screen and (max-width: 767px) { .heading.heading--long { font-size: 8.5vw; } }
 @media screen and (max-width: 479px) { .heading.heading--long { font-size: 8.6vw; } }
+
+/* Protein calculator (blog) */
+.ww-calc { background: #fdf1cf; border-radius: 16px; padding: 24px; margin: 32px 0; }
+.ww-calc h3 { margin: 0 0 6px; }
+.ww-calc-intro { margin: 0 0 16px; color: #444; }
+.ww-calc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.ww-calc-field { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; }
+.ww-calc-field input, .ww-calc-field select { font: inherit; font-weight: 400; padding: 10px 12px; border: 1px solid #d9c9a3; border-radius: 10px; background: #fff; min-width: 0; width: 100%; }
+.ww-calc-weight { display: grid; grid-template-columns: 1fr 84px; gap: 8px; }
+.ww-calc-result { margin-top: 18px; background: #fff; border-radius: 12px; padding: 16px 18px; }
+.ww-calc-result p { margin: 0 0 10px; }
+.ww-calc-result p:last-child { margin-bottom: 0; }
+.ww-calc-headline { font-size: 1.1em; }
+.ww-calc-note, .ww-calc-foods { color: #444; font-size: 0.95em; }
+@media (max-width: 767px) { .ww-calc { padding: 18px; } .ww-calc-grid { grid-template-columns: 1fr; } }

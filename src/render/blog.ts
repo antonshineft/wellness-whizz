@@ -65,6 +65,28 @@ function shopBlock(ctx: BlogContext, post: BlogPost, slugs: string[], title: str
         </div>`;
 }
 
+/** The interactive protein calculator (<ww-protein-calculator>); public/js/protein-calc.js fills in the result. */
+function proteinCalculator(): string {
+  return `
+<div class="ww-calc" data-protein-calc>
+  <h3>Protein calculator</h3>
+  <p class="ww-calc-intro">Enter your weight and goal. The result uses the per-kilogram ranges from the studies discussed in this article.</p>
+  <div class="ww-calc-grid">
+    <label class="ww-calc-field"><span>Body weight</span><span class="ww-calc-weight"><input type="number" name="weight" min="30" max="250" step="1" value="70" inputmode="decimal" aria-label="Body weight"><select name="unit" aria-label="Unit"><option value="kg">kg</option><option value="lb">lb</option></select></span></label>
+    <label class="ww-calc-field"><span>Goal</span><select name="goal">
+      <option value="muscle">Build muscle</option>
+      <option value="fatloss">Lose fat and keep muscle</option>
+      <option value="maintain">Stay healthy, moderately active</option>
+      <option value="endurance">Endurance training</option>
+      <option value="older">Over 65</option>
+      <option value="sedentary">Mostly sedentary</option>
+    </select></label>
+    <label class="ww-calc-field"><span>Meals a day</span><select name="meals"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></label>
+  </div>
+  <div class="ww-calc-result" data-result aria-live="polite"><noscript>Turn on JavaScript to use the calculator, or use the table below: multiply your weight in kilograms by 1.6 to 2.2 for muscle gain.</noscript></div>
+</div>`;
+}
+
 /** Turn the article conventions (iherb: links, <ww-shop>, <ww-quiz>) into live markup. */
 export function expandArticleHtml(ctx: BlogContext, post: BlogPost): string {
   let html = post.html;
@@ -78,6 +100,7 @@ export function expandArticleHtml(ctx: BlogContext, post: BlogPost): string {
   html = html.replace(/<ww-shop\s+slugs="([^"]+)"\s*>\s*<\/ww-shop>/g, (_m, list: string) =>
     shopBlock(ctx, post, list.split(',').map((s) => s.trim()).filter(Boolean), 'Related products on iHerb', 'ww-shop-inline'),
   );
+  html = html.replace(/<ww-protein-calculator\s*>\s*<\/ww-protein-calculator>/g, () => proteinCalculator());
   html = html.replace(/<ww-quiz\s*>\s*<\/ww-quiz>/g, () => quizCta('Not sure which one is right for you?', 'The free two-minute quiz weighs your goals, diet and the supplements you already take, then explains its picks.'));
   return html;
 }
@@ -205,6 +228,6 @@ export function renderBlogPost(ctx: BlogContext, post: BlogPost, related: readon
     bodyClass: 'body-2',
     head,
     body: `<div class="ww-progress" aria-hidden="true"></div>${shell}`,
-    scripts: '  <script src="/js/reading-progress.js"></script>',
+    scripts: `  <script src="/js/reading-progress.js"></script>${post.html.includes('<ww-protein-calculator') ? '\n  <script src="/js/protein-calc.js" defer></script>' : ''}`,
   });
 }

@@ -92,6 +92,12 @@ const post: BlogPost = {
 
 <p>Magnesium citrate vs oxide is a closer call. Both loosen stools at higher doses, citrate because it is osmotic, oxide because so much of it stays unabsorbed. Citrate is absorbed far better, so at the same elemental dose you get more magnesium and a milder laxative effect, for slightly more money. For constipation either works; for everything else, citrate.</p>
 
+<h2>Magnesium glycinate benefits, in plain terms</h2>
+
+<p>Searches for "magnesium glycinate benefits" outnumber those for every other form, so it is worth saying what the form does and does not add. The benefits are magnesium's benefits: steadier sleep onset in people whose intake was low, fewer night-time leg cramps in some trials, a modest fall in blood pressure in people with hypertension, and a lower migraine frequency at 400 to 600 mg a day. Glycinate does not do any of these better than citrate milligram for milligram. What it adds is tolerance: you can take a full 300 mg of elemental magnesium in one evening serving and sleep through the night without the bathroom trip that citrate or oxide would cause. That is the whole case for paying more for it, and for people with a sensitive gut it is a good case.</p>
+
+<p>Two forms sit either side of it in price. <strong>Magnesium oxide</strong> is a third of the cost but only a fraction is absorbed; it is the right choice for constipation and the wrong one for sleep. <strong>Magnesium malate</strong> absorbs about as well as glycinate, is a little cheaper, and the malate carries a small daytime-energy reputation from fibromyalgia studies that never replicated; it is a fair daytime alternative if glycinate makes you drowsy.</p>
+
 <h2>Which form for which goal</h2>
 
 <h3>Sleep and relaxation</h3>
