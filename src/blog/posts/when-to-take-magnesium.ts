@@ -170,8 +170,8 @@ const post: BlogPost = {
       href: 'https://www.efsa.europa.eu/en/efsajournal/pub/4186',
     },
     {
-      label: 'MedlinePlus — Magnesium',
-      href: 'https://medlineplus.gov/druginfo/natural/998.html',
+      label: 'MedlinePlus — Magnesium in diet',
+      href: 'https://medlineplus.gov/ency/article/002423.htm',
     },
     {
       label: 'Cochrane — Magnesium for skeletal muscle cramps (2020 update)',

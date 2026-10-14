@@ -10,6 +10,10 @@ import coq10VsUbiquinol from './posts/coq10-vs-ubiquinol';
 import creatineMonohydrateVsHcl from './posts/creatine-monohydrate-vs-hcl';
 import glynacAgingTrial from './posts/glynac-glycine-nac-aging-trial';
 import howMuchProtein from './posts/how-much-protein-do-i-need';
+import nacDosage from './posts/nac-dosage';
+import berberineDosage from './posts/berberine-dosage';
+import taurineDosage from './posts/taurine-dosage';
+import alphaGpcDosage from './posts/alpha-gpc-dosage';
 import magnesiumForms from './posts/magnesium-forms';
 import omega3Guide from './posts/omega-3-guide';
 import supplementsForEnergyAndFocus from './posts/supplements-for-energy-and-focus';
@@ -23,6 +27,10 @@ export type { BlogPost } from './types';
 
 export const POSTS: readonly BlogPost[] = [
   howMuchProtein,
+  nacDosage,
+  berberineDosage,
+  taurineDosage,
+  alphaGpcDosage,
   glynacAgingTrial,
   bestVitaminsForWomen,
   bestSupplementsForAnxiety,
