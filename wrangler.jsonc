@@ -38,7 +38,7 @@
     // and how many replies to draft.
     "DIGEST_TO": "shineft@gmail.com",
     "REDDIT_DIGEST": "true",
-    "REDDIT_MAX_THREADS": "25",
+    "REDDIT_MAX_THREADS": "20",
     "REDDIT_MAX_REPLIES": "6",
     // iHerb Rewards / referral code, appended to every iherb.com link the site generates.
     "IHERB_RCODE": "HIN4657",

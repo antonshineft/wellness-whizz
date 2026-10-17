@@ -24,6 +24,8 @@ export interface RedditEnv extends AiEnv, EmailEnv {
   REDDIT_DIGEST?: string;
   REDDIT_MAX_THREADS?: string;
   REDDIT_MAX_REPLIES?: string;
+  /** Pause between two Reddit feed requests in milliseconds; default 12000. Reddit rate-limits Cloudflare's shared addresses hard. */
+  REDDIT_FETCH_GAP_MS?: string;
 }
 
 export interface Mention {
@@ -234,11 +236,14 @@ export interface Thread {
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36';
 
-/** One thread through https://www.reddit.com/comments/<id>/.rss (the HTML and JSON endpoints are blocked for bots). */
+/**
+ * One thread through https://www.reddit.com/comments/<id>/.rss (the HTML and JSON endpoints are blocked for bots).
+ * Reddit answers 429 readily from Cloudflare's shared addresses, so a 429 waits 45 s and tries again, twice.
+ */
 export async function fetchThread(id: string): Promise<Thread> {
   const base: Thread = { id, url: `https://www.reddit.com/comments/${id}/`, title: '', subreddit: '', author: '', published: '', age_hours: null, comment_count: 0, text: '', comments: [] };
   let xml = '';
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     const res = await fetch(`https://www.reddit.com/comments/${id}/.rss?limit=60`, {
       headers: { 'user-agent': USER_AGENT, accept: 'application/atom+xml,application/xml;q=0.9,*/*;q=0.8' },
       signal: AbortSignal.timeout(20_000),
@@ -247,8 +252,8 @@ export async function fetchThread(id: string): Promise<Thread> {
       xml = await res.text();
       break;
     }
-    if (res.status === 429 && attempt === 0) {
-      await sleep(20_000);
+    if (res.status === 429 && attempt < 2) {
+      await sleep(45_000);
       continue;
     }
     return { ...base, error: `fetch failed: ${res.status || res.statusText}` };
@@ -497,8 +502,9 @@ export async function runRedditDigest(env: RedditEnv, opts: DigestOptions = {}):
   }
 
   const threads: Thread[] = [];
+  const gap = Math.max(1000, Number(env.REDDIT_FETCH_GAP_MS ?? '12000') || 12_000);
   for (let i = 0; i < shortlist.length; i++) {
-    if (i) await sleep(1500);
+    if (i) await sleep(gap);
     const t = await fetchThread(shortlist[i].post_id);
     if (t.error || !t.title) run.unreadable.push(`${shortlist[i].post_id}: ${t.error ?? 'no title'}`);
     else threads.push(t);
