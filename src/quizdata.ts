@@ -16,6 +16,8 @@ export interface Count {
 export interface QuizDataSummary {
   generated_at: string;
   sessions: number;
+  /** Plans that stated the field (the first quiz version stored no profile). */
+  with_profile: { sex: number; age: number; activity: number; goal: number; diet: number };
   first_session: string | null;
   last_session: string | null;
   by_sex: Count[];
@@ -107,15 +109,27 @@ export async function quizDataSummary(db: D1Database): Promise<QuizDataSummary> 
   };
   let firstAt: string | null = null;
   let lastAt: string | null = null;
+  const withProfile = { sex: 0, age: 0, activity: 0, goal: 0, diet: 0 };
 
   for (const s of sessions) {
     if (!firstAt || s.created_at < firstAt) firstAt = s.created_at;
     if (!lastAt || s.created_at > lastAt) lastAt = s.created_at;
     const list = bySession.get(s.id) ?? [];
     const names = [...new Set(list.map((p) => p.name))];
-    if (s.sex) bump(sex, s.sex);
-    if (s.age) bump(age, s.age);
-    if (s.activity) bump(activity, s.activity);
+    if (s.sex) {
+      bump(sex, s.sex);
+      withProfile.sex++;
+    }
+    if (s.age) {
+      bump(age, s.age);
+      withProfile.age++;
+    }
+    if (s.activity) {
+      bump(activity, s.activity);
+      withProfile.activity++;
+    }
+    if ((s.goal ?? '').trim()) withProfile.goal++;
+    if ((s.diet ?? '').trim()) withProfile.diet++;
     const sessionThemes = THEMES.filter(([, re]) => re.test(s.goal ?? '')).map(([t]) => t);
     for (const t of sessionThemes) bump(themes, t);
     const sessionDiets = DIETS.filter(([, re]) => re.test((s.diet ?? '').trim())).map(([t]) => t);
@@ -130,19 +144,21 @@ export async function quizDataSummary(db: D1Database): Promise<QuizDataSummary> 
     const top = list.find((p) => p.position === 1) ?? list[0];
     if (top) bump(first, top.name);
   }
+  // Sub-groups with fewer than ten plans are left out: a percentage of six people is noise.
   const nestedCounts = (outer: Map<string, Map<string, number>>, totals: Map<string, number>, limit = 8): Record<string, Count[]> =>
-    Object.fromEntries([...outer.entries()].filter(([k]) => (totals.get(k) ?? 0) >= 5).map(([k, inner]) => [k, counts(inner, totals.get(k) ?? 0, limit)]));
+    Object.fromEntries([...outer.entries()].filter(([k]) => (totals.get(k) ?? 0) >= 10).map(([k, inner]) => [`${k} (n=${totals.get(k)})`, counts(inner, totals.get(k) ?? 0, limit)]));
 
   return {
     generated_at: new Date().toISOString(),
     sessions: total,
+    with_profile: withProfile,
     first_session: firstAt,
     last_session: lastAt,
-    by_sex: counts(sex, total),
-    by_age: counts(age, total),
-    by_activity: counts(activity, total),
-    goal_themes: counts(themes, total),
-    diet_tags: counts(diets, total),
+    by_sex: counts(sex, withProfile.sex),
+    by_age: counts(age, withProfile.age),
+    by_activity: counts(activity, withProfile.activity),
+    goal_themes: counts(themes, withProfile.goal),
+    diet_tags: counts(diets, withProfile.diet),
     top_supplements: counts(supplements, total, 25),
     first_pick: counts(first, total, 10),
     top_by_theme: nestedCounts(byTheme, themes),
@@ -161,8 +177,9 @@ export function quizDataBrief(d: QuizDataSummary): string {
       .join('\n');
   const month = new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
   return [
-    `DATA BRIEF (Wellness Whizz quiz, ${d.sessions} completed plans from ${d.first_session?.slice(0, 10) ?? '?'} to ${d.last_session?.slice(0, 10) ?? '?'}, compiled ${month}). Every plan is 3 to 5 supplements the AI advisor recommended for one person's quiz answers. Percentages are the share of plans. Not a representative sample of the population: quiz takers are people who went looking for supplement advice.`,
-    `Who took it: sex ${line(d.by_sex)}; age ${line(d.by_age)}; activity ${line(d.by_activity)}.`,
+    `DATA BRIEF (Wellness Whizz quiz, ${d.sessions} completed plans from ${d.first_session?.slice(0, 10) ?? '?'} to ${d.last_session?.slice(0, 10) ?? '?'}, compiled ${month}). Every plan is 3 to 5 supplements the AI advisor recommended for one person's quiz answers. Overall percentages are the share of all ${d.sessions} plans. Not a representative sample of the population: quiz takers are people who went looking for supplement advice.`,
+    `The first version of the quiz did not store answers, so age, sex, activity, goals and diet are known for a subset: sex for ${d.with_profile.sex} plans, age for ${d.with_profile.age}, activity for ${d.with_profile.activity}, goals for ${d.with_profile.goal}, diet for ${d.with_profile.diet}. Percentages in those sections are shares of that subset, and every sub-group below carries its sample size (n); say the sample size whenever it is under 30 and treat such figures as indicative.`,
+    `Who took it (of those who said): sex ${line(d.by_sex)}; age ${line(d.by_age)}; activity ${line(d.by_activity)}.`,
     `Goals mentioned (a plan can mention several): ${line(d.goal_themes, 15)}.`,
     `Diets mentioned: ${line(d.diet_tags)}.`,
     `Most recommended supplements overall: ${line(d.top_supplements, 15)}.`,
