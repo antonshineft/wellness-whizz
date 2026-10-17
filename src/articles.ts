@@ -693,6 +693,18 @@ function recipient(env: ArticleEnv): string | null {
   return (env.DIGEST_TO ?? '').trim() || alertRecipient(env);
 }
 
+/** Send the draft email again (the owner did not get it, or wants the link on the phone). */
+export async function resendDraftEmail(env: ArticleEnv, row: ArticleRow): Promise<{ sent: boolean; to: string | null }> {
+  const post = parsePost(row.draft_json) ?? parsePost(row.post_json);
+  if (!post) return { sent: false, to: null };
+  const ctx = await context(env);
+  const lint = lintWith(ctx, post, post.slug);
+  const to = recipient(env);
+  if (!to) return { sent: false, to: null };
+  await notifyDraft(env, row, post, lint);
+  return { sent: true, to };
+}
+
 async function notifyDraft(env: ArticleEnv, row: ArticleRow, post: BlogPost, lint: LintResult): Promise<void> {
   const to = recipient(env);
   if (!to) return;

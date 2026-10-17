@@ -16,7 +16,7 @@
 import { Hono, type Context } from 'hono';
 import { supplementSlugsUsed } from './blog';
 import { allPosts, findPost, getArticleRow, listArticleRows, parsePost, type ArticleRow } from './blog/store';
-import { actOnArticle, articleSummary, asKind, autoQueue, draftNext, enqueueArticle, guessKind, processRow, reviewPage, suggestTopics, tokenOk } from './articles';
+import { actOnArticle, articleSummary, asKind, autoQueue, draftNext, enqueueArticle, guessKind, processRow, resendDraftEmail, reviewPage, suggestTopics, tokenOk } from './articles';
 import { CONTENT_LANGS, asLang, langFromPath, localizePath, localizeResponse, type Lang } from './i18n';
 import { SHELF_MAX_BASE64, SHELF_MAX_IMAGES, SHELF_MEDIA_TYPES, analyzeShelf, countRecentScans, getShelfScan, resolveShelfSupplements, saveShelfScan, shelfEnabled, type ShelfImage, type ShelfMediaType } from './shelf';
 import { renderShelfPage, renderShelfResult } from './render/shelf';
@@ -1001,6 +1001,19 @@ app.get('/api/admin/articles/suggest', async (c) => {
   await ensureDatabase(c.env.DB);
   const n = Math.min(15, Math.max(1, Number(c.req.query('n') ?? '8') || 8));
   return c.json({ topics: await suggestTopics(c.env, n) });
+});
+
+app.get('/api/admin/articles/notify', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const row = await getArticleRow(c.env.DB, (c.req.query('slug') ?? '').trim());
+  if (!row) return c.json({ error: 'Not found' }, 404);
+  try {
+    return c.json(await resendDraftEmail(c.env, row));
+  } catch (err) {
+    return c.json({ sent: false, error: String(err instanceof Error ? err.message : err) }, 500);
+  }
 });
 
 app.get('/api/admin/articles/show', async (c) => {
