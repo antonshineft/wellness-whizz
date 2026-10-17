@@ -59,7 +59,7 @@
 .ww-tag.ww-tag-good b { background: #1d272d; color: #fff; }
 .ww-tag.ww-tag-warn { background: #ffb4b4; color: #1d272d; }
 .ww-tag.ww-tag-warn b { background: #b3261e; color: #fff; }
-.ww-card-text { margin: 0; font-size: 18px; line-height: 28px; color: #1d272d; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.ww-card-text { margin: 0; font-size: 18px; line-height: 28px; color: #1d272d; overflow-wrap: anywhere; }
 .ww-card .ww-products { margin: 4px 0 0; gap: 10px 16px; }
 .ww-card .ww-product { width: 104px; }
 .ww-card .ww-product img { width: 96px; height: 96px; padding: 8px; border-radius: 18px; }
@@ -110,7 +110,16 @@
 .ww-generated-tile { object-fit: contain; padding: 24px; background: #fdf1cf; }
 
 /* ---------- footer links ---------- */
-a.ww-footer-link { opacity: .6; text-decoration: none; transition: opacity .15s; }
+a.ww-footer-link { opacity: .6; text-decoration: none; transition: opacity .15s; white-space: nowrap; }
+/* The export fixed the link row at 400px, which no longer holds five links: let it take the room it needs. */
+.frame-221 { width: auto; max-width: 100%; flex: 1 1 auto; column-gap: 28px; row-gap: 8px; }
+.frame-222 { width: auto; max-width: none; }
+/* Tablet: links centred on one line, the icons on their own row below. */
+@media (max-width: 991px) {
+  .frame-220 { flex-direction: column; justify-content: center; align-items: center; row-gap: 24px; }
+  .frame-221 { justify-content: center; column-gap: 20px; }
+  .frame-222 { justify-content: center; }
+}
 a.ww-footer-link:hover { opacity: 1; }
 
 /* ---------- supplement page: centre the "Top 5" block and put product photos on the cream tile ---------- */

@@ -73,7 +73,7 @@ const recommendationSchema = {
           form_type: { type: 'string', enum: [...FORM_TYPES], description: 'Most common dosage form.' },
           reason: {
             type: 'string',
-            description: 'Two or three sentences for this user: why the supplement fits their goals, then a suggested daily dosage and timing for their profile (for example "Recommended dosage for ... is ... per day. Take it with ..."). Plain language, no cure claims.',
+            description: 'Two or three short sentences for this user, 180 to 260 characters in total (it is shown in a card): why the supplement fits their goals, then a suggested daily dosage and timing for their profile (for example "Recommended dosage for ... is ... per day. Take it with ..."). Plain language, no cure claims.',
           },
         },
         required: ['name', 'category', 'form_type', 'reason'],
