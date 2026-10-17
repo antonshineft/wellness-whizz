@@ -182,3 +182,15 @@ CREATE TABLE IF NOT EXISTS translations (
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (lang, kind, ref)
 );
+
+-- Shelf scans (src/shelf.ts): the analysis of the photographed bottles; the photos themselves are never stored.
+CREATE TABLE IF NOT EXISTS shelf_scans (
+  id TEXT PRIMARY KEY,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  lang TEXT NOT NULL DEFAULT 'en',
+  goal TEXT NOT NULL DEFAULT '',
+  ip_hash TEXT,
+  products INTEGER NOT NULL DEFAULT 0,
+  analysis_json TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS shelf_scans_created ON shelf_scans(created_at);

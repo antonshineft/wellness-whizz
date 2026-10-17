@@ -59,7 +59,7 @@ export class ClaudeAnswerError extends Error {
  * `user` the task. The schema is the same JSON Schema the OpenAI strict mode takes (object, additionalProperties
  * false, every property required), so both providers share one definition.
  */
-export async function claudeJson<T>(env: ClaudeEnv, system: string, user: string, schema: unknown, opts: ClaudeOptions = {}): Promise<T> {
+export async function claudeJson<T>(env: ClaudeEnv, system: string, user: string | Anthropic.ContentBlockParam[], schema: unknown, opts: ClaudeOptions = {}): Promise<T> {
   if (!env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
   const client = new Anthropic({
     apiKey: env.ANTHROPIC_API_KEY,

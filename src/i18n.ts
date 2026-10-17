@@ -54,7 +54,7 @@ export function englishPath(path: string): string {
 }
 
 /** Paths that have no language version: APIs, assets, feeds, result pages (which follow their session's language). */
-const UNLOCALIZED = /^\/(es(\/|$)|api\/|images\/|css\/|js\/|result\/|feed\.xml|sitemap\.xml|llms\.txt|robots\.txt|[0-9a-f]{32}\.txt|__)/;
+const UNLOCALIZED = /^\/(es(\/|$)|api\/|images\/|css\/|js\/|result\/|shelf\/[0-9a-f]+|feed\.xml|sitemap\.xml|llms\.txt|robots\.txt|[0-9a-f]{32}\.txt|__)/;
 
 export function localizePath(path: string, lang: Lang): string {
   if (lang === 'en' || !path.startsWith('/') || path.startsWith('//') || UNLOCALIZED.test(path)) return path;

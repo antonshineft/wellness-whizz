@@ -524,3 +524,33 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-calc-headline { font-size: 1.1em; }
 .ww-calc-note, .ww-calc-foods { color: #444; font-size: 0.95em; }
 @media (max-width: 767px) { .ww-calc { padding: 18px; } .ww-calc-grid { grid-template-columns: 1fr; } }
+
+/* ---------- shelf scan (/shelf) ---------- */
+.ww-shelf { max-width: 640px; }
+.ww-shelf-drop { display: block; border: 2px dashed #1d272d55; border-radius: 24px; padding: 36px 24px; text-align: center; cursor: pointer; background: #fdf1cf55; transition: background .15s, border-color .15s; }
+.ww-shelf-drop:hover { background: #fdf1cf; border-color: #1d272d; }
+.ww-shelf-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.ww-shelf-drop-title { display: block; font-family: Aeonik, sans-serif; font-size: 24px; line-height: 30px; font-weight: 700; color: #1d272d; margin-bottom: 8px; }
+.ww-shelf-drop-text { display: block; font-size: 15px; line-height: 22px; color: #555; }
+.ww-shelf-previews { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 0; }
+.ww-shelf-previews img { width: 96px; height: 96px; object-fit: cover; border-radius: 14px; background: #fdf1cf; }
+.ww-shelf-field { display: block; margin: 20px 0 14px; }
+.ww-shelf-field span { display: block; font-size: 15px; color: #555; margin-bottom: 6px; }
+.ww-shelf-field input { width: 100%; box-sizing: border-box; font: inherit; font-size: 17px; padding: 12px 14px; border: 1px solid #1d272d33; border-radius: 14px; }
+.ww-shelf-submit { display: inline-block; min-width: 220px; }
+.ww-shelf-submit[disabled] { opacity: .5; cursor: default; }
+.ww-shelf-status { min-height: 24px; margin: 12px 0 0; font-size: 15px; color: #1d272d; }
+.ww-shelf-how { max-width: 640px; margin-top: 36px; font-size: 17px; line-height: 27px; }
+.ww-shelf-how h2 { font-family: Aeonik, sans-serif; font-size: 28px; line-height: 34px; font-weight: 500; margin: 0 0 10px; }
+.ww-shelf-how ul { padding-left: 20px; margin: 0; }
+.ww-shelf-result { max-width: 780px; }
+.ww-shelf-section { margin: 0 0 28px; }
+.ww-shelf-section h2 { font-family: Aeonik, sans-serif; font-size: 30px; line-height: 36px; font-weight: 500; margin: 0 0 12px; }
+.ww-shelf-products.ww-shop { margin: 0; }
+.ww-shelf-notes { list-style: none; padding: 0; margin: 0; }
+.ww-shelf-notes li { border-left: 4px solid #87d581; padding: 6px 0 6px 14px; margin: 0 0 10px; font-size: 17px; line-height: 26px; }
+.ww-shelf-notes li.is-caution { border-left-color: #ffb4b4; }
+.ww-shelf-conf { margin-left: 6px; height: 22px; font-size: 11px; padding: 3px 8px; vertical-align: middle; }
+.ww-shelf-noimg { display: inline-block; width: 60px; height: 60px; border-radius: 14px; background: #fdf1cf; }
+.ww-shelf-link { display: inline-block; margin-top: 10px; color: inherit; text-decoration: underline; text-underline-offset: 3px; opacity: .8; }
+.ww-shelf-link:hover { opacity: 1; }

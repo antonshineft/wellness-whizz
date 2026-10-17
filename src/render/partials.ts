@@ -162,6 +162,7 @@ export function navbar(variant: 'default' | 'logo-left' = 'default', currentQuiz
             <a href="/blog" class="ww-nav-link">Blog</a>
             <a href="/research" class="ww-nav-link">Research</a>
             <a href="/how-it-works" class="ww-nav-link">How it works</a>
+            <a href="/shelf" class="ww-nav-link">Shelf scan</a>
           </div>
           <div class="div-block-8">
             <a href="https://chat.openai.com/g/g-pqcxd1t8o-wellness-whizz" target="_blank" rel="noopener" aria-label="Wellness Whizz GPT on ChatGPT" class="navbar-link w-nav-link"><img src="/images/Vectors-Wrapper_1.svg" loading="lazy" width="26.173086166381836" height="26.520586013793945" alt="ChatGPT" class="vectors-wrapper-7"></a>

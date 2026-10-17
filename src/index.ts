@@ -18,6 +18,8 @@ import { supplementSlugsUsed } from './blog';
 import { allPosts, findPost, getArticleRow, listArticleRows, parsePost, type ArticleRow } from './blog/store';
 import { actOnArticle, articleSummary, asKind, autoQueue, draftNext, enqueueArticle, guessKind, processRow, reviewPage, suggestTopics, tokenOk } from './articles';
 import { CONTENT_LANGS, asLang, langFromPath, localizePath, localizeResponse, type Lang } from './i18n';
+import { SHELF_MAX_BASE64, SHELF_MAX_IMAGES, SHELF_MEDIA_TYPES, analyzeShelf, countRecentScans, getShelfScan, resolveShelfSupplements, saveShelfScan, shelfEnabled, type ShelfImage, type ShelfMediaType } from './shelf';
+import { renderShelfPage, renderShelfResult } from './render/shelf';
 import {
   getTranslation, hasTranslation, localizePost, localizePosts, localizeSupplement, localizeSupplements, translateBacklog, translateStrings, translationCounts,
   type PostTranslation, type SupplementTranslation,
@@ -40,7 +42,7 @@ import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
   getSessionResults, getSupplementBySlug, listSupplements, logEvent, markSession, mergeDuplicateSupplements,
   resolveSupplementSlug, statsSummary, supplementsNeedingContent, updateSupplementContent, type EventInput,
-  type EventType, type QuizProfile, type ResultItem, countSupplements, getSupplementsBySlugs,
+  type EventType, type QuizProfile, type ResultItem, countSupplements, getSupplementsBySlugs, listSupplementNames,
   addSubscriber, contentProgress, countRecentSubscriptions, getMeta, listSubscribers, markSubscriberSent, relatedSupplements, setMeta, weeklyNumbers,
   countSupplementsNeedingFaqs, supplementsNeedingFaqs, updateSupplementFaqs, CATEGORIES, asFormType, insertSupplement, getSupplementByNameKey, normalizeNameKey,
 } from './db';
@@ -443,6 +445,63 @@ pageRoute('/research', async (c, lang) => {
   const notes = await listResearchNotes(c.env.DB, 100);
   track(c, { type: 'page_view', page: '/research' });
   return sendPage(c, renderResearchPage(notes, new URL(c.req.url).origin), lang, '/research', 'public, max-age=600');
+});
+
+// ---------- shelf scan (src/shelf.ts) ----------
+
+pageRoute('/shelf', (c, lang) => {
+  track(c, { type: 'page_view', page: '/shelf' });
+  return sendPage(c, renderShelfPage(new URL(c.req.url).origin), lang, '/shelf', 'public, max-age=600');
+});
+
+/** The photos come as base64 JSON (resized in the browser, public/js/shelf.js); the answer is the result page's URL. */
+app.post('/api/shelf', async (c) => {
+  const body = await readJson(c.req.raw);
+  const env: Bindings = { ...c.env, DEV_FAKE_AI: isLocalRequest(c.req.url) ? c.env.DEV_FAKE_AI : undefined };
+  if (!shelfEnabled(env)) return c.json({ error: 'The shelf scan is not configured yet.' }, 503);
+  const raw = Array.isArray(body.images) ? body.images.slice(0, SHELF_MAX_IMAGES) : [];
+  const images: ShelfImage[] = [];
+  for (const item of raw as { media_type?: unknown; data?: unknown }[]) {
+    const mediaType = String(item?.media_type ?? '') as ShelfMediaType;
+    const data = String(item?.data ?? '').replace(/^data:[^,]*,/, '');
+    if (!SHELF_MEDIA_TYPES.includes(mediaType) || !/^[A-Za-z0-9+/=\s]+$/.test(data) || data.length < 100) continue;
+    if (data.length > SHELF_MAX_BASE64) return c.json({ error: 'A photo is too large. Please try again; the page resizes photos before sending them.' }, 413);
+    images.push({ media_type: mediaType, data: data.replace(/\s+/g, '') });
+  }
+  if (!images.length) return c.json({ error: 'Please add at least one photo of your supplements.' }, 400);
+  const goal = String(body.goal ?? '').replace(/\s+/g, ' ').trim().slice(0, 200);
+  const lang = asLang(body.lang);
+
+  const ipHash = await hashIp(c.req.header('cf-connecting-ip') ?? '');
+  const perIp = Number(c.env.RATE_LIMIT_PER_HOUR ?? '10');
+  if (ipHash && perIp > 0 && (await countRecentScans(c.env.DB, ipHash, 1)) >= perIp) return c.json({ error: 'Too many scans from this network. Please try again later.' }, 429);
+  const global = Number(c.env.GLOBAL_LIMIT_PER_HOUR ?? '100');
+  if (global > 0 && (await countRecentScans(c.env.DB, null, 1)) >= global) return c.json({ error: 'The advisor is very busy right now. Please try again in a little while.' }, 429);
+
+  try {
+    const analysis = await analyzeShelf(env, images, goal, lang, await listSupplementNames(c.env.DB, 300));
+    await resolveShelfSupplements(c.env.DB, analysis);
+    const id = await saveShelfScan(c.env.DB, { lang, goal, ipHash, analysis });
+    return c.json({ id, url: `/shelf/${id}`, products: analysis.products.length });
+  } catch (err) {
+    console.error(`shelf scan failed: ${String(err)}`);
+    return c.json({ error: 'We could not read the photos this time. Please try again.' }, 500);
+  }
+});
+
+/** The result page follows the language the scan was made in; it is never indexed. */
+app.get('/shelf/:id', async (c) => {
+  const id = c.req.param('id');
+  if (!/^[0-9a-f]{24}$/.test(id)) return notFound(c.env, c.req.raw);
+  const scan = await getShelfScan(c.env.DB, id);
+  if (!scan) return notFound(c.env, c.req.raw);
+  const lang = asLang(scan.lang);
+  const slugs = [...scan.analysis.products.map((p) => p.slug), ...scan.analysis.missing.map((m) => m.slug)].filter((s): s is string => !!s);
+  const supplementsEn = await getSupplementsBySlugs(c.env.DB, slugs);
+  const supplements = new Map((await localizeSupplements(c.env.DB, lang, [...supplementsEn.values()])).map((sup) => [sup.slug, sup]));
+  track(c, { type: 'page_view', page: `/shelf/${id}` });
+  const body = new Response(renderShelfResult(scan, supplements, c.env, new URL(c.req.url).origin), { status: 200, headers: { ...htmlHeaders('private, max-age=0, must-revalidate'), 'x-robots-tag': 'noindex' } });
+  return sendPage(c, body, lang, `/shelf/${id}`, 'private, max-age=0, must-revalidate', false);
 });
 
 /** Owner-only: the X queue (what was posted, what is waiting, what failed) and simple controls. */
