@@ -118,6 +118,7 @@ async function articleThread(env: SocialEnv, post: BlogPost): Promise<string[]> 
       `Description: ${post.description}`,
       `Article text (beginning): ${text}`,
     ].join('\n'),
+    { tier: 'fast' },
   );
   const tweets = (draft.tweets ?? []).map((t) => t.trim()).filter(Boolean).slice(0, 4);
   if (!tweets.length) throw new Error('empty thread draft');
@@ -140,6 +141,7 @@ async function factPost(env: SocialEnv, sup: Supplement): Promise<string[]> {
       `Benefits: ${sup.benefits_html.replace(/<[^>]+>/g, ' ').slice(0, 600)}`,
       `Article: ${article}`,
     ].join('\n'),
+    { tier: 'fast' },
   );
   const text = (draft.text ?? '').trim();
   if (!text) throw new Error('empty fact draft');

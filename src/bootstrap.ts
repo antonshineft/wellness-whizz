@@ -49,6 +49,15 @@ interface Manifest {
 const BATCH_SIZE = 100;
 const TABLES = ['supplements', 'sessions', 'session_supplements', 'meta', 'events', 'images', 'subscribers', 'social_posts', 'research_notes'];
 /** Columns added after the first release; created on databases that predate them. */
+/** CREATE TABLE IF NOT EXISTS statements for tables that arrived after the first release (same SQL as the migration). */
+const LATER_TABLES: string[] = [
+  `CREATE TABLE IF NOT EXISTS reddit_mentions (id INTEGER PRIMARY KEY AUTOINCREMENT, received_at TEXT NOT NULL, message_id TEXT, keyword TEXT NOT NULL, subreddit TEXT NOT NULL, title TEXT NOT NULL, author TEXT, kind TEXT NOT NULL, url TEXT NOT NULL, post_id TEXT NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS reddit_mentions_received ON reddit_mentions(received_at)`,
+  `CREATE INDEX IF NOT EXISTS reddit_mentions_post ON reddit_mentions(post_id)`,
+  `CREATE TABLE IF NOT EXISTS reddit_used (post_id TEXT PRIMARY KEY, used_at TEXT NOT NULL, note TEXT)`,
+  `CREATE TABLE IF NOT EXISTS reddit_limits (day TEXT NOT NULL, keyword TEXT NOT NULL, PRIMARY KEY (day, keyword))`,
+];
+
 const LATER_COLUMNS: [table: string, column: string, definition: string][] = [
   ['supplements', 'image', "TEXT NOT NULL DEFAULT ''"],
   ['supplements', 'faq_json', "TEXT NOT NULL DEFAULT ''"],
@@ -85,6 +94,9 @@ async function bootstrap(db: D1Database): Promise<void> {
     await db.batch(statements.map((s) => db.prepare(s)));
     console.log('bootstrap: created database schema');
   }
+
+  // Tables added after the first release: created on existing databases here (fresh ones get them from the schema above).
+  await db.batch(LATER_TABLES.map((sql) => db.prepare(sql)));
 
   for (const [table, column, definition] of LATER_COLUMNS) {
     const info = await db.prepare(`PRAGMA table_info(${table})`).all<{ name: string }>();

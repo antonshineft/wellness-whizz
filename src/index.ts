@@ -38,6 +38,8 @@ import {
   countSupplementsNeedingFaqs, supplementsNeedingFaqs, updateSupplementFaqs, CATEGORIES, asFormType, insertSupplement, getSupplementByNameKey, normalizeNameKey,
 } from './db';
 import { runQuizPipeline } from './pipeline';
+import { digestStatus, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, storeAlert } from './reddit';
+import PostalMime from 'postal-mime';
 import { renderBlogIndex, renderBlogPost } from './render/blog';
 import { fetchAsset, renderHome } from './render/home';
 import { renderHowItWorks, renderTerms } from './render/pages';
@@ -49,6 +51,19 @@ export interface Bindings {
   ASSETS: Fetcher;
   OPENAI_API_KEY?: string;
   OPENAI_MODEL?: string;
+  /** Claude (src/claude.ts): the key is a secret paid from the plan's API credits; the models are wrangler.jsonc vars. */
+  ANTHROPIC_API_KEY?: string;
+  CLAUDE_MODEL?: string;
+  CLAUDE_MODEL_FAST?: string;
+  CLAUDE_MODEL_SCREEN?: string;
+  LLM_PROVIDER?: string;
+  /** Inbound mail (Email Routing -> email() below): the verified destination every message is forwarded to. */
+  MAIL_FORWARD_TO?: string;
+  /** The Reddit digest (src/reddit.ts). */
+  DIGEST_TO?: string;
+  REDDIT_DIGEST?: string;
+  REDDIT_MAX_THREADS?: string;
+  REDDIT_MAX_REPLIES?: string;
   DEV_FAKE_AI?: string;
   PRODUCT_SEARCH_URL?: string;
   IHERB_RCODE?: string;
@@ -738,6 +753,58 @@ app.get('/api/admin/faq', async (c) => {
 });
 
 /** The whole catalogue as JSON, in the shape of data/supplements.json (to bundle AI-written content into the repo). */
+/** Owner-only: the Reddit digest's state (mentions received, last run, which keys are present). */
+app.get('/api/admin/reddit', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  return c.json(await digestStatus(c.env));
+});
+
+/** Owner-only: run the digest now. ?send=0 only returns it; ?threads=N and ?replies=N override the limits; ?hours=N the window. */
+app.get('/api/admin/reddit/run', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  const num = (k: string) => (c.req.query(k) ? Number(c.req.query(k)) || undefined : undefined);
+  const run = await runRedditDigest(c.env, { send: c.req.query('send') !== '0', maxThreads: num('threads'), maxReplies: num('replies'), hours: num('hours') });
+  return c.json(run);
+});
+
+/** Owner-only: read one Reddit thread the way the digest does (?id=<post id>), to check that Reddit answers the Worker. */
+app.get('/api/admin/reddit/fetch', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  const id = (c.req.query('id') ?? '').trim().toLowerCase();
+  if (!/^[a-z0-9]{4,12}$/.test(id)) return c.json({ error: 'id must be a Reddit post id' }, 400);
+  c.header('cache-control', 'no-store');
+  return c.json(await fetchThread(id));
+});
+
+/** Owner-only: mark threads as already suggested (?ids=a,b,c) so later digests skip them. */
+app.get('/api/admin/reddit/used', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const n = await markUsed(c.env.DB, (c.req.query('ids') ?? '').split(/[,\s]+/), 'marked by owner');
+  return c.json({ marked: n });
+});
+
+/** Owner-only: parse an F5Bot alert body posted as text (a dry run of the email handler; ?store=1 also stores it). */
+app.post('/api/admin/reddit/ingest', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  const parsed = parseF5BotAlert(await c.req.text());
+  let stored = 0;
+  if (c.req.query('store') === '1') {
+    await ensureDatabase(c.env.DB);
+    stored = await storeAlert(c.env.DB, null, parsed);
+  }
+  return c.json({ ...parsed, stored });
+});
+
 app.get('/api/admin/export', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
@@ -782,6 +849,28 @@ async function researchStep(env: Bindings, batch: number): Promise<Awaited<Retur
 
 export default {
   fetch: app.fetch,
+  /**
+   * Email Routing handler: hello@aiww.io is routed to this Worker. Every message is forwarded to MAIL_FORWARD_TO (the
+   * owner's inbox, exactly as the old routing rule did) and F5Bot's keyword alerts are also parsed into the Reddit
+   * digest tables. Forwarding happens first so a parsing problem can never lose mail.
+   */
+  async email(message: ForwardableEmailMessage, env: Bindings, ctx: ExecutionContext): Promise<void> {
+    const raw = await new Response(message.raw).arrayBuffer();
+    const forwardTo = (env.MAIL_FORWARD_TO ?? '').trim();
+    if (forwardTo) await message.forward(forwardTo);
+    const from = (message.headers.get('from') ?? '').toLowerCase();
+    if (!from.includes('f5bot.com')) return;
+    ctx.waitUntil(
+      (async () => {
+        await ensureDatabase(env.DB);
+        const parsed = await PostalMime.parse(raw);
+        const text = parsed.text ?? (parsed.html ?? '').replace(/<[^>]+>/g, '\n');
+        const alert = parseF5BotAlert(text);
+        const stored = await storeAlert(env.DB, parsed.messageId ?? message.headers.get('message-id'), alert);
+        console.log(`f5bot alert: ${stored} mentions stored${alert.limited.length ? `, capped: ${alert.limited.join(', ')}` : ''}`);
+      })().catch((err) => console.error(`f5bot alert failed: ${String(err)}`)),
+    );
+  },
   /** Cron trigger (see wrangler.jsonc): writes a few missing articles per run until the catalogue is complete. */
   async scheduled(event: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {
     if (event.cron === '0 * * * *') {
@@ -825,6 +914,17 @@ export default {
             console.log(`weekly report sent to ${to}`);
           })
           .catch((err) => console.error(`weekly report failed: ${String(err)}`)),
+      );
+      return;
+    }
+    if (event.cron === '52 6 * * *') {
+      // Daily: the Reddit reply digest from yesterday's F5Bot alerts (src/reddit.ts); REDDIT_DIGEST=false pauses it.
+      if ((env.REDDIT_DIGEST ?? 'true') === 'false') return;
+      ctx.waitUntil(
+        ensureDatabase(env.DB)
+          .then(() => runRedditDigest(env))
+          .then((run) => console.log(`reddit digest: ${run.kept.length} replies from ${run.read} threads (${run.mentions_24h} mentions), sent to ${run.sent_to ?? 'nobody'}`))
+          .catch((err) => console.error(`reddit digest failed: ${String(err)}`)),
       );
       return;
     }

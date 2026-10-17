@@ -124,3 +124,30 @@ CREATE TABLE IF NOT EXISTS research_notes (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_research_created ON research_notes(created_at);
+
+-- Reddit digest (src/reddit.ts): every F5Bot mention received by the email handler, the threads already suggested,
+-- and the keywords F5Bot capped on a given day.
+CREATE TABLE IF NOT EXISTS reddit_mentions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  received_at TEXT NOT NULL,
+  message_id TEXT,
+  keyword TEXT NOT NULL,
+  subreddit TEXT NOT NULL,
+  title TEXT NOT NULL,
+  author TEXT,
+  kind TEXT NOT NULL,
+  url TEXT NOT NULL,
+  post_id TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS reddit_mentions_received ON reddit_mentions(received_at);
+CREATE INDEX IF NOT EXISTS reddit_mentions_post ON reddit_mentions(post_id);
+CREATE TABLE IF NOT EXISTS reddit_used (
+  post_id TEXT PRIMARY KEY,
+  used_at TEXT NOT NULL,
+  note TEXT
+);
+CREATE TABLE IF NOT EXISTS reddit_limits (
+  day TEXT NOT NULL,
+  keyword TEXT NOT NULL,
+  PRIMARY KEY (day, keyword)
+);

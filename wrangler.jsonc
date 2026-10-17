@@ -24,7 +24,22 @@
     }
   ],
   "vars": {
+    // Claude answers first whenever ANTHROPIC_API_KEY (secret, paid from the plan's monthly API credits) is set; OpenAI is
+    // the fallback (and the other way round with LLM_PROVIDER=openai). Main: quiz, profiles, articles, FAQs. Fast: research
+    // notes, X posts, Reddit reply drafts. Screen: cheap classification (which Reddit threads to read).
+    "CLAUDE_MODEL": "claude-opus-5-5",
+    "CLAUDE_MODEL_FAST": "claude-sonnet-5-5",
+    "CLAUDE_MODEL_SCREEN": "claude-haiku-5-5",
     "OPENAI_MODEL": "gpt-4.1-mini",
+    // Inbound mail (Email Routing -> this Worker, src/index.ts email()): every message is forwarded to this verified
+    // destination exactly as the old routing rule did; F5Bot alerts are also parsed into the Reddit digest tables.
+    "MAIL_FORWARD_TO": "hello@shineft.com",
+    // The Reddit digest (src/reddit.ts, 06:52 UTC daily): where it goes, "false" to pause it, how many threads to read
+    // and how many replies to draft.
+    "DIGEST_TO": "shineft@gmail.com",
+    "REDDIT_DIGEST": "true",
+    "REDDIT_MAX_THREADS": "25",
+    "REDDIT_MAX_REPLIES": "6",
     // iHerb Rewards / referral code, appended to every iherb.com link the site generates.
     "IHERB_RCODE": "HIN4657",
     "PRODUCT_SEARCH_URL": "https://www.iherb.com/search?kw={query}",
@@ -54,6 +69,7 @@
   // search-engine pings (src/indexing.ts).
   // 06:00 UTC daily: the PubMed research run. 07:00 UTC on Mondays ("MON": in Cloudflare cron syntax a numeric day of
   // week counts from 1 = Sunday, so "1" fired on Sundays): the week's numbers by email (src/report.ts).
-  "triggers": { "crons": ["*/5 * * * *", "0 * * * *", "0 6 * * *", "0 7 * * MON"] },
+  // 06:52 UTC daily: the Reddit reply digest (src/reddit.ts) from the F5Bot alerts received by the email handler.
+  "triggers": { "crons": ["*/5 * * * *", "0 * * * *", "0 6 * * *", "0 7 * * MON", "52 6 * * *"] },
   "observability": { "enabled": true }
 }

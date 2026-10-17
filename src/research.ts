@@ -155,7 +155,7 @@ async function draftNote(env: ResearchEnv, sup: Pick<Supplement, 'name'>, s: Pub
     abstractText ? `Abstract: ${abstractText}` : 'No abstract available: summarise from the title only and say that the abstract was not available.',
     'Tone: calm, evidence-based, no medical advice, no claims of curing or treating. Mention sample size and duration when given.',
   ].join('\n');
-  return chatJson<NoteDraft>(env, 'research_note', noteSchema, user);
+  return chatJson<NoteDraft>(env, 'research_note', noteSchema, user, { tier: 'fast' });
 }
 
 export async function insertNote(db: D1Database, sup: Supplement, s: PubmedSummary, draft: NoteDraft): Promise<boolean> {

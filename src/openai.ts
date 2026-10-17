@@ -8,14 +8,20 @@ import {
   CATEGORIES, FDA_STATUSES, FORM_TYPES, SAFETY_STATUSES, asFdaStatus, asFormType, asSafetyStatus, clampRating,
   type FormType, type Product, type QuizProfile, type SupplementInput,
 } from './db';
+import { claudeEnabled, claudeJson, claudeRetryableElsewhere, type ClaudeEnv, type ClaudeOptions } from './claude';
 import { linksListHtml, listHtml } from './html';
 import { searchUrl, type LinkEnv } from './links';
 
-export interface AiEnv extends LinkEnv {
+export interface AiEnv extends LinkEnv, ClaudeEnv {
   OPENAI_API_KEY?: string;
   OPENAI_MODEL?: string;
   DEV_FAKE_AI?: string;
+  /** "claude" (default when ANTHROPIC_API_KEY is set) or "openai"; the other provider is the fallback when both keys exist. */
+  LLM_PROVIDER?: string;
 }
+
+/** Per-call choices passed through chatJson(): which Claude model tier, how much thinking, how long to wait. */
+export type ChatOptions = ClaudeOptions;
 
 export interface Recommendation {
   name: string;
@@ -173,7 +179,8 @@ export async function recommendSupplements(env: AiEnv, profile: QuizProfile, kno
     'the most common dosage form, and a short personalised note: why it fits this person plus a suggested daily dosage and timing.' + catalogue,
   ].join('\n');
 
-  const data = await chatJson<{ recommendations: Recommendation[] }>(env, 'supplement_recommendations', recommendationSchema, user);
+  // Low effort and a 45 s limit: the answer must arrive while the browser is still connected (see README "Limits").
+  const data = await chatJson<{ recommendations: Recommendation[] }>(env, 'supplement_recommendations', recommendationSchema, user, { effort: 'low', timeoutMs: 45_000 });
   const recs = (data.recommendations ?? [])
     .map((r) => ({
       name: String(r.name ?? '').trim(),
@@ -195,9 +202,17 @@ export async function generateSupplementProfile(env: AiEnv, rec: Recommendation)
 // ---------- internals ----------
 
 export function useFakeAi(env: AiEnv): boolean {
-  if (env.OPENAI_API_KEY) return false;
+  if (env.OPENAI_API_KEY || claudeEnabled(env)) return false;
   if (env.DEV_FAKE_AI === 'true') return true;
-  throw new Error('OPENAI_API_KEY is not configured (set it with `wrangler secret put OPENAI_API_KEY`, or DEV_FAKE_AI=true for local development)');
+  throw new Error('No AI key is configured (set ANTHROPIC_API_KEY or OPENAI_API_KEY with `wrangler secret put`, or DEV_FAKE_AI=true for local development)');
+}
+
+/** Which provider answers first: Claude whenever its key exists (or LLM_PROVIDER says so), otherwise OpenAI. */
+export function primaryProvider(env: AiEnv): 'claude' | 'openai' {
+  const wanted = (env.LLM_PROVIDER ?? '').trim().toLowerCase();
+  if (wanted === 'openai' && env.OPENAI_API_KEY) return 'openai';
+  if (wanted === 'claude' && claudeEnabled(env)) return 'claude';
+  return claudeEnabled(env) ? 'claude' : 'openai';
 }
 
 async function requestProfile(env: AiEnv, rec: Recommendation): Promise<ProfileDraft> {
@@ -207,7 +222,7 @@ async function requestProfile(env: AiEnv, rec: Recommendation): Promise<ProfileD
     'Keep every bullet under 20 words. Be specific and practical. Only cite studies you are confident exist.',
     'For products, list 5 widely available retail products (product name and brand) that contain this supplement.',
   ].join(' ');
-  return chatJson<ProfileDraft>(env, 'supplement_profile', profileSchema, user);
+  return chatJson<ProfileDraft>(env, 'supplement_profile', profileSchema, user, { effort: 'low', timeoutMs: 45_000 });
 }
 
 function draftToInput(env: AiEnv, draft: ProfileDraft, rec: Recommendation): SupplementInput {
@@ -241,7 +256,29 @@ function draftToInput(env: AiEnv, draft: ProfileDraft, rec: Recommendation): Sup
   };
 }
 
-export async function chatJson<T>(env: AiEnv, schemaName: string, schema: unknown, userPrompt: string): Promise<T> {
+/**
+ * A JSON answer matching `schema`, from Claude (plan API credits) with OpenAI as the fallback, or the other way round
+ * when LLM_PROVIDER is "openai". A provider that fails for any reason other than a bad request hands over to the other
+ * one, so a spent credit balance or an outage never stops the quiz as long as one key works.
+ */
+export async function chatJson<T>(env: AiEnv, schemaName: string, schema: unknown, userPrompt: string, opts: ChatOptions = {}): Promise<T> {
+  const first = primaryProvider(env);
+  const canFallBack = first === 'claude' ? !!env.OPENAI_API_KEY : claudeEnabled(env);
+  try {
+    return first === 'claude'
+      ? await claudeJson<T>(env, SYSTEM_PROMPT, userPrompt, schema, opts)
+      : await openaiJson<T>(env, schemaName, schema, userPrompt);
+  } catch (err) {
+    if (!canFallBack || (first === 'claude' && !claudeRetryableElsewhere(err))) throw err;
+    console.warn(`${first} failed for ${schemaName}, falling back: ${String(err).slice(0, 200)}`);
+    return first === 'claude'
+      ? openaiJson<T>(env, schemaName, schema, userPrompt)
+      : claudeJson<T>(env, SYSTEM_PROMPT, userPrompt, schema, opts);
+  }
+}
+
+async function openaiJson<T>(env: AiEnv, schemaName: string, schema: unknown, userPrompt: string): Promise<T> {
+  if (!env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is not configured');
   const body = JSON.stringify({
     model: env.OPENAI_MODEL || DEFAULT_MODEL,
     messages: [

@@ -427,3 +427,19 @@ Two features chosen for the next round of work, in this order:
 
 Also queued from the same discussion: iHerb price-drop radar, "ask the research" question box, study-drop reaction
 posts, a seven-day email course, and Pinterest pins generated from the comparison tables.
+
+## Claude, API credits and the Reddit digest
+
+The Worker talks to Claude first whenever the `ANTHROPIC_API_KEY` secret is set (the plan's monthly API credits pay for
+it) and falls back to OpenAI when Claude fails for any reason other than a bad request, so a spent credit balance never
+stops the quiz. `LLM_PROVIDER=openai` swaps the order. Models are `wrangler.jsonc` variables: `CLAUDE_MODEL` (quiz,
+profiles, articles, FAQs), `CLAUDE_MODEL_FAST` (research notes, X posts, Reddit reply drafts) and
+`CLAUDE_MODEL_SCREEN` (cheap classification).
+
+The Reddit digest (`src/reddit.ts`) runs on the Worker: Email Routing hands mail for hello@aiww.io to the Worker's
+`email()` handler, which forwards every message to `MAIL_FORWARD_TO` (the owner's inbox, exactly as the old routing
+rule did) and parses F5Bot keyword alerts into the `reddit_mentions` table. At 06:52 UTC the cron screens the day's
+threads, reads the promising ones through Reddit's Atom feed, drafts short replies and emails the digest to
+`DIGEST_TO` through Resend. Owner routes: `/api/admin/reddit` (state), `/api/admin/reddit/run?send=0` (run now),
+`/api/admin/reddit/fetch?id=…` (read one thread), `/api/admin/reddit/used?ids=…` (skip threads already answered) and
+`POST /api/admin/reddit/ingest` (parse an alert body). `REDDIT_DIGEST=false` pauses the cron.
