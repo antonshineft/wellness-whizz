@@ -20,6 +20,7 @@ import { actOnArticle, articleSummary, asKind, autoQueue, draftNext, enqueueArti
 import { CONTENT_LANGS, asLang, langFromPath, localizePath, localizeResponse, type Lang } from './i18n';
 import { SHELF_MAX_BASE64, SHELF_MAX_IMAGES, SHELF_MEDIA_TYPES, analyzeShelf, countRecentScans, getShelfScan, resolveShelfSupplements, saveShelfScan, shelfEnabled, type ShelfImage, type ShelfMediaType } from './shelf';
 import { renderShelfPage, renderShelfResult } from './render/shelf';
+import { queueQuizDataArticle, quizDataSummary } from './quizdata';
 import {
   getTranslation, hasTranslation, localizePost, localizePosts, localizeSupplement, localizeSupplements, translateBacklog, translateStrings, translationCounts,
   type PostTranslation, type SupplementTranslation,
@@ -1083,6 +1084,15 @@ app.post('/api/admin/translate/strings', async (c) => {
   if (!strings.length) return c.json({ error: 'strings[] is required' }, 400);
   const translated = await translateStrings(c.env, lang, strings);
   return c.json({ lang, translations: Object.fromEntries(strings.map((text, i) => [text, translated[i]])) });
+});
+
+/** What the quiz data says (src/quizdata.ts): the aggregate numbers, and &draft=1 queues the data article from them. */
+app.get('/api/admin/quizdata', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  if (c.req.query('draft') === '1') return c.json(await queueQuizDataArticle(c.env));
+  return c.json(await quizDataSummary(c.env.DB));
 });
 
 app.get('/api/admin/export', async (c) => {
