@@ -61,10 +61,14 @@ export function localizePath(path: string, lang: Lang): string {
   return path === '/' ? '/es/' : `/es${path}`;
 }
 
-function localizeUrl(href: string, lang: Lang): string {
+/** Site-relative links and absolute links to this site move under /es/; links to other sites (iHerb, PubMed) are left alone. */
+function localizeUrl(href: string, lang: Lang, origin: string): string {
   if (href.startsWith('/')) return localizePath(href, lang);
+  if (!/^https?:\/\//i.test(href)) return href;
   try {
     const url = new URL(href);
+    const site = new URL(origin);
+    if (url.host !== site.host && url.host !== 'aiww.io' && url.host !== 'www.aiww.io') return href;
     url.pathname = localizePath(url.pathname, lang);
     return url.toString();
   } catch {
@@ -201,7 +205,7 @@ export function localizeResponse(res: Response, lang: Lang, ctx: PageContext): R
 
   function rewriteAttr(el: Element, attr: string): void {
     const value = el.getAttribute(attr);
-    if (value) el.setAttribute(attr, localizeUrl(value, lang));
+    if (value) el.setAttribute(attr, localizeUrl(value, lang, ctx.origin));
   }
 }
 
