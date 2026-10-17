@@ -9,7 +9,8 @@
  * kinds in turn (the one that went out longest ago first). A failed send is retried once the next day and reported by
  * email (ALERT_EMAIL, else the EMAIL_FROM address) when Resend is configured.
  */
-import { POSTS, type BlogPost } from '../blog';
+import type { BlogPost } from '../blog';
+import { allPosts } from '../blog/store';
 import { getMeta, listSupplements, setMeta, type Supplement } from '../db';
 import { alertRecipient, sendEmail, type EmailEnv } from '../email';
 import { escapeHtml } from '../html';
@@ -164,7 +165,7 @@ export async function buildQueue(env: SocialEnv): Promise<{ queued: string[] }> 
   const pending = (kind: string) => pendingByKind.get(kind) ?? 0;
 
   // 1. One thread per article, never twice (meta flag); drafted one per run while fewer than three threads wait.
-  for (const post of POSTS) {
+  for (const post of await allPosts(env.DB)) {
     if (pending('article') >= 3) break;
     const flag = `x:article:${post.slug}`;
     if (await getMeta(env.DB, flag)) continue;

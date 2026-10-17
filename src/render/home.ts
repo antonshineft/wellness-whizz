@@ -2,7 +2,7 @@
  * Home page: the static index.html from the export, with the two Webflow collection lists filled from D1
  * (the carousel cards and the "Explore manually" links) using HTMLRewriter.
  */
-import { POSTS } from '../blog';
+import { allPosts } from '../blog/store';
 import { getSupplementsBySlugs, listSupplements, randomSupplements } from '../db';
 import type { LinkEnv } from '../links';
 import { postCard } from './blog';
@@ -13,11 +13,12 @@ export async function renderHome(
   request: Request,
   curatedOnly = false,
 ): Promise<Response> {
+  const posts = (await allPosts(env.DB)).slice(0, 3);
   const [assetResponse, candidates, explore, postSupplements] = await Promise.all([
     fetchAsset(env.ASSETS, request, '/'),
     randomSupplements(env.DB, 18, curatedOnly),
     listSupplements(env.DB, 200, curatedOnly),
-    getSupplementsBySlugs(env.DB, POSTS.map((p) => p.heroSupplement)),
+    getSupplementsBySlugs(env.DB, posts.map((p) => p.heroSupplement)),
   ]);
   const blogCtx = { env, origin: new URL(request.url).origin, supplements: postSupplements };
   if (!assetResponse.ok) return assetResponse;
@@ -39,7 +40,7 @@ export async function renderHome(
     })
     .on('.ww-teaser-posts', {
       element(el) {
-        el.setInnerContent(POSTS.slice(0, 3).map((p) => postCard(blogCtx, p)).join(''), { html: true });
+        el.setInnerContent(posts.map((p) => postCard(blogCtx, p)).join(''), { html: true });
       },
     })
     .on('.linksnav', {

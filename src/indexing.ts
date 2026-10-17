@@ -12,7 +12,7 @@
  *
  * The sitemap and the feed live here too, so that "what changed" and "what we tell the engines" stay one list.
  */
-import { POSTS } from './blog';
+import { allPosts } from './blog/store';
 import type { BlogPost } from './blog/types';
 import { getMeta, setMeta } from './db';
 import { listResearchNotes, pubmedUrl, type ResearchNote } from './research';
@@ -112,14 +112,14 @@ async function latestNoteAt(db: D1Database): Promise<string | undefined> {
  * carry none, supplement pages carry their last content change and the lists carry their newest item.
  */
 export async function sitemapEntries(db: D1Database, curatedOnly: boolean): Promise<SitemapEntry[]> {
-  const [supplements, noteAt] = await Promise.all([supplementStamps(db, curatedOnly), latestNoteAt(db)]);
+  const [supplements, noteAt, posts] = await Promise.all([supplementStamps(db, curatedOnly), latestNoteAt(db), allPosts(db)]);
   const supplementEntries = supplements.map((s) => ({
     loc: `/supplement/${s.slug}`,
     lastmod: day(s.updated_at || s.created_at),
     priority: '0.7',
   }));
-  const postEntries = POSTS.map((p) => ({ loc: `/blog/${p.slug}`, lastmod: p.date, priority: '0.8' }));
-  const latestPost = latest(...POSTS.map((p) => p.date));
+  const postEntries = posts.map((p) => ({ loc: `/blog/${p.slug}`, lastmod: p.date, priority: '0.8' }));
+  const latestPost = latest(...posts.map((p) => p.date));
   const latestSupplement = latest(...supplementEntries.map((e) => e.lastmod));
   return [
     { loc: '/', lastmod: latest(latestPost, latestSupplement), priority: '1.0' },
@@ -214,7 +214,8 @@ export function renderFeed(site: string, posts: readonly BlogPost[], notes: Rese
 }
 
 export async function feedXml(db: D1Database, site: string): Promise<string> {
-  return renderFeed(site, POSTS, await listResearchNotes(db, FEED_ITEMS));
+  const [posts, notes] = await Promise.all([allPosts(db), listResearchNotes(db, FEED_ITEMS)]);
+  return renderFeed(site, posts, notes);
 }
 
 // ---------- pings ----------
@@ -292,7 +293,7 @@ export async function indexSync(env: IndexingEnv, opts: IndexSyncOptions = {}): 
   const state = await loadState(db);
   const curatedOnly = opts.curatedOnly ?? false;
   const noteCount = (await db.prepare(`SELECT COUNT(*) AS n FROM research_notes WHERE summary != ''`).first<{ n: number }>())?.n ?? 0;
-  const postSlugs = POSTS.map((p) => p.slug);
+  const postSlugs = (await allPosts(db)).map((p) => p.slug);
 
   const paths = new Set<string>();
   let feedChanged = false;

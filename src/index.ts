@@ -14,7 +14,9 @@
  *   /sitemap.xml /feed.xml  for search engines and feed readers (src/indexing.ts; the hourly cron pings IndexNow and WebSub)
  */
 import { Hono, type Context } from 'hono';
-import { POSTS, getPost, supplementSlugsUsed } from './blog';
+import { supplementSlugsUsed } from './blog';
+import { allPosts, findPost, getArticleRow, listArticleRows, parsePost, type ArticleRow } from './blog/store';
+import { actOnArticle, articleSummary, asKind, autoQueue, draftNext, enqueueArticle, guessKind, processRow, reviewPage, suggestTopics, tokenOk } from './articles';
 import { ensureDatabase } from './bootstrap';
 import { MIN_ARTICLE_LENGTH, generateArticle } from './content';
 import { generateSupplementProfile } from './openai';
@@ -66,6 +68,9 @@ export interface Bindings {
   REDDIT_DIGEST?: string;
   REDDIT_MAX_THREADS?: string;
   REDDIT_MAX_REPLIES?: string;
+  /** The article pipeline (src/articles.ts): topics queued on its own per week ("0" = off) and the first draft's thinking depth. */
+  ARTICLES_PER_WEEK?: string;
+  ARTICLE_EFFORT?: string;
   DEV_FAKE_AI?: string;
   PRODUCT_SEARCH_URL?: string;
   IHERB_RCODE?: string;
@@ -294,20 +299,40 @@ app.get('/terms', (c) => {
 });
 
 app.get('/blog', async (c) => {
-  const supplements = await getSupplementsBySlugs(c.env.DB, POSTS.map((p) => p.heroSupplement));
+  const posts = await allPosts(c.env.DB);
+  const supplements = await getSupplementsBySlugs(c.env.DB, posts.map((p) => p.heroSupplement));
   track(c, { type: 'page_view', page: '/blog' });
   const ctx = { env: c.env, origin: new URL(c.req.url).origin, supplements };
-  return c.body(renderBlogIndex(ctx, POSTS), 200, htmlHeaders('public, max-age=600'));
+  return c.body(renderBlogIndex(ctx, posts), 200, htmlHeaders('public, max-age=600'));
 });
 
+/** Articles: bundled or published from the pipeline. ?preview=<draft token> shows a draft (noindex, uncached). */
 app.get('/blog/:slug', async (c) => {
-  const post = getPost(c.req.param('slug'));
+  const slug = c.req.param('slug');
+  const posts = await allPosts(c.env.DB);
+  let post = posts.find((p) => p.slug === slug);
+  let preview = false;
+  const token = c.req.query('preview');
+  if (token) {
+    const row = await getArticleRow(c.env.DB, slug);
+    const draft = tokenOk(row, token) ? parsePost(row.draft_json) ?? parsePost(row.post_json) : null;
+    if (draft) {
+      post = draft;
+      preview = true;
+    }
+  }
   if (!post) return notFound(c.env, c.req.raw);
-  const related = POSTS.filter((p) => p.slug !== post.slug).slice(0, 3);
+  const related = posts.filter((p) => p.slug !== slug).slice(0, 3);
   const supplements = await getSupplementsBySlugs(c.env.DB, [...supplementSlugsUsed(post), ...related.map((p) => p.heroSupplement)]);
-  track(c, { type: 'page_view', page: `/blog/${post.slug}`, slug: `blog:${post.slug}` });
   const ctx = { env: c.env, origin: new URL(c.req.url).origin, supplements };
-  return c.body(renderBlogPost(ctx, post, related), 200, htmlHeaders('public, max-age=600'));
+  let html = renderBlogPost(ctx, post, related);
+  if (preview) {
+    const banner = '<div style="position:sticky;top:0;z-index:50;background:#b00020;color:#fff;text-align:center;padding:8px 12px;font:600 14px Arial,sans-serif">Draft preview. Not public until you publish it from the review page.</div>';
+    html = html.replace('<div class="ww-progress"', `${banner}<div class="ww-progress"`);
+    return c.body(html, 200, { ...htmlHeaders('no-store'), 'x-robots-tag': 'noindex, nofollow' });
+  }
+  track(c, { type: 'page_view', page: `/blog/${post.slug}`, slug: `blog:${post.slug}` });
+  return c.body(html, 200, htmlHeaders('public, max-age=600'));
 });
 
 /** robots.txt with an absolute sitemap URL (a relative one is ignored by search engines). */
@@ -346,7 +371,7 @@ app.get('/llms.txt', async (c) => {
     line('Terms, privacy and affiliate disclosure', '/terms'),
     '',
     '## Articles',
-    ...POSTS.map((p) => line(p.title, `/blog/${p.slug}`, p.description)),
+    ...(await allPosts(c.env.DB)).map((p) => line(p.title, `/blog/${p.slug}`, p.description)),
     '',
     '## Supplement guides',
     ...supplements.map((s) => line(s.name, `/supplement/${s.slug}`, s.summary)),
@@ -700,7 +725,7 @@ app.on(['GET', 'POST'], '/api/admin/note', async (c) => {
     const already = await c.env.DB.prepare("SELECT 1 AS x FROM social_posts WHERE kind = 'research' AND ref = ? AND status IN ('queued', 'posted')").bind(pmid).first();
     if (!already) {
       const postSlug = param('post');
-      const link = postSlug && getPost(postSlug) ? `Our write-up: ${siteOrigin(c.env)}/blog/${postSlug}` : `Our ${sup.name} profile: ${siteOrigin(c.env)}/supplement/${sup.slug}`;
+      const link = postSlug && (await findPost(c.env.DB, postSlug)) ? `Our write-up: ${siteOrigin(c.env)}/blog/${postSlug}` : `Our ${sup.name} profile: ${siteOrigin(c.env)}/supplement/${sup.slug}`;
       queued = `${(result.note.tweet ?? '').trim()} Study: ${pubmedUrl(pmid)} ${link}`;
       await enqueue(c.env.DB, 'research', pmid, [queued], new Date());
       await c.env.DB.prepare('UPDATE research_notes SET queued = 1 WHERE pmid = ?').bind(pmid).run();
@@ -805,6 +830,99 @@ app.post('/api/admin/reddit/ingest', async (c) => {
     stored = await storeAlert(c.env.DB, null, parsed);
   }
   return c.json({ ...parsed, stored });
+});
+
+/**
+ * The article pipeline (src/articles.ts). GET /api/admin/articles lists the rows with their preview and review links;
+ * /draft?topic=&kind=&slug=&notes= queues a new article (or a revision of an existing slug) for the five-minute cron,
+ * &now=1 drafts it in this request instead (several minutes); /run drafts the next queued row now; /suggest?n= asks for
+ * topic ideas; /show?slug= returns a row with its article; /review and /act are the owner's review page and its buttons,
+ * which accept the row's own token (from the email) as well as the key.
+ */
+app.get('/api/admin/articles', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const rows = await listArticleRows(c.env.DB, 200);
+  const by = (status: string) => rows.filter((r) => r.status === status).length;
+  return c.json({
+    queued: by('queued'), drafting: by('drafting'), awaiting_review: by('draft'), published: by('published'), failed: by('failed'),
+    articles_per_week: c.env.ARTICLES_PER_WEEK ?? '1', effort: c.env.ARTICLE_EFFORT ?? 'high',
+    rows: rows.map((r) => articleSummary(c.env, r)),
+  });
+});
+
+app.get('/api/admin/articles/draft', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const topic = (c.req.query('topic') ?? '').replace(/\s+/g, ' ').trim().slice(0, 300);
+  const slug = (c.req.query('slug') ?? '').trim().toLowerCase();
+  if (!topic && !slug) return c.json({ error: 'topic (or slug of an existing article) is required' }, 400);
+  const req = { topic, kind: asKind(c.req.query('kind'), guessKind(topic || slug)), slug: slug || undefined, notes: (c.req.query('notes') ?? '').trim().slice(0, 2000) };
+  try {
+    const { row, action } = await enqueueArticle(c.env, req);
+    if (c.req.query('now') === '1') {
+      await c.env.DB.prepare("UPDATE blog_posts SET status = 'drafting', attempts = attempts + 1, updated_at = datetime('now') WHERE id = ?").bind(row.id).run();
+      const done = await processRow(c.env, { ...row, status: 'drafting', attempts: row.attempts + 1 });
+      return c.json({ action, ...articleSummary(c.env, done) });
+    }
+    return c.json({ action, ...articleSummary(c.env, row), note: 'The five-minute cron drafts it; an email arrives when the draft is ready.' });
+  } catch (err) {
+    return c.json({ error: String(err instanceof Error ? err.message : err) }, 400);
+  }
+});
+
+app.get('/api/admin/articles/run', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const { processed } = await draftNext(c.env);
+  return c.json(processed ? articleSummary(c.env, processed) : { processed: null });
+});
+
+app.get('/api/admin/articles/suggest', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const n = Math.min(15, Math.max(1, Number(c.req.query('n') ?? '8') || 8));
+  return c.json({ topics: await suggestTopics(c.env, n) });
+});
+
+app.get('/api/admin/articles/show', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const row = await getArticleRow(c.env.DB, (c.req.query('slug') ?? '').trim());
+  if (!row) return c.json({ error: 'Not found' }, 404);
+  return c.json({ ...articleSummary(c.env, row), draft: parsePost(row.draft_json), live: parsePost(row.post_json) });
+});
+
+/** Token or key: the token is the draft's own secret from the email, so the owner key never travels by mail. */
+async function articleAccess(c: Context<AppContext>, slug: string, token: string | undefined): Promise<{ row: ArticleRow | null; allowed: boolean }> {
+  await ensureDatabase(c.env.DB);
+  const row = await getArticleRow(c.env.DB, slug);
+  const byKey = !!c.env.STATS_KEY && (c.req.query('key') === c.env.STATS_KEY || token === c.env.STATS_KEY);
+  return { row, allowed: byKey || tokenOk(row, token) };
+}
+
+app.get('/api/admin/articles/review', async (c) => {
+  const slug = (c.req.query('slug') ?? '').trim();
+  const { row, allowed } = await articleAccess(c, slug, c.req.query('token'));
+  if (!allowed) return c.text('Not found', 404);
+  return c.body(reviewPage(c.env, row), 200, { ...htmlHeaders('no-store'), 'x-robots-tag': 'noindex, nofollow' });
+});
+
+app.post('/api/admin/articles/act', async (c) => {
+  const body = /json/i.test(c.req.header('content-type') ?? '') ? await readJson(c.req.raw) : await readForm(c.req.raw);
+  const slug = String(body.slug ?? c.req.query('slug') ?? '').trim();
+  const token = String(body.token ?? c.req.query('token') ?? '') || undefined;
+  const { row, allowed } = await articleAccess(c, slug, token);
+  if (!allowed) return c.text('Not found', 404);
+  if (!row) return c.body(reviewPage(c.env, null, { ok: false, text: 'This draft no longer exists.' }), 404, htmlHeaders('no-store'));
+  const result = await actOnArticle(c.env, row, String(body.action ?? c.req.query('action') ?? ''), String(body.notes ?? ''), String(body.force ?? c.req.query('force') ?? '') === '1');
+  if (/json/i.test(c.req.header('accept') ?? '')) return c.json({ ok: result.ok, message: result.message, row: result.row ? articleSummary(c.env, result.row) : null }, result.ok ? 200 : 400);
+  return c.body(reviewPage(c.env, result.row, { ok: result.ok, text: result.message }), result.ok ? 200 : 400, { ...htmlHeaders('no-store'), 'x-robots-tag': 'noindex, nofollow' });
 });
 
 app.get('/api/admin/export', async (c) => {
@@ -950,8 +1068,24 @@ export default {
           })
           .catch((err) => console.error(`research failed: ${String(err)}`)),
       );
+      // The article pipeline queues a topic of its own when the week is short of ARTICLES_PER_WEEK and nothing waits.
+      ctx.waitUntil(
+        ensureDatabase(env.DB)
+          .then(() => autoQueue(env))
+          .then((r) => console.log(`article auto-queue: ${r.queued ?? 'nothing'} (${r.reason})`))
+          .catch((err) => console.error(`article auto-queue failed: ${String(err)}`)),
+      );
       return;
     }
+    // Every five minutes: one queued article through the writer (src/articles.ts); nothing to do when the queue is empty.
+    ctx.waitUntil(
+      ensureDatabase(env.DB)
+        .then(() => draftNext(env))
+        .then(({ processed }) => {
+          if (processed) console.log(`article: ${processed.slug} is now ${processed.status}`);
+        })
+        .catch((err) => console.error(`article drafting failed: ${String(err)}`)),
+    );
     const batch = Number(env.BACKFILL_BATCH ?? '3');
     if (!batch) return;
     ctx.waitUntil(

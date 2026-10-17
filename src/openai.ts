@@ -21,7 +21,10 @@ export interface AiEnv extends LinkEnv, ClaudeEnv {
 }
 
 /** Per-call choices passed through chatJson(): which Claude model tier, how much thinking, how long to wait. */
-export type ChatOptions = ClaudeOptions;
+export type ChatOptions = ClaudeOptions & {
+  /** Standing instruction replacing the advisor prompt (the article writer in src/articles.ts has its own). */
+  system?: string;
+};
 
 export interface Recommendation {
   name: string;
@@ -264,25 +267,26 @@ function draftToInput(env: AiEnv, draft: ProfileDraft, rec: Recommendation): Sup
 export async function chatJson<T>(env: AiEnv, schemaName: string, schema: unknown, userPrompt: string, opts: ChatOptions = {}): Promise<T> {
   const first = primaryProvider(env);
   const canFallBack = first === 'claude' ? !!env.OPENAI_API_KEY : claudeEnabled(env);
+  const system = opts.system ?? SYSTEM_PROMPT;
   try {
     return first === 'claude'
-      ? await claudeJson<T>(env, SYSTEM_PROMPT, userPrompt, schema, opts)
-      : await openaiJson<T>(env, schemaName, schema, userPrompt);
+      ? await claudeJson<T>(env, system, userPrompt, schema, opts)
+      : await openaiJson<T>(env, schemaName, schema, userPrompt, system, opts.timeoutMs);
   } catch (err) {
     if (!canFallBack || (first === 'claude' && !claudeRetryableElsewhere(err))) throw err;
     console.warn(`${first} failed for ${schemaName}, falling back: ${String(err).slice(0, 200)}`);
     return first === 'claude'
-      ? openaiJson<T>(env, schemaName, schema, userPrompt)
-      : claudeJson<T>(env, SYSTEM_PROMPT, userPrompt, schema, opts);
+      ? openaiJson<T>(env, schemaName, schema, userPrompt, system, opts.timeoutMs)
+      : claudeJson<T>(env, system, userPrompt, schema, opts);
   }
 }
 
-async function openaiJson<T>(env: AiEnv, schemaName: string, schema: unknown, userPrompt: string): Promise<T> {
+async function openaiJson<T>(env: AiEnv, schemaName: string, schema: unknown, userPrompt: string, system = SYSTEM_PROMPT, timeoutMs = 45_000): Promise<T> {
   if (!env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is not configured');
   const body = JSON.stringify({
     model: env.OPENAI_MODEL || DEFAULT_MODEL,
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: system },
       { role: 'user', content: userPrompt },
     ],
     response_format: { type: 'json_schema', json_schema: { name: schemaName, strict: true, schema } },
@@ -297,7 +301,7 @@ async function openaiJson<T>(env: AiEnv, schemaName: string, schema: unknown, us
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${env.OPENAI_API_KEY}` },
         body,
-        signal: AbortSignal.timeout(45_000),
+        signal: AbortSignal.timeout(timeoutMs),
       });
       if (!res.ok) {
         const text = await res.text();

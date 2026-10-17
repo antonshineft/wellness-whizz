@@ -443,3 +443,42 @@ threads, reads the promising ones through Reddit's Atom feed, drafts short repli
 `DIGEST_TO` through Resend. Owner routes: `/api/admin/reddit` (state), `/api/admin/reddit/run?send=0` (run now),
 `/api/admin/reddit/fetch?id=…` (read one thread), `/api/admin/reddit/used?ids=…` (skip threads already answered) and
 `POST /api/admin/reddit/ingest` (parse an alert body). `REDDIT_DIGEST=false` pauses the cron.
+
+## The article pipeline (guides written on the live site)
+
+New blog guides no longer need a deploy. `src/articles.ts` drafts them with the main Claude model on the plan's API
+credits, checks them against the house rules, and publishes them from the `blog_posts` table; `src/blog/store.ts`
+merges published rows with the articles bundled in `src/blog/posts` (a published row with the same slug replaces the
+bundled one, so an old guide can be revised the same way).
+
+How a guide gets written:
+
+1. A topic is queued: from the owner link below, from the command centre, or by the pipeline itself (the daily cron
+   queues one topic of its own when fewer than `ARTICLES_PER_WEEK` articles were started in the last seven days and
+   nothing is waiting for drafting or review; `"0"` switches that off).
+2. The five-minute cron claims the oldest queued row and drafts it (`ARTICLE_EFFORT`, default `high`, sets the
+   thinking depth). The draft goes through `lintArticle()`: allowed markup only, every `/supplement/` and `/blog/`
+   link must exist, no external links in the body, one `<ww-shop>` and one `<ww-quiz>`, 1400 to 2200 words, 4 to 6
+   FAQ entries, 5 to 10 https sources without PubMed IDs or DOIs, no em dashes or exclamation marks, title and
+   description lengths. One automatic revision round fixes what the lint flagged.
+3. The owner gets an email (`DIGEST_TO`, else the alert address) with a preview link (`/blog/<slug>?preview=<token>`,
+   noindex, never cached) and a review page with Publish, Ask for changes (notes go into the next drafting round),
+   Take offline and Discard. The links carry the draft's own token, so the owner key never travels by email.
+4. Publish makes the article live, pings IndexNow and WebSub, and the hourly X queue posts its thread as for any
+   other article. The feed, sitemap, llms.txt and the home-page teaser read the merged list.
+
+Owner routes (all take `?key=` like the other admin routes; the review page and its buttons take the draft token too):
+
+| Route | What it does |
+| --- | --- |
+| `GET /api/admin/articles` | Every row with status, checks, preview and review links |
+| `GET /api/admin/articles/draft?topic=…&kind=…&slug=…&notes=…` | Queue an article (`kind` is guessed from the topic: dosage, comparison, best or guide); an existing `slug` queues a revision; `&now=1` drafts in the same request (minutes) |
+| `GET /api/admin/articles/run` | Draft the next queued row now |
+| `GET /api/admin/articles/suggest?n=8` | Topic ideas the site lacks, from the fast model |
+| `GET /api/admin/articles/show?slug=…` | A row with its draft and live article JSON |
+| `GET /api/admin/articles/review?slug=…&token=…` | The review page from the email |
+| `POST /api/admin/articles/act` | `slug`, `token` (or `key`), `action` = publish, revise (+`notes`), unpublish or discard; `force=1` publishes past blocking checks; send `accept: application/json` for a JSON answer |
+
+A drafting round that does not finish within 20 minutes (lost Worker) goes back to the queue once, then the row is
+marked failed and the owner is emailed. `DEV_FAKE_AI=true` drafts a placeholder article so the whole flow can be
+tested locally without a key.
