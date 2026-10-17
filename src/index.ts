@@ -312,18 +312,20 @@ pageRoute('/supplement/:slug', async (c, lang) => {
     const canonical = await resolveSupplementSlug(c.env.DB, slug);
     return canonical ? c.redirect(localizePath(`/supplement/${canonical}`, lang), 302) : notFound(c.env, c.req.raw);
   }
-  // A Spanish page exists once its translation does (so hreflang links and the sitemap never point at English text).
+  // Until its translation exists, a Spanish page shows the English text in the Spanish chrome, noindex and without
+  // hreflang links, so links from the Spanish site never dead-end and search engines only see the translated version.
   const translation = lang === 'en' ? null : await getTranslation<SupplementTranslation>(c.env.DB, lang, 'supplement', supplement.slug);
-  if (lang !== 'en' && !translation) return notFound(c.env, c.req.raw);
+  const pending = lang !== 'en' && !translation;
   const [exploreEn, relatedEn] = await Promise.all([
     listSupplements(c.env.DB, 200, curatedOnly(c.env)),
     relatedSupplements(c.env.DB, supplement, 4, curatedOnly(c.env)),
   ]);
   const [explore, related] = await Promise.all([localizeSupplements(c.env.DB, lang, exploreEn), localizeSupplements(c.env.DB, lang, relatedEn)]);
-  const alternates = lang === 'en' ? await hasTranslation(c.env.DB, 'es', 'supplement', supplement.slug) : true;
+  const alternates = lang === 'en' ? await hasTranslation(c.env.DB, 'es', 'supplement', supplement.slug) : !pending;
   track(c, { type: 'supplement_view', page: `/supplement/${supplement.slug}`, slug: supplement.slug });
   const html = renderSupplementPage(localizeSupplement(supplement, translation), explore, c.env, { related, origin: new URL(c.req.url).origin });
-  return sendPage(c, html, lang, `/supplement/${supplement.slug}`, 'public, max-age=300', alternates);
+  const body = pending ? new Response(html, { status: 200, headers: { ...htmlHeaders('public, max-age=60'), 'x-robots-tag': 'noindex' } }) : html;
+  return sendPage(c, body, lang, `/supplement/${supplement.slug}`, 'public, max-age=300', alternates);
 });
 
 // ---------- editorial pages ----------
@@ -363,10 +365,11 @@ pageRoute('/blog/:slug', async (c, lang) => {
     }
   }
   if (!post) return notFound(c.env, c.req.raw);
+  let pending = false;
   if (lang !== 'en') {
     const translation = await getTranslation<PostTranslation>(c.env.DB, lang, 'post', slug);
-    if (!translation) return notFound(c.env, c.req.raw);
-    post = localizePost(post, translation);
+    if (translation) post = localizePost(post, translation);
+    else pending = true; // English text in the Spanish chrome, noindex, until the translation exists
   }
   const related = await localizePosts(c.env.DB, lang, posts.filter((p) => p.slug !== slug).slice(0, 3));
   const supplementsEn = await getSupplementsBySlugs(c.env.DB, [...supplementSlugsUsed(post), ...related.map((p) => p.heroSupplement)]);
@@ -378,9 +381,10 @@ pageRoute('/blog/:slug', async (c, lang) => {
     html = html.replace('<div class="ww-progress"', `${banner}<div class="ww-progress"`);
     return c.body(html, 200, { ...htmlHeaders('no-store'), 'x-robots-tag': 'noindex, nofollow' });
   }
-  const alternates = lang === 'en' ? await hasTranslation(c.env.DB, 'es', 'post', slug) : true;
+  const alternates = lang === 'en' ? await hasTranslation(c.env.DB, 'es', 'post', slug) : !pending;
   track(c, { type: 'page_view', page: `/blog/${post.slug}`, slug: `blog:${post.slug}` });
-  return sendPage(c, html, lang, `/blog/${post.slug}`, 'public, max-age=600', alternates);
+  const body = pending ? new Response(html, { status: 200, headers: { ...htmlHeaders('public, max-age=60'), 'x-robots-tag': 'noindex' } }) : html;
+  return sendPage(c, body, lang, `/blog/${post.slug}`, 'public, max-age=600', alternates);
 });
 
 /** robots.txt with an absolute sitemap URL (a relative one is ignored by search engines). */
