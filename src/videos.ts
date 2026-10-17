@@ -125,8 +125,7 @@ const scriptSchema = {
     title: { type: 'string', description: 'Working title of the video, at most 60 characters.' },
     segments: {
       type: 'array',
-      minItems: 3,
-      maxItems: 3,
+      description: 'Exactly three segments, in the order headshot, half-body, standing.',
       items: {
         type: 'object',
         additionalProperties: false,
@@ -138,7 +137,7 @@ const scriptSchema = {
       },
     },
     caption: { type: 'string' },
-    hashtags: { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 5 },
+    hashtags: { type: 'array', items: { type: 'string' }, description: '3 to 5 lowercase tags without the # sign.' },
     product_slug: { type: 'string' },
     popup_after: { type: 'string' },
   },

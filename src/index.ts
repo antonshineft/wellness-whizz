@@ -24,6 +24,7 @@ import { queueQuizDataArticle, quizDataSummary } from './quizdata';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
 import { getVideo, listVideos, markFailed, markPosted, markReady, nextJob, parseScript, queueVideo, scriptNext } from './videos';
+import { createPost as zernioCreatePost, getPost as zernioGetPost, listAccounts as zernioAccounts, uploadVideo as zernioUpload, zernioEnabled } from './zernio';
 import {
   getTranslation, hasTranslation, localizePost, localizePosts, localizeSupplement, localizeSupplements, translateBacklog, translateStrings, translationCounts,
   type PostTranslation, type SupplementTranslation,
@@ -98,6 +99,8 @@ export interface Bindings {
   TIKTOK_CLIENT_SECRET?: string;
   /** "false" stops published articles from queueing a short video (src/videos.ts). */
   VIDEO_AUTOQUEUE?: string;
+  /** Zernio (src/zernio.ts): posts to TikTok, Instagram and others through Zernio's connected accounts. */
+  ZERNIO_API_KEY?: string;
   /** Supplements per cron run of the article writer; "0" disables the scheduled backfill. */
   BACKFILL_BATCH?: string;
   /** "false" turns off generated illustrations for supplements without product photos. */
@@ -1251,6 +1254,70 @@ app.get('/api/admin/videos/:slug/file', async (c) => {
   return new Response(res.body, { headers: { 'content-type': 'video/mp4', 'cache-control': 'private, max-age=600', 'content-disposition': `inline; filename="${row.slug}.mp4"` } });
 });
 
+/** Manual state fix for a video row (queued | scripted | ready | posted | failed). */
+app.post('/api/admin/videos/:slug/status', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const status = c.req.query('status') ?? '';
+  if (!['queued', 'scripted', 'ready', 'posted', 'failed'].includes(status)) return c.json({ error: 'bad status' }, 400);
+  await c.env.DB.prepare("UPDATE videos SET status = ?, updated_at = datetime('now') WHERE slug = ?").bind(status, c.req.param('slug') ?? '').run();
+  return c.json({ ok: true, video: await getVideo(c.env.DB, c.req.param('slug') ?? '') });
+});
+
+/** Zernio (src/zernio.ts): connected accounts, and posting a video through them. */
+app.get('/api/admin/zernio/accounts', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  c.header('cache-control', 'no-store');
+  if (!zernioEnabled(c.env)) return c.json({ enabled: false, accounts: [] });
+  const r = await zernioAccounts(c.env);
+  return r.ok ? c.json({ enabled: true, accounts: r.accounts }) : c.json({ enabled: true, error: r.message, accounts: [] }, 502);
+});
+
+/** Body: the mp4. Query: title (caption), accounts (comma-separated "platform:accountId"), privacy, comments, duet,
+ *  stitch (on/off), ai (off to drop the AI-content label), video (pipeline slug to mark posted). */
+app.post('/api/admin/zernio/post', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  if (!zernioEnabled(c.env)) return c.json({ error: 'ZERNIO_API_KEY is not set' }, 503);
+  await ensureDatabase(c.env.DB);
+  const title = (c.req.query('title') ?? '').trim();
+  const targets = (c.req.query('accounts') ?? '').split(',').map((x) => x.trim()).filter(Boolean).map((x) => {
+    const i = x.indexOf(':');
+    return { platform: x.slice(0, i), accountId: x.slice(i + 1) };
+  }).filter((t) => t.platform && t.accountId);
+  if (!title) return c.json({ error: 'title query parameter is required' }, 400);
+  if (!targets.length) return c.json({ error: 'accounts query parameter is required (platform:accountId,…)' }, 400);
+  const video = await c.req.arrayBuffer();
+  if (!video.byteLength) return c.json({ error: 'empty body' }, 400);
+  const up = await zernioUpload(c.env, video, `${(c.req.query('video') || 'video').replace(/[^a-z0-9-]/gi, '')}-${Date.now()}.mp4`);
+  if (!up.ok) return c.json({ error: up.message }, 502);
+  const r = await zernioCreatePost(c.env, {
+    content: title,
+    mediaUrl: up.url,
+    targets,
+    privacy: c.req.query('privacy') || undefined,
+    allowComment: c.req.query('comments') !== 'off',
+    allowDuet: c.req.query('duet') === 'on',
+    allowStitch: c.req.query('stitch') === 'on',
+    madeWithAi: c.req.query('ai') !== 'off',
+  });
+  if (!r.ok) return c.json({ error: r.message }, 502);
+  const slug = (c.req.query('video') ?? '').trim();
+  if (slug) await markPosted(c.env, slug, `zernio:${r.id}`);
+  return c.json({ ok: true, post_id: r.id, status: r.status, media_url: up.url, bytes: video.byteLength });
+});
+
+app.get('/api/admin/zernio/post/:id', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  c.header('cache-control', 'no-store');
+  if (!zernioEnabled(c.env)) return c.json({ error: 'ZERNIO_API_KEY is not set' }, 503);
+  const r = await zernioGetPost(c.env, c.req.param('id') ?? '');
+  return r.ok ? c.json(r.post) : c.json({ error: r.message }, 502);
+});
+
 /** The owner's posting page (src/render/tiktok-admin.ts): pick a video, write the caption, choose who can see it, post. */
 app.get('/api/admin/tiktok', async (c) => {
   const denied = authorized(c);
@@ -1262,7 +1329,9 @@ app.get('/api/admin/tiktok', async (c) => {
   const ci = auth ? await creatorInfo(c.env) : null;
   const slug = (c.req.query('video') ?? '').trim();
   const video = slug ? await getVideo(c.env.DB, slug) : null;
+  const zr = zernioEnabled(c.env) ? await zernioAccounts(c.env) : null;
   return c.html(renderTikTokAdmin({
+    zernio: zr ? (zr.ok ? { accounts: zr.accounts, error: '' } : { accounts: [], error: zr.message }) : null,
     enabled, auth,
     creator: ci && ci.ok ? ci.info : null,
     creatorError: ci && !ci.ok ? ci.message : '',
