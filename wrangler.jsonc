@@ -41,7 +41,7 @@
     "REDDIT_DIGEST": "true",
     "REDDIT_MAX_THREADS": "20",
     "REDDIT_MAX_REPLIES": "6",
-    "ARTICLES_PER_WEEK": "1",
+    "ARTICLES_PER_WEEK": "2",
     "ARTICLE_EFFORT": "high",
     // iHerb Rewards / referral code, appended to every iherb.com link the site generates.
     "IHERB_RCODE": "HIN4657",
