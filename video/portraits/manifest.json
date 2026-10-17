@@ -1,0 +1,54 @@
+{
+ "voice_id": "0b9b0edd7ed442cbb05ca1bf20e9a9c5",
+ "voice_name": "Pablo - Firm & Measured (HeyGen)",
+ "sets": [
+  {
+   "name": "set-01",
+   "poses": {
+    "half-body": "set-01-half-body.jpg",
+    "headshot": "set-01-headshot.jpg",
+    "standing": "set-01-standing.jpg"
+   }
+  },
+  {
+   "name": "set-02",
+   "poses": {
+    "half-body": "set-02-half-body.jpg",
+    "headshot": "set-02-headshot.jpg",
+    "standing": "set-02-standing.jpg"
+   }
+  },
+  {
+   "name": "set-03",
+   "poses": {
+    "half-body": "set-03-half-body.jpg",
+    "headshot": "set-03-headshot.jpg",
+    "standing": "set-03-standing.jpg"
+   }
+  },
+  {
+   "name": "set-04",
+   "poses": {
+    "half-body": "set-04-half-body.jpg",
+    "headshot": "set-04-headshot.jpg",
+    "standing": "set-04-standing.jpg"
+   }
+  },
+  {
+   "name": "set-05",
+   "poses": {
+    "half-body": "set-05-half-body.jpg",
+    "headshot": "set-05-headshot.jpg",
+    "standing": "set-05-standing.jpg"
+   }
+  },
+  {
+   "name": "set-06",
+   "poses": {
+    "half-body": "set-06-half-body.jpg",
+    "headshot": "set-06-headshot.jpg",
+    "standing": "set-06-standing.jpg"
+   }
+  }
+ ]
+}

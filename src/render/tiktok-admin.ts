@@ -12,6 +12,8 @@ export interface TikTokAdminView {
   creatorError: string;
   posts: TikTokPostRow[];
   maxBytes: number;
+  /** A rendered pipeline video to load into the form (?video=<slug>). */
+  prefill?: { slug: string; caption: string; title: string } | null;
 }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] as string));
@@ -44,13 +46,14 @@ export function renderTikTokAdmin(v: TikTokAdminView): string {
   <div><div class="small">Posting as</div><strong>${esc(ci.creator_nickname)}</strong> <span class="small">@${esc(ci.creator_username)}</span></div>
   <a class="small" href="/api/tiktok/connect?key=__KEY__">switch account</a>
 </section>
-<form id="f">
+<form id="f" ${v.prefill ? `data-video="${esc(v.prefill.slug)}"` : ''}>
+  ${v.prefill ? `<p class="who" id="pipeline"><span>From the pipeline: <strong>${esc(v.prefill.title)}</strong> <span class="small" id="pipeline-state">loading the video…</span></span></p>` : ''}
   <label>Video (mp4, up to ${Math.round(v.maxBytes / 1048576)} MB, max ${Math.round(ci.max_video_post_duration_sec / 60)} min)
     <input type="file" name="video" accept="video/mp4,video/quicktime" required>
   </label>
   <video id="preview" playsinline muted controls hidden></video>
-  <label>Caption <span class="small" id="count">0 / 2200</span>
-    <textarea name="title" maxlength="2200" rows="4" placeholder="What the video is about, plus #hashtags" required></textarea>
+  <label>Caption <span class="small" id="count">${v.prefill ? v.prefill.caption.length : 0} / 2200</span>
+    <textarea name="title" maxlength="2200" rows="4" placeholder="What the video is about, plus #hashtags" required>${v.prefill ? esc(v.prefill.caption) : ''}</textarea>
   </label>
   <label>Who can view this video
     <select name="privacy" required>
@@ -119,10 +122,19 @@ ${rows ? `<table>${rows}</table>` : '<p class="small">Nothing posted through the
     prev.onloadedmetadata = function () { if (prev.duration > MAXSEC) { show('bad', 'That video is longer than this account may post (' + MAXSEC + ' s).'); file.value = ''; prev.hidden = true; ready(); } };
   });
   function show(cls, html) { result.hidden = false; result.className = cls; result.innerHTML = html; }
+  var slug = f.getAttribute('data-video');
+  if (slug) {
+    var st = document.getElementById('pipeline-state');
+    fetch('/api/admin/videos/' + encodeURIComponent(slug) + '/file?key=' + encodeURIComponent(K)).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); }).then(function (b) {
+      var dt = new DataTransfer(); dt.items.add(new File([b], slug + '.mp4', { type: 'video/mp4' })); file.files = dt.files;
+      file.dispatchEvent(new Event('change')); st.textContent = (b.size / 1048576).toFixed(1) + ' MB loaded'; ready();
+    }).catch(function (e) { st.textContent = 'could not load the video (' + e.message + '); pick the file by hand.'; });
+  }
   f.addEventListener('submit', function (e) {
     e.preventDefault(); if (go.disabled) return;
     go.disabled = true; go.textContent = 'Uploading…';
     var q = new URLSearchParams({ key: K, title: title.value.trim(), privacy: privacy.value, comments: f.comments.checked ? 'on' : 'off', duet: f.duet.checked ? 'on' : 'off', stitch: f.stitch.checked ? 'on' : 'off', cover_ms: '1500' });
+    if (slug) q.set('video', slug);
     fetch('/api/tiktok/post?' + q, { method: 'POST', headers: { 'content-type': 'video/mp4' }, body: file.files[0] })
       .then(function (r) { return r.json(); })
       .then(function (j) {

@@ -23,6 +23,7 @@ import { renderShelfPage, renderShelfResult } from './render/shelf';
 import { queueQuizDataArticle, quizDataSummary } from './quizdata';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
+import { getVideo, listVideos, markFailed, markPosted, markReady, nextJob, parseScript, queueVideo, scriptNext } from './videos';
 import {
   getTranslation, hasTranslation, localizePost, localizePosts, localizeSupplement, localizeSupplements, translateBacklog, translateStrings, translationCounts,
   type PostTranslation, type SupplementTranslation,
@@ -95,6 +96,8 @@ export interface Bindings {
   /** TikTok Content Posting API app (sandbox or production) for /api/tiktok/* (src/tiktok.ts). */
   TIKTOK_CLIENT_KEY?: string;
   TIKTOK_CLIENT_SECRET?: string;
+  /** "false" stops published articles from queueing a short video (src/videos.ts). */
+  VIDEO_AUTOQUEUE?: string;
   /** Supplements per cron run of the article writer; "0" disables the scheduled backfill. */
   BACKFILL_BATCH?: string;
   /** "false" turns off generated illustrations for supplements without product photos. */
@@ -1176,7 +1179,76 @@ app.post('/api/tiktok/post', async (c) => {
     disableStitch: c.req.query('stitch') !== 'on',
   });
   if (!r.ok) return c.json({ error: r.message }, 502);
+  const videoSlug = (c.req.query('video') ?? '').trim();
+  if (videoSlug) await markPosted(c.env, videoSlug, r.publishId);
   return c.json({ ok: true, publish_id: r.publishId, privacy: r.privacy, bytes: video.byteLength });
+});
+
+/** Short videos per article (src/videos.ts). The render job (GitHub Actions) uses /next, /ready and /failed. */
+app.get('/api/admin/videos', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  return c.json({ videos: await listVideos(c.env.DB) });
+});
+
+app.post('/api/admin/videos/queue', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const slug = (c.req.query('slug') ?? '').trim();
+  if (!slug) return c.json({ error: 'slug is required' }, 400);
+  const r = await queueVideo(c.env, slug);
+  if (r.ok && c.req.query('now') === '1') await scriptNext(c.env);
+  return c.json({ ...r, video: await getVideo(c.env.DB, slug) }, r.ok ? 200 : 400);
+});
+
+app.post('/api/admin/videos/script', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  return c.json({ processed: await scriptNext(c.env) });
+});
+
+app.get('/api/admin/videos/next', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  const job = await nextJob(c.env, c.req.query('slug') || undefined);
+  return c.json(job ?? { job: null });
+});
+
+app.post('/api/admin/videos/:slug/ready', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const body = (await c.req.json().catch(() => ({}))) as { video_url?: string; duration?: number };
+  if (!body.video_url) return c.json({ error: 'video_url is required' }, 400);
+  const ok = await markReady(c.env, c.req.param('slug') ?? '', body.video_url, Number(body.duration ?? 0));
+  return c.json({ ok }, ok ? 200 : 404);
+});
+
+app.post('/api/admin/videos/:slug/failed', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const body = (await c.req.json().catch(() => ({}))) as { error?: string };
+  const ok = await markFailed(c.env, c.req.param('slug') ?? '', body.error ?? 'unknown error');
+  return c.json({ ok }, ok ? 200 : 404);
+});
+
+/** The rendered file, proxied so the posting page can load it without cross-origin trouble. */
+app.get('/api/admin/videos/:slug/file', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const row = await getVideo(c.env.DB, c.req.param('slug') ?? '');
+  if (!row?.video_url) return c.json({ error: 'no rendered video' }, 404);
+  const res = await fetch(row.video_url, { redirect: 'follow' });
+  if (!res.ok) return c.json({ error: `fetching the video failed: HTTP ${res.status}` }, 502);
+  return new Response(res.body, { headers: { 'content-type': 'video/mp4', 'cache-control': 'private, max-age=600', 'content-disposition': `inline; filename="${row.slug}.mp4"` } });
 });
 
 /** The owner's posting page (src/render/tiktok-admin.ts): pick a video, write the caption, choose who can see it, post. */
@@ -1188,12 +1260,15 @@ app.get('/api/admin/tiktok', async (c) => {
   const enabled = tiktokEnabled(c.env);
   const auth = enabled ? await getAuth(c.env) : null;
   const ci = auth ? await creatorInfo(c.env) : null;
+  const slug = (c.req.query('video') ?? '').trim();
+  const video = slug ? await getVideo(c.env.DB, slug) : null;
   return c.html(renderTikTokAdmin({
     enabled, auth,
     creator: ci && ci.ok ? ci.info : null,
     creatorError: ci && !ci.ok ? ci.message : '',
     posts: enabled ? await listPosts(c.env) : [],
     maxBytes: MAX_SINGLE_UPLOAD,
+    prefill: video && video.video_url ? { slug: video.slug, caption: video.caption, title: parseScript(video.script_json)?.title ?? video.slug } : null,
   }));
 });
 
@@ -1376,8 +1451,8 @@ export default {
             console.log(`article: ${processed.slug} is now ${processed.status}`);
             return;
           }
-          // Quiet ticks translate a few pages for the Spanish site (src/translate.ts).
-          return translateStep(env);
+          // Quiet ticks write the script of a queued video (src/videos.ts), else translate a few pages (src/translate.ts).
+          return scriptNext(env).then((did) => (did ? undefined : translateStep(env)));
         })
         .catch((err) => console.error(`article drafting failed: ${String(err)}`)),
     );

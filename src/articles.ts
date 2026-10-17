@@ -9,6 +9,7 @@
  * engines and lets the hourly X queue pick it up. "Ask for changes" queues a revision with the owner's notes.
  */
 import { POSTS } from './blog';
+import { queueVideo, videosAutoQueue } from './videos';
 import { ARTICLE_KINDS, SLUG_RE, allPosts, getArticleRow, invalidatePosts, listArticleRows, parsePost, type ArticleKind, type ArticleRow } from './blog/store';
 import type { BlogPost } from './blog/types';
 import { listSupplements, type Supplement } from './db';
@@ -19,6 +20,8 @@ import { chatJson, useFakeAi, type AiEnv } from './openai';
 
 export interface ArticleEnv extends AiEnv, EmailEnv, IndexingEnv {
   DB: D1Database;
+  STATS_KEY?: string;
+  VIDEO_AUTOQUEUE?: string;
   CANONICAL_HOST?: string;
   /** Where draft notifications go (default: the digest address, then the alert address). */
   DIGEST_TO?: string;
@@ -558,6 +561,13 @@ export async function publishArticle(env: ArticleEnv, row: ArticleRow, force = f
     .bind(JSON.stringify(post), JSON.stringify(lint.warnings.map((w) => `warning: ${w}`)), row.id)
     .run();
   invalidatePosts();
+  if (!row.published_at && videosAutoQueue(env)) {
+    try {
+      await queueVideo(env, post.slug);
+    } catch (err) {
+      console.error(`queueing the video for ${post.slug} failed: ${String(err)}`);
+    }
+  }
   try {
     await indexSync(env, { paths: [`/blog/${post.slug}`, '/blog', '/', '/feed.xml'], curatedOnly: env.LIST_AI_SUPPLEMENTS === 'false' });
   } catch (err) {
