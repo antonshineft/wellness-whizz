@@ -32,7 +32,7 @@ KEY = os.environ.get('WW_STATS_KEY', '')
 HEYGEN = os.environ.get('HEYGEN_API_KEY', '')
 LOCAL = os.environ.get('RENDER_LOCAL') == '1'
 W, H, FPS = 1080, 1920, 25
-MAX_WORDS = 115  # credit guard: a script longer than this is refused before any HeyGen call
+MAX_WORDS = 125  # credit guard: the site keeps scripts near 100 words; anything above this is refused before any HeyGen call
 MUSIC_VOLUME = 0.14
 POPUP_SECONDS = 4.5
 FONTS = REPO / 'public' / 'fonts'

@@ -64,6 +64,8 @@ export interface VideoScript {
 }
 
 const RENDER_STALE_MINUTES = 150;
+/** Spoken words per video; about 40 seconds with the HeyGen voice. The render job refuses scripts far above this. */
+const MAX_SCRIPT_WORDS = 100;
 const MAX_ATTEMPTS = 2;
 
 export function videosAutoQueue(env: VideoEnv): boolean {
@@ -189,8 +191,21 @@ ${body}
 ${faq ? `FAQ:\n${faq}` : ''}
 
 Write the three-segment script, the caption, the hashtags, product_slug and popup_after.`;
-  const script = await claudeJson<VideoScript>(env, SCRIPT_SYSTEM, user, scriptSchema, { tier: 'fast', maxTokens: 1500, timeoutMs: 60_000 });
-  return tidyScript(script, sup?.slug ?? hero);
+  let script = tidyScript(await claudeJson<VideoScript>(env, SCRIPT_SYSTEM, user, scriptSchema, { tier: 'fast', maxTokens: 1500, timeoutMs: 60_000 }), sup?.slug ?? hero);
+  // The model tends to overshoot; one shortening pass keeps the render under budget (HeyGen bills per second).
+  if (wordCount(script) > MAX_SCRIPT_WORDS) {
+    const shorter = await claudeJson<VideoScript>(env, SCRIPT_SYSTEM,
+      `${user}\n\nYour previous script was ${wordCount(script)} words, which is too long:\n${JSON.stringify(script.segments)}\n\nRewrite it to at most ${MAX_SCRIPT_WORDS - 5} words in total, same three segments and postures, keep the key numbers and the closing line, drop the least important sentence(s).`,
+      scriptSchema, { tier: 'fast', maxTokens: 1500, timeoutMs: 60_000 });
+    const tidied = tidyScript(shorter, sup?.slug ?? hero);
+    if (wordCount(tidied) < wordCount(script)) script = tidied;
+  }
+  if (wordCount(script) > MAX_SCRIPT_WORDS + 15) throw new Error(`script is ${wordCount(script)} words even after shortening`);
+  return script;
+}
+
+export function wordCount(s: VideoScript): number {
+  return s.segments.reduce((n, seg) => n + seg.text.split(/\s+/).filter(Boolean).length, 0);
 }
 
 function tidyScript(s: VideoScript, fallbackSlug: string): VideoScript {
