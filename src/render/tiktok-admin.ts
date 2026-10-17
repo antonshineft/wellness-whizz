@@ -63,7 +63,7 @@ export function renderTikTokAdmin(v: TikTokAdminView): string {
     <label class="row"><input type="checkbox" name="duet" ${ci.duet_disabled ? 'disabled' : ''}> Duet${ci.duet_disabled ? ' <span class="small">(off in your TikTok settings)</span>' : ''}</label>
     <label class="row"><input type="checkbox" name="stitch" ${ci.stitch_disabled ? 'disabled' : ''}> Stitch${ci.stitch_disabled ? ' <span class="small">(off in your TikTok settings)</span>' : ''}</label>
   </fieldset>
-  <label class="row consent"><input type="checkbox" name="consent" required> By posting, you agree to TikTok's <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener">Music Usage Confirmation</a>.</label>
+  <label class="consent"><input type="checkbox" name="consent" required>By posting, you agree to TikTok's <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener">Music Usage Confirmation</a>.</label>
   <button type="submit" class="btn" id="go" disabled>Post to TikTok</button>
   <p class="small">The video is uploaded to TikTok as soon as you press Post. It may take a minute or two to process; this page shows the result.</p>
 </form>
@@ -85,7 +85,8 @@ label input[type=file],textarea,select{display:block;width:100%;box-sizing:borde
 .row input{width:20px;height:20px;margin:0}
 fieldset{border:1px solid #d8d2bf;border-radius:12px;margin:16px 0 0;padding:8px 12px 12px}
 legend{font-weight:600;padding:0 6px}
-.consent{margin-top:16px}
+.consent{display:block;margin-top:16px;font-weight:400;line-height:1.5}
+.consent input{width:20px;height:20px;vertical-align:-4px;margin:0 8px 0 0}
 .btn{display:inline-block;margin-top:18px;padding:14px 22px;border:0;border-radius:999px;background:#1d272d;color:#fdf1cf;font:inherit;font-weight:700;text-decoration:none;cursor:pointer}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
 video{width:160px;border-radius:12px;margin-top:10px;background:#000}
