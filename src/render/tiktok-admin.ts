@@ -41,8 +41,8 @@ export function renderTikTokAdmin(v: TikTokAdminView): string {
   const privacyOptions = ci?.privacy_level_options ?? ['PUBLIC_TO_EVERYONE', 'SELF_ONLY'];
   const maxSec = ci?.max_video_post_duration_sec ?? 600;
   const targets = [
-    ...(direct ? [`<label class="row"><input type="checkbox" name="target" value="direct" checked> TikTok <strong>@${esc(ci!.creator_username)}</strong> <span class="small">(our app, ${esc(privacyOptions.includes('PUBLIC_TO_EVERYONE') ? 'public allowed' : 'private only until review')})</span></label>`] : []),
-    ...zAccounts.map((a) => `<label class="row"><input type="checkbox" name="target" value="zernio:${esc(a.platform)}:${esc(a.id)}" ${direct ? '' : 'checked'}> ${esc(a.platform.charAt(0).toUpperCase() + a.platform.slice(1))} <strong>${esc(a.name || a.username || a.id)}</strong> <span class="small">(via Zernio)</span></label>`),
+    ...zAccounts.map((a) => `<label class="row"><input type="checkbox" name="target" value="zernio:${esc(a.platform)}:${esc(a.id)}" checked> ${esc(a.platform.charAt(0).toUpperCase() + a.platform.slice(1))} <strong>${esc(a.name || a.username || a.id)}</strong> <span class="small">(via Zernio${a.platform === 'tiktok' ? ', publishes public; any other audience goes to your TikTok drafts' : ''})</span></label>`),
+    ...(direct ? [`<label class="row"><input type="checkbox" name="target" value="direct" ${zAccounts.length ? '' : 'checked'}> TikTok <strong>@${esc(ci!.creator_username)}</strong> <span class="small">(our own app, ${esc(privacyOptions.includes('PUBLIC_TO_EVERYONE') ? 'public allowed' : 'private only until TikTok reviews it')})</span></label>`] : []),
   ];
   const zernioNote = v.zernio?.error ? `<p class="warn">Zernio did not answer: ${esc(v.zernio.error)}</p>` : v.zernio && !zAccounts.length ? `<p class="small">Zernio is set up but has no connected accounts yet: connect TikTok or Instagram at <a href="https://zernio.com" target="_blank" rel="noopener">zernio.com</a>.</p>` : '';
   const body = !targets.length
