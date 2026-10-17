@@ -57,8 +57,10 @@ export interface Bindings {
   CLAUDE_MODEL_FAST?: string;
   CLAUDE_MODEL_SCREEN?: string;
   LLM_PROVIDER?: string;
-  /** Inbound mail (Email Routing -> email() below): the verified destination every message is forwarded to. */
+  /** Inbound mail (Email Routing -> email() below): the verified destination every message is forwarded to; F5Bot keyword
+   *  alerts are kept by the Worker unless MAIL_FORWARD_ALERTS is "true". */
   MAIL_FORWARD_TO?: string;
+  MAIL_FORWARD_ALERTS?: string;
   /** The Reddit digest (src/reddit.ts). */
   DIGEST_TO?: string;
   REDDIT_DIGEST?: string;
@@ -855,21 +857,29 @@ export default {
    * digest tables. Forwarding happens first so a parsing problem can never lose mail.
    */
   async email(message: ForwardableEmailMessage, env: Bindings, ctx: ExecutionContext): Promise<void> {
-    const raw = await new Response(message.raw).arrayBuffer();
     const forwardTo = (env.MAIL_FORWARD_TO ?? '').trim();
-    if (forwardTo) await message.forward(forwardTo);
     const from = (message.headers.get('from') ?? '').toLowerCase();
-    if (!from.includes('f5bot.com')) return;
-    ctx.waitUntil(
-      (async () => {
-        await ensureDatabase(env.DB);
-        const parsed = await PostalMime.parse(raw);
-        const text = parsed.text ?? (parsed.html ?? '').replace(/<[^>]+>/g, '\n');
-        const alert = parseF5BotAlert(text);
-        const stored = await storeAlert(env.DB, parsed.messageId ?? message.headers.get('message-id'), alert);
-        console.log(`f5bot alert: ${stored} mentions stored${alert.limited.length ? `, capped: ${alert.limited.join(', ')}` : ''}`);
-      })().catch((err) => console.error(`f5bot alert failed: ${String(err)}`)),
-    );
+    const isAlert = /alerts@f5bot\.com/.test(from);
+    if (!isAlert) {
+      // Everything that is not a keyword alert (including F5Bot's own account notices) goes to the inbox untouched.
+      if (forwardTo) await message.forward(forwardTo);
+      return;
+    }
+    // Keyword alerts stay with the Worker: parsed and stored, never forwarded (MAIL_FORWARD_ALERTS=true keeps a copy in
+    // the inbox). If anything goes wrong the alert is forwarded after all, so it is never lost.
+    try {
+      await ensureDatabase(env.DB);
+      const parsed = await PostalMime.parse(await new Response(message.raw).arrayBuffer());
+      const text = parsed.text ?? (parsed.html ?? '').replace(/<[^>]+>/g, '\n');
+      const alert = parseF5BotAlert(text);
+      const stored = await storeAlert(env.DB, parsed.messageId ?? message.headers.get('message-id'), alert);
+      console.log(`f5bot alert: ${stored} mentions stored${alert.limited.length ? `, capped: ${alert.limited.join(', ')}` : ''}`);
+      if (forwardTo && env.MAIL_FORWARD_ALERTS === 'true') await message.forward(forwardTo);
+    } catch (err) {
+      console.error(`f5bot alert failed, forwarding instead: ${String(err)}`);
+      if (forwardTo) await message.forward(forwardTo);
+    }
+    void ctx;
   },
   /** Cron trigger (see wrangler.jsonc): writes a few missing articles per run until the catalogue is complete. */
   async scheduled(event: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {

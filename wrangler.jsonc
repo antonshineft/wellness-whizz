@@ -34,6 +34,7 @@
     // Inbound mail (Email Routing -> this Worker, src/index.ts email()): every message is forwarded to this verified
     // destination exactly as the old routing rule did; F5Bot alerts are also parsed into the Reddit digest tables.
     "MAIL_FORWARD_TO": "hello@shineft.com",
+    "MAIL_FORWARD_ALERTS": "false",
     // The Reddit digest (src/reddit.ts, 06:52 UTC daily): where it goes, "false" to pause it, how many threads to read
     // and how many replies to draft.
     "DIGEST_TO": "shineft@gmail.com",
