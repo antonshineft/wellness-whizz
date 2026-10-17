@@ -15,6 +15,7 @@ import difflib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -304,10 +305,18 @@ def upload_release_asset(path: Path, slug: str) -> str:
     repo = os.environ['GH_REPO']
     tag = 'videos'
     name = f"{slug}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M')}.mp4"
+    # The download URL uses the asset's file name ("file#label" only sets a label), so upload a copy with the final name.
+    named = path.with_name(name)
+    shutil.copyfile(path, named)
     if subprocess.run(['gh', 'release', 'view', tag, '--repo', repo], capture_output=True).returncode != 0:
         subprocess.run(['gh', 'release', 'create', tag, '--repo', repo, '--title', 'Short videos', '--notes', 'Rendered short videos (video/render.py). Each file is one article video.', '--latest=false'], check=True)
-    subprocess.run(['gh', 'release', 'upload', tag, f'{path}#{name}', '--repo', repo, '--clobber'], check=True)
-    return f'https://github.com/{repo}/releases/download/{tag}/{name}'
+    subprocess.run(['gh', 'release', 'upload', tag, str(named), '--repo', repo, '--clobber'], check=True)
+    url = f'https://github.com/{repo}/releases/download/{tag}/{name}'
+    for _ in range(10):  # the asset takes a few seconds to become downloadable
+        if requests.head(url, allow_redirects=True, timeout=30).status_code == 200:
+            break
+        time.sleep(5)
+    return url
 
 
 # ---------------------------------------------------------------------------------------------------------------------
