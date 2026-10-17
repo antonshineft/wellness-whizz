@@ -24,6 +24,10 @@ import { queueQuizDataArticle, quizDataSummary } from './quizdata';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
 import { getVideo, listVideos, markFailed, markPosted, markReady, nextJob, parseScript, queueVideo, scriptNext } from './videos';
+import { actOnProspect, addProspect, checkWins, counts as prospectCounts, dailyOutreach, discoverProspects, draftPending, findContacts, listProspects, noteReply, outreachDigest, sendApproved, type ProspectKind } from './backlinks';
+import { renderBacklinksAdmin } from './render/backlinks-admin';
+import { renderBacklinksKit } from './render/backlinks-kit';
+import DIRECTORIES from '../data/directories.json';
 import { createPost as zernioCreatePost, getPost as zernioGetPost, listAccounts as zernioAccounts, uploadVideo as zernioUpload, zernioEnabled } from './zernio';
 import {
   getTranslation, hasTranslation, localizePost, localizePosts, localizeSupplement, localizeSupplements, translateBacklog, translateStrings, translationCounts,
@@ -101,6 +105,10 @@ export interface Bindings {
   VIDEO_AUTOQUEUE?: string;
   /** Zernio (src/zernio.ts): posts to TikTok, Instagram and others through Zernio's connected accounts. */
   ZERNIO_API_KEY?: string;
+  /** Backlink outreach (src/backlinks.ts): pitches per day (default 10, 0 pauses), "true" sends without approval, signature name. */
+  OUTREACH_PER_DAY?: string;
+  OUTREACH_AUTOSEND?: string;
+  OUTREACH_SIGNATURE?: string;
   /** Supplements per cron run of the article writer; "0" disables the scheduled backfill. */
   BACKFILL_BATCH?: string;
   /** "false" turns off generated illustrations for supplements without product photos. */
@@ -1318,6 +1326,92 @@ app.get('/api/admin/zernio/post/:id', async (c) => {
   return r.ok ? c.json(r.post) : c.json({ error: r.message }, 502);
 });
 
+/** Backlink outreach (src/backlinks.ts): the owner's page, actions, manual runs, the directory checklist and kit. */
+async function backlinksPage(c: Context<{ Bindings: Bindings }>, message = ''): Promise<Response> {
+  await ensureDatabase(c.env.DB);
+  const status = c.req.query('status') || 'drafted';
+  const subs = new Map((await c.env.DB.prepare('SELECT name, status, url, note FROM directory_submissions').all<{ name: string; status: string; url: string; note: string }>()).results.map((r) => [r.name, r]));
+  const directories = (DIRECTORIES as { name: string; url: string; category: string; note: string }[]).map((d) => ({ ...d, status: subs.get(d.name)?.status ?? 'todo', note: subs.get(d.name)?.note || d.note }));
+  c.header('cache-control', 'no-store');
+  return c.html(renderBacklinksAdmin({
+    counts: await prospectCounts(c.env), status, rows: await listProspects(c.env, status),
+    perDay: Number(c.env.OUTREACH_PER_DAY ?? '10') || 0, autosend: c.env.OUTREACH_AUTOSEND === 'true', emailReady: emailEnabled(c.env), message, directories,
+  }));
+}
+
+app.get('/api/admin/backlinks', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  return backlinksPage(c, c.req.query('msg') ?? '');
+});
+
+app.get('/api/admin/backlinks/kit', (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  c.header('cache-control', 'no-store');
+  return c.html(renderBacklinksKit(new URL(c.req.url).origin));
+});
+
+app.get('/api/admin/backlinks/list', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  return c.json({ counts: await prospectCounts(c.env), prospects: await listProspects(c.env, c.req.query('status') || undefined) });
+});
+
+app.post('/api/admin/backlinks/act', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const form = await c.req.parseBody();
+  const id = Number(form.id);
+  const action = String(form.action ?? '');
+  const result = await actOnProspect(c.env, id, action, { subject: typeof form.subject === 'string' ? form.subject : undefined, body: typeof form.body === 'string' ? form.body : undefined, email: typeof form.email === 'string' ? form.email : undefined });
+  const key = c.req.query('key') ?? '';
+  return c.redirect(`/api/admin/backlinks?key=${encodeURIComponent(key)}&status=${encodeURIComponent(c.req.query('status') || 'drafted')}&msg=${encodeURIComponent(`#${id}: ${result}`)}`, 303);
+});
+
+app.post('/api/admin/backlinks/add', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const form = await c.req.parseBody();
+  const result = await addProspect(c.env, String(form.url ?? ''), String(form.kind ?? 'other') as ProspectKind, String(form.note ?? ''));
+  return c.redirect(`/api/admin/backlinks?key=${encodeURIComponent(c.req.query('key') ?? '')}&status=new&msg=${encodeURIComponent(result)}`, 303);
+});
+
+app.post('/api/admin/backlinks/directory', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const form = await c.req.parseBody();
+  await c.env.DB.prepare("INSERT INTO directory_submissions (name, status, url, note, updated_at) VALUES (?, ?, ?, '', datetime('now')) ON CONFLICT(name) DO UPDATE SET status = excluded.status, url = CASE WHEN excluded.url = '' THEN directory_submissions.url ELSE excluded.url END, updated_at = excluded.updated_at")
+    .bind(String(form.name ?? ''), String(form.status ?? 'todo'), String(form.url ?? '')).run();
+  return c.redirect(`/api/admin/backlinks?key=${encodeURIComponent(c.req.query('key') ?? '')}&msg=${encodeURIComponent('directory saved')}`, 303);
+});
+
+/** ?step=discover|contacts|draft|send|wins|all; JSON when ?format=json, else back to the page. */
+app.post('/api/admin/backlinks/run', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const step = c.req.query('step') ?? 'all';
+  let result: unknown;
+  try {
+    if (step === 'discover') result = await discoverProspects(c.env, c.req.query('theme') ? Number(c.req.query('theme')) : undefined);
+    else if (step === 'contacts') result = { contacts: await findContacts(c.env, 12) };
+    else if (step === 'draft') result = { drafted: await draftPending(c.env, 10) };
+    else if (step === 'send') result = await sendApproved(c.env);
+    else if (step === 'wins') result = { won: await checkWins(c.env) };
+    else result = await dailyOutreach(c.env);
+  } catch (err) {
+    result = { error: String(err).slice(0, 400) };
+  }
+  if (c.req.query('format') === 'json') return c.json(result);
+  return c.redirect(`/api/admin/backlinks?key=${encodeURIComponent(c.req.query('key') ?? '')}&status=${step === 'discover' ? 'new' : 'drafted'}&msg=${encodeURIComponent(`${step}: ${JSON.stringify(result)}`.slice(0, 300))}`, 303);
+});
+
 /** The owner's posting page (src/render/tiktok-admin.ts): pick a video, write the caption, choose who can see it, post. */
 app.get('/api/admin/tiktok', async (c) => {
   const denied = authorized(c);
@@ -1414,6 +1508,17 @@ export default {
     const isAlert = /alerts@f5bot\.com/.test(from);
     if (!isAlert) {
       // Everything that is not a keyword alert (including F5Bot's own account notices) goes to the inbox untouched.
+      // A reply from a backlink prospect is noted on its row first (src/backlinks.ts).
+      try {
+        const addr = (from.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i) ?? [''])[0];
+        if (addr) {
+          await ensureDatabase(env.DB);
+          const hit = await noteReply(env, addr, message.headers.get('subject') ?? '');
+          if (hit) console.log(`backlink reply from ${addr} (${hit.domain})`);
+        }
+      } catch (err) {
+        console.error(`reply check failed: ${String(err)}`);
+      }
       if (forwardTo) await message.forward(forwardTo);
       return;
     }
@@ -1464,6 +1569,7 @@ export default {
       return;
     }
     if (event.cron === '0 7 * * MON') {
+      ctx.waitUntil(ensureDatabase(env.DB).then(() => checkWins(env, 40)).then((n) => console.log(`backlink wins: ${n}`)).catch((err) => console.error(`win check failed: ${String(err)}`)));
       // Monday morning: the week's numbers by email to the owner (src/report.ts); skipped quietly without Resend.
       ctx.waitUntil(
         ensureDatabase(env.DB)
@@ -1501,6 +1607,13 @@ export default {
             console.log(`research: ${JSON.stringify(result)}`);
           })
           .catch((err) => console.error(`research failed: ${String(err)}`)),
+      );
+      // Backlink outreach (src/backlinks.ts): discover, find contacts, draft, send what is approved, follow up, report.
+      ctx.waitUntil(
+        ensureDatabase(env.DB)
+          .then(() => dailyOutreach(env))
+          .then(async (r) => { console.log(`outreach: ${JSON.stringify(r)}`); await outreachDigest(env, r); })
+          .catch((err) => console.error(`outreach failed: ${String(err)}`)),
       );
       // The article pipeline queues a topic of its own when the week is short of ARTICLES_PER_WEEK and nothing waits.
       ctx.waitUntil(
