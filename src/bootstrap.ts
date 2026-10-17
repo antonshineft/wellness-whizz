@@ -51,6 +51,8 @@ const TABLES = ['supplements', 'sessions', 'session_supplements', 'meta', 'event
 /** Columns added after the first release; created on databases that predate them. */
 /** CREATE TABLE IF NOT EXISTS statements for tables that arrived after the first release (same SQL as the migration). */
 const LATER_TABLES: string[] = [
+  `CREATE TABLE IF NOT EXISTS tiktok_auth (id INTEGER PRIMARY KEY CHECK (id = 1), open_id TEXT NOT NULL, access_token TEXT NOT NULL, access_expires_at TEXT NOT NULL, refresh_token TEXT NOT NULL, refresh_expires_at TEXT NOT NULL, scope TEXT NOT NULL DEFAULT '', display_name TEXT NOT NULL DEFAULT '', avatar_url TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS tiktok_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, publish_id TEXT NOT NULL, title TEXT NOT NULL, privacy TEXT NOT NULL, status TEXT NOT NULL, fail_reason TEXT NOT NULL DEFAULT '', post_id TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS reddit_mentions (id INTEGER PRIMARY KEY AUTOINCREMENT, received_at TEXT NOT NULL, message_id TEXT, keyword TEXT NOT NULL, subreddit TEXT NOT NULL, title TEXT NOT NULL, author TEXT, kind TEXT NOT NULL, url TEXT NOT NULL, post_id TEXT NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS reddit_mentions_received ON reddit_mentions(received_at)`,
   `CREATE INDEX IF NOT EXISTS reddit_mentions_post ON reddit_mentions(post_id)`,

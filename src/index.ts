@@ -21,6 +21,7 @@ import { CONTENT_LANGS, asLang, langFromPath, localizePath, localizeResponse, ty
 import { SHELF_MAX_BASE64, SHELF_MAX_IMAGES, SHELF_MEDIA_TYPES, analyzeShelf, countRecentScans, getShelfScan, resolveShelfSupplements, saveShelfScan, shelfEnabled, type ShelfImage, type ShelfMediaType } from './shelf';
 import { renderShelfPage, renderShelfResult } from './render/shelf';
 import { queueQuizDataArticle, quizDataSummary } from './quizdata';
+import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import {
   getTranslation, hasTranslation, localizePost, localizePosts, localizeSupplement, localizeSupplements, translateBacklog, translateStrings, translationCounts,
   type PostTranslation, type SupplementTranslation,
@@ -90,6 +91,9 @@ export interface Bindings {
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
   STATS_KEY?: string;
+  /** TikTok Content Posting API app (sandbox or production) for /api/tiktok/* (src/tiktok.ts). */
+  TIKTOK_CLIENT_KEY?: string;
+  TIKTOK_CLIENT_SECRET?: string;
   /** Supplements per cron run of the article writer; "0" disables the scheduled backfill. */
   BACKFILL_BATCH?: string;
   /** "false" turns off generated illustrations for supplements without product photos. */
@@ -1100,6 +1104,85 @@ app.post('/api/admin/translate/strings', async (c) => {
   if (!strings.length) return c.json({ error: 'strings[] is required' }, 400);
   const translated = await translateStrings(c.env, lang, strings);
   return c.json({ lang, translations: Object.fromEntries(strings.map((text, i) => [text, translated[i]])) });
+});
+
+/** TikTok (src/tiktok.ts): connect once, then post videos from the pipeline. All routes need the STATS_KEY except the
+ *  OAuth callback, which TikTok calls with the state cookie set by /connect. */
+app.get('/api/tiktok/connect', (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  if (!tiktokEnabled(c.env)) return c.json({ error: 'TIKTOK_CLIENT_KEY / TIKTOK_CLIENT_SECRET are not set' }, 503);
+  return startConnect(c, c.env);
+});
+
+app.get('/api/tiktok/callback', async (c) => {
+  if (!tiktokEnabled(c.env)) return c.json({ error: 'TIKTOK_CLIENT_KEY / TIKTOK_CLIENT_SECRET are not set' }, 503);
+  await ensureDatabase(c.env.DB);
+  const r = await finishConnect(c, c.env);
+  c.header('cache-control', 'no-store');
+  return c.html(connectPage(r.ok, r.message), r.ok ? 200 : 400);
+});
+
+app.get('/api/tiktok/status', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  const auth = await getAuth(c.env);
+  if (!auth) return c.json({ enabled: tiktokEnabled(c.env), connected: false, posts: [] });
+  const ci = c.req.query('creator') === '1' ? await creatorInfo(c.env) : null;
+  return c.json({
+    enabled: tiktokEnabled(c.env), connected: true,
+    account: { open_id: auth.open_id, display_name: auth.display_name, scope: auth.scope, access_expires_at: auth.access_expires_at, refresh_expires_at: auth.refresh_expires_at },
+    creator: ci ? (ci.ok ? ci.info : { error: ci.message }) : undefined,
+    posts: await listPosts(c.env),
+  });
+});
+
+app.post('/api/tiktok/disconnect', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await disconnect(c.env);
+  return c.json({ ok: true });
+});
+
+/** Body: the mp4 itself (content-type video/mp4), or JSON {"video_url": "https://…"} to fetch first. Options come as
+ *  query params: title, privacy (PUBLIC_TO_EVERYONE | MUTUAL_FOLLOW_FRIENDS | FOLLOWER_OF_CREATOR | SELF_ONLY), cover_ms. */
+app.post('/api/tiktok/post', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  if (!tiktokEnabled(c.env)) return c.json({ error: 'TIKTOK_CLIENT_KEY / TIKTOK_CLIENT_SECRET are not set' }, 503);
+  await ensureDatabase(c.env.DB);
+  const title = (c.req.query('title') ?? '').trim();
+  if (!title) return c.json({ error: 'title query parameter is required' }, 400);
+  let video: ArrayBuffer;
+  if ((c.req.header('content-type') ?? '').includes('application/json')) {
+    const body = (await c.req.json().catch(() => ({}))) as { video_url?: string };
+    if (!body.video_url) return c.json({ error: 'video_url missing' }, 400);
+    const res = await fetch(body.video_url);
+    if (!res.ok) return c.json({ error: `fetching video_url failed: HTTP ${res.status}` }, 400);
+    video = await res.arrayBuffer();
+  } else {
+    video = await c.req.arrayBuffer();
+  }
+  if (video.byteLength > MAX_SINGLE_UPLOAD) return c.json({ error: 'video larger than 64 MB' }, 413);
+  const r = await postVideo(c.env, video, {
+    title,
+    privacy: c.req.query('privacy') || undefined,
+    coverMs: c.req.query('cover_ms') ? Number(c.req.query('cover_ms')) : undefined,
+    disableComment: c.req.query('comments') === 'off',
+  });
+  if (!r.ok) return c.json({ error: r.message }, 502);
+  return c.json({ ok: true, publish_id: r.publishId, privacy: r.privacy, bytes: video.byteLength });
+});
+
+app.get('/api/tiktok/post/:publishId', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  const r = await postStatus(c.env, c.req.param('publishId') ?? '');
+  return r.ok ? c.json(r.status) : c.json({ error: r.message }, 502);
 });
 
 /** What the quiz data says (src/quizdata.ts): the aggregate numbers, and &draft=1 queues the data article from them. */

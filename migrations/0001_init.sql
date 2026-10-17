@@ -194,3 +194,7 @@ CREATE TABLE IF NOT EXISTS shelf_scans (
   analysis_json TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS shelf_scans_created ON shelf_scans(created_at);
+
+-- TikTok posting (src/tiktok.ts): the connected account's tokens and the posts sent through the API.
+CREATE TABLE IF NOT EXISTS tiktok_auth (id INTEGER PRIMARY KEY CHECK (id = 1), open_id TEXT NOT NULL, access_token TEXT NOT NULL, access_expires_at TEXT NOT NULL, refresh_token TEXT NOT NULL, refresh_expires_at TEXT NOT NULL, scope TEXT NOT NULL DEFAULT '', display_name TEXT NOT NULL DEFAULT '', avatar_url TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS tiktok_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, publish_id TEXT NOT NULL, title TEXT NOT NULL, privacy TEXT NOT NULL, status TEXT NOT NULL, fail_reason TEXT NOT NULL DEFAULT '', post_id TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
