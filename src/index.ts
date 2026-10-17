@@ -339,6 +339,9 @@ pageRoute('/how-it-works', async (c, lang) => {
   return sendPage(c, renderHowItWorks(n, new URL(c.req.url).origin), lang, '/how-it-works', 'public, max-age=600');
 });
 
+// Dedicated privacy-policy URL for app directories (TikTok, X, etc.): the policy lives in the terms page.
+app.get('/privacy', (c) => c.redirect('/terms#privacy', 301));
+app.get('/es/privacy', (c) => c.redirect('/es/terms#privacy', 301));
 pageRoute('/terms', (c, lang) => {
   track(c, { type: 'page_view', page: '/terms' });
   return sendPage(c, renderTerms(new URL(c.req.url).origin), lang, '/terms', 'public, max-age=600');

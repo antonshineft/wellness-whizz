@@ -138,7 +138,7 @@ export function renderTerms(origin: string): string {
         <p>The design, text, illustrations, software and the Wellness Whizz name and logo are owned by us or our licensors and are protected by copyright and other laws. Product names, brand names and product photographs belong to their respective owners and are shown to identify the products. You may view and print pages for personal use. Any other use needs our written permission.</p>
         <h2>9. Third-party websites</h2>
         <p>The Service links to websites we do not control, including iHerb. Those sites have their own terms and privacy policies, and we are not responsible for their content, products, prices, shipping, returns or data practices. A purchase you make on a third-party site is a contract between you and that site.</p>
-        <h2>10. Privacy</h2>
+        <h2 id="privacy">10. Privacy</h2>
         <h3>What we collect</h3>
         <ul>
           <li><strong>Quiz answers.</strong> The answers you give are stored together with a random results identifier so that your results page keeps working and can be shared by link. They are not linked to your name, email or account; there are no accounts.</li>
