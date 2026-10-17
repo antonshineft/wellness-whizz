@@ -14,6 +14,8 @@
  */
 import { allPosts } from './blog/store';
 import type { BlogPost } from './blog/types';
+import { localizePath, type Lang } from './i18n';
+import { translatedRefs } from './translate';
 import { getMeta, setMeta } from './db';
 import { listResearchNotes, pubmedUrl, type ResearchNote } from './research';
 
@@ -111,7 +113,7 @@ async function latestNoteAt(db: D1Database): Promise<string | undefined> {
  * ignores priority; a lastmod that moves without the page changing teaches it to ignore ours, so static pages
  * carry none, supplement pages carry their last content change and the lists carry their newest item.
  */
-export async function sitemapEntries(db: D1Database, curatedOnly: boolean): Promise<SitemapEntry[]> {
+export async function sitemapEntries(db: D1Database, curatedOnly: boolean, langs: readonly Lang[] = []): Promise<SitemapEntry[]> {
   const [supplements, noteAt, posts] = await Promise.all([supplementStamps(db, curatedOnly), latestNoteAt(db), allPosts(db)]);
   const supplementEntries = supplements.map((s) => ({
     loc: `/supplement/${s.slug}`,
@@ -121,7 +123,7 @@ export async function sitemapEntries(db: D1Database, curatedOnly: boolean): Prom
   const postEntries = posts.map((p) => ({ loc: `/blog/${p.slug}`, lastmod: p.date, priority: '0.8' }));
   const latestPost = latest(...posts.map((p) => p.date));
   const latestSupplement = latest(...supplementEntries.map((e) => e.lastmod));
-  return [
+  const statics: SitemapEntry[] = [
     { loc: '/', lastmod: latest(latestPost, latestSupplement), priority: '1.0' },
     { loc: '/wellness-quiz', priority: '0.9' },
     { loc: '/blog', lastmod: latestPost, priority: '0.8' },
@@ -129,9 +131,23 @@ export async function sitemapEntries(db: D1Database, curatedOnly: boolean): Prom
     { loc: '/research', lastmod: day(noteAt), priority: '0.7' },
     { loc: '/how-it-works', priority: '0.6' },
     { loc: '/terms', priority: '0.2' },
-    ...postEntries,
-    ...supplementEntries,
   ];
+  const entries = [...statics, ...postEntries, ...supplementEntries];
+  // The translated site: its static pages, and the supplement pages and articles whose translation exists.
+  for (const lang of langs) {
+    if (lang === 'en') continue;
+    const [sups, articles] = await Promise.all([translatedRefs(db, lang, 'supplement'), translatedRefs(db, lang, 'post')]);
+    const translated = (loc: string) => {
+      const sup = /^\/supplement\/(.+)$/.exec(loc);
+      if (sup) return sups.has(sup[1]);
+      const post = /^\/blog\/(.+)$/.exec(loc);
+      if (post) return articles.has(post[1]);
+      return true;
+    };
+    const english = entries.filter((e) => !/^\/es(\/|$)/.test(e.loc));
+    for (const e of english) if (translated(e.loc)) entries.push({ ...e, loc: localizePath(e.loc, lang), priority: e.priority === '1.0' ? '0.9' : e.priority });
+  }
+  return entries;
 }
 
 export function renderSitemap(site: string, entries: SitemapEntry[]): string {

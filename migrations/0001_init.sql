@@ -171,3 +171,14 @@ CREATE TABLE IF NOT EXISTS blog_posts (
   published_at TEXT
 );
 CREATE INDEX IF NOT EXISTS blog_posts_status ON blog_posts(status);
+
+-- Translated supplement pages and articles for the Spanish site (src/translate.ts).
+CREATE TABLE IF NOT EXISTS translations (
+  lang TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  ref TEXT NOT NULL,
+  json TEXT NOT NULL,
+  source_hash TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (lang, kind, ref)
+);

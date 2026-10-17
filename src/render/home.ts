@@ -3,6 +3,8 @@
  * (the carousel cards and the "Explore manually" links) using HTMLRewriter.
  */
 import { allPosts } from '../blog/store';
+import type { Lang } from '../i18n';
+import { localizePosts, localizeSupplements } from '../translate';
 import { getSupplementsBySlugs, listSupplements, randomSupplements } from '../db';
 import type { LinkEnv } from '../links';
 import { postCard } from './blog';
@@ -12,14 +14,16 @@ export async function renderHome(
   env: LinkEnv & { DB: D1Database; ASSETS: Fetcher },
   request: Request,
   curatedOnly = false,
+  lang: Lang = 'en',
 ): Promise<Response> {
-  const posts = (await allPosts(env.DB)).slice(0, 3);
-  const [assetResponse, candidates, explore, postSupplements] = await Promise.all([
+  const posts = await localizePosts(env.DB, lang, (await allPosts(env.DB)).slice(0, 3));
+  const [assetResponse, candidatesEn, exploreEn, postSupplements] = await Promise.all([
     fetchAsset(env.ASSETS, request, '/'),
     randomSupplements(env.DB, 18, curatedOnly),
     listSupplements(env.DB, 200, curatedOnly),
     getSupplementsBySlugs(env.DB, posts.map((p) => p.heroSupplement)),
   ]);
+  const [candidates, explore] = await Promise.all([localizeSupplements(env.DB, lang, candidatesEn), localizeSupplements(env.DB, lang, exploreEn)]);
   const blogCtx = { env, origin: new URL(request.url).origin, supplements: postSupplements };
   if (!assetResponse.ok) return assetResponse;
   // Carousel cards: supplements with real product photos first. The browser script loops them seamlessly.

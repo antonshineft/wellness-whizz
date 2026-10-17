@@ -12,7 +12,7 @@
     "not_found_handling": "404-page",
     // Only these paths run the Worker; everything else is served straight from the static assets.
     // "/__scheduled" lets `wrangler dev --test-scheduled` reach the cron handler locally.
-    "run_worker_first": ["/", "/api/*", "/result/*", "/supplement/*", "/images/generated/*", "/how-it-works", "/terms", "/blog", "/blog/*", "/sitemap.xml", "/robots.txt", "/llms.txt", "/research", "/supplements", "/feed.xml", "/__scheduled"]
+    "run_worker_first": ["/", "/es", "/es/*", "/wellness-quiz", "/api/*", "/result/*", "/supplement/*", "/images/generated/*", "/how-it-works", "/terms", "/blog", "/blog/*", "/sitemap.xml", "/robots.txt", "/llms.txt", "/research", "/supplements", "/feed.xml", "/__scheduled"]
   },
   // No database_id on purpose: `wrangler deploy` and the "Deploy to Cloudflare" button create the database
   // automatically and fill it in. Tables and content are created by the Worker itself on first start.
@@ -42,6 +42,7 @@
     "REDDIT_MAX_THREADS": "20",
     "REDDIT_MAX_REPLIES": "6",
     "ARTICLES_PER_WEEK": "2",
+    "SITE_LANGS": "en,es",
     "ARTICLE_EFFORT": "high",
     // iHerb Rewards / referral code, appended to every iherb.com link the site generates.
     "IHERB_RCODE": "HIN4657",

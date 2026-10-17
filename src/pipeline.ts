@@ -10,6 +10,8 @@ import {
 import { generateSupplementImage, imageGenerationEnabled, type ImageEnv } from './images';
 import { attachIherbProducts } from './products';
 import { generateSupplementProfile, recommendSupplements, type AiEnv } from './openai';
+import { asLang } from './i18n';
+import { getTranslationMap, translateSupplement } from './translate';
 
 export interface PipelineEnv extends AiEnv, ImageEnv {
   DB: D1Database;
@@ -22,10 +24,11 @@ export async function runQuizPipeline(
   sessionId: string,
   profile: QuizProfile,
   background: (work: Promise<unknown>) => void = () => {},
+  lang = 'en',
 ): Promise<void> {
   try {
     const knownNames = await listSupplementNames(env.DB, 300);
-    const recommendations = await recommendSupplements(env, profile, knownNames);
+    const recommendations = await recommendSupplements(env, profile, knownNames, lang);
 
     const keys = recommendations.map((r) => normalizeNameKey(r.name));
     const existing = await getSupplementsByNameKeys(env.DB, keys);
@@ -68,6 +71,16 @@ export async function runQuizPipeline(
       throw new Error(`Only ${items.length} of ${recommendations.length} recommendations could be prepared`);
     }
     await saveSessionResults(env.DB, sessionId, items);
+    // A Spanish session: supplement pages the result links to get their translation now rather than on the cron.
+    const target = asLang(lang);
+    if (target !== 'en') {
+      const sups = resolved.map((r) => r.supplement).filter((s, i, all) => all.findIndex((x) => x.id === s.id) === i);
+      background(
+        getTranslationMap(env.DB, target, 'supplement', sups.map((s) => s.slug))
+          .then((have) => Promise.allSettled(sups.filter((s) => !have.has(s.slug)).map((s) => translateSupplement(env, target, s))))
+          .catch((err) => console.error(`result translation failed: ${String(err)}`)),
+      );
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`quiz pipeline failed for session ${sessionId}: ${message}`);

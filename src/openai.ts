@@ -162,8 +162,9 @@ interface ProfileDraft {
 
 // ---------- public API ----------
 
-export async function recommendSupplements(env: AiEnv, profile: QuizProfile, knownNames: string[]): Promise<Recommendation[]> {
+export async function recommendSupplements(env: AiEnv, profile: QuizProfile, knownNames: string[], lang = 'en'): Promise<Recommendation[]> {
   if (useFakeAi(env)) return fakeRecommendations(profile);
+  const language = lang === 'es' ? '\nWrite each "reason" in Spanish (neutral, addressing the reader as "tú"); keep "name" and "category" in English exactly as the catalogue has them.' : '';
 
   const catalogue = knownNames.length
     ? `\n\nOur catalogue already contains these supplements. Whenever one of them covers the need, you MUST use its exact ` +
@@ -179,7 +180,7 @@ export async function recommendSupplements(env: AiEnv, profile: QuizProfile, kno
     '',
     'Recommend exactly 5 distinct dietary supplements for this person, ordered from most to least relevant.',
     'Avoid anything unsafe for the stated age group. For each one give the canonical ingredient-level name, its category,',
-    'the most common dosage form, and a short personalised note: why it fits this person plus a suggested daily dosage and timing.' + catalogue,
+    'the most common dosage form, and a short personalised note: why it fits this person plus a suggested daily dosage and timing.' + catalogue + language,
   ].join('\n');
 
   // Low effort and a 45 s limit: the answer must arrive while the browser is still connected (see README "Limits").

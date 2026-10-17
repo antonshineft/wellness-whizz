@@ -17,6 +17,11 @@ import { Hono, type Context } from 'hono';
 import { supplementSlugsUsed } from './blog';
 import { allPosts, findPost, getArticleRow, listArticleRows, parsePost, type ArticleRow } from './blog/store';
 import { actOnArticle, articleSummary, asKind, autoQueue, draftNext, enqueueArticle, guessKind, processRow, reviewPage, suggestTopics, tokenOk } from './articles';
+import { CONTENT_LANGS, asLang, langFromPath, localizePath, localizeResponse, type Lang } from './i18n';
+import {
+  getTranslation, hasTranslation, localizePost, localizePosts, localizeSupplement, localizeSupplements, translateBacklog, translateStrings, translationCounts,
+  type PostTranslation, type SupplementTranslation,
+} from './translate';
 import { ensureDatabase } from './bootstrap';
 import { MIN_ARTICLE_LENGTH, generateArticle } from './content';
 import { generateSupplementProfile } from './openai';
@@ -35,7 +40,7 @@ import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
   getSessionResults, getSupplementBySlug, listSupplements, logEvent, markSession, mergeDuplicateSupplements,
   resolveSupplementSlug, statsSummary, supplementsNeedingContent, updateSupplementContent, type EventInput,
-  type EventType, type QuizProfile, countSupplements, getSupplementsBySlugs,
+  type EventType, type QuizProfile, type ResultItem, countSupplements, getSupplementsBySlugs,
   addSubscriber, contentProgress, countRecentSubscriptions, getMeta, listSubscribers, markSubscriberSent, relatedSupplements, setMeta, weeklyNumbers,
   countSupplementsNeedingFaqs, supplementsNeedingFaqs, updateSupplementFaqs, CATEGORIES, asFormType, insertSupplement, getSupplementByNameKey, normalizeNameKey,
 } from './db';
@@ -71,6 +76,8 @@ export interface Bindings {
   /** The article pipeline (src/articles.ts): topics queued on its own per week ("0" = off) and the first draft's thinking depth. */
   ARTICLES_PER_WEEK?: string;
   ARTICLE_EFFORT?: string;
+  /** Languages the site is served in, e.g. "en,es" (src/i18n.ts); content is translated for every language but en. */
+  SITE_LANGS?: string;
   DEV_FAKE_AI?: string;
   PRODUCT_SEARCH_URL?: string;
   IHERB_RCODE?: string;
@@ -127,6 +134,8 @@ const CLIENT_EVENT_TYPES: readonly EventType[] = ['quiz_view', 'outbound_click',
 
 const htmlHeaders = (cacheControl: string) => ({ 'content-type': 'text/html; charset=utf-8', 'cache-control': cacheControl });
 const curatedOnly = (env: Bindings) => env.LIST_AI_SUPPLEMENTS === 'false';
+/** The languages content is translated into: SITE_LANGS minus English (default en,es). */
+const contentLangs = (env: Bindings): Lang[] => (env.SITE_LANGS ?? 'en,es').split(',').map((v) => v.trim()).filter((v): v is Lang => CONTENT_LANGS.includes(v as Lang));
 /** DEV_FAKE_AI (canned answers instead of OpenAI) is honoured on localhost only, never on a deployed site. */
 const isLocalRequest = (url: string) => /^(localhost|127\.0\.0\.1|\[::1\])$/.test(new URL(url).hostname);
 /** Turnstile is on only when both the public site key and the secret are configured. */
@@ -184,33 +193,63 @@ app.use('*', async (c, next) => {
   c.res = res;
 });
 
-// ---------- pages ----------
+// ---------- pages (English, and Spanish under /es/: src/i18n.ts) ----------
 
-app.get('/', (c) => {
+/** Register a page under its path and under /es/ with the same handler. */
+function pageRoute(path: string, handler: (c: Context<AppContext>, lang: Lang) => Promise<Response> | Response): void {
+  app.get(path, (c) => handler(c, 'en'));
+  app.get(path === '/' ? '/es' : `/es${path}`, (c) => handler(c, 'es'));
+  if (path === '/') app.get('/es/', (c) => handler(c, 'es'));
+}
+
+/** The finished page: hreflang links on both versions; in Spanish also the translated chrome and /es/ links. */
+function sendPage(c: Context<AppContext>, body: string | Response, lang: Lang, enPath: string, cacheControl: string, alternates = true): Response {
+  const res = typeof body === 'string' ? new Response(body, { status: 200, headers: htmlHeaders(cacheControl) }) : body;
+  if (lang === 'en' && !alternates) return res;
+  return localizeResponse(res, lang, { origin: new URL(c.req.url).origin, path: enPath, alternates });
+}
+
+async function localizeResultItems(db: D1Database, lang: Lang, items: ResultItem[]): Promise<ResultItem[]> {
+  const sups = await localizeSupplements(db, lang, items.map((i) => i.supplement));
+  return items.map((item, i) => ({ ...item, supplement: sups[i] }));
+}
+
+
+pageRoute('/', async (c, lang) => {
   track(c, { type: 'home_view', page: '/' });
-  return renderHome(c.env, c.req.raw, curatedOnly(c.env));
+  return sendPage(c, await renderHome(c.env, c.req.raw, curatedOnly(c.env), lang), lang, '/', 'public, max-age=60');
 });
 
+pageRoute('/wellness-quiz', async (c, lang) => {
+  const asset = await fetchAsset(c.env.ASSETS, c.req.raw, '/wellness-quiz');
+  if (!asset.ok) return asset;
+  return sendPage(c, new Response(asset.body, { status: 200, headers: htmlHeaders('public, max-age=300') }), lang, '/wellness-quiz', 'public, max-age=300');
+});
+
+/** Result pages follow the language of the quiz the session came from. */
 app.get('/result/:id', async (c) => {
   const id = c.req.param('id');
   if (!SESSION_ID_RE.test(id)) return notFound(c.env, c.req.raw);
   const session = await getSession(c.env.DB, id);
   if (!session) return notFound(c.env, c.req.raw);
+  const lang = asLang(session.lang);
+  const send = (html: string, cache: string) => sendPage(c, html, lang, `/result/${id}`, cache, false);
 
   if (session.status === 'pending') {
     const startedAt = Date.parse(session.created_at + 'Z');
     if (Number.isFinite(startedAt) && Date.now() - startedAt > PENDING_TIMEOUT_MS) {
       await markSession(c.env.DB, id, 'failed', 'Timed out while preparing the recommendation');
-      return c.body(renderFailedPage(session), 200, htmlHeaders('no-store'));
+      return send(renderFailedPage(session), 'no-store');
     }
-    return c.body(renderPendingPage(session), 200, htmlHeaders('no-store'));
+    return send(renderPendingPage(session), 'no-store');
   }
-  if (session.status === 'failed') return c.body(renderFailedPage(session), 200, htmlHeaders('no-store'));
+  if (session.status === 'failed') return send(renderFailedPage(session), 'no-store');
 
   const items = await getSessionResults(c.env.DB, id);
-  if (!items.length) return c.body(renderFailedPage(session), 200, htmlHeaders('no-store'));
+  if (!items.length) return send(renderFailedPage(session), 'no-store');
+  const localized = lang === 'en' ? items : await localizeResultItems(c.env.DB, lang, items);
   track(c, { type: 'result_view', page: `/result/${id}`, session_id: id });
-  return c.body(renderResultPage(session, items, c.env, { origin: new URL(c.req.url).origin }), 200, htmlHeaders('private, max-age=0, must-revalidate'));
+  return send(renderResultPage(session, localized, c.env, { origin: new URL(c.req.url).origin }), 'private, max-age=0, must-revalidate');
 });
 
 /** Shareable result images: drawn by the browser on the result page and uploaded (see public/js/share-card.js);
@@ -265,55 +304,57 @@ app.get('/images/generated/:file', async (c) => {
   });
 });
 
-app.get('/supplement/:slug', async (c) => {
-  const slug = c.req.param('slug');
+pageRoute('/supplement/:slug', async (c, lang) => {
+  const slug = c.req.param('slug') ?? '';
   const supplement = await getSupplementBySlug(c.env.DB, slug);
   if (!supplement) {
     // Temporary redirect: the catalogue grows, so the mapping of a short slug may change.
     const canonical = await resolveSupplementSlug(c.env.DB, slug);
-    return canonical ? c.redirect(`/supplement/${canonical}`, 302) : notFound(c.env, c.req.raw);
+    return canonical ? c.redirect(localizePath(`/supplement/${canonical}`, lang), 302) : notFound(c.env, c.req.raw);
   }
-  const [explore, related] = await Promise.all([
+  // A Spanish page exists once its translation does (so hreflang links and the sitemap never point at English text).
+  const translation = lang === 'en' ? null : await getTranslation<SupplementTranslation>(c.env.DB, lang, 'supplement', supplement.slug);
+  if (lang !== 'en' && !translation) return notFound(c.env, c.req.raw);
+  const [exploreEn, relatedEn] = await Promise.all([
     listSupplements(c.env.DB, 200, curatedOnly(c.env)),
     relatedSupplements(c.env.DB, supplement, 4, curatedOnly(c.env)),
   ]);
+  const [explore, related] = await Promise.all([localizeSupplements(c.env.DB, lang, exploreEn), localizeSupplements(c.env.DB, lang, relatedEn)]);
+  const alternates = lang === 'en' ? await hasTranslation(c.env.DB, 'es', 'supplement', supplement.slug) : true;
   track(c, { type: 'supplement_view', page: `/supplement/${supplement.slug}`, slug: supplement.slug });
-  return c.body(
-    renderSupplementPage(supplement, explore, c.env, { related, origin: new URL(c.req.url).origin }),
-    200,
-    htmlHeaders('public, max-age=300'),
-  );
+  const html = renderSupplementPage(localizeSupplement(supplement, translation), explore, c.env, { related, origin: new URL(c.req.url).origin });
+  return sendPage(c, html, lang, `/supplement/${supplement.slug}`, 'public, max-age=300', alternates);
 });
 
 // ---------- editorial pages ----------
 
-app.get('/how-it-works', async (c) => {
+pageRoute('/how-it-works', async (c, lang) => {
   const n = await countSupplements(c.env.DB);
   track(c, { type: 'page_view', page: '/how-it-works' });
-  return c.body(renderHowItWorks(n, new URL(c.req.url).origin), 200, htmlHeaders('public, max-age=600'));
+  return sendPage(c, renderHowItWorks(n, new URL(c.req.url).origin), lang, '/how-it-works', 'public, max-age=600');
 });
 
-app.get('/terms', (c) => {
+pageRoute('/terms', (c, lang) => {
   track(c, { type: 'page_view', page: '/terms' });
-  return c.body(renderTerms(new URL(c.req.url).origin), 200, htmlHeaders('public, max-age=600'));
+  return sendPage(c, renderTerms(new URL(c.req.url).origin), lang, '/terms', 'public, max-age=600');
 });
 
-app.get('/blog', async (c) => {
-  const posts = await allPosts(c.env.DB);
+pageRoute('/blog', async (c, lang) => {
+  const posts = await localizePosts(c.env.DB, lang, await allPosts(c.env.DB));
   const supplements = await getSupplementsBySlugs(c.env.DB, posts.map((p) => p.heroSupplement));
   track(c, { type: 'page_view', page: '/blog' });
   const ctx = { env: c.env, origin: new URL(c.req.url).origin, supplements };
-  return c.body(renderBlogIndex(ctx, posts), 200, htmlHeaders('public, max-age=600'));
+  return sendPage(c, renderBlogIndex(ctx, posts), lang, '/blog', 'public, max-age=600');
 });
 
 /** Articles: bundled or published from the pipeline. ?preview=<draft token> shows a draft (noindex, uncached). */
-app.get('/blog/:slug', async (c) => {
-  const slug = c.req.param('slug');
+pageRoute('/blog/:slug', async (c, lang) => {
+  const slug = c.req.param('slug') ?? '';
   const posts = await allPosts(c.env.DB);
   let post = posts.find((p) => p.slug === slug);
   let preview = false;
   const token = c.req.query('preview');
-  if (token) {
+  if (token && lang === 'en') {
     const row = await getArticleRow(c.env.DB, slug);
     const draft = tokenOk(row, token) ? parsePost(row.draft_json) ?? parsePost(row.post_json) : null;
     if (draft) {
@@ -322,8 +363,14 @@ app.get('/blog/:slug', async (c) => {
     }
   }
   if (!post) return notFound(c.env, c.req.raw);
-  const related = posts.filter((p) => p.slug !== slug).slice(0, 3);
-  const supplements = await getSupplementsBySlugs(c.env.DB, [...supplementSlugsUsed(post), ...related.map((p) => p.heroSupplement)]);
+  if (lang !== 'en') {
+    const translation = await getTranslation<PostTranslation>(c.env.DB, lang, 'post', slug);
+    if (!translation) return notFound(c.env, c.req.raw);
+    post = localizePost(post, translation);
+  }
+  const related = await localizePosts(c.env.DB, lang, posts.filter((p) => p.slug !== slug).slice(0, 3));
+  const supplementsEn = await getSupplementsBySlugs(c.env.DB, [...supplementSlugsUsed(post), ...related.map((p) => p.heroSupplement)]);
+  const supplements = new Map((await localizeSupplements(c.env.DB, lang, [...supplementsEn.values()])).map((sup) => [sup.slug, sup]));
   const ctx = { env: c.env, origin: new URL(c.req.url).origin, supplements };
   let html = renderBlogPost(ctx, post, related);
   if (preview) {
@@ -331,8 +378,9 @@ app.get('/blog/:slug', async (c) => {
     html = html.replace('<div class="ww-progress"', `${banner}<div class="ww-progress"`);
     return c.body(html, 200, { ...htmlHeaders('no-store'), 'x-robots-tag': 'noindex, nofollow' });
   }
+  const alternates = lang === 'en' ? await hasTranslation(c.env.DB, 'es', 'post', slug) : true;
   track(c, { type: 'page_view', page: `/blog/${post.slug}`, slug: `blog:${post.slug}` });
-  return c.body(html, 200, htmlHeaders('public, max-age=600'));
+  return sendPage(c, html, lang, `/blog/${post.slug}`, 'public, max-age=600', alternates);
 });
 
 /** robots.txt with an absolute sitemap URL (a relative one is ignored by search engines). */
@@ -380,16 +428,17 @@ app.get('/llms.txt', async (c) => {
   return c.body(body, 200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' });
 });
 
-app.get('/supplements', async (c) => {
-  const supplements = await listSupplements(c.env.DB, 500, curatedOnly(c.env));
+pageRoute('/supplements', async (c, lang) => {
+  const supplements = await localizeSupplements(c.env.DB, lang, await listSupplements(c.env.DB, 500, curatedOnly(c.env)));
   track(c, { type: 'page_view', page: '/supplements' });
-  return c.body(renderSupplementsIndex(supplements, new URL(c.req.url).origin), 200, htmlHeaders('public, max-age=600'));
+  return sendPage(c, renderSupplementsIndex(supplements, new URL(c.req.url).origin), lang, '/supplements', 'public, max-age=600');
 });
 
-app.get('/research', async (c) => {
+/** Research notes stay in English for now; the Spanish page has the Spanish chrome around them. */
+pageRoute('/research', async (c, lang) => {
   const notes = await listResearchNotes(c.env.DB, 100);
   track(c, { type: 'page_view', page: '/research' });
-  return c.body(renderResearchPage(notes, new URL(c.req.url).origin), 200, htmlHeaders('public, max-age=600'));
+  return sendPage(c, renderResearchPage(notes, new URL(c.req.url).origin), lang, '/research', 'public, max-age=600');
 });
 
 /** Owner-only: the X queue (what was posted, what is waiting, what failed) and simple controls. */
@@ -441,7 +490,7 @@ app.get('/api/admin/social', async (c) => {
 });
 
 app.get('/sitemap.xml', async (c) => {
-  const entries = await sitemapEntries(c.env.DB, curatedOnly(c.env));
+  const entries = await sitemapEntries(c.env.DB, curatedOnly(c.env), contentLangs(c.env));
   const xml = renderSitemap(new URL(c.req.url).origin, entries);
   return c.body(xml, 200, { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' });
 });
@@ -503,10 +552,11 @@ app.post('/api/quiz', async (c) => {
     return reject(429, 'The advisor is very busy right now. Please try again in a little while.');
   }
 
-  if (!(await createSession(c.env.DB, id, validation.profile, ipHash))) return existingResponse(); // lost a race
+  const lang = asLang(body.lang);
+  if (!(await createSession(c.env.DB, id, validation.profile, ipHash, lang))) return existingResponse(); // lost a race
 
   // The browser stays connected while the pipeline runs; waitUntil covers a short disconnect at the end.
-  const work = runQuizPipeline(env, id, validation.profile, (job) => c.executionCtx.waitUntil(job)).then(
+  const work = runQuizPipeline(env, id, validation.profile, (job) => c.executionCtx.waitUntil(job), lang).then(
     () => 'ready' as const,
     () => 'failed' as const,
   );
@@ -925,6 +975,53 @@ app.post('/api/admin/articles/act', async (c) => {
   return c.body(reviewPage(c.env, result.row, { ok: result.ok, text: result.message }), result.ok ? 200 : 400, { ...htmlHeaders('no-store'), 'x-robots-tag': 'noindex, nofollow' });
 });
 
+/**
+ * The Spanish site's content translations (src/translate.ts): the counts, the backlog on demand (&supplements=&posts=,
+ * &force=1 translates again, &ref=<slug> one page only) and interface strings for src/i18n/<lang>.json.
+ */
+app.get('/api/admin/translate/status', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const langs = contentLangs(c.env);
+  const [supplements, posts] = await Promise.all([countSupplements(c.env.DB), allPosts(c.env.DB)]);
+  const translated: Record<string, Record<string, number>> = {};
+  for (const lang of langs) translated[lang] = await translationCounts(c.env.DB, lang);
+  return c.json({ langs, supplements, posts: posts.length, translated });
+});
+
+app.get('/api/admin/translate', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const lang = asLang(c.req.query('lang') ?? 'es');
+  if (!contentLangs(c.env).includes(lang)) return c.json({ error: `${lang} is not in SITE_LANGS` }, 400);
+  const n = (key: string, fallback: number, max: number) => Math.min(max, Math.max(0, Number(c.req.query(key) ?? String(fallback)) || 0));
+  const ref = (c.req.query('ref') ?? '').trim();
+  const [sups, posts] = await Promise.all([listSupplements(c.env.DB, 500, false), allPosts(c.env.DB)]);
+  const result = await translateBacklog(
+    c.env,
+    lang,
+    ref ? sups.filter((s) => s.slug === ref) : sups,
+    ref ? posts.filter((p) => p.slug === ref) : posts,
+    { supplements: n('supplements', 5, 60), posts: n('posts', 1, 20), force: c.req.query('force') === '1' },
+  );
+  const paths = [...result.supplements.map((slug) => localizePath(`/supplement/${slug}`, lang)), ...result.posts.map((slug) => localizePath(`/blog/${slug}`, lang))];
+  if (paths.length) await indexSync(c.env, { paths, curatedOnly: curatedOnly(c.env) }).catch((err) => console.error(`indexing translations failed: ${String(err)}`));
+  return c.json(result);
+});
+
+app.post('/api/admin/translate/strings', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  const body = await readJson(c.req.raw);
+  const lang = asLang(body.lang ?? c.req.query('lang') ?? 'es');
+  const strings = Array.isArray(body.strings) ? body.strings.map((v) => String(v)).filter(Boolean).slice(0, 600) : [];
+  if (!strings.length) return c.json({ error: 'strings[] is required' }, 400);
+  const translated = await translateStrings(c.env, lang, strings);
+  return c.json({ lang, translations: Object.fromEntries(strings.map((text, i) => [text, translated[i]])) });
+});
+
 app.get('/api/admin/export', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
@@ -949,7 +1046,7 @@ app.get('/api/supplements', async (c) => {
 });
 
 // Anything else that reaches the Worker is served from the static assets (with the 404 page as fallback).
-app.notFound((c) => (c.req.path.startsWith('/api/') ? c.json({ error: 'Not found' }, 404) : c.env.ASSETS.fetch(c.req.raw)));
+app.notFound((c) => (c.req.path.startsWith('/api/') ? c.json({ error: 'Not found' }, 404) : langFromPath(c.req.path) !== 'en' ? notFound(c.env, c.req.raw) : c.env.ASSETS.fetch(c.req.raw)));
 
 app.onError((err, c) => {
   console.error(`${c.req.method} ${c.req.path} failed: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
@@ -1082,7 +1179,12 @@ export default {
       ensureDatabase(env.DB)
         .then(() => draftNext(env))
         .then(({ processed }) => {
-          if (processed) console.log(`article: ${processed.slug} is now ${processed.status}`);
+          if (processed) {
+            console.log(`article: ${processed.slug} is now ${processed.status}`);
+            return;
+          }
+          // Quiet ticks translate a few pages for the Spanish site (src/translate.ts).
+          return translateStep(env);
         })
         .catch((err) => console.error(`article drafting failed: ${String(err)}`)),
     );
@@ -1119,7 +1221,18 @@ interface BackfillResult {
   remaining: number;
 }
 
-/** Illustrations for up to `limit` supplements (AI-created first) that have no product photos. */
+/** The translation backlog for every content language: a few supplements and one article per run (src/translate.ts). */
+async function translateStep(env: Bindings, limits = { supplements: 3, posts: 1 }): Promise<void> {
+  for (const lang of contentLangs(env)) {
+    const [sups, posts] = await Promise.all([listSupplements(env.DB, 500, false), allPosts(env.DB)]);
+    const result = await translateBacklog(env, lang, sups, posts, limits);
+    if (!result.supplements.length && !result.posts.length && !result.failed.length) continue;
+    console.log(`translate ${lang}: ${JSON.stringify(result)}`);
+    const paths = [...result.supplements.map((slug) => localizePath(`/supplement/${slug}`, lang)), ...result.posts.map((slug) => localizePath(`/blog/${slug}`, lang))];
+    if (paths.length) await indexSync(env, { paths, curatedOnly: curatedOnly(env) }).catch((err) => console.error(`indexing translations failed: ${String(err)}`));
+  }
+}
+
 /** Give supplements without product photos real iHerb products (AI-created ones first). */
 async function backfillProductPhotos(env: Bindings, limit: number): Promise<{ attached: string[]; failed: string[]; remaining: number }> {
   const todo = await supplementsWithoutPhotos(env.DB, limit);
@@ -1262,7 +1375,10 @@ function externalReferrer(referer: string | undefined, ownUrl: string): string |
 
 async function notFound(env: Bindings, request: Request): Promise<Response> {
   const res = await fetchAsset(env.ASSETS, request, '/404');
-  return new Response(res.body, { status: 404, headers: htmlHeaders('no-store') });
+  const page = new Response(res.body, { status: 404, headers: htmlHeaders('no-store') });
+  const url = new URL(request.url);
+  const lang = langFromPath(url.pathname);
+  return lang === 'en' ? page : localizeResponse(page, lang, { origin: url.origin, path: '/404', alternates: false });
 }
 
 async function readJson(request: Request): Promise<Record<string, unknown>> {

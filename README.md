@@ -482,3 +482,37 @@ Owner routes (all take `?key=` like the other admin routes; the review page and 
 A drafting round that does not finish within 20 minutes (lost Worker) goes back to the queue once, then the row is
 marked failed and the owner is emailed. `DEV_FAKE_AI=true` drafts a placeholder article so the whole flow can be
 tested locally without a key.
+
+## The Spanish site (/es/)
+
+Every page also exists under `/es/`: the home page, the quiz (`/es/wellness-quiz`), the result pages, the supplement
+pages, the blog and its articles, how it works, terms and research. Research notes stay in English for now.
+
+The chrome is translated on the fly. `src/i18n.ts` runs an HTMLRewriter pass over the English page and looks every
+text node and attribute (alt, placeholder, title, aria-label, meta descriptions) up in `src/i18n/es.json`, rewrites
+internal links to `/es/...`, sets `<html lang="es">`, adds hreflang links on both language versions and a language
+link in the footer. A dictionary key may contain `{n}` (a number) or `{x}` (free text) where the English varies. A
+string missing from the dictionary stays English, so a new English string never breaks the Spanish page; it shows up
+untranslated until the dictionary is rebuilt. That is done with `POST /api/admin/translate/strings` (owner key),
+which takes `{"strings": [...]}` and returns the Spanish translations from the fast model; the result is written into
+`src/i18n/es.json` and deployed with the site.
+
+Content is translated by the model and stored. `src/translate.ts` translates supplement pages (name, summary,
+benefits, contraindications, enhancing, interactions, why consider, holistic highlights, FAQs) and articles (title,
+SEO title, description, excerpt, category, tags, body, FAQ) with the fast model on the plan's API credits. Each result
+goes into the `translations` table, keyed by language, kind and slug, with a hash of the English source, so an edited
+page is translated again. The backlog is worked through by:
+
+- the five-minute cron, a few supplements and one article per tick (skipped on ticks that draft an article);
+- `GET /api/admin/translate?supplements=10&posts=2`, which runs it on demand;
+- `GET /api/admin/translate/status`, which shows the counts (done and waiting, per kind).
+
+A Spanish supplement page or article answers 404 until its translation exists, so the sitemap and hreflang links only
+point at pages that exist.
+
+The quiz: the Spanish quiz page posts `lang=es` (`public/js/quiz.js` reads the language from `<html lang>` and uses
+Spanish status and error messages); the session stores it; the recommendation text is written in Spanish by the model
+and the result page is rendered in Spanish. The supplements in a Spanish result that were not translated yet are
+translated right away in the background.
+
+`SITE_LANGS` (default `"en,es"`) switches the content translation backlog on; set it to `"en"` to pause it.

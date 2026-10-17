@@ -58,6 +58,7 @@ const LATER_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS reddit_limits (day TEXT NOT NULL, keyword TEXT NOT NULL, PRIMARY KEY (day, keyword))`,
   `CREATE TABLE IF NOT EXISTS blog_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL UNIQUE, status TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'guide', topic TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '', post_json TEXT NOT NULL DEFAULT '', draft_json TEXT NOT NULL DEFAULT '', issues_json TEXT NOT NULL DEFAULT '[]', token TEXT NOT NULL DEFAULT '', attempts INTEGER NOT NULL DEFAULT 0, error TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')), published_at TEXT)`,
   `CREATE INDEX IF NOT EXISTS blog_posts_status ON blog_posts(status)`,
+  `CREATE TABLE IF NOT EXISTS translations (lang TEXT NOT NULL, kind TEXT NOT NULL, ref TEXT NOT NULL, json TEXT NOT NULL, source_hash TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (lang, kind, ref))`,
 ];
 
 const LATER_COLUMNS: [table: string, column: string, definition: string][] = [
@@ -65,6 +66,8 @@ const LATER_COLUMNS: [table: string, column: string, definition: string][] = [
   ['supplements', 'faq_json', "TEXT NOT NULL DEFAULT ''"],
   // Last content change (src/indexing.ts reads it for the sitemap and the search-engine pings).
   ['supplements', 'updated_at', "TEXT NOT NULL DEFAULT ''"],
+  // The language the quiz was taken in (src/i18n.ts); the result page and the recommendation text follow it.
+  ['sessions', 'lang', "TEXT NOT NULL DEFAULT 'en'"],
 ];
 let ready: Promise<void> | null = null;
 

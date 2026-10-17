@@ -3,16 +3,45 @@
    Also: suggestion chips under the Diet and Goal inputs (they only edit the free-text value the Worker reads),
    and a progress bar with rotating status messages while the recommendation is being prepared. */
 (function () {
+  // The Spanish quiz page (/es/wellness-quiz) has <html lang="es">; everything the script writes follows that.
+  var LANG = ((document.documentElement.getAttribute('lang') || 'en').slice(0, 2) === 'es') ? 'es' : 'en';
+  var T = LANG === 'es' ? {
+    wait: [
+      'Leyendo tus respuestas…',
+      'Comparando más de 100 suplementos con tu perfil…',
+      'Descartando interacciones y alertas de seguridad…',
+      'Eligiendo los tres a cinco que mejor encajan…',
+      'Redactando tus explicaciones personalizadas…',
+      'Buscando los productos correspondientes en iHerb…',
+      'Ya casi, revisando la lista una vez más…'
+    ],
+    preparing: 'Preparando tu recomendación. Suele tardar menos de un minuto.',
+    opening: 'Listo, abriendo tus resultados…',
+    ready: 'Tus resultados están listos.',
+    pleaseWait: 'Espera un momento...',
+    failed: 'Algo salió mal al enviar el formulario.',
+    slow: 'Está tardando más de lo esperado. Inténtalo de nuevo.',
+    verify: 'Completa la verificación de arriba y vuelve a enviar.'
+  } : {
+    wait: [
+      'Reading your answers…',
+      'Checking 100+ supplements against your profile…',
+      'Ruling out interactions and safety flags…',
+      'Picking the three to five that fit best…',
+      'Writing your personal explanations…',
+      'Finding matching products on iHerb…',
+      'Almost there, double-checking the list…'
+    ],
+    preparing: 'Preparing your recommendation. This usually takes under a minute.',
+    opening: 'All set, opening your results…',
+    ready: 'Your results are ready.',
+    pleaseWait: 'Please wait...',
+    failed: 'Oops! Something went wrong while submitting the form.',
+    slow: 'This is taking longer than expected. Please try again.',
+    verify: 'Please complete the verification above, then submit again.'
+  };
   var POLL_ATTEMPTS = 80; // x 3 s = 4 min, matches the server's pending timeout
-  var WAIT_MESSAGES = [
-    'Reading your answers…',
-    'Checking 100+ supplements against your profile…',
-    'Ruling out interactions and safety flags…',
-    'Picking the three to five that fit best…',
-    'Writing your personal explanations…',
-    'Finding matching products on iHerb…',
-    'Almost there, double-checking the list…'
-  ];
+  var WAIT_MESSAGES = T.wait;
   var MESSAGE_EVERY = 4000; // ms between status messages; the last one is held until the result is ready
   var FILL_SECONDS = 40; // the bar eases to 90% over this long, then creeps towards 97%
 
@@ -202,7 +231,7 @@
     function startWaiting() {
       stopWaiting();
       waiting.startedAt = Date.now();
-      if (waitStatus) waitStatus.textContent = 'Preparing your recommendation. This usually takes under a minute.';
+      if (waitStatus) waitStatus.textContent = T.preparing;
       waiting.rotate = setInterval(function () {
         waiting.index += 1;
         setMessage(WAIT_MESSAGES[waiting.index]);
@@ -219,11 +248,11 @@
       clearWaitTimers();
       if (wait) wait.classList.add('is-done');
       if (waitMsg) {
-        waitMsg.textContent = 'All set, opening your results…';
+        waitMsg.textContent = T.opening;
         waitMsg.classList.remove('is-fading');
       }
       if (waitFill) waitFill.style.width = '100%';
-      if (waitStatus) waitStatus.textContent = 'Your results are ready.';
+      if (waitStatus) waitStatus.textContent = T.ready;
       setTimeout(function () { window.location.href = url; }, prefersReducedMotion() ? 0 : 450);
     }
 
@@ -280,7 +309,7 @@
     function showWaiting() {
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.value = submitBtn.getAttribute('data-wait') || 'Please wait...';
+        submitBtn.value = submitBtn.getAttribute('data-wait') || T.pleaseWait;
       }
       form.style.display = 'none';
       if (fail) fail.style.display = 'none';
@@ -292,12 +321,12 @@
     function showError(message) {
       resetForm();
       if (fail) fail.style.display = 'block';
-      if (failText) failText.textContent = message || 'Oops! Something went wrong while submitting the form.';
+      if (failText) failText.textContent = message || T.failed;
     }
 
     // Used only when the first request did not come back (network drop, proxy timeout).
     function pollStatus(id, attempt) {
-      if (attempt > POLL_ATTEMPTS) return showError('This is taking longer than expected. Please try again.');
+      if (attempt > POLL_ATTEMPTS) return showError(T.slow);
       setTimeout(function () {
         fetch('/api/session/' + encodeURIComponent(id), { headers: { accept: 'application/json' } })
           .then(function (r) { return r.ok ? r.json() : null; })
@@ -318,11 +347,12 @@
       }
       if (turnstile.enabled && !turnstile.token) {
         if (fail) fail.style.display = 'block';
-        if (failText) failText.textContent = 'Please complete the verification above, then submit again.';
+        if (failText) failText.textContent = T.verify;
         return;
       }
       var payload = {};
       new FormData(form).forEach(function (value, key) { payload[key] = value; });
+      payload.lang = LANG;
       if (turnstile.enabled) payload['cf-turnstile-response'] = turnstile.token;
       var sessionId = payload.sessionID;
       showWaiting();

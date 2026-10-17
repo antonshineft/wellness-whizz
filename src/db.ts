@@ -69,6 +69,8 @@ export interface QuizProfile {
 
 export interface Session extends QuizProfile {
   id: string;
+  /** 'en' or 'es': the language of the quiz page the session came from. */
+  lang: string;
   status: SessionStatus;
   error: string | null;
   created_at: string;
@@ -374,10 +376,10 @@ export async function insertSupplement(db: D1Database, input: SupplementInput, s
 // ---------- sessions ----------
 
 /** Returns false when a session with this id already exists (duplicate submit). */
-export async function createSession(db: D1Database, id: string, profile: QuizProfile, ipHash: string | null): Promise<boolean> {
+export async function createSession(db: D1Database, id: string, profile: QuizProfile, ipHash: string | null, lang = 'en'): Promise<boolean> {
   const result = await db
-    .prepare('INSERT OR IGNORE INTO sessions (id, sex, age, activity, diet, goal, status, ip_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .bind(id, profile.sex, profile.age, profile.activity, profile.diet, profile.goal, 'pending', ipHash)
+    .prepare('INSERT OR IGNORE INTO sessions (id, sex, age, activity, diet, goal, status, ip_hash, lang) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(id, profile.sex, profile.age, profile.activity, profile.diet, profile.goal, 'pending', ipHash, lang)
     .run();
   return (result.meta.changes ?? 0) > 0;
 }
