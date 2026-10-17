@@ -13,6 +13,7 @@ import { allPosts } from './blog/store';
 import type { BlogPost } from './blog/types';
 import { getSupplementBySlug } from './db';
 import { alertRecipient, emailEnabled, sendEmail } from './email';
+import { createPost as zernioCreatePost, listAccounts as zernioAccounts, uploadVideo as zernioUpload, zernioEnabled, type ZernioEnv } from './zernio';
 
 export interface VideoEnv {
   DB: D1Database;
@@ -31,6 +32,9 @@ export interface VideoEnv {
   STATS_KEY?: string;
   /** "false" stops new articles from queueing a video. */
   VIDEO_AUTOQUEUE?: string;
+  /** "false" keeps rendered videos on the posting page instead of posting them through Zernio at once. */
+  VIDEO_AUTOPOST?: string;
+  ZERNIO_API_KEY?: string;
 }
 
 export type VideoStatus = 'queued' | 'scripted' | 'rendering' | 'ready' | 'posted' | 'failed';
@@ -302,6 +306,20 @@ export async function markReady(env: VideoEnv, slug: string, videoUrl: string, d
     .bind(videoUrl, duration, row.id).run();
   const page = `${origin(env)}/api/admin/tiktok?key=${encodeURIComponent(env.STATS_KEY ?? '')}&video=${encodeURIComponent(slug)}`;
   const script = parseScript(row.script_json);
+  if (env.VIDEO_AUTOPOST !== 'false' && zernioEnabled(env as ZernioEnv)) {
+    const posted = await autoPost(env, { ...row, video_url: videoUrl });
+    if (posted.ok) {
+      await notify(env, `Posted on ${posted.where}: ${script?.title ?? slug}`,
+        `<p>The video for <strong>${escapeHtml(slug)}</strong> (${Math.round(duration)} s) was posted through Zernio to ${escapeHtml(posted.where)}. It is live within a few minutes.</p>
+<p style="color:#555">Caption: ${escapeHtml(row.caption)}</p><p><a href="${escapeHtml(videoUrl)}">Watch the file</a> · <a href="${escapeHtml(page)}">Posting page</a></p>`,
+        `The video for ${slug} (${Math.round(duration)} s) was posted through Zernio to ${posted.where}.\n\nCaption: ${row.caption}\n\nFile: ${videoUrl}\nPosting page: ${page}`);
+      return true;
+    }
+    await notify(env, `Video rendered, posting failed: ${script?.title ?? slug}`,
+      `<p>The video for <strong>${escapeHtml(slug)}</strong> is rendered but the automatic post failed: ${escapeHtml(posted.message)}</p><p><a href="${escapeHtml(page)}" style="display:inline-block;background:#1d272d;color:#fff;text-decoration:none;border-radius:10px;padding:12px 18px;font-size:16px">Post it by hand</a></p>`,
+      `The video for ${slug} is rendered but the automatic post failed: ${posted.message}\n\nPost it by hand: ${page}`);
+    return true;
+  }
   await notify(env, `Video ready to post: ${script?.title ?? slug}`,
     `<p>The video for <strong>${escapeHtml(slug)}</strong> is rendered (${Math.round(duration)} s).</p>
 <p><a href="${escapeHtml(videoUrl)}">Watch it</a> · <a href="${escapeHtml(page)}" style="display:inline-block;background:#1d272d;color:#fff;text-decoration:none;border-radius:10px;padding:12px 18px;font-size:16px">Post to TikTok</a></p>
@@ -309,6 +327,23 @@ export async function markReady(env: VideoEnv, slug: string, videoUrl: string, d
 <p style="color:#777;font-size:13px">Nothing is posted until you press Post on that page.</p>`,
     `The video for ${slug} is rendered (${Math.round(duration)} s).\n\nWatch: ${videoUrl}\nPost to TikTok: ${page}\n\nCaption: ${row.caption}\n\nNothing is posted until you press Post on that page.`);
   return true;
+}
+
+/** Post a rendered video through every connected Zernio account (public, labelled as AI content). */
+export async function autoPost(env: VideoEnv, row: VideoRow): Promise<{ ok: true; where: string } | { ok: false; message: string }> {
+  const z = env as ZernioEnv;
+  const accounts = await zernioAccounts(z);
+  if (!accounts.ok) return { ok: false, message: accounts.message };
+  const targets = accounts.accounts.filter((a) => ['tiktok', 'instagram', 'youtube'].includes(a.platform)).map((a) => ({ platform: a.platform, accountId: a.id }));
+  if (!targets.length) return { ok: false, message: 'no TikTok, Instagram or YouTube account is connected in Zernio' };
+  const res = await fetch(row.video_url, { redirect: 'follow' });
+  if (!res.ok) return { ok: false, message: `fetching the rendered file failed: HTTP ${res.status}` };
+  const up = await zernioUpload(z, await res.arrayBuffer(), `${row.slug}-${Date.now()}.mp4`);
+  if (!up.ok) return up;
+  const post = await zernioCreatePost(z, { content: row.caption, mediaUrl: up.url, targets, privacy: 'PUBLIC_TO_EVERYONE', allowComment: true, allowDuet: false, allowStitch: false, madeWithAi: true, title: parseScript(row.script_json)?.title ?? row.slug });
+  if (!post.ok) return post;
+  await markPosted(env, row.slug, `zernio:${post.id}`);
+  return { ok: true, where: targets.map((t) => t.platform).join(', ') };
 }
 
 export async function markFailed(env: VideoEnv, slug: string, error: string): Promise<boolean> {

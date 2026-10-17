@@ -68,9 +68,30 @@ def heygen(method: str, path: str, **kw) -> dict:
     return j.get('data', j)
 
 
+def prepare_portrait(src: Path, out: Path) -> Path:
+    """Crop the portrait to 9:16 and hand HeyGen a 2160x3840 frame (Lanczos, lightly sharpened) so its output is not an
+    upscale of a crop: the avatar comes back crisper than from the 1088px source."""
+    from PIL import ImageEnhance
+    im = Image.open(src).convert('RGB')
+    w, h = im.size
+    target = 9 / 16
+    if w / h > target:
+        nw = int(h * target)
+        im = im.crop(((w - nw) // 2, 0, (w - nw) // 2 + nw, h))
+    else:
+        nh = int(w / target)
+        top = max(0, (h - nh) // 3)
+        im = im.crop((0, top, w, top + nh))
+    im = im.resize((2160, 3840), Image.LANCZOS)
+    im = ImageEnhance.Sharpness(im).enhance(1.35)
+    im.save(out, quality=93, optimize=True)
+    return out
+
+
 def upload_asset(path: Path) -> str:
-    with open(path, 'rb') as f:
-        d = heygen('POST', '/v3/assets', files={'file': (path.name, f, 'image/jpeg' if path.suffix == '.jpg' else 'image/png')})
+    prepared = prepare_portrait(path, WORK / f'portrait-{path.stem}.jpg')
+    with open(prepared, 'rb') as f:
+        d = heygen('POST', '/v3/assets', files={'file': (prepared.name, f, 'image/jpeg')})
     return d['asset_id']
 
 
@@ -259,7 +280,7 @@ def compose(clips: list[Path], words: list[dict], popup: Path | None, popup_at: 
     if popup:
         inputs += ['-loop', '1', '-t', f'{dur:.2f}', '-i', str(popup)]
     cat = ''.join(f'[{i}:v][{i}:a]' for i in range(n)) + f'concat=n={n}:v=1:a=1[cv][ca]'
-    fc = [cat, f'[cv]scale={W}:{H},fps={FPS}[base]']
+    fc = [cat, f'[cv]scale={W}:{H}:flags=lanczos,fps={FPS},unsharp=5:5:0.5:5:5:0.0[base]']
     last = 'base'
     if popup:
         ps, pe = popup_at, min(dur - 0.5, popup_at + POPUP_SECONDS)

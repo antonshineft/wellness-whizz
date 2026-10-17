@@ -166,7 +166,7 @@ Answer with only a JSON array, no prose, like:
 // Contacts
 
 const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
-const BAD_EMAIL = /(noreply|no-reply|donotreply|example\.|sentry|wixpress|\.png$|\.jpg$|\.gif$|\.svg$|\.webp$|@(w3|schema|googleapis|gravatar|apple|google)\.)/i;
+const BAD_EMAIL = /(noreply|no-reply|donotreply|example\.|sentry|wixpress|\.png$|\.jpg$|\.gif$|\.svg$|\.webp$|@(w3|schema|googleapis|gravatar|apple|google|email|domain|yourdomain|company|site|yoursite|website|mysite|test)\.|^(you|your|yourname|name|email|user|username|someone|test|john|jane|johndoe|firstname|first\.last|example)@)/i;
 
 async function fetchText(url: string, max = 300_000): Promise<string> {
   const ctrl = new AbortController();
@@ -465,9 +465,15 @@ export async function actOnProspect(env: BacklinkEnv, id: number, action: string
     case 'declined':
       await env.DB.prepare(`UPDATE link_prospects SET status = 'declined', updated_at = ${now} WHERE id = ?`).bind(id).run();
       return 'marked declined';
-    case 'contact':
-      await env.DB.prepare(`UPDATE link_prospects SET contact_email = ?, status = CASE WHEN status = 'no-contact' THEN 'new' ELSE status END, updated_at = ${now} WHERE id = ?`).bind((fields.email ?? '').trim().toLowerCase(), id).run();
+    case 'contact': {
+      const email = (fields.email ?? '').trim().toLowerCase();
+      if (!email) {
+        await env.DB.prepare(`UPDATE link_prospects SET contact_email = '', approved = 0, status = 'no-contact', draft_subject = '', draft_body = '', updated_at = ${now} WHERE id = ?`).bind(id).run();
+        return 'address cleared';
+      }
+      await env.DB.prepare(`UPDATE link_prospects SET contact_email = ?, status = CASE WHEN status = 'no-contact' THEN 'new' ELSE status END, updated_at = ${now} WHERE id = ?`).bind(email, id).run();
       return 'contact saved';
+    }
     default:
       return 'unknown action';
   }

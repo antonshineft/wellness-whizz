@@ -42,6 +42,11 @@
     "REDDIT_MAX_THREADS": "20",
     "REDDIT_MAX_REPLIES": "6",
     "ARTICLES_PER_WEEK": "2",
+    // Backlink outreach (src/backlinks.ts): drafted pitches go out from the daily run, up to OUTREACH_PER_DAY a day.
+    "OUTREACH_AUTOSEND": "true",
+    "OUTREACH_PER_DAY": "10",
+    // A rendered video is posted through Zernio as soon as it is ready (src/videos.ts); "false" waits for the posting page.
+    "VIDEO_AUTOPOST": "true",
     "SITE_LANGS": "en,es",
     "ARTICLE_EFFORT": "high",
     // iHerb Rewards / referral code, appended to every iherb.com link the site generates.
