@@ -22,6 +22,7 @@ import { SHELF_MAX_BASE64, SHELF_MAX_IMAGES, SHELF_MEDIA_TYPES, analyzeShelf, co
 import { renderShelfPage, renderShelfResult } from './render/shelf';
 import { queueQuizDataArticle, quizDataSummary } from './quizdata';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
+import { renderTikTokAdmin } from './render/tiktok-admin';
 import {
   getTranslation, hasTranslation, localizePost, localizePosts, localizeSupplement, localizeSupplements, translateBacklog, translateStrings, translationCounts,
   type PostTranslation, type SupplementTranslation,
@@ -1171,9 +1172,29 @@ app.post('/api/tiktok/post', async (c) => {
     privacy: c.req.query('privacy') || undefined,
     coverMs: c.req.query('cover_ms') ? Number(c.req.query('cover_ms')) : undefined,
     disableComment: c.req.query('comments') === 'off',
+    disableDuet: c.req.query('duet') !== 'on',
+    disableStitch: c.req.query('stitch') !== 'on',
   });
   if (!r.ok) return c.json({ error: r.message }, 502);
   return c.json({ ok: true, publish_id: r.publishId, privacy: r.privacy, bytes: video.byteLength });
+});
+
+/** The owner's posting page (src/render/tiktok-admin.ts): pick a video, write the caption, choose who can see it, post. */
+app.get('/api/admin/tiktok', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  const enabled = tiktokEnabled(c.env);
+  const auth = enabled ? await getAuth(c.env) : null;
+  const ci = auth ? await creatorInfo(c.env) : null;
+  return c.html(renderTikTokAdmin({
+    enabled, auth,
+    creator: ci && ci.ok ? ci.info : null,
+    creatorError: ci && !ci.ok ? ci.message : '',
+    posts: enabled ? await listPosts(c.env) : [],
+    maxBytes: MAX_SINGLE_UPLOAD,
+  }));
 });
 
 app.get('/api/tiktok/post/:publishId', async (c) => {
