@@ -146,6 +146,12 @@ CREATE TABLE IF NOT EXISTS reddit_used (
   used_at TEXT NOT NULL,
   note TEXT
 );
+-- Screening scores (0-3) per thread, written by the hourly cron so the morning digest has little left to score.
+CREATE TABLE IF NOT EXISTS reddit_scores (
+  post_id TEXT PRIMARY KEY,
+  score INTEGER NOT NULL,
+  scored_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS reddit_limits (
   day TEXT NOT NULL,
   keyword TEXT NOT NULL,

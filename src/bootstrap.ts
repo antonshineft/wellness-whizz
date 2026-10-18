@@ -60,6 +60,7 @@ const LATER_TABLES: string[] = [
   `CREATE INDEX IF NOT EXISTS reddit_mentions_received ON reddit_mentions(received_at)`,
   `CREATE INDEX IF NOT EXISTS reddit_mentions_post ON reddit_mentions(post_id)`,
   `CREATE TABLE IF NOT EXISTS reddit_used (post_id TEXT PRIMARY KEY, used_at TEXT NOT NULL, note TEXT)`,
+  `CREATE TABLE IF NOT EXISTS reddit_scores (post_id TEXT PRIMARY KEY, score INTEGER NOT NULL, scored_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS reddit_limits (day TEXT NOT NULL, keyword TEXT NOT NULL, PRIMARY KEY (day, keyword))`,
   `CREATE TABLE IF NOT EXISTS blog_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL UNIQUE, status TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'guide', topic TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '', post_json TEXT NOT NULL DEFAULT '', draft_json TEXT NOT NULL DEFAULT '', issues_json TEXT NOT NULL DEFAULT '[]', token TEXT NOT NULL DEFAULT '', attempts INTEGER NOT NULL DEFAULT 0, error TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')), published_at TEXT)`,
   `CREATE INDEX IF NOT EXISTS blog_posts_status ON blog_posts(status)`,

@@ -218,6 +218,49 @@ async function screen(env: RedditEnv, list: Candidate[]): Promise<Map<string, nu
   return scores;
 }
 
+/**
+ * Scores for a candidate list: stored ones first (reddit_scores), then at most `maxFresh` of the newest unscored threads
+ * through the model, stored for next time. Threads the model skips are stored as 0 so they are not sent again.
+ */
+async function scoreCandidates(env: RedditEnv, list: Candidate[], maxFresh: number): Promise<Map<string, number>> {
+  const scores = new Map<string, number>();
+  const ids = list.map((c) => c.post_id);
+  for (let i = 0; i < ids.length; i += 90) {
+    const chunk = ids.slice(i, i + 90);
+    const rows = await env.DB.prepare(`SELECT post_id, score FROM reddit_scores WHERE post_id IN (${chunk.map(() => '?').join(',')})`).bind(...chunk).all<{ post_id: string; score: number }>();
+    for (const r of rows.results) scores.set(r.post_id, r.score);
+  }
+  const fresh = list.filter((c) => !scores.has(c.post_id)).sort((a, b) => b.first_seen.localeCompare(a.first_seen)).slice(0, Math.max(0, maxFresh));
+  if (fresh.length) {
+    const scored = await screen(env, fresh);
+    const now = new Date().toISOString();
+    const rows = fresh.map((c) => {
+      const s = scored.get(c.post_id) ?? 0;
+      scores.set(c.post_id, s);
+      return env.DB.prepare('INSERT OR REPLACE INTO reddit_scores (post_id, score, scored_at) VALUES (?, ?, ?)').bind(c.post_id, s, now);
+    });
+    for (let i = 0; i < rows.length; i += 50) await env.DB.batch(rows.slice(i, i + 50));
+  }
+  return scores;
+}
+
+/**
+ * Hourly: score the newest unscored threads of the last 26 hours (up to `max`, two model calls) so the 06:52 digest only
+ * has to read and draft. Returns how many candidates there were and how many were still unscored before this call.
+ */
+export async function screenStep(env: RedditEnv, max = 240): Promise<{ candidates: number; unscored: number }> {
+  const list = await candidates(env.DB, 26);
+  const ids = list.map((c) => c.post_id);
+  let known = 0;
+  for (let i = 0; i < ids.length; i += 90) {
+    const chunk = ids.slice(i, i + 90);
+    known += (await env.DB.prepare(`SELECT COUNT(*) AS n FROM reddit_scores WHERE post_id IN (${chunk.map(() => '?').join(',')})`).bind(...chunk).first<{ n: number }>())?.n ?? 0;
+  }
+  const unscored = list.length - known;
+  if (unscored > 0) await scoreCandidates(env, list, max);
+  return { candidates: list.length, unscored };
+}
+
 // ---------- reading threads (Reddit Atom feed) ----------
 
 export interface Thread {
@@ -445,6 +488,8 @@ export interface DigestOptions {
   maxReplies?: number;
   /** How far back to look for mentions; default 26 hours (the cron runs daily). */
   hours?: number;
+  /** How many still-unscored threads the run itself may screen (default 240); the hourly cron scores the rest. */
+  maxFresh?: number;
 }
 
 export function digestRecipient(env: RedditEnv): string | null {
@@ -488,10 +533,11 @@ export async function runRedditDigest(env: RedditEnv, opts: DigestOptions = {}):
     return run;
   }
 
-  // Cheap screening whenever there are more threads than we can read; otherwise read them all.
+  // Cheap screening whenever there are more threads than we can read; otherwise read them all. Scores are mostly
+  // already stored by the hourly cron (screenStep), so this run screens at most a couple of hundred fresh threads.
   let shortlist = list;
   if (list.length > maxThreads) {
-    const scores = await screen(env, list);
+    const scores = await scoreCandidates(env, list, opts.maxFresh ?? 240);
     run.screened = list.length;
     shortlist = list
       .map((c) => ({ c, score: scores.get(c.post_id) ?? 0 }))

@@ -56,7 +56,7 @@ import {
   countSupplementsNeedingFaqs, supplementsNeedingFaqs, updateSupplementFaqs, CATEGORIES, asFormType, insertSupplement, getSupplementByNameKey, normalizeNameKey,
 } from './db';
 import { runQuizPipeline } from './pipeline';
-import { digestStatus, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, storeAlert } from './reddit';
+import { digestStatus, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
 import PostalMime from 'postal-mime';
 import { renderBlogIndex, renderBlogPost } from './render/blog';
 import { fetchAsset, renderHome } from './render/home';
@@ -1558,6 +1558,11 @@ export default {
             const hourly = Math.max(0, Number(env.RESEARCH_HOURLY ?? '4') || 0);
             const research = hourly ? await researchStep(env, hourly) : null;
             if (research && (research.added.length || research.failed.length)) console.log(`research: ${JSON.stringify(research)}`);
+            // Score the hour's new Reddit mentions (src/reddit.ts) so the morning digest has little screening left to do.
+            if ((env.REDDIT_DIGEST ?? 'true') !== 'false') {
+              const screened = await screenStep(env).catch((err) => ({ error: String(err).slice(0, 200) }));
+              console.log(`reddit screen: ${JSON.stringify(screened)}`);
+            }
             const built = await buildQueue(env);
             if (built.queued.length) console.log(`social queued: ${built.queued.join(', ')}`);
             const result = await postDue(env);
