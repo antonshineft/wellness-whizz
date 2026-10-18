@@ -936,6 +936,15 @@ app.get('/api/admin/reddit/run', async (c) => {
   return c.json(run);
 });
 
+/** Owner-only: score the newest unscored threads now (?max=N, default 480), the same step the hourly cron runs. */
+app.get('/api/admin/reddit/screen', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  return c.json(await screenStep(c.env, Math.max(1, Math.min(1000, Number(c.req.query('max')) || 480))));
+});
+
 /** Owner-only: read one Reddit thread the way the digest does (?id=<post id>), to check that Reddit answers the Worker. */
 app.get('/api/admin/reddit/fetch', async (c) => {
   const denied = authorized(c);
