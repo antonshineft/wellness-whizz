@@ -925,15 +925,34 @@ app.get('/api/admin/reddit', async (c) => {
   return c.json(await digestStatus(c.env));
 });
 
-/** Owner-only: run the digest now. ?send=0 only returns it; ?threads=N and ?replies=N override the limits; ?hours=N the window. */
+/**
+ * Owner-only: run the digest now. ?send=0 only returns it; ?threads=N and ?replies=N override the limits; ?hours=N the
+ * window. The run takes minutes, so the response streams a space every 10 s (valid JSON whitespace) and the result at
+ * the end; that keeps proxies and the Worker's own request lifetime from cutting it off.
+ */
 app.get('/api/admin/reddit/run', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
-  c.header('cache-control', 'no-store');
   const num = (k: string) => (c.req.query(k) ? Number(c.req.query(k)) || undefined : undefined);
-  const run = await runRedditDigest(c.env, { send: c.req.query('send') !== '0', maxThreads: num('threads'), maxReplies: num('replies'), hours: num('hours') });
-  return c.json(run);
+  const opts = { send: c.req.query('send') !== '0', maxThreads: num('threads'), maxReplies: num('replies'), hours: num('hours') };
+  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
+  const writer = writable.getWriter();
+  const enc = new TextEncoder();
+  const job = (async () => {
+    const beat = setInterval(() => { writer.write(enc.encode(' ')).catch(() => undefined); }, 10_000);
+    try {
+      const run = await runRedditDigest(c.env, opts);
+      await writer.write(enc.encode(JSON.stringify(run)));
+    } catch (err) {
+      await writer.write(enc.encode(JSON.stringify({ error: String(err).slice(0, 500) }))).catch(() => undefined);
+    } finally {
+      clearInterval(beat);
+      await writer.close().catch(() => undefined);
+    }
+  })();
+  c.executionCtx.waitUntil(job);
+  return new Response(readable, { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 });
 
 /** Owner-only: score the newest unscored threads now (?max=N, default 480), the same step the hourly cron runs. */
