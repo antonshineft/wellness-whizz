@@ -1,5 +1,5 @@
 /** Owner page for the backlink outreach (/api/admin/backlinks?key=…): queue by status, approve or edit drafts, add prospects. */
-import type { Prospect } from '../backlinks';
+import type { LinkEvent, Prospect } from '../backlinks';
 
 const esc = (s: string) => String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] as string));
 
@@ -7,6 +7,7 @@ export interface BacklinksView {
   counts: Record<string, number>;
   status: string;
   rows: Prospect[];
+  events: Record<number, LinkEvent[]>;
   perDay: number;
   autosend: boolean;
   emailReady: boolean;
@@ -23,6 +24,7 @@ export function renderBacklinksAdmin(v: BacklinksView): string {
     return `<article class="card" id="p${p.id}">
   <div class="head"><a href="${esc(p.url)}" target="_blank" rel="noopener"><strong>${esc(p.title || p.domain)}</strong></a> <span class="small">${esc(p.domain)} · ${esc(p.kind)} · ${esc(p.language)} · fit ${p.score}</span></div>
   <p class="small">${esc(p.why)}${p.notes ? ` · ${esc(p.notes)}` : ''}</p>
+  ${(v.events[p.id] ?? []).length ? `<p class="small log">${(v.events[p.id] ?? []).map((e) => `${esc(e.at.slice(0, 16))} ${esc(e.kind)}${e.detail ? ': ' + esc(e.detail.slice(0, 140)) : ''}`).join('<br>')}</p>` : ''}
   <form method="post" action="/api/admin/backlinks/act?key=__KEY__&status=${esc(v.status)}">
     <input type="hidden" name="id" value="${p.id}">
     <label class="small">To <input name="email" value="${esc(p.contact_email)}" placeholder="${p.contact_url ? 'no address; contact form: ' + esc(p.contact_url) : 'no address found'}"></label>
@@ -47,6 +49,7 @@ body{margin:0;padding:20px 14px 60px;background:#fdf1cf;color:#1d272d;font-famil
 main{max-width:720px;margin:0 auto}
 h1{font-size:24px;margin:0 0 6px}h2{font-size:19px;margin:30px 0 8px}
 .small{font-size:13px;color:#6b7478}
+.log{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap;word-break:break-word}
 .msg{background:#e8f6e4;border:1px solid #87d581;border-radius:10px;padding:10px 12px;margin:10px 0}
 .tabs{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
 .tab{background:#fff;border-radius:999px;padding:6px 12px;text-decoration:none;color:#1d272d;font-size:14px}

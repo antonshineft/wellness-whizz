@@ -225,10 +225,18 @@ export async function findContact(env: BacklinkEnv, p: Prospect): Promise<{ emai
 }
 
 export async function findContacts(env: BacklinkEnv, limit = 8): Promise<number> {
-  const rows = (await env.DB.prepare("SELECT * FROM link_prospects WHERE status = 'new' ORDER BY score DESC, id LIMIT ?").bind(limit).all<Prospect>()).results;
+  const rows = (await env.DB.prepare("SELECT * FROM link_prospects WHERE status = 'new' AND contact_email = '' ORDER BY score DESC, id LIMIT ?").bind(limit).all<Prospect>()).results;
   let found = 0;
   for (const p of rows) {
-    const c = env.DEV_FAKE_AI === 'true' ? { email: `editor@${p.domain}`, contactUrl: '' } : await findContact(env, p);
+    let c: { email: string; contactUrl: string };
+    try {
+      c = env.DEV_FAKE_AI === 'true' ? { email: `editor@${p.domain}`, contactUrl: '' } : await findContact(env, p);
+    } catch (err) {
+      // A lookup that throws (network, model) must not block the queue: the row is parked as no-contact with the reason.
+      await env.DB.prepare("UPDATE link_prospects SET status = 'no-contact', updated_at = datetime('now') WHERE id = ?").bind(p.id).run();
+      await logEvent(env, p.id, 'contact-failed', String(err).slice(0, 300));
+      continue;
+    }
     if (c.email) {
       found++;
       await env.DB.prepare("UPDATE link_prospects SET contact_email = ?, contact_url = ?, updated_at = datetime('now') WHERE id = ?").bind(c.email, c.contactUrl, p.id).run();
@@ -291,6 +299,7 @@ export async function draftPending(env: BacklinkEnv, limit = 8): Promise<number>
     try {
       const d = await draftEmail(env, p);
       await env.DB.prepare("UPDATE link_prospects SET status = 'drafted', asset = ?, draft_subject = ?, draft_body = ?, updated_at = datetime('now') WHERE id = ?").bind(d.asset, d.subject, d.body, p.id).run();
+      await logEvent(env, p.id, 'drafted', d.subject);
       n++;
     } catch (err) {
       await logEvent(env, p.id, 'draft-failed', String(err).slice(0, 300));
@@ -318,10 +327,10 @@ function textToHtml(text: string): string {
 }
 
 /** Send approved drafts (or every draft when OUTREACH_AUTOSEND=true), within the daily cap. */
-export async function sendApproved(env: BacklinkEnv): Promise<{ sent: number; skipped: string }> {
+export async function sendApproved(env: BacklinkEnv, limit = 50): Promise<{ sent: number; skipped: string }> {
   if (!emailEnabled(env)) return { sent: 0, skipped: 'email is not configured' };
   const cap = perDay(env);
-  const room = cap - (await sentToday(env));
+  const room = Math.min(limit, cap - (await sentToday(env)));
   if (room <= 0) return { sent: 0, skipped: cap ? 'daily cap reached' : 'sending paused (OUTREACH_PER_DAY=0)' };
   const auto = env.OUTREACH_AUTOSEND === 'true';
   const rows = (await env.DB.prepare(`SELECT * FROM link_prospects WHERE status = 'drafted' AND contact_email != '' ${auto ? '' : 'AND approved = 1'} ORDER BY score DESC, id LIMIT ?`).bind(room).all<Prospect>()).results;
@@ -339,9 +348,9 @@ export async function sendApproved(env: BacklinkEnv): Promise<{ sent: number; sk
   return { sent, skipped: '' };
 }
 
-export async function sendFollowUps(env: BacklinkEnv): Promise<number> {
+export async function sendFollowUps(env: BacklinkEnv, limit = 50): Promise<number> {
   if (!emailEnabled(env)) return 0;
-  const room = perDay(env) - (await sentToday(env));
+  const room = Math.min(limit, perDay(env) - (await sentToday(env)));
   if (room <= 0) return 0;
   const name = (env.OUTREACH_SIGNATURE ?? '').trim() || 'Anton';
   const rows = (await env.DB.prepare("SELECT * FROM link_prospects WHERE status = 'sent' AND followup_at IS NOT NULL AND followup_at < datetime('now') ORDER BY followup_at LIMIT ?").bind(room).all<Prospect>()).results;
@@ -399,24 +408,80 @@ export async function logEvent(env: BacklinkEnv, prospectId: number, kind: strin
   await env.DB.prepare("INSERT INTO link_events (prospect_id, at, kind, detail) VALUES (?, datetime('now'), ?, ?)").bind(prospectId, kind, detail.slice(0, 500)).run();
 }
 
+export interface LinkEvent { prospect_id: number; at: string; kind: string; detail: string }
+
+/** The last few events per prospect (lookups, drafts, sends, failures) for the admin page and the list JSON. */
+export async function recentEvents(env: BacklinkEnv, ids: number[], per = 3): Promise<Record<number, LinkEvent[]>> {
+  const out: Record<number, LinkEvent[]> = {};
+  const some = ids.slice(0, 200);
+  if (!some.length) return out;
+  const rows = (await env.DB.prepare(`SELECT prospect_id, at, kind, detail FROM link_events WHERE prospect_id IN (${some.map(() => '?').join(',')}) ORDER BY id DESC LIMIT 800`).bind(...some).all<LinkEvent>()).results;
+  for (const e of rows) {
+    const list = (out[e.prospect_id] ??= []);
+    if (list.length < per) list.push(e);
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Daily run and reporting
 
 export interface OutreachSummary { discovered: { theme: string; found: number; added: number } | null; contacts: number; drafted: number; sent: number; skipped: string; followUps: number; awaiting: number; errors: string[] }
 
-export async function dailyOutreach(env: BacklinkEnv, opts: { discover?: boolean } = {}): Promise<OutreachSummary> {
+/** What happened in the last 24 hours, read back from the event log (the work is spread over the day's ticks). */
+async function daySummary(env: BacklinkEnv): Promise<Pick<OutreachSummary, 'contacts' | 'drafted' | 'sent' | 'followUps'> & { failures: string[] }> {
+  const rows = (await env.DB.prepare("SELECT kind, detail FROM link_events WHERE at > datetime('now', '-1 day') ORDER BY id").all<{ kind: string; detail: string }>()).results;
+  const s = { contacts: 0, drafted: 0, sent: 0, followUps: 0, failures: [] as string[] };
+  for (const r of rows) {
+    if (r.kind === 'contact' && r.detail.includes('@')) s.contacts++;
+    else if (r.kind === 'drafted') s.drafted++;
+    else if (r.kind === 'sent') s.sent++;
+    else if (r.kind === 'follow-up') s.followUps++;
+    else if (r.kind.endsWith('-failed') && s.failures.length < 3) s.failures.push(`${r.kind}: ${r.detail.slice(0, 120)}`);
+  }
+  return s;
+}
+
+/**
+ * One small unit of outreach work for the five-minute tick: two contact lookups, else two drafts, else (weekdays 07:00
+ * to 17:00 UTC, within the daily cap) up to two sends or follow-ups. The daily run used to do all of it in one go and the
+ * plan's per-invocation CPU budget cut it off before the drafts; spread out, a tick fetches at most two pages.
+ * Returns a short note of what it did, or null when there was nothing to do.
+ */
+export async function outreachStep(env: BacklinkEnv): Promise<string | null> {
+  const count = async (sql: string) => (await env.DB.prepare(sql).first<{ n: number }>())?.n ?? 0;
+  if (await count("SELECT COUNT(*) AS n FROM link_prospects WHERE status = 'new' AND contact_email = ''")) return `contacts: ${await findContacts(env, 2)} of 2 found`;
+  if (await count("SELECT COUNT(*) AS n FROM link_prospects WHERE status = 'new' AND contact_email != ''")) return `drafted ${await draftPending(env, 2)}`;
+  const now = new Date();
+  const day = now.getUTCDay(), hour = now.getUTCHours();
+  if (day === 0 || day === 6 || hour < 7 || hour >= 17) return null;
+  const { sent } = await sendApproved(env, 2);
+  if (sent) return `sent ${sent}`;
+  const followUps = await sendFollowUps(env, 2);
+  return followUps ? `follow-ups ${followUps}` : null;
+}
+
+/**
+ * The daily run (06:00 UTC): discover one theme's prospects, then summarise the last 24 hours for the digest. The
+ * contact, draft, send and follow-up steps run from the five-minute ticks (outreachStep); `work: true` (the manual "run
+ * everything" button) does them here as well.
+ */
+export async function dailyOutreach(env: BacklinkEnv, opts: { discover?: boolean; work?: boolean } = {}): Promise<OutreachSummary> {
   const errors: string[] = [];
   let discovered: OutreachSummary['discovered'] = null;
   if (opts.discover !== false) {
     try { discovered = await discoverProspects(env); } catch (err) { errors.push(`discover: ${String(err).slice(0, 200)}`); }
   }
-  let contacts = 0, drafted = 0, sent = 0, skipped = '', followUps = 0;
-  try { contacts = await findContacts(env); } catch (err) { errors.push(`contacts: ${String(err).slice(0, 200)}`); }
-  try { drafted = await draftPending(env); } catch (err) { errors.push(`draft: ${String(err).slice(0, 200)}`); }
-  try { ({ sent, skipped } = await sendApproved(env)); } catch (err) { errors.push(`send: ${String(err).slice(0, 200)}`); }
-  try { followUps = await sendFollowUps(env); } catch (err) { errors.push(`follow-up: ${String(err).slice(0, 200)}`); }
+  let skipped = '';
+  if (opts.work) {
+    try { await findContacts(env); } catch (err) { errors.push(`contacts: ${String(err).slice(0, 200)}`); }
+    try { await draftPending(env); } catch (err) { errors.push(`draft: ${String(err).slice(0, 200)}`); }
+    try { ({ skipped } = await sendApproved(env)); } catch (err) { errors.push(`send: ${String(err).slice(0, 200)}`); }
+    try { await sendFollowUps(env); } catch (err) { errors.push(`follow-up: ${String(err).slice(0, 200)}`); }
+  }
+  const day = await daySummary(env);
   const awaiting = (await env.DB.prepare("SELECT COUNT(*) AS n FROM link_prospects WHERE status = 'drafted' AND approved = 0").first<{ n: number }>())?.n ?? 0;
-  return { discovered, contacts, drafted, sent, skipped, followUps, awaiting, errors };
+  return { discovered, contacts: day.contacts, drafted: day.drafted, sent: day.sent, skipped, followUps: day.followUps, awaiting, errors: [...errors, ...day.failures] };
 }
 
 export async function counts(env: BacklinkEnv): Promise<Record<string, number>> {
@@ -493,11 +558,11 @@ export async function outreachDigest(env: BacklinkEnv, s: OutreachSummary): Prom
   if (!emailEnabled(env)) return;
   const to = (env.DIGEST_TO ?? '').trim() || alertRecipient(env);
   if (!to) return;
-  if (!s.awaiting && !s.sent && !s.followUps && !s.errors.length) return;
+  if (!s.awaiting && !s.sent && !s.followUps && !s.drafted && !s.errors.length) return;
   const page = `${origin(env)}/api/admin/backlinks?key=${encodeURIComponent(env.STATS_KEY ?? '')}`;
   const lines = [
     s.discovered ? `Discovered ${s.discovered.added} new prospects (${s.discovered.theme}).` : '',
-    `Contacts found: ${s.contacts}. Drafts written: ${s.drafted}. Sent: ${s.sent}${s.skipped ? ` (${s.skipped})` : ''}. Follow-ups: ${s.followUps}.`,
+    `Last 24 hours: contacts found ${s.contacts}, drafts written ${s.drafted}, pitches sent ${s.sent}${s.skipped ? ` (${s.skipped})` : ''}, follow-ups ${s.followUps}.`,
     s.awaiting ? `${s.awaiting} draft${s.awaiting === 1 ? '' : 's'} waiting for your approval.` : '',
     ...s.errors.map((e) => `Problem: ${e}`),
   ].filter(Boolean);

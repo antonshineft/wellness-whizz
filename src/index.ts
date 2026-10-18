@@ -24,7 +24,7 @@ import { queueQuizDataArticle, quizDataSummary } from './quizdata';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
 import { getVideo, listVideos, markFailed, markPosted, markReady, nextJob, parseScript, queueVideo, scriptNext } from './videos';
-import { actOnProspect, addProspect, checkWins, counts as prospectCounts, dailyOutreach, discoverProspects, draftPending, findContacts, listProspects, noteReply, outreachDigest, sendApproved, type ProspectKind } from './backlinks';
+import { actOnProspect, addProspect, checkWins, counts as prospectCounts, dailyOutreach, discoverProspects, draftPending, findContacts, listProspects, noteReply, outreachDigest, outreachStep, recentEvents, sendApproved, type ProspectKind } from './backlinks';
 import { renderBacklinksAdmin } from './render/backlinks-admin';
 import { renderBacklinksKit } from './render/backlinks-kit';
 import DIRECTORIES from '../data/directories.json';
@@ -1333,8 +1333,9 @@ async function backlinksPage(c: Context<{ Bindings: Bindings }>, message = ''): 
   const subs = new Map((await c.env.DB.prepare('SELECT name, status, url, note FROM directory_submissions').all<{ name: string; status: string; url: string; note: string }>()).results.map((r) => [r.name, r]));
   const directories = (DIRECTORIES as { name: string; url: string; category: string; note: string }[]).map((d) => ({ ...d, status: subs.get(d.name)?.status ?? 'todo', note: subs.get(d.name)?.note || d.note }));
   c.header('cache-control', 'no-store');
+  const rows = await listProspects(c.env, status);
   return c.html(renderBacklinksAdmin({
-    counts: await prospectCounts(c.env), status, rows: await listProspects(c.env, status),
+    counts: await prospectCounts(c.env), status, rows, events: await recentEvents(c.env, rows.map((p) => p.id)),
     perDay: Number(c.env.OUTREACH_PER_DAY ?? '10') || 0, autosend: c.env.OUTREACH_AUTOSEND === 'true', emailReady: emailEnabled(c.env), message, directories,
   }));
 }
@@ -1357,7 +1358,8 @@ app.get('/api/admin/backlinks/list', async (c) => {
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
   c.header('cache-control', 'no-store');
-  return c.json({ counts: await prospectCounts(c.env), prospects: await listProspects(c.env, c.req.query('status') || undefined) });
+  const prospects = await listProspects(c.env, c.req.query('status') || undefined);
+  return c.json({ counts: await prospectCounts(c.env), prospects, events: await recentEvents(c.env, prospects.map((p) => p.id)) });
 });
 
 app.post('/api/admin/backlinks/act', async (c) => {
@@ -1404,7 +1406,8 @@ app.post('/api/admin/backlinks/run', async (c) => {
     else if (step === 'draft') result = { drafted: await draftPending(c.env, 10) };
     else if (step === 'send') result = await sendApproved(c.env);
     else if (step === 'wins') result = { won: await checkWins(c.env) };
-    else result = await dailyOutreach(c.env);
+    else if (step === 'tick') result = { did: await outreachStep(c.env) };
+    else result = await dailyOutreach(c.env, { work: true });
   } catch (err) {
     result = { error: String(err).slice(0, 400) };
   }
@@ -1608,7 +1611,8 @@ export default {
           })
           .catch((err) => console.error(`research failed: ${String(err)}`)),
       );
-      // Backlink outreach (src/backlinks.ts): discover, find contacts, draft, send what is approved, follow up, report.
+      // Backlink outreach (src/backlinks.ts): discover today's prospects and report the last 24 hours; the contact, draft
+      // and send steps run from the five-minute ticks below.
       ctx.waitUntil(
         ensureDatabase(env.DB)
           .then(() => dailyOutreach(env))
@@ -1633,8 +1637,12 @@ export default {
             console.log(`article: ${processed.slug} is now ${processed.status}`);
             return;
           }
-          // Quiet ticks write the script of a queued video (src/videos.ts), else translate a few pages (src/translate.ts).
-          return scriptNext(env).then((did) => (did ? undefined : translateStep(env)));
+          // Quiet ticks write the script of a queued video (src/videos.ts), else do one small unit of backlink outreach
+          // (src/backlinks.ts), else translate a few pages (src/translate.ts).
+          return scriptNext(env).then((did) => (did ? undefined : outreachStep(env))).then((step) => {
+            if (typeof step === 'string') { console.log(`outreach: ${step}`); return; }
+            if (step === null) return translateStep(env);
+          });
         })
         .catch((err) => console.error(`article drafting failed: ${String(err)}`)),
     );
