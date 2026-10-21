@@ -70,6 +70,9 @@ export function parseTab(rows: string[][], tab: string): Omit<SheetRow, 'first_s
   const h = rows.findIndex((r) => (r[0] ?? '').trim().toLowerCase() === 'id');
   if (h < 0) return [];
   const head = rows[h].map((c) => c.trim().toLowerCase());
+  // Only the directory layout (ID | Resource | Status | ...) is a submissions tab; the Worker's own outreach export and
+  // the Data Sources tab live in the same workbook and must not be read back as directories.
+  if (!head.includes('resource') || !head.includes('status') || head.includes('pitch sent')) return [];
   const col = (...names: string[]) => {
     for (const n of names) {
       const exact = head.indexOf(n);
@@ -82,7 +85,7 @@ export function parseTab(rows: string[][], tab: string): Omit<SheetRow, 'first_s
     return -1;
   };
   const ci = {
-    resource: col('resource', 'name', 'site'),
+    resource: col('resource'),
     status: col('status'),
     resource_url: col('resource url', 'url', 'website'),
     submission_url: col('submission url', 'submit url'),
