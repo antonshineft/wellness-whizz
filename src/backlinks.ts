@@ -11,6 +11,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { claudeJson, claudeModel, type ClaudeEnv } from './claude';
 import { alertRecipient, emailEnabled, sendEmail, type EmailEnv } from './email';
+import { sheetChanges, sheetDigestLine, SHEET_SQL, type SheetEnv } from './sheet';
 
 export interface BacklinkEnv extends ClaudeEnv, EmailEnv {
   DB: D1Database;
@@ -61,6 +62,7 @@ export const PROSPECT_SQL = [
   `CREATE INDEX IF NOT EXISTS link_prospects_status ON link_prospects(status)`,
   `CREATE TABLE IF NOT EXISTS link_events (id INTEGER PRIMARY KEY AUTOINCREMENT, prospect_id INTEGER NOT NULL, at TEXT NOT NULL, kind TEXT NOT NULL, detail TEXT NOT NULL DEFAULT '')`,
   `CREATE TABLE IF NOT EXISTS directory_submissions (name TEXT PRIMARY KEY, status TEXT NOT NULL DEFAULT 'todo', url TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL)`,
+  SHEET_SQL,
 ];
 
 function origin(env: BacklinkEnv): string {
@@ -558,10 +560,14 @@ export async function outreachDigest(env: BacklinkEnv, s: OutreachSummary): Prom
   if (!emailEnabled(env)) return;
   const to = (env.DIGEST_TO ?? '').trim() || alertRecipient(env);
   if (!to) return;
-  if (!s.awaiting && !s.sent && !s.followUps && !s.drafted && !s.errors.length) return;
+  // The owner's directory sheet (src/sheet.ts) is part of the same picture; a listing going live is worth a mail on its own.
+  const sheetLine = await sheetDigestLine(env as SheetEnv & BacklinkEnv).catch(() => '');
+  const wentLive = (await sheetChanges(env, 24).catch(() => [])).some((c) => c.to === 'live' && c.from !== '');
+  if (!s.awaiting && !s.sent && !s.followUps && !s.drafted && !s.errors.length && !wentLive) return;
   const page = `${origin(env)}/api/admin/backlinks?key=${encodeURIComponent(env.STATS_KEY ?? '')}`;
   const lines = [
     s.discovered ? `Discovered ${s.discovered.added} new prospects (${s.discovered.theme}).` : '',
+    sheetLine,
     `Last 24 hours: contacts found ${s.contacts}, drafts written ${s.drafted}, pitches sent ${s.sent}${s.skipped ? ` (${s.skipped})` : ''}, follow-ups ${s.followUps}.`,
     s.awaiting ? `${s.awaiting} draft${s.awaiting === 1 ? '' : 's'} waiting for your approval.` : '',
     ...s.errors.map((e) => `Problem: ${e}`),

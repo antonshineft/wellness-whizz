@@ -56,7 +56,8 @@ import {
   countSupplementsNeedingFaqs, supplementsNeedingFaqs, updateSupplementFaqs, CATEGORIES, asFormType, insertSupplement, getSupplementByNameKey, normalizeNameKey,
 } from './db';
 import { runQuizPipeline } from './pipeline';
-import { digestStatus, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
+import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
+import { exportToken, sheetCounts, sheetLastSync, sheetRows, sheetUrl, syncSheet } from './sheet';
 import PostalMime from 'postal-mime';
 import { renderBlogIndex, renderBlogPost } from './render/blog';
 import { fetchAsset, renderHome } from './render/home';
@@ -109,6 +110,8 @@ export interface Bindings {
   OUTREACH_PER_DAY?: string;
   OUTREACH_AUTOSEND?: string;
   OUTREACH_SIGNATURE?: string;
+  /** The owner's Google Sheet of directory submissions (src/sheet.ts), read daily and on demand. */
+  BACKLINK_SHEET_ID?: string;
   /** Supplements per cron run of the article writer; "0" disables the scheduled backfill. */
   BACKFILL_BATCH?: string;
   /** "false" turns off generated illustrations for supplements without product photos. */
@@ -1362,9 +1365,19 @@ async function backlinksPage(c: Context<{ Bindings: Bindings }>, message = ''): 
   const directories = (DIRECTORIES as { name: string; url: string; category: string; note: string }[]).map((d) => ({ ...d, status: subs.get(d.name)?.status ?? 'todo', note: subs.get(d.name)?.note || d.note }));
   c.header('cache-control', 'no-store');
   const rows = await listProspects(c.env, status);
+  const sheetId = (c.env.BACKLINK_SHEET_ID ?? '').trim();
+  const last = sheetId ? await sheetLastSync(c.env) : null;
+  const sheet = {
+    url: sheetId ? sheetUrl(sheetId) : '',
+    synced: last?.at ?? '',
+    counts: sheetId ? await sheetCounts(c.env) : {},
+    rows: sheetId ? await sheetRows(c.env) : [],
+    exportUrl: `${new URL(c.req.url).origin}/api/admin/backlinks/export.csv?t=${await exportToken(c.env.STATS_KEY ?? '')}`,
+    error: last?.error ?? '',
+  };
   return c.html(renderBacklinksAdmin({
     counts: await prospectCounts(c.env), status, rows, events: await recentEvents(c.env, rows.map((p) => p.id)),
-    perDay: Number(c.env.OUTREACH_PER_DAY ?? '10') || 0, autosend: c.env.OUTREACH_AUTOSEND === 'true', emailReady: emailEnabled(c.env), message, directories,
+    perDay: Number(c.env.OUTREACH_PER_DAY ?? '10') || 0, autosend: c.env.OUTREACH_AUTOSEND === 'true', emailReady: emailEnabled(c.env), message, directories, sheet,
   }));
 }
 
@@ -1419,6 +1432,42 @@ app.post('/api/admin/backlinks/directory', async (c) => {
   await c.env.DB.prepare("INSERT INTO directory_submissions (name, status, url, note, updated_at) VALUES (?, ?, ?, '', datetime('now')) ON CONFLICT(name) DO UPDATE SET status = excluded.status, url = CASE WHEN excluded.url = '' THEN directory_submissions.url ELSE excluded.url END, updated_at = excluded.updated_at")
     .bind(String(form.name ?? ''), String(form.status ?? 'todo'), String(form.url ?? '')).run();
   return c.redirect(`/api/admin/backlinks?key=${encodeURIComponent(c.req.query('key') ?? '')}&msg=${encodeURIComponent('directory saved')}`, 303);
+});
+
+/** Owner-only: read the directory sheet again now (src/sheet.ts); JSON with ?format=json, else back to the page. */
+app.post('/api/admin/backlinks/sheet/sync', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  let result: Awaited<ReturnType<typeof syncSheet>>;
+  try { result = await syncSheet(c.env); } catch (err) { result = { tabs: 0, rows: 0, changed: [], error: String(err).slice(0, 200) }; }
+  if (c.req.query('format') === 'json') return c.json(result);
+  const msg = result.error ? `sheet sync problem: ${result.error}` : `sheet synced: ${result.rows} rows in ${result.tabs} tabs, ${result.changed.length} changed`;
+  return c.redirect(`/api/admin/backlinks?key=${encodeURIComponent(c.req.query('key') ?? '')}&msg=${encodeURIComponent(msg)}`, 303);
+});
+
+/** Owner-only: the synced sheet as JSON (rows, counts, last sync). */
+app.get('/api/admin/backlinks/sheet', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  return c.json({ last: await sheetLastSync(c.env), counts: await sheetCounts(c.env), rows: await sheetRows(c.env) });
+});
+
+/** Read-only CSV of the email outreach for the owner's spreadsheet (=IMPORTDATA), behind a token derived from STATS_KEY. */
+app.get('/api/admin/backlinks/export.csv', async (c) => {
+  const want = await exportToken(c.env.STATS_KEY ?? '');
+  if (!want || c.req.query('t') !== want) return c.text('forbidden', 403);
+  await ensureDatabase(c.env.DB);
+  const rows = await listProspects(c.env, undefined, 1000);
+  const q = (s: unknown) => `"${String(s ?? '').replace(/"/g, '""')}"`;
+  const lines = [
+    ['domain', 'status', 'kind', 'title', 'url', 'contact', 'sent', 'follow_up', 'replied', 'won_url', 'updated'].join(','),
+    ...rows.map((p) => [p.domain, p.status, p.kind, p.title, p.url, p.contact_email, p.sent_at ?? '', p.followup_at ?? '', p.replied_at ?? '', p.won_url, p.updated_at].map(q).join(',')),
+  ];
+  c.header('cache-control', 'no-store');
+  return c.text(lines.join('\n'), 200, { 'content-type': 'text/csv; charset=utf-8' });
 });
 
 /** ?step=discover|contacts|draft|send|wins|all; JSON when ?format=json, else back to the page. */
@@ -1648,6 +1697,8 @@ export default {
       // and send steps run from the five-minute ticks below.
       ctx.waitUntil(
         ensureDatabase(env.DB)
+          // The owner's directory sheet first (src/sheet.ts), so the digest below reflects it.
+          .then(() => syncSheet(env).then((s) => console.log(`sheet: ${JSON.stringify({ tabs: s.tabs, rows: s.rows, changed: s.changed.length, error: s.error ?? null })}`)).catch((err) => console.error(`sheet sync failed: ${String(err)}`)))
           .then(() => dailyOutreach(env))
           .then(async (r) => { console.log(`outreach: ${JSON.stringify(r)}`); await outreachDigest(env, r); })
           .catch((err) => console.error(`outreach failed: ${String(err)}`)),
@@ -1660,6 +1711,11 @@ export default {
           .catch((err) => console.error(`article auto-queue failed: ${String(err)}`)),
       );
       return;
+    }
+    // 07:30 UTC: the safety net for the 06:52 Reddit digest (src/reddit.ts digestWatch), one email and no model call.
+    const tick = new Date(event.scheduledTime);
+    if (tick.getUTCHours() === 7 && tick.getUTCMinutes() === 30) {
+      ctx.waitUntil(ensureDatabase(env.DB).then(() => digestWatch(env)).then((r) => console.log(`digest watch: ${r}`)).catch((err) => console.error(`digest watch failed: ${String(err)}`)));
     }
     // Every five minutes: one queued article through the writer (src/articles.ts); nothing to do when the queue is empty.
     ctx.waitUntil(

@@ -498,6 +498,25 @@ export function digestRecipient(env: RedditEnv): string | null {
   return (env.DIGEST_TO ?? '').trim() || alertRecipient(env);
 }
 
+/**
+ * The 07:30 UTC safety net for the 06:52 digest, with no model call: when no run finished today, one line to the owner
+ * with the link that runs the digest by hand. Returns what it did.
+ */
+export async function digestWatch(env: RedditEnv): Promise<'ok' | 'sent' | 'skipped'> {
+  if ((env.REDDIT_DIGEST ?? 'true') === 'false') return 'skipped';
+  const raw = await getMeta(env.DB, 'reddit:last');
+  let at = '';
+  try { at = raw ? String((JSON.parse(raw) as { at?: string }).at ?? '') : ''; } catch { at = ''; }
+  const today = new Date().toISOString().slice(0, 10);
+  if (at.startsWith(today)) return 'ok';
+  const to = digestRecipient(env);
+  if (!to || !emailEnabled(env)) return 'skipped';
+  const host = (env.CANONICAL_HOST ?? '').trim() || 'aiww.io';
+  const text = `The Reddit digest did not run this morning (last run: ${at || 'never'}). It normally runs at 06:52 UTC on the Worker. To run it now, open https://${host}/api/admin/reddit/run?key=<your stats key> and wait for the page to finish (about 7 minutes); the digest email follows.`;
+  await sendEmail(env, to, 'Reddit digest did not run today', `<p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5">${escapeHtml(text)}</p>`, text);
+  return 'sent';
+}
+
 export async function runRedditDigest(env: RedditEnv, opts: DigestOptions = {}): Promise<DigestRun> {
   const now = new Date();
   const run: DigestRun = {

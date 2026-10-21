@@ -1,5 +1,6 @@
 /** Owner page for the backlink outreach (/api/admin/backlinks?key=…): queue by status, approve or edit drafts, add prospects. */
 import type { LinkEvent, Prospect } from '../backlinks';
+import { SHEET_STATUSES, type SheetRow } from '../sheet';
 
 const esc = (s: string) => String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] as string));
 
@@ -13,9 +14,30 @@ export interface BacklinksView {
   emailReady: boolean;
   message: string;
   directories: { name: string; url: string; category: string; status: string; note: string }[];
+  /** The owner's Google Sheet of directory submissions (src/sheet.ts), already synced into the database. */
+  sheet: { url: string; synced: string; counts: Record<string, number>; rows: SheetRow[]; exportUrl: string; error: string };
 }
 
 const ORDER = ['drafted', 'new', 'sent', 'followed-up', 'replied', 'won', 'no-contact', 'declined', 'skipped'];
+
+const SHEET_LABEL: Record<string, string> = { live: 'Live', submitted: 'Submitted, waiting for review', todo: 'To do or blocked', skip: 'Skipped', rejected: 'Rejected' };
+
+function sheetSection(sh: BacklinksView['sheet']): string {
+  if (!sh.url) return `<p class="small">No sheet configured (BACKLINK_SHEET_ID).</p>`;
+  const counts = SHEET_STATUSES.concat(Object.keys(sh.counts).filter((k) => !SHEET_STATUSES.includes(k))).filter((k) => sh.counts[k]).map((k) => `<span>${esc(SHEET_LABEL[k] ?? k)}: ${sh.counts[k]}</span>`).join('');
+  const li = (r: SheetRow) => `<li class="${esc(r.status)}"><a href="${esc(r.resource_url || r.submission_url || '#')}" target="_blank" rel="noopener"><strong>${esc(r.resource)}</strong></a> <span class="small">${esc(r.batch)}${r.checked ? ' · ' + esc(r.checked) : ''}</span>${r.listing_url ? ` · <a class="small" href="${esc(r.listing_url)}" target="_blank" rel="noopener">listing</a>` : ''}${r.submission_url && r.status === 'todo' ? ` · <a class="small" href="${esc(r.submission_url)}" target="_blank" rel="noopener">submit</a>` : ''}${r.note ? `<br><span class="small">${esc(r.note)}</span>` : ''}</li>`;
+  const group = (status: string) => {
+    const rows = sh.rows.filter((r) => r.status === status);
+    return rows.length ? `<h3>${esc(SHEET_LABEL[status] ?? status)} (${rows.length})</h3><ul class="dirs">${rows.map(li).join('')}</ul>` : '';
+  };
+  const rest = sh.rows.filter((r) => !['live', 'submitted', 'todo'].includes(r.status));
+  return `<p class="small">${sh.rows.length} rows from <a href="${esc(sh.url)}" target="_blank" rel="noopener">your sheet</a>${sh.synced ? `, synced ${esc(sh.synced.slice(0, 16).replace('T', ' '))} UTC` : ', not synced yet'}. It is read again every morning at 06:00 UTC and whenever you press Sync now.${sh.error ? ` <strong>Last sync problem: ${esc(sh.error)}</strong>` : ''}</p>
+<p class="counts">${counts}</p>
+<form method="post" action="/api/admin/backlinks/sheet/sync?key=__KEY__" class="inline"><button class="btn alt">Sync now</button></form>
+${group('live')}${group('submitted')}${group('todo')}
+${rest.length ? `<details><summary class="small">Skipped and rejected (${rest.length})</summary><ul class="dirs">${rest.map(li).join('')}</ul></details>` : ''}
+<p class="small">To see the email outreach inside the same sheet, add a tab with this formula in A1: <code>=IMPORTDATA("${esc(sh.exportUrl)}")</code></p>`;
+}
 
 export function renderBacklinksAdmin(v: BacklinksView): string {
   const tabs = ORDER.map((s) => `<a class="tab ${v.status === s ? 'on' : ''}" href="?key=__KEY__&status=${s}">${esc(s)} <span class="n">${v.counts[s] ?? 0}</span></a>`).join('');
@@ -63,6 +85,7 @@ textarea{font-size:15px}
 .btn.alt{background:#e6dfc9;color:#1d272d}
 .tools{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
 ul.dirs{padding-left:18px}ul.dirs li{margin:6px 0}ul.dirs li.live{color:#2e7d32}ul.dirs li.skip,ul.dirs li.rejected{opacity:.5}
+h3{font-size:16px;margin:18px 0 6px}.counts span{display:inline-block;background:#fff;border-radius:999px;padding:3px 10px;margin:2px 4px 2px 0;font-size:13px}details{margin:14px 0}summary{cursor:pointer}
 form.inline{display:inline-flex;gap:6px;align-items:center;margin-left:6px}form.inline input,form.inline select{width:auto;margin:0;padding:4px 8px;font-size:13px}form.inline .btn{padding:5px 10px;font-size:13px}
 </style></head><body><main>
 <h1>Backlinks</h1>
@@ -81,10 +104,12 @@ ${v.message ? `<p class="msg">${esc(v.message)}</p>` : ''}
 </form>
 <div class="tabs">${tabs}</div>
 ${rows || '<p class="small">Nothing here.</p>'}
-<h2>Directories and profiles (your accounts)</h2>
+<h2>Directory submissions (your Google Sheet)</h2>
+${sheetSection(v.sheet)}
+<details><summary class="small">Older checklist (${v.directories.length} sites, before the sheet)</summary>
 <p class="small">Free listings that give a link and some reputation. Each needs an account under your email; the kit page has the copy and images to paste.
 <a href="/api/admin/backlinks/kit?key=__KEY__">Open the submission kit</a>.</p>
-<ul class="dirs">${dirs}</ul>
+<ul class="dirs">${dirs}</ul></details>
 </main>
 <script>document.querySelectorAll('[href*="__KEY__"],[action*="__KEY__"]').forEach(function(a){var k=new URLSearchParams(location.search).get('key')||'';if(a.href)a.href=a.href.replace('__KEY__',encodeURIComponent(k));if(a.getAttribute('action'))a.setAttribute('action',a.getAttribute('action').replace('__KEY__',encodeURIComponent(k)));});</script>
 </body></html>`;

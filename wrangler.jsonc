@@ -47,6 +47,8 @@
     // Backlink outreach (src/backlinks.ts): drafted pitches go out from the daily run, up to OUTREACH_PER_DAY a day.
     "OUTREACH_AUTOSEND": "true",
     "OUTREACH_PER_DAY": "10",
+    // The owner's Google Sheet of directory submissions (shared "anyone with the link can view"); read daily and on demand.
+    "BACKLINK_SHEET_ID": "1E27Uy2Rhp74I8NPGuZK2H9bIX6nqTdSLsB3HskPmsyg",
     // A rendered video is posted through Zernio as soon as it is ready (src/videos.ts); "false" waits for the posting page.
     "VIDEO_AUTOPOST": "true",
     "SITE_LANGS": "en,es",

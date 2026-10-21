@@ -213,3 +213,5 @@ CREATE TABLE IF NOT EXISTS link_prospects (id INTEGER PRIMARY KEY AUTOINCREMENT,
 CREATE INDEX IF NOT EXISTS link_prospects_status ON link_prospects(status);
 CREATE TABLE IF NOT EXISTS link_events (id INTEGER PRIMARY KEY AUTOINCREMENT, prospect_id INTEGER NOT NULL, at TEXT NOT NULL, kind TEXT NOT NULL, detail TEXT NOT NULL DEFAULT '');
 CREATE TABLE IF NOT EXISTS directory_submissions (name TEXT PRIMARY KEY, status TEXT NOT NULL DEFAULT 'todo', url TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL);
+-- The owner's Google Sheet of directory submissions, one row per sheet ID (src/sheet.ts).
+CREATE TABLE IF NOT EXISTS sheet_backlinks (sheet_id INTEGER PRIMARY KEY, tab TEXT NOT NULL DEFAULT '', resource TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT '', resource_url TEXT NOT NULL DEFAULT '', submission_url TEXT NOT NULL DEFAULT '', listing_url TEXT NOT NULL DEFAULT '', checked TEXT NOT NULL DEFAULT '', batch TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '', first_seen TEXT NOT NULL, updated_at TEXT NOT NULL, status_changed_at TEXT NOT NULL);
