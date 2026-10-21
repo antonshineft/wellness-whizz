@@ -1,4 +1,4 @@
-/** Editorial pages: /how-it-works and /terms. Same navbar, footer, fonts and colours as the rest of the site. */
+/** Editorial pages: /how-it-works, /about and /terms. Same navbar, footer, fonts and colours as the rest of the site. */
 import { escapeHtml } from '../html';
 import { page } from './layout';
 import { WF_PAGE_IDS, footer, navbar } from './partials';
@@ -92,7 +92,7 @@ export function renderHowItWorks(catalogueSize: number, origin: string): string 
         <h3>FDA status</h3>
         <p>Whether the ingredient is approved or generally recognised as safe by the US Food and Drug Administration, is on the market without a specific approval, or has been the subject of an FDA warning. Dietary supplements are regulated differently from medicines, so "not approved" does not automatically mean unsafe, and "approved" does not mean effective. We show it because it is a useful, verifiable signal.</p>
         <h2>What we are not</h2>
-        <p>Wellness Whizz is an information tool. It is not a medical service, the advisor is not a doctor, and nothing on this site is a diagnosis or a treatment plan. Artificial intelligence can be confidently wrong. Please read the contraindications on each page, check your medication with a pharmacist, and talk to a doctor before starting anything new if you are pregnant or breastfeeding, under 18, or managing a health condition.</p>
+        <p>Wellness Whizz is an information tool. It is not a medical service, the advisor is not a doctor, and nothing on this site is a diagnosis or a treatment plan. Artificial intelligence can be confidently wrong. Please read the contraindications on each page, check your medication with a pharmacist, and talk to a doctor before starting anything new if you are pregnant or breastfeeding, under 18, or managing a health condition. Who we are and how every page is drafted, reviewed and corrected is on the <a href="/about">About page</a>.</p>
         <h2>Your privacy</h2>
         <p>There is no account. Your quiz answers are stored so your results page keeps working, without your name or email. We keep a hashed version of your IP address for a short time to prevent abuse, and we count page views and outbound clicks without personal identifiers. The full picture is in our <a href="/terms">Terms and Conditions</a>.</p>
       </section>${quizCta()}${faqHtml(HOW_FAQ)}`;
@@ -177,6 +177,101 @@ export function renderTerms(origin: string): string {
     pageId: WF_PAGE_IDS.supplement,
     bodyClass: 'body-2',
     head: `\n  <link rel="canonical" href="${escapeHtml(origin)}/terms">`,
+    body: shell,
+  });
+}
+
+// ---------- Review line and dates (guides and articles) ----------
+
+export function formatDate(iso: string): string {
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
+/**
+ * "Reviewed by the Wellness Whizz editorial team · Last reviewed 12 October 2026 · Medical disclaimer", linking the
+ * About page. `date` is an ISO date or an SQLite datetime; the day part is shown.
+ */
+export function reviewedLine(date: string | null | undefined, cls = ''): string {
+  const day = (date ?? '').slice(0, 10);
+  const when = /^\d{4}-\d{2}-\d{2}$/.test(day) ? `<span aria-hidden="true"> · </span><span>Last reviewed ${escapeHtml(formatDate(day))}</span>` : '';
+  return `<p class="ww-reviewed${cls ? ` ${cls}` : ''}"><a href="/about#editorial">Reviewed by the Wellness Whizz editorial team</a>${when}<span aria-hidden="true"> · </span><a href="/about#disclaimer">Medical disclaimer</a></p>`;
+}
+
+// ---------- About ----------
+
+export const ABOUT_UPDATED = '2026-10-21';
+
+const ABOUT_FAQ = [
+  { q: 'Who writes the content?', a: 'A small editorial team. Drafts are produced with AI language models from a fixed brief that requires primary sources, and a member of the team reads every article before it is published. Nobody on the team is a doctor, which is why every page tells you to check with a pharmacist or doctor before you start.' },
+  { q: 'Why are the pages not signed with a personal name?', a: 'Because the process matters more than a byline. Every guide and article says who reviewed it (the editorial team), when it was last reviewed, and links the studies behind it, so you can check the claims yourself instead of trusting a name.' },
+  { q: 'Is a doctor or dietitian involved?', a: 'Not at the moment. The team reads the research and writes about it carefully, but we are not healthcare professionals and the site does not give medical advice. If a licensed professional joins the review process, this page will say so.' },
+  { q: 'How do I report a mistake?', a: 'Email hello@aiww.io with the link to the page and what is wrong. Factual errors are corrected within a few days, and the review date on the page is updated.' },
+  { q: 'Do brands pay to be recommended?', a: 'No. Nobody can pay for a place in the quiz results, a supplement guide or an article. Our only income is the commission iHerb pays when you buy through our links, and it is the same whichever product you choose.' },
+];
+
+export function renderAbout(origin: string): string {
+  const body = `
+      <section class="ww-prose">
+        <h2 id="team">Who we are</h2>
+        <p>Wellness Whizz is an independent website built and run by a small team based in Spain. There is no supplement company behind it, no brand sponsoring the rankings and no investor deciding what gets published. We started it because choosing a supplement usually means reading twenty contradictory pages, and a structured catalogue with a short, honest questionnaire seemed like a better way.</p>
+        <p>We are not doctors, and we do not pretend to be. We are people who read the studies, keep a careful catalogue and write plainly about what the evidence does and does not show. That is also why every page on this site asks you to check with a pharmacist or doctor before you start anything new.</p>
+        <h2 id="editorial">How the content is made</h2>
+        <p>Every supplement guide and every article follows the same editorial process:</p>
+        <ol>
+          <li><strong>A fixed structure.</strong> Each supplement is described with the same fields: benefits, contraindications, interactions, an effectivity score, a safety score, FDA status, the studies behind the claims and a few product picks. The scales are explained on the <a href="/how-it-works">How it works</a> page.</li>
+          <li><strong>AI-assisted drafting from primary sources.</strong> Drafts are written with the help of AI language models working from a brief that requires peer-reviewed studies, specific doses and forms, and honesty about weak or mixed evidence. The studies are linked on the page, so you can read them yourself.</li>
+          <li><strong>Human review.</strong> A member of the editorial team reads every article before it is published, checking the claims against the cited studies and the doses against the ranges used in those studies. What cannot be supported is cut. Supplement guides are read the same way and corrected whenever a reader or a re-read finds a problem.</li>
+          <li><strong>A visible review date.</strong> Guides and articles carry a "Reviewed by the Wellness Whizz editorial team" line with the date of the last review. When a page changes, the date changes with it.</li>
+          <li><strong>Corrections.</strong> If you find an error, write to <a href="mailto:hello@aiww.io">hello@aiww.io</a> with the link. Factual mistakes are corrected within a few days.</li>
+        </ol>
+        <p>The weekly <a href="/research">research notes</a> are plain-language summaries of recent human trials and reviews written to the same brief. The advisor behind the quiz works only from the catalogue described above: it cannot recommend anything that has not been profiled.</p>
+        <h2 id="disclaimer">Medical disclaimer</h2>
+        <p>Wellness Whizz is an information website. Nothing on it, including the quiz results, the supplement guides, the articles and the research notes, is medical advice, a diagnosis or a treatment, and reading it does not create a relationship with a healthcare professional.</p>
+        <p>Dietary supplements can interact with medicines and with medical conditions, and the right choice depends on facts about you that a website cannot know. Before you start, stop or combine supplements, read the product label and talk to a pharmacist or doctor. That is especially important if you are pregnant or breastfeeding, under 18, take any medication or live with a chronic condition. In an emergency, contact your local emergency services.</p>
+        <p>Much of the text on this site is drafted with the help of artificial intelligence and then reviewed by people. It can still contain errors or be out of date. Effectivity and safety ratings are editorial estimates, not guarantees. The full terms are in our <a href="/terms">Terms and Conditions</a>.</p>
+        <h2 id="money">How we make money</h2>
+        <p>Wellness Whizz is free and has no accounts, no paywall and no newsletter you did not ask for. It is funded by the iHerb referral programme: product links on this site carry our referral code, and iHerb pays us a small commission when you buy through them. You pay the same price as without the code.</p>
+        <p>Commissions do not influence what the advisor recommends or how a supplement is rated. No brand can pay for a place in the results, a guide or an article, and we do not sell or share your quiz answers. Our <a href="/terms#privacy">privacy practices</a> are described in the terms.</p>
+        <h2 id="contact">Contact</h2>
+        <p>Questions, corrections and requests to delete a results page: <a href="mailto:hello@aiww.io">hello@aiww.io</a>. We also post on <a href="https://x.com/aiwwio" target="_blank" rel="noopener">X</a> and <a href="https://www.tiktok.com/@theaiwellnesswhiz" target="_blank" rel="noopener">TikTok</a>.</p>
+        <p class="ww-legal-updated">Last updated: ${escapeHtml(formatDate(ABOUT_UPDATED))}</p>
+      </section>${quizCta()}${faqHtml(ABOUT_FAQ)}`;
+
+  const shell = pageShell({
+    eyebrow: 'About',
+    title: 'Who is behind Wellness Whizz',
+    lead: 'A small independent team, a structured catalogue and an editorial process built to keep AI-assisted health content honest. How the site is made, reviewed and funded.',
+    body,
+    variant: 'plain',
+  });
+  const safe = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
+  const organization = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': `${origin}/#organization`,
+    name: 'Wellness Whizz',
+    url: `${origin}/`,
+    logo: `${origin}/images/webclip.png`,
+    email: 'hello@aiww.io',
+    sameAs: ['https://x.com/aiwwio', 'https://www.tiktok.com/@theaiwellnesswhiz'],
+  };
+  const aboutPage = {
+    '@context': 'https://schema.org',
+    '@type': 'AboutPage',
+    url: `${origin}/about`,
+    name: 'About Wellness Whizz',
+    dateModified: ABOUT_UPDATED,
+    about: { '@id': `${origin}/#organization` },
+    publisher: { '@id': `${origin}/#organization` },
+  };
+  return page({
+    title: 'About Wellness Whizz',
+    description: 'Who runs Wellness Whizz, how the supplement guides and articles are drafted, reviewed and corrected, the medical disclaimer, and how the site is funded.',
+    pageId: WF_PAGE_IDS.supplement,
+    bodyClass: 'body-2',
+    head: `\n  <link rel="canonical" href="${escapeHtml(origin)}/about">\n  <script type="application/ld+json">${safe(organization)}</script>\n  <script type="application/ld+json">${safe(aboutPage)}</script>`,
     body: shell,
   });
 }

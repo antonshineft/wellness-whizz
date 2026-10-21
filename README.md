@@ -255,8 +255,12 @@ address, and what the last hourly run did or why it skipped (for example `X keys
 
 ### Pages, blog and sitemap
 
-- `/how-it-works` and `/terms` (Terms and Conditions with the privacy and affiliate disclosures) are rendered from
-  `src/render/pages.ts`; the footer links point at them.
+- `/how-it-works`, `/about` (who runs the site, the editorial process, the medical disclaimer, funding and contact; no
+  personal names) and `/terms` (Terms and Conditions with the privacy and affiliate disclosures) are rendered from
+  `src/render/pages.ts`; the footer links point at them. Supplement pages and articles carry a "Reviewed by the
+  Wellness Whizz editorial team · Last reviewed <date>" line (`reviewedLine` in the same file) that links the About
+  page, and the footer shows the Trustpilot and IndieTools badges (`footerBadges` in `src/render/partials.ts`; the
+  TrustBox widget needs the business unit id set there).
 - `/blog` lists the articles in `src/blog/posts/*.ts` (newest first) and `/blog/<slug>` renders one. An article is a
   plain TypeScript module (see `src/blog/types.ts`): write `href="iherb:magnesium glycinate"` for an iHerb search link
   with your referral code and click tracking, `<ww-shop slugs="…"></ww-shop>` for product cards from the catalogue

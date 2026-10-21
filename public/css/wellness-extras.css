@@ -250,6 +250,14 @@ a.ww-footer-link:hover { opacity: 1; }
 .ww-sources ol { font-size: 15px; line-height: 24px; }
 .ww-sources a { word-break: break-word; }
 .ww-note { font-size: 14px; line-height: 22px; opacity: .7; }
+.ww-note a { color: inherit; }
+/* "Reviewed by the Wellness Whizz editorial team · Last reviewed …" on guides and articles (src/render/pages.ts). */
+.ww-reviewed { font-size: 14px; line-height: 22px; color: #1d272d; opacity: .7; margin: 0; }
+.ww-reviewed a { color: inherit; text-decoration: underline; text-decoration-color: #87d581; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.ww-reviewed a:hover { background: #87d58133; }
+.ww-reviewed-top { margin: -16px 0 28px; }
+.ww-byline { color: inherit; text-decoration: underline; text-decoration-color: #87d581; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.ww-disclaimer-link { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 /* Article aside: the quiz card. Salad-green fade, a 1px frame inside, and a still from the home video fading into it. */
 .ww-quiz-card { display: block; text-decoration: none; color: #1d272d; border-radius: 26px; padding: 10px; background-image: linear-gradient(170deg, #bcffb7, #dcffd8 55%, #f3fff1); }
 .ww-quiz-card-frame { border: 1px solid #1d272d1f; border-radius: 18px; padding: 16px; overflow: hidden; }
@@ -554,3 +562,12 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-shelf-noimg { display: inline-block; width: 60px; height: 60px; border-radius: 14px; background: #fdf1cf; }
 .ww-shelf-link { display: inline-block; margin-top: 10px; color: inherit; text-decoration: underline; text-underline-offset: 3px; opacity: .8; }
 .ww-shelf-link:hover { opacity: 1; }
+
+/* Footer badges: Trustpilot (TrustBox or profile link) and the IndieTools "listed on" badge (src/render/partials.ts). */
+.ww-footer-badges { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 16px 28px; align-self: stretch; margin: -28px 40px 0; }
+.ww-footer-badges .ww-trustbox { flex: 0 1 260px; min-width: 200px; }
+.ww-trustpilot-link { display: inline-flex; align-items: center; gap: 10px; height: 56px; padding: 0 18px; border: 1px solid #ffffff2e; border-radius: 14px; color: #fff; font-family: Aeonik, sans-serif; font-size: 15px; font-weight: 500; text-decoration: none; }
+.ww-trustpilot-link:hover { background: #ffffff14; }
+.ww-trustpilot-link img { width: 20px; height: 20px; }
+.ww-badge-link img { display: block; width: 176px; height: 56px; }
+@media (max-width: 767px) { .ww-footer-badges { justify-content: center; margin: -28px 20px 0; } }

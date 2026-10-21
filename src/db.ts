@@ -55,9 +55,11 @@ export interface Supplement {
   /** Generated illustration path (supplements without product photos), empty otherwise. */
   image: string;
   created_at: string;
+  /** When the content last changed (datetime); null for rows that were never updated since creation. */
+  updated_at: string | null;
 }
 
-export type SupplementInput = Omit<Supplement, 'id' | 'slug' | 'created_at' | 'source' | 'image' | 'faqs'>;
+export type SupplementInput = Omit<Supplement, 'id' | 'slug' | 'created_at' | 'updated_at' | 'source' | 'image' | 'faqs'>;
 
 export interface QuizProfile {
   sex: string;
@@ -179,13 +181,14 @@ function rowToSupplement(row: SupplementRow): Supplement {
     products: parseProducts(products_json),
     source: rest.source === 'ai' ? 'ai' : 'cms',
     image: rest.image ?? '',
+    updated_at: rest.updated_at ?? null,
   };
 }
 
 const SUPPLEMENT_COLUMNS =
   'id, slug, name, name_key, category, form_type, fda_status, safety_status, effectivity, safety, summary, ' +
   'benefits_html, contraindications_html, enhancing_html, interactions_html, why_consider, holistic_html, ' +
-  'studies_html, products_json, source, image, faq_json, created_at';
+  'studies_html, products_json, source, image, faq_json, created_at, updated_at';
 
 // ---------- supplements ----------
 
@@ -418,7 +421,8 @@ export async function getSessionResults(db: D1Database, sessionId: string): Prom
     .prepare(
       `SELECT ss.position, ss.reason, s.id, s.slug, s.name, s.name_key, s.category, s.form_type, s.fda_status, s.safety_status,
               s.effectivity, s.safety, s.summary, s.benefits_html, s.contraindications_html, s.enhancing_html,
-              s.interactions_html, s.why_consider, s.holistic_html, s.studies_html, s.products_json, s.source, s.image, s.created_at
+              s.interactions_html, s.why_consider, s.holistic_html, s.studies_html, s.products_json, s.source, s.image, s.created_at,
+              s.updated_at
        FROM session_supplements ss JOIN supplements s ON s.id = ss.supplement_id
        WHERE ss.session_id = ? ORDER BY ss.position`,
     )

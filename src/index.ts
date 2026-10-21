@@ -61,7 +61,7 @@ import { exportToken, sheetCounts, sheetLastSync, sheetRows, sheetUrl, syncSheet
 import PostalMime from 'postal-mime';
 import { renderBlogIndex, renderBlogPost } from './render/blog';
 import { fetchAsset, renderHome } from './render/home';
-import { renderHowItWorks, renderTerms } from './render/pages';
+import { renderAbout, renderHowItWorks, renderTerms } from './render/pages';
 import { renderFailedPage, renderPendingPage, renderResultPage } from './render/result';
 import { renderSupplementPage } from './render/supplement';
 
@@ -361,6 +361,11 @@ pageRoute('/how-it-works', async (c, lang) => {
   return sendPage(c, renderHowItWorks(n, new URL(c.req.url).origin), lang, '/how-it-works', 'public, max-age=600');
 });
 
+pageRoute('/about', (c, lang) => {
+  track(c, { type: 'page_view', page: '/about' });
+  return sendPage(c, renderAbout(new URL(c.req.url).origin), lang, '/about', 'public, max-age=600');
+});
+
 // Dedicated privacy-policy URL for app directories (TikTok, X, etc.): the policy lives in the terms page.
 app.get('/privacy', (c) => c.redirect('/terms#privacy', 301));
 app.get('/es/privacy', (c) => c.redirect('/es/terms#privacy', 301));
@@ -445,6 +450,7 @@ app.get('/llms.txt', async (c) => {
     '## Start here',
     line('Take the quiz', '/', 'A personalised supplement plan in about two minutes.'),
     line('How it works', '/how-it-works', 'How the recommendation engine scores supplements.'),
+    line('About', '/about', 'Who runs the site, how content is drafted and reviewed, the medical disclaimer and how the site is funded.'),
     line('All supplements', '/supplements', `Index of all ${supplements.length} supplement guides, grouped by category.`),
     line('Blog', '/blog', 'Evidence-first guides to choosing supplements.'),
     line('Research notes', '/research', 'Plain-language summaries of recent human trials and reviews.'),

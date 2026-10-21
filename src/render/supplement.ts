@@ -3,6 +3,7 @@ import type { Supplement } from '../db';
 import { escapeHtml } from '../html';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
+import { reviewedLine } from './pages';
 import {
   EFFECTIVITY_LABELS, SAFETY_LABELS, WF_PAGE_IDS, blendAttr, cardImage, detailImage, exploreSection, footer, headerTags, navbar,
   productPicks, ratingImage, relatedSection, stickyBuyBar,
@@ -215,6 +216,7 @@ export interface SupplementPageExtras {
 
 function seoHead(sup: Supplement, origin: string): string {
   const url = `${origin}/supplement/${sup.slug}`;
+  const reviewed = (sup.updated_at || sup.created_at || '').slice(0, 10);
   const product = sup.products.find((p) => p.image);
   const image = product?.image ? new URL(product.image, origin).toString() : null;
   const safe = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
@@ -232,6 +234,8 @@ function seoHead(sup: Supplement, origin: string): string {
     isPartOf: { '@type': 'WebSite', name: 'Wellness Whizz', url: `${origin}/` },
     publisher: { '@type': 'Organization', name: 'Wellness Whizz', url: `${origin}/` },
     about: { '@type': 'Substance', name: sup.name, description: sup.summary },
+    ...(reviewed ? { datePublished: sup.created_at.slice(0, 10), dateModified: reviewed, lastReviewed: reviewed } : {}),
+    reviewedBy: { '@type': 'Organization', name: 'Wellness Whizz editorial team', url: `${origin}/about` },
   };
   const breadcrumbs = {
     '@context': 'https://schema.org',
@@ -351,6 +355,7 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
           </div>
           <div class="frame-52">${headerTags(sup)}</div>
         </div>
+        ${reviewedLine(sup.updated_at || sup.created_at)}
       </div>
     </div>${productPicks(env, sup)}
     <div data-w-id="2841e5e2-b1d4-d414-f4f8-0c4efba35769" style="opacity:0.27;-webkit-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-moz-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-ms-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0)" class="_3-columns">
@@ -359,7 +364,7 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
         <div class="frame-227">
           <div class="frame-228">
             <div class="text-61">DISCLAIMER</div>
-            <div class="text-62">This content is for informational purposes and not medical advice. Results may vary.  Consult a healthcare professional before use.</div>
+            <div class="text-62">This content is for informational purposes and not medical advice. Results may vary.  Consult a healthcare professional before use. <a href="/about#disclaimer" class="ww-disclaimer-link">Read the full medical disclaimer</a></div>
           </div>
         </div>
       </div>${infoColumn({

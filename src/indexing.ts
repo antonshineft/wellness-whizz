@@ -130,6 +130,7 @@ export async function sitemapEntries(db: D1Database, curatedOnly: boolean, langs
     { loc: '/supplements', lastmod: latestSupplement, priority: '0.8' },
     { loc: '/research', lastmod: day(noteAt), priority: '0.7' },
     { loc: '/how-it-works', priority: '0.6' },
+    { loc: '/about', priority: '0.5' },
     { loc: '/terms', priority: '0.2' },
   ];
   const entries = [...statics, ...postEntries, ...supplementEntries];

@@ -4,7 +4,7 @@ import type { Supplement } from '../db';
 import { escapeHtml } from '../html';
 import { primaryProduct, searchUrl, shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
-import { faqHtml, pageShell, quizCta } from './pages';
+import { faqHtml, formatDate, pageShell, quizCta, reviewedLine } from './pages';
 import { WF_PAGE_IDS, blendAttr, buyButton, captureBox, cardImage } from './partials';
 
 export interface BlogContext {
@@ -19,11 +19,7 @@ const DISCLOSURE =
   'Wellness Whizz earns a commission on purchases made through iHerb links on this page, at no extra cost to you. ' +
   'This article is for information only and is not medical advice; talk to a doctor or pharmacist before starting a supplement.';
 
-export function formatDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00Z`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-}
+export { formatDate };
 
 function supplementPhoto(sup: Supplement | undefined, alt: string, attrs = ''): string {
   const product = sup?.products.find((p) => p.image);
@@ -159,8 +155,8 @@ function jsonLd(ctx: BlogContext, post: BlogPost, imageUrl: string | null): stri
     description: post.description,
     datePublished: post.date,
     dateModified: post.date,
-    author: { '@type': 'Organization', name: 'Wellness Whizz', url: ctx.origin },
-    publisher: { '@type': 'Organization', name: 'Wellness Whizz', url: ctx.origin },
+    author: { '@type': 'Organization', name: 'Wellness Whizz editorial team', url: `${ctx.origin}/about` },
+    publisher: { '@type': 'Organization', name: 'Wellness Whizz', url: ctx.origin, logo: { '@type': 'ImageObject', url: `${ctx.origin}/images/webclip.png` } },
     mainEntityOfPage: `${ctx.origin}/blog/${post.slug}`,
     ...(imageUrl ? { image: imageUrl } : {}),
     keywords: post.tags.join(', '),
@@ -200,10 +196,11 @@ export function renderBlogPost(ctx: BlogContext, post: BlogPost, related: readon
   const body = `
       <div class="ww-article-layout">
         <article class="ww-prose">
-          <div class="ww-article-meta"><span class="ww-tag">${escapeHtml(post.category)}</span><span>${escapeHtml(formatDate(post.date))}</span><span>${post.readingMinutes} min read</span><span>By the Wellness Whizz editorial team</span></div>
+          <div class="ww-article-meta"><span class="ww-tag">${escapeHtml(post.category)}</span><span>${escapeHtml(formatDate(post.date))}</span><span>${post.readingMinutes} min read</span><a href="/about#editorial" class="ww-byline">By the Wellness Whizz editorial team</a></div>
+          ${reviewedLine(post.date, 'ww-reviewed-top')}
           ${expandArticleHtml(ctx, post)}
           <div class="ww-only-mobile">${shop}</div>${faqHtml(post.faq)}${sources}
-          <p class="ww-note">${escapeHtml(DISCLOSURE)}</p>
+          <p class="ww-note">${escapeHtml(DISCLOSURE)} <a href="/about#disclaimer">Read our full medical disclaimer.</a></p>
         </article>
         <aside class="ww-article-aside ww-only-desktop">${shop}
           <a href="/wellness-quiz" class="ww-quiz-card"><div class="ww-quiz-card-frame"><div class="ww-quiz-card-media"><img src="/images/quiz-still.webp" width="720" height="400" loading="lazy" alt=""></div><h4>Free personal list</h4><p>Two minutes, no account. The advisor weighs your goals and what you already take.</p><span class="fakebutton ww-buy ww-shop-buy">Start the quiz</span></div></a>
