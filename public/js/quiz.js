@@ -156,6 +156,62 @@
     return sync;
   }
 
+  /* ---------- desktop: after answering ➊, ➋ or ➌, glide to the next block ----------
+     Phones scroll themselves as the keyboard and the chips come and go, so this is for wide screens only, and it
+     stays off when the visitor prefers reduced motion. Any wheel, key or touch cancels the glide. */
+  function setupAutoAdvance(form) {
+    var blocks = form.querySelectorAll('.formdiv');
+    if (blocks.length < 2 || !window.requestAnimationFrame) return;
+    var desktop = window.matchMedia ? window.matchMedia('(min-width: 992px)') : null;
+    var active = null;
+
+    function cancel() {
+      if (!active) return;
+      window.cancelAnimationFrame(active.frame);
+      active = null;
+    }
+    ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(function (type) {
+      window.addEventListener(type, cancel, { passive: true });
+    });
+
+    function glideTo(target) {
+      cancel();
+      var start = window.pageYOffset;
+      var distance = target - start;
+      if (Math.abs(distance) < 8) return;
+      var duration = Math.min(1400, 600 + Math.abs(distance) * 0.8); // unhurried, but done in about a second
+      var startedAt = performance.now();
+      var glide = { frame: 0 };
+      active = glide;
+      function step(now) {
+        if (active !== glide) return;
+        var p = Math.min(1, (now - startedAt) / duration);
+        var eased = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; // ease in and out
+        window.scrollTo(0, start + distance * eased);
+        if (p < 1) glide.frame = window.requestAnimationFrame(step);
+        else active = null;
+      }
+      glide.frame = window.requestAnimationFrame(step);
+    }
+
+    function advance(index) {
+      if (!desktop || !desktop.matches || prefersReducedMotion()) return;
+      var next = blocks[index + 1];
+      if (!next) return;
+      setTimeout(function () { // let the chosen option light up first
+        glideTo(next.getBoundingClientRect().top + window.pageYOffset - 32);
+      }, 350);
+    }
+
+    Array.prototype.forEach.call(blocks, function (block, i) {
+      if (i > 2) return; // ➊ sex, ➋ age, ➌ activity; ➍ is free text with chips
+      block.addEventListener('change', function (event) {
+        var el = event.target;
+        if (el && (el.type === 'radio' || el.tagName === 'SELECT')) advance(i);
+      });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     highlightRadios('myRadioGroup', 'label.radio-button-field.w-radio');
     highlightRadios('myRadioGroupAge', 'label.radio-button-field.age.w-radio');
@@ -163,6 +219,7 @@
     var form = document.getElementById('quiz-form');
     if (!form) return;
     if (window.wwTrack) window.wwTrack({ type: 'quiz_view', page: window.location.pathname });
+    setupAutoAdvance(form);
     var block = form.closest('.quiz-form-block') || form.parentNode;
     var done = block.querySelector('.w-form-done');
     var fail = block.querySelector('.w-form-fail');
