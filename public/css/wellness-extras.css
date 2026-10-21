@@ -137,6 +137,8 @@ a.ww-footer-link:hover { opacity: 1; }
 .ww-carousel-item .frame-256 { min-height: 213px; }
 .ww-carousel.is-dragging .ww-carousel-track { cursor: grabbing; }
 .ww-carousel .ww-arrow { cursor: pointer; }
+/* The two arrows sit 4px apart (the export had them 2px apart: right arrow at 20px, left arrow at 90px). */
+.ww-carousel .left-arrow { right: 92px; }
 .ww-carousel .ww-arrow:focus-visible { outline: 2px solid #87d581; outline-offset: 2px; border-radius: 40px; }
 @media (max-width: 767px) {
   .ww-carousel-item { width: 360px; }
@@ -315,7 +317,7 @@ a.ww-footer-link:hover { opacity: 1; }
 .ww-page.is-centered .ww-step { text-align: left; }
 
 /* ---------- home page: blog teaser (green fade with a framed panel, like the supplement page header) ---------- */
-.ww-teaser { margin: 60px 10px 40px; padding: 30px 20px; border-radius: 40px; background-image: linear-gradient(#bcffb7, #fff0); font-family: Aeonik, sans-serif; color: #1d272d; }
+.ww-teaser { margin: 0 10px 40px; padding: 30px 20px; border-radius: 40px; background-image: linear-gradient(#bcffb7, #fff0); font-family: Aeonik, sans-serif; color: #1d272d; }
 .ww-teaser-frame { max-width: 1200px; margin: 0 auto; background-color: #d2f0d01a; border: 1px solid #0000001a; border-radius: 30px; padding: 30px 32px 32px; }
 .ww-teaser-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
 .ww-teaser-title { margin: 0; font-family: Aeonik, sans-serif; font-size: 44px; line-height: 48px; font-weight: 500; color: #1d272d; }
@@ -324,7 +326,7 @@ a.ww-footer-link:hover { opacity: 1; }
 .ww-teaser .ww-post-card { background: #fff; }
 .ww-teaser .ww-post-card-media { height: 200px; }
 @media (max-width: 767px) {
-  .ww-teaser { margin: 30px 10px 20px; padding: 16px 10px; border-radius: 28px; }
+  .ww-teaser { margin: 0 10px 20px; padding: 16px 10px; border-radius: 28px; }
   .ww-teaser-frame { padding: 20px 16px; border-radius: 22px; }
   .ww-teaser-title { font-size: 32px; line-height: 36px; }
 }
@@ -563,11 +565,22 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-shelf-link { display: inline-block; margin-top: 10px; color: inherit; text-decoration: underline; text-underline-offset: 3px; opacity: .8; }
 .ww-shelf-link:hover { opacity: 1; }
 
-/* Footer badges: Trustpilot (TrustBox or profile link) and the IndieTools "listed on" badge (src/render/partials.ts). */
-.ww-footer-badges { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 16px 28px; align-self: stretch; margin: -28px 40px 0; }
-.ww-footer-badges .ww-trustbox { flex: 0 1 260px; min-width: 200px; }
-.ww-trustpilot-link { display: inline-flex; align-items: center; gap: 10px; height: 56px; padding: 0 18px; border: 1px solid #ffffff2e; border-radius: 14px; color: #fff; font-family: Aeonik, sans-serif; font-size: 15px; font-weight: 500; text-decoration: none; }
+/* Footer: Trustpilot sits in the social row (src/render/partials.ts); the IndieTools listing is a fine-print line. */
+.ww-footer-social { width: auto; max-width: none; gap: 28px; flex-wrap: wrap; justify-content: flex-end; }
+.ww-footer-social .ww-trustbox { flex: 0 1 240px; min-width: 200px; }
+.ww-trustpilot-link { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px; border: 1px solid #ffffff2e; border-radius: 12px; color: #fff; font-family: Aeonik, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none; white-space: nowrap; }
 .ww-trustpilot-link:hover { background: #ffffff14; }
 .ww-trustpilot-link img { width: 20px; height: 20px; }
-.ww-badge-link img { display: block; width: 176px; height: 56px; }
-@media (max-width: 767px) { .ww-footer-badges { justify-content: center; margin: -28px 20px 0; } }
+.ww-footer-fine { margin: -44px 0 0; font-size: 12px; line-height: 18px; color: #ffffff59; }
+.ww-footer-fine a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+@media (max-width: 767px) { .ww-footer-social { justify-content: center; } .ww-footer-social .ww-trustpilot-link, .ww-footer-social .ww-trustbox { flex: 0 0 100%; justify-content: center; box-sizing: border-box; } .ww-footer-fine { margin-top: -24px; } }
+
+/* Quiz validation notes (public/js/quiz.js replaces the browser's bubbles): yellow is the site's attention colour. */
+.ww-field-error { display: none; align-items: center; gap: 10px; width: 100%; max-width: 600px; margin: 12px auto 0; padding: 10px 14px; box-sizing: border-box; border-radius: 14px; background: #f2cd4a1f; border: 1px solid #f2cd4a80; color: #fff; font-size: 14px; line-height: 20px; text-align: left; }
+.ww-field-error.is-on { display: flex; animation: ww-note-in .25s ease-out; }
+.ww-field-error b { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%; background: #f2cd4a; color: #1d272d; font-weight: 700; font-size: 13px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+.formdiv.ww-invalid .radiobuttonww { border-color: #f2cd4a; box-shadow: 0 0 0 3px #f2cd4a2e; }
+.formdiv.ww-invalid .formfieldww:invalid { box-shadow: 0 0 0 2px #f2cd4a, 0 0 0 5px #f2cd4a2e; }
+.quiz-form-block .w-form-fail { margin: 16px auto 0; max-width: 600px; padding: 14px 18px; border-radius: 16px; background: #f2cd4a1f; border: 1px solid #f2cd4a80; color: #fff; font-size: 15px; line-height: 22px; text-align: left; }
+@keyframes ww-note-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ww-field-error.is-on { animation: none; } }

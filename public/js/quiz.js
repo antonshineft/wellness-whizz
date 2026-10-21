@@ -21,7 +21,14 @@
     pleaseWait: 'Espera un momento...',
     failed: 'Algo salió mal al enviar el formulario.',
     slow: 'Está tardando más de lo esperado. Inténtalo de nuevo.',
-    verify: 'Completa la verificación de arriba y vuelve a enviar.'
+    verify: 'Completa la verificación de arriba y vuelve a enviar.',
+    invalid: {
+      radio: 'Elige una opción para continuar.',
+      select: 'Elige la opción que mejor te describa.',
+      text: 'Escribe una respuesta o toca una de las opciones.',
+      generic: 'Revisa esta respuesta.',
+      summary: 'Faltan algunas respuestas. Hemos marcado las preguntas pendientes.'
+    }
   } : {
     wait: [
       'Reading your answers…',
@@ -38,7 +45,14 @@
     pleaseWait: 'Please wait...',
     failed: 'Oops! Something went wrong while submitting the form.',
     slow: 'This is taking longer than expected. Please try again.',
-    verify: 'Please complete the verification above, then submit again.'
+    verify: 'Please complete the verification above, then submit again.',
+    invalid: {
+      radio: 'Pick one to continue.',
+      select: 'Choose the option that fits you best.',
+      text: 'Type an answer or tap one of the chips.',
+      generic: 'Please check this answer.',
+      summary: 'A few answers are missing. We have marked the questions that still need one.'
+    }
   };
   var POLL_ATTEMPTS = 80; // x 3 s = 4 min, matches the server's pending timeout
   var WAIT_MESSAGES = T.wait;
@@ -212,6 +226,81 @@
     });
   }
 
+  /* ---------- validation messages in our own words and colours ----------
+     The browser's "Please select one of these options." bubble is replaced by a note under the question
+     (the invalid event is cancelled, which also stops the bubble), the question is outlined, and the page
+     glides to the first one that still needs an answer. The note goes away as soon as the answer is given. */
+  function setupValidation(form) {
+    var M = T.invalid;
+    form.noValidate = true; // the submit handler validates, so a click on Submit always reaches it
+
+    function blockOf(el) {
+      return el.closest('.formdiv') || el.parentNode;
+    }
+
+    function messageFor(el) {
+      if (el.type === 'radio') return M.radio;
+      if (el.tagName === 'SELECT') return M.select;
+      if (el.validity && el.validity.valueMissing) return M.text;
+      return el.validationMessage || M.generic;
+    }
+
+    // One note per answer: under the radio buttons, under the select, or under a text field's chips.
+    function noteFor(el) {
+      var block = blockOf(el);
+      var key = el.type === 'radio' ? el.name : (el.id || el.name);
+      var note = block.querySelector('.ww-field-error[data-for="' + key + '"]');
+      if (note) return note;
+      note = document.createElement('p');
+      note.className = 'ww-field-error';
+      note.setAttribute('data-for', key);
+      note.setAttribute('role', 'alert');
+      note.innerHTML = '<b aria-hidden="true">!</b><span></span>';
+      var anchor = el.type === 'radio' ? null : block.querySelector('.ww-chips[data-chips-for="' + el.id + '"]') || el;
+      if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(note, anchor.nextSibling);
+      else block.appendChild(note);
+      return note;
+    }
+
+    function flag(el) {
+      var note = noteFor(el);
+      note.querySelector('span').textContent = messageFor(el);
+      note.classList.add('is-on');
+      blockOf(el).classList.add('ww-invalid');
+    }
+
+    function clear(el) {
+      var block = blockOf(el);
+      if (!block.classList.contains('ww-invalid')) return;
+      var valid = el.type === 'radio' ? !!block.querySelector('input[name="' + el.name + '"]:checked') : el.checkValidity();
+      if (!valid) return;
+      var note = noteFor(el);
+      note.classList.remove('is-on');
+      if (!block.querySelector('.ww-field-error.is-on')) block.classList.remove('ww-invalid');
+    }
+
+    form.addEventListener('invalid', function (event) {
+      event.preventDefault(); // no native bubble
+      flag(event.target);
+    }, true);
+    form.addEventListener('change', function (event) { if (event.target.checkValidity) clear(event.target); }, true);
+    form.addEventListener('input', function (event) { if (event.target.checkValidity) clear(event.target); }, true);
+
+    // Show the notes for everything missing and bring the first one into view.
+    return function report() {
+      Array.prototype.forEach.call(form.querySelectorAll('.ww-field-error.is-on'), function (n) { n.classList.remove('is-on'); });
+      Array.prototype.forEach.call(form.querySelectorAll('.formdiv.ww-invalid'), function (b) { b.classList.remove('ww-invalid'); });
+      if (form.checkValidity()) return true; // fires `invalid` on each missing field, which flags it
+      var first = form.querySelector('.formdiv.ww-invalid');
+      if (first) {
+        first.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' });
+        var field = first.querySelector('select:invalid, input:invalid:not([type="radio"])');
+        if (field) try { field.focus({ preventScroll: true }); } catch (e) { /* older browsers */ }
+      }
+      return false;
+    };
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     highlightRadios('myRadioGroup', 'label.radio-button-field.w-radio');
     highlightRadios('myRadioGroupAge', 'label.radio-button-field.age.w-radio');
@@ -220,6 +309,7 @@
     if (!form) return;
     if (window.wwTrack) window.wwTrack({ type: 'quiz_view', page: window.location.pathname });
     setupAutoAdvance(form);
+    var reportValidity = setupValidation(form);
     var block = form.closest('.quiz-form-block') || form.parentNode;
     var done = block.querySelector('.w-form-done');
     var fail = block.querySelector('.w-form-fail');
@@ -398,10 +488,12 @@
 
     form.addEventListener('submit', function (event) {
       event.preventDefault();
-      if (typeof form.checkValidity === 'function' && !form.checkValidity()) {
-        if (typeof form.reportValidity === 'function') form.reportValidity();
+      if (!reportValidity()) {
+        if (fail) fail.style.display = 'block';
+        if (failText) failText.textContent = T.invalid.summary;
         return;
       }
+      if (fail) fail.style.display = 'none';
       if (turnstile.enabled && !turnstile.token) {
         if (fail) fail.style.display = 'block';
         if (failText) failText.textContent = T.verify;

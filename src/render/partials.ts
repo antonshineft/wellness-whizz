@@ -12,18 +12,21 @@ export const WF_SITE_ID = '65945a814598016172123fbf';
 export const TRUSTPILOT_BUSINESS_UNIT_ID = '';
 const TRUSTPILOT_REVIEW_URL = 'https://www.trustpilot.com/review/aiww.io';
 
-/** Footer badges: the TrustBox (or a link to the Trustpilot profile) and the IndieTools "listed on" badge. */
-export function footerBadges(): string {
-  const trustpilot = TRUSTPILOT_BUSINESS_UNIT_ID
-    ? `<div class="trustpilot-widget ww-trustbox" data-locale="en-US" data-template-id="5419b757fa0340045cd0c938" data-businessunit-id="${TRUSTPILOT_BUSINESS_UNIT_ID}" data-style-height="52px" data-style-width="100%" data-theme="dark"><a href="${TRUSTPILOT_REVIEW_URL}" target="_blank" rel="noopener">Review us on Trustpilot</a></div>
-          <script type="text/javascript" src="https://widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js" async></script>`
-    : `<a href="${TRUSTPILOT_REVIEW_URL}" target="_blank" rel="noopener" class="ww-trustpilot-link"><img src="/images/trustpilot-star.svg" width="20" height="20" alt="" loading="lazy"><span>Review us on Trustpilot</span></a>`;
-  return `
-        <div class="ww-footer-badges">
-          ${trustpilot}
-          <a href="https://www.indietools.app/products/wellness-whizz" target="_blank" rel="noopener" class="ww-badge-link"><img src="https://www.indietools.app/badges/listed-on-indietools-dark.png" alt="Listed on IndieTools" width="176" height="56" loading="lazy"></a>
-        </div>`;
+/** Trustpilot in the footer's social row: the TrustBox once the business unit id is set, until then a link to the profile. */
+export function trustpilotBadge(): string {
+  if (!TRUSTPILOT_BUSINESS_UNIT_ID) {
+    return `<a href="${TRUSTPILOT_REVIEW_URL}" target="_blank" rel="noopener" class="ww-trustpilot-link"><img src="/images/trustpilot-star.svg" width="20" height="20" alt="" loading="lazy"><span>Review us on Trustpilot</span></a>`;
+  }
+  return `<div class="trustpilot-widget ww-trustbox" data-locale="en-US" data-template-id="5419b757fa0340045cd0c938" data-businessunit-id="${TRUSTPILOT_BUSINESS_UNIT_ID}" data-style-height="52px" data-style-width="100%" data-theme="dark"><a href="${TRUSTPILOT_REVIEW_URL}" target="_blank" rel="noopener">Review us on Trustpilot</a></div>
+          <script type="text/javascript" src="https://widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js" async></script>`;
 }
+
+/** Fine print under the footer: the IndieTools listing link, kept in the page for their badge check but unobtrusive. */
+export function footerFinePrint(): string {
+  return `
+      <p class="ww-footer-fine">Listed on <a href="https://www.indietools.app/products/wellness-whizz" target="_blank" rel="noopener">IndieTools</a></p>`;
+}
+
 export const WF_PAGE_IDS = {
   home: '65945a814598016172123fc5',
   quiz: '65c62ed2a0336ec29fe56900',
@@ -219,11 +222,11 @@ export function footer(): string {
           <a href="/about" class="text-58 ww-footer-link">About</a>
           <a href="/terms" class="text-58 ww-footer-link">Terms and Conditions</a>
         </div>
-        <nav class="frame-222">
+        <nav class="frame-222 ww-footer-social">${trustpilotBadge()}
           <a href="https://chat.openai.com/g/g-pqcxd1t8o-wellness-whizz" target="_blank" rel="noopener" aria-label="Wellness Whizz GPT on ChatGPT" class="w-inline-block"><img src="/images/Vectors-Wrapper_9.svg" loading="lazy" width="37.501739501953125" height="38" alt="ChatGPT" class="vectors-wrapper-59"></a>
           <a href="https://www.tiktok.com/@theaiwellnesswhiz?_t=8jPysLbiyxN&amp;_r=1" target="_blank" rel="noopener" aria-label="Wellness Whizz on TikTok" class="w-inline-block"><img src="/images/Vectors-Wrapper_10.svg" loading="lazy" width="33" height="38" alt="TikTok" class="vectors-wrapper-60"></a><a href="https://x.com/aiwwio" target="_blank" rel="noopener" aria-label="Wellness Whizz on X" class="w-inline-block"><img src="/images/x-logo-light.svg" loading="lazy" width="34" height="38" alt="X (Twitter)" class="vectors-wrapper-61 ww-x-icon"></a>
         </nav>
-      </div>${footerBadges()}
+      </div>${footerFinePrint()}
     </footer>
   </section>`;
 }
