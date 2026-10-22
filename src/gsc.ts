@@ -4,8 +4,9 @@
  * Setup: the secret GSC_SERVICE_ACCOUNT holds the account's JSON key, and the account's email is a user of the
  * Search Console property GSC_SITE (a domain property such as sc-domain:aiww.io). No model call anywhere here.
  *
- *   - inspectStep(): the URL Inspection API over the sitemap's pages, a few per five-minute tick, every page about
- *     once a day (gsc_pages: verdict, coverage state, last crawl, canonical). Google allows 2,000 calls a day.
+ *   - inspectStep(): the URL Inspection API over the sitemap's pages, a few per five-minute tick, every page once
+ *     every GSC_RECHECK_DAYS days (default 7; gsc_pages: verdict, coverage state, last crawl, canonical). Google
+ *     allows 2,000 calls a day; the manual route /api/admin/gsc/run gives a fresh look at any time.
  *   - analyticsStep(): once a day, clicks, impressions, CTR and position by day for the last 28 days (gsc_daily),
  *     plus the top queries and pages of the last seven complete days (meta gsc:analytics). Search data trails by
  *     two to three days, so "last 7 days" ends the day before yesterday.
@@ -21,6 +22,8 @@ export interface GscEnv {
   GSC_SERVICE_ACCOUNT?: string;
   /** The Search Console property, e.g. sc-domain:aiww.io (default: sc-domain:<CANONICAL_HOST>). */
   GSC_SITE?: string;
+  /** Days between two inspections of the same page (default 7). */
+  GSC_RECHECK_DAYS?: string;
   CANONICAL_HOST?: string;
 }
 
@@ -68,6 +71,12 @@ function site(env: GscEnv): string {
   if (explicit) return explicit;
   const host = (env.CANONICAL_HOST ?? '').trim();
   return host ? `sc-domain:${host}` : '';
+}
+
+/** SQLite modifier for "older than the recheck interval", a couple of hours short so a weekly check stays weekly. */
+function recheckWindow(env: GscEnv): string {
+  const days = Math.max(1, Math.min(60, Number(env.GSC_RECHECK_DAYS) || 7));
+  return `-${days * 24 - 2} hours`;
 }
 
 /** Search Console is configured when the key parses and a property is known. */
@@ -197,16 +206,17 @@ export async function inspectStep(env: GscEnv, opts: InspectOptions): Promise<In
   for (let i = 0; i < missing.length; i += 50) {
     await env.DB.batch(missing.slice(i, i + 50).map((u) => env.DB.prepare('INSERT OR IGNORE INTO gsc_pages (url) VALUES (?)').bind(u)));
   }
-  // Pages gone from the sitemap stop being refreshed; drop them once they are three days stale.
-  await env.DB.prepare("DELETE FROM gsc_pages WHERE checked_at IS NOT NULL AND checked_at < datetime('now', '-3 days')").run();
+  // Pages gone from the sitemap stop being refreshed; drop them once they are two intervals stale.
+  await env.DB.prepare("DELETE FROM gsc_pages WHERE checked_at IS NOT NULL AND checked_at < datetime('now', ?)").bind(`-${Math.max(1, Math.min(60, Number(env.GSC_RECHECK_DAYS) || 7)) * 2} days`).run();
   // Never checked first, English before Spanish, then the oldest check; a failed inspection is retried after an hour.
+  const stale = recheckWindow(env);
   const due = await env.DB
     .prepare(
       `SELECT url, indexed FROM gsc_pages
-       WHERE checked_at IS NULL OR checked_at < datetime('now', '-22 hours') OR (error != '' AND (? = 1 OR checked_at < datetime('now', '-1 hour')))
+       WHERE checked_at IS NULL OR checked_at < datetime('now', ?) OR (error != '' AND (? = 1 OR checked_at < datetime('now', '-1 hour')))
        ORDER BY checked_at IS NOT NULL, url LIKE '%/es/%', checked_at, url LIMIT ?`,
     )
-    .bind(opts.retryErrors ? 1 : 0, max)
+    .bind(stale, opts.retryErrors ? 1 : 0, max)
     .all<{ url: string; indexed: number }>();
   const result: InspectResult = { inspected: 0, indexed: 0, errors: 0, changed: [], pending: 0 };
   const statements: D1PreparedStatement[] = [];
@@ -239,7 +249,7 @@ export async function inspectStep(env: GscEnv, opts: InspectOptions): Promise<In
     }
   }
   for (let i = 0; i < statements.length; i += 50) await env.DB.batch(statements.slice(i, i + 50));
-  const pending = await env.DB.prepare("SELECT COUNT(*) AS n FROM gsc_pages WHERE checked_at IS NULL OR checked_at < datetime('now', '-22 hours') OR error != ''").first<{ n: number }>();
+  const pending = await env.DB.prepare("SELECT COUNT(*) AS n FROM gsc_pages WHERE checked_at IS NULL OR checked_at < datetime('now', ?) OR error != ''").bind(stale).first<{ n: number }>();
   result.pending = pending?.n ?? 0;
   return result;
 }

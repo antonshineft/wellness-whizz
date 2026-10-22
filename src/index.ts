@@ -118,6 +118,7 @@ export interface Bindings {
   /** Google Search Console (src/gsc.ts): the service account's JSON key (secret) and the property, e.g. sc-domain:aiww.io. */
   GSC_SERVICE_ACCOUNT?: string;
   GSC_SITE?: string;
+  GSC_RECHECK_DAYS?: string;
   /** Supplements per cron run of the article writer; "0" disables the scheduled backfill. */
   BACKFILL_BATCH?: string;
   /** "false" turns off generated illustrations for supplements without product photos. */

@@ -502,8 +502,8 @@ Search Console property, store the key as the secret `GSC_SERVICE_ACCOUNT` and n
 `GSC_SITE` (`sc-domain:aiww.io`). Nothing here calls a model.
 
 - The five-minute tick, when nothing else is waiting, inspects a few sitemap pages with the URL Inspection API, so
-  every page is checked about once a day (`gsc_pages`: verdict, coverage state, last crawl, canonical). Google allows
-  2,000 inspections a day; the site needs about 400.
+  every page is checked once every `GSC_RECHECK_DAYS` days (default 7; `gsc_pages`: verdict, coverage state, last
+  crawl, canonical). Google allows 2,000 inspections a day; a full pass over the site is about 400.
 - The 06:00 cron pulls the search numbers (`gsc_daily`: clicks, impressions, CTR, position by day for 28 days; the
   top queries and pages of the last seven complete days in the meta key `gsc:analytics`). Search data trails by two
   to three days.
