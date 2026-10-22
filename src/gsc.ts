@@ -310,10 +310,14 @@ export async function analyticsStep(env: GscEnv, force = false): Promise<Analyti
       ),
     );
   }
-  const [queries, pages] = await Promise.all([
-    searchAnalytics(env, { startDate: from, endDate: to, dimensions: ['query'], rowLimit: 10 }),
-    searchAnalytics(env, { startDate: from, endDate: to, dimensions: ['page'], rowLimit: 10 }),
-  ]);
+  // The API orders by clicks; with few clicks that is arbitrary, so ask for more rows and rank by impressions here.
+  const byImpressions = (rows: AnalyticsRow[]) => rows.slice().sort((a, b) => b.impressions - a.impressions || b.clicks - a.clicks).slice(0, 12);
+  const [queries, pages] = (
+    await Promise.all([
+      searchAnalytics(env, { startDate: from, endDate: to, dimensions: ['query'], rowLimit: 100 }),
+      searchAnalytics(env, { startDate: from, endDate: to, dimensions: ['page'], rowLimit: 100 }),
+    ])
+  ).map(byImpressions);
   const week = totals(byDay.filter((r) => r.keys[0] >= from && r.keys[0] <= to));
   const previousWeek = totals(byDay.filter((r) => r.keys[0] >= previousFrom && r.keys[0] < from));
   const analytics: Analytics = {

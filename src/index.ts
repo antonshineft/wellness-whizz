@@ -91,6 +91,8 @@ export interface Bindings {
   ARTICLE_EFFORT?: string;
   /** Languages the site is served in, e.g. "en,es" (src/i18n.ts); content is translated for every language but en. */
   SITE_LANGS?: string;
+  /** Languages the sitemap lists besides English (default: SITE_LANGS). An empty value keeps the Spanish pages live but out of the sitemap. */
+  SITEMAP_LANGS?: string;
   DEV_FAKE_AI?: string;
   PRODUCT_SEARCH_URL?: string;
   IHERB_RCODE?: string;
@@ -165,8 +167,11 @@ const htmlHeaders = (cacheControl: string) => ({ 'content-type': 'text/html; cha
 const curatedOnly = (env: Bindings) => env.LIST_AI_SUPPLEMENTS === 'false';
 /** The languages content is translated into: SITE_LANGS minus English (default en,es). */
 const contentLangs = (env: Bindings): Lang[] => (env.SITE_LANGS ?? 'en,es').split(',').map((v) => v.trim()).filter((v): v is Lang => CONTENT_LANGS.includes(v as Lang));
+/** The languages the sitemap lists besides English: SITEMAP_LANGS when set (empty = English only), else SITE_LANGS. */
+const sitemapLangs = (env: Bindings): Lang[] =>
+  env.SITEMAP_LANGS === undefined ? contentLangs(env) : env.SITEMAP_LANGS.split(',').map((v) => v.trim()).filter((v): v is Lang => CONTENT_LANGS.includes(v as Lang));
 /** What the Search Console inspection walks: the sitemap as the public sees it (src/gsc.ts). */
-const gscOptions = (env: Bindings, max?: number, retryErrors = false): InspectOptions => ({ origin: siteOrigin(env), curatedOnly: curatedOnly(env), langs: contentLangs(env), max, retryErrors });
+const gscOptions = (env: Bindings, max?: number, retryErrors = false): InspectOptions => ({ origin: siteOrigin(env), curatedOnly: curatedOnly(env), langs: sitemapLangs(env), max, retryErrors });
 /** DEV_FAKE_AI (canned answers instead of OpenAI) is honoured on localhost only, never on a deployed site. */
 const isLocalRequest = (url: string) => /^(localhost|127\.0\.0\.1|\[::1\])$/.test(new URL(url).hostname);
 /** Turnstile is on only when both the public site key and the secret are configured. */
@@ -591,7 +596,7 @@ app.get('/api/admin/social', async (c) => {
 });
 
 app.get('/sitemap.xml', async (c) => {
-  const entries = await sitemapEntries(c.env.DB, curatedOnly(c.env), contentLangs(c.env));
+  const entries = await sitemapEntries(c.env.DB, curatedOnly(c.env), sitemapLangs(c.env));
   const xml = renderSitemap(new URL(c.req.url).origin, entries);
   return c.body(xml, 200, { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' });
 });

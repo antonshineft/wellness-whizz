@@ -488,6 +488,12 @@ A drafting round that does not finish within 20 minutes (lost Worker) goes back 
 marked failed and the owner is emailed. `DEV_FAKE_AI=true` drafts a placeholder article so the whole flow can be
 tested locally without a key.
 
+### Keeping the Spanish mirror out of the sitemap
+
+Set the var `SITEMAP_LANGS` to an empty string to list only the English pages in `/sitemap.xml` (and in the Search
+Console inspection walk) while `/es/` stays live with its hreflang links; set it to `es` or remove it to list the
+Spanish pages again. Useful while Google's crawl budget for a new domain is small.
+
 ## Google Search Console
 
 `src/gsc.ts` asks Google, with a service account, how the site is doing. Setup: enable the Search Console API in a
