@@ -29,8 +29,10 @@ export interface InspectOptions {
   origin: string;
   curatedOnly: boolean;
   langs: readonly Lang[];
-  /** Pages to inspect in this step (default 20; the quota is 2,000 a day). */
+  /** Pages to inspect in this step (default 20, at most 40: the free plan allows 50 subrequests per invocation). */
   max?: number;
+  /** Retry pages whose last inspection failed, however recent (the tick waits an hour). */
+  retryErrors?: boolean;
 }
 
 export const GSC_SQL = [
@@ -186,19 +188,25 @@ export interface InspectResult {
  */
 export async function inspectStep(env: GscEnv, opts: InspectOptions): Promise<InspectResult | null> {
   if (!gscEnabled(env)) return null;
-  const max = Math.max(1, Math.min(200, opts.max ?? 20));
+  const max = Math.max(1, Math.min(40, opts.max ?? 20));
   const entries = await sitemapEntries(env.DB, opts.curatedOnly, opts.langs);
   const urls = entries.map((e) => `${opts.origin}${e.loc}`);
-  if (urls.length) {
-    for (let i = 0; i < urls.length; i += 50) {
-      await env.DB.batch(urls.slice(i, i + 50).map((u) => env.DB.prepare('INSERT OR IGNORE INTO gsc_pages (url) VALUES (?)').bind(u)));
-    }
+  // Rows for pages new to the sitemap (one query for the known ones; each D1 call counts as a subrequest).
+  const known = new Set((await env.DB.prepare('SELECT url FROM gsc_pages').all<{ url: string }>()).results.map((r) => r.url));
+  const missing = urls.filter((u) => !known.has(u));
+  for (let i = 0; i < missing.length; i += 50) {
+    await env.DB.batch(missing.slice(i, i + 50).map((u) => env.DB.prepare('INSERT OR IGNORE INTO gsc_pages (url) VALUES (?)').bind(u)));
   }
   // Pages gone from the sitemap stop being refreshed; drop them once they are three days stale.
   await env.DB.prepare("DELETE FROM gsc_pages WHERE checked_at IS NOT NULL AND checked_at < datetime('now', '-3 days')").run();
+  // Never checked first, English before Spanish, then the oldest check; a failed inspection is retried after an hour.
   const due = await env.DB
-    .prepare("SELECT url, indexed FROM gsc_pages WHERE checked_at IS NULL OR checked_at < datetime('now', '-22 hours') ORDER BY checked_at IS NOT NULL, checked_at, url LIMIT ?")
-    .bind(max)
+    .prepare(
+      `SELECT url, indexed FROM gsc_pages
+       WHERE checked_at IS NULL OR checked_at < datetime('now', '-22 hours') OR (error != '' AND (? = 1 OR checked_at < datetime('now', '-1 hour')))
+       ORDER BY checked_at IS NOT NULL, url LIKE '%/es/%', checked_at, url LIMIT ?`,
+    )
+    .bind(opts.retryErrors ? 1 : 0, max)
     .all<{ url: string; indexed: number }>();
   const result: InspectResult = { inspected: 0, indexed: 0, errors: 0, changed: [], pending: 0 };
   const statements: D1PreparedStatement[] = [];
@@ -231,7 +239,7 @@ export async function inspectStep(env: GscEnv, opts: InspectOptions): Promise<In
     }
   }
   for (let i = 0; i < statements.length; i += 50) await env.DB.batch(statements.slice(i, i + 50));
-  const pending = await env.DB.prepare("SELECT COUNT(*) AS n FROM gsc_pages WHERE checked_at IS NULL OR checked_at < datetime('now', '-22 hours')").first<{ n: number }>();
+  const pending = await env.DB.prepare("SELECT COUNT(*) AS n FROM gsc_pages WHERE checked_at IS NULL OR checked_at < datetime('now', '-22 hours') OR error != ''").first<{ n: number }>();
   result.pending = pending?.n ?? 0;
   return result;
 }

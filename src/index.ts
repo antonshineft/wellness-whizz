@@ -166,7 +166,7 @@ const curatedOnly = (env: Bindings) => env.LIST_AI_SUPPLEMENTS === 'false';
 /** The languages content is translated into: SITE_LANGS minus English (default en,es). */
 const contentLangs = (env: Bindings): Lang[] => (env.SITE_LANGS ?? 'en,es').split(',').map((v) => v.trim()).filter((v): v is Lang => CONTENT_LANGS.includes(v as Lang));
 /** What the Search Console inspection walks: the sitemap as the public sees it (src/gsc.ts). */
-const gscOptions = (env: Bindings, max?: number): InspectOptions => ({ origin: siteOrigin(env), curatedOnly: curatedOnly(env), langs: contentLangs(env), max });
+const gscOptions = (env: Bindings, max?: number, retryErrors = false): InspectOptions => ({ origin: siteOrigin(env), curatedOnly: curatedOnly(env), langs: contentLangs(env), max, retryErrors });
 /** DEV_FAKE_AI (canned answers instead of OpenAI) is honoured on localhost only, never on a deployed site. */
 const isLocalRequest = (url: string) => /^(localhost|127\.0\.0\.1|\[::1\])$/.test(new URL(url).hostname);
 /** Turnstile is on only when both the public site key and the secret are configured. */
@@ -1168,7 +1168,8 @@ app.post('/api/admin/translate/strings', async (c) => {
 
 /**
  * Owner-only: Google Search Console (src/gsc.ts). GET /api/admin/gsc is the summary plus the pages Google has not
- * indexed; /run?max=N inspects the next N sitemap pages now (quota 2,000 a day); /analytics pulls the search numbers now.
+ * indexed; /run?max=N (up to 40, &retry=1 includes failed ones) inspects the next N sitemap pages now; /analytics pulls
+ * the search numbers now.
  */
 app.get('/api/admin/gsc', async (c) => {
   const denied = authorized(c);
@@ -1187,8 +1188,8 @@ app.get('/api/admin/gsc/run', async (c) => {
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
   c.header('cache-control', 'no-store');
-  const max = Math.max(1, Math.min(200, Number(c.req.query('max')) || 50));
-  const result = await inspectStep(c.env, gscOptions(c.env, max));
+  const max = Math.max(1, Math.min(40, Number(c.req.query('max')) || 40));
+  const result = await inspectStep(c.env, gscOptions(c.env, max, c.req.query('retry') === '1'));
   return c.json(result ?? { error: 'GSC_SERVICE_ACCOUNT or GSC_SITE is not set' }, result ? 200 : 503);
 });
 

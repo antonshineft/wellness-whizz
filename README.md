@@ -504,7 +504,7 @@ Search Console property, store the key as the secret `GSC_SERVICE_ACCOUNT` and n
 - The daily outreach digest carries a "Google index: X of Y pages" line with the pages that entered or left the
   index, and the week's impressions, clicks and top queries. `/api/stats` has the same summary under `google`.
 - Owner routes: `GET /api/admin/gsc` (summary plus the pages Google has not indexed, with the reason),
-  `GET /api/admin/gsc/run?max=N` (inspect the next N pages now), `GET /api/admin/gsc/analytics` (pull the numbers now).
+  `GET /api/admin/gsc/run?max=N` (inspect the next N pages now, at most 40 per call; `&retry=1` includes pages whose last check failed), `GET /api/admin/gsc/analytics` (pull the numbers now).
 
 ## The Spanish site (/es/)
 
