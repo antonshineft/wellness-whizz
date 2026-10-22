@@ -49,6 +49,8 @@
     "OUTREACH_PER_DAY": "10",
     // The owner's Google Sheet of directory submissions (shared "anyone with the link can view"); read daily and on demand.
     "BACKLINK_SHEET_ID": "1E27Uy2Rhp74I8NPGuZK2H9bIX6nqTdSLsB3HskPmsyg",
+    // Google Search Console property read by src/gsc.ts (the key is the secret GSC_SERVICE_ACCOUNT).
+    "GSC_SITE": "sc-domain:aiww.io",
     // A rendered video is posted through Zernio as soon as it is ready (src/videos.ts); "false" waits for the posting page.
     "VIDEO_AUTOPOST": "true",
     "SITE_LANGS": "en,es",

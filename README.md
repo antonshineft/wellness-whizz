@@ -260,8 +260,8 @@ address, and what the last hourly run did or why it skipped (for example `X keys
   `src/render/pages.ts`; the footer links point at them. Supplement pages and articles carry a "Reviewed by the
   Wellness Whizz editorial team · Last reviewed <date>" line (`reviewedLine` in the same file) that links the About
   page. The footer's social row starts with Trustpilot (`trustpilotBadge` in `src/render/partials.ts`: a profile link
-  until the business unit id is set there, then the TrustBox widget) and ends with a fine-print "Listed on IndieTools"
-  link (`footerFinePrint`).
+  until the business unit id is set there, then the TrustBox widget) followed by the IndieTools "listed on" badge
+  (`indieToolsBadge`).
 - `/blog` lists the articles in `src/blog/posts/*.ts` (newest first) and `/blog/<slug>` renders one. An article is a
   plain TypeScript module (see `src/blog/types.ts`): write `href="iherb:magnesium glycinate"` for an iHerb search link
   with your referral code and click tracking, `<ww-shop slugs="…"></ww-shop>` for product cards from the catalogue
@@ -487,6 +487,24 @@ Owner routes (all take `?key=` like the other admin routes; the review page and 
 A drafting round that does not finish within 20 minutes (lost Worker) goes back to the queue once, then the row is
 marked failed and the owner is emailed. `DEV_FAKE_AI=true` drafts a placeholder article so the whole flow can be
 tested locally without a key.
+
+## Google Search Console
+
+`src/gsc.ts` asks Google, with a service account, how the site is doing. Setup: enable the Search Console API in a
+Google Cloud project, create a service account with a JSON key, add the account's email as a user (Full) of the
+Search Console property, store the key as the secret `GSC_SERVICE_ACCOUNT` and name the property in the var
+`GSC_SITE` (`sc-domain:aiww.io`). Nothing here calls a model.
+
+- The five-minute tick, when nothing else is waiting, inspects a few sitemap pages with the URL Inspection API, so
+  every page is checked about once a day (`gsc_pages`: verdict, coverage state, last crawl, canonical). Google allows
+  2,000 inspections a day; the site needs about 400.
+- The 06:00 cron pulls the search numbers (`gsc_daily`: clicks, impressions, CTR, position by day for 28 days; the
+  top queries and pages of the last seven complete days in the meta key `gsc:analytics`). Search data trails by two
+  to three days.
+- The daily outreach digest carries a "Google index: X of Y pages" line with the pages that entered or left the
+  index, and the week's impressions, clicks and top queries. `/api/stats` has the same summary under `google`.
+- Owner routes: `GET /api/admin/gsc` (summary plus the pages Google has not indexed, with the reason),
+  `GET /api/admin/gsc/run?max=N` (inspect the next N pages now), `GET /api/admin/gsc/analytics` (pull the numbers now).
 
 ## The Spanish site (/es/)
 

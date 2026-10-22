@@ -57,6 +57,7 @@ import {
 } from './db';
 import { runQuizPipeline } from './pipeline';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
+import { analyticsStep, gscSummary, inspectStep, type InspectOptions } from './gsc';
 import { exportToken, sheetCounts, sheetLastSync, sheetRows, sheetUrl, syncSheet } from './sheet';
 import PostalMime from 'postal-mime';
 import { renderBlogIndex, renderBlogPost } from './render/blog';
@@ -112,6 +113,9 @@ export interface Bindings {
   OUTREACH_SIGNATURE?: string;
   /** The owner's Google Sheet of directory submissions (src/sheet.ts), read daily and on demand. */
   BACKLINK_SHEET_ID?: string;
+  /** Google Search Console (src/gsc.ts): the service account's JSON key (secret) and the property, e.g. sc-domain:aiww.io. */
+  GSC_SERVICE_ACCOUNT?: string;
+  GSC_SITE?: string;
   /** Supplements per cron run of the article writer; "0" disables the scheduled backfill. */
   BACKFILL_BATCH?: string;
   /** "false" turns off generated illustrations for supplements without product photos. */
@@ -161,6 +165,8 @@ const htmlHeaders = (cacheControl: string) => ({ 'content-type': 'text/html; cha
 const curatedOnly = (env: Bindings) => env.LIST_AI_SUPPLEMENTS === 'false';
 /** The languages content is translated into: SITE_LANGS minus English (default en,es). */
 const contentLangs = (env: Bindings): Lang[] => (env.SITE_LANGS ?? 'en,es').split(',').map((v) => v.trim()).filter((v): v is Lang => CONTENT_LANGS.includes(v as Lang));
+/** What the Search Console inspection walks: the sitemap as the public sees it (src/gsc.ts). */
+const gscOptions = (env: Bindings, max?: number): InspectOptions => ({ origin: siteOrigin(env), curatedOnly: curatedOnly(env), langs: contentLangs(env), max });
 /** DEV_FAKE_AI (canned answers instead of OpenAI) is honoured on localhost only, never on a deployed site. */
 const isLocalRequest = (url: string) => /^(localhost|127\.0\.0\.1|\[::1\])$/.test(new URL(url).hostname);
 /** Turnstile is on only when both the public site key and the secret are configured. */
@@ -760,8 +766,10 @@ app.get('/api/stats', async (c) => {
     getMeta(c.env.DB, 'report:last'),
     getMeta(c.env.DB, 'indexing:last'),
   ]);
+  const google = await gscSummary(c.env).catch(() => null);
   return c.json({
     ...stats,
+    google,
     content: { ...content, last_cron: parseMeta(lastCron) },
     social: { last_run: parseMeta(lastSocial) },
     research: { last_run: parseMeta(lastResearch) },
@@ -1156,6 +1164,41 @@ app.post('/api/admin/translate/strings', async (c) => {
   if (!strings.length) return c.json({ error: 'strings[] is required' }, 400);
   const translated = await translateStrings(c.env, lang, strings);
   return c.json({ lang, translations: Object.fromEntries(strings.map((text, i) => [text, translated[i]])) });
+});
+
+/**
+ * Owner-only: Google Search Console (src/gsc.ts). GET /api/admin/gsc is the summary plus the pages Google has not
+ * indexed; /run?max=N inspects the next N sitemap pages now (quota 2,000 a day); /analytics pulls the search numbers now.
+ */
+app.get('/api/admin/gsc', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  const summary = await gscSummary(c.env);
+  const { results } = await c.env.DB
+    .prepare("SELECT url, verdict, coverage, indexing_state, robots, last_crawl, canonical_ok, checked_at, error FROM gsc_pages WHERE indexed = 0 AND checked_at IS NOT NULL ORDER BY coverage, url LIMIT 500")
+    .all();
+  return c.json({ ...summary, notIndexedPages: results });
+});
+
+app.get('/api/admin/gsc/run', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  const max = Math.max(1, Math.min(200, Number(c.req.query('max')) || 50));
+  const result = await inspectStep(c.env, gscOptions(c.env, max));
+  return c.json(result ?? { error: 'GSC_SERVICE_ACCOUNT or GSC_SITE is not set' }, result ? 200 : 503);
+});
+
+app.get('/api/admin/gsc/analytics', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  const result = await analyticsStep(c.env, true);
+  return c.json(result ?? { error: 'GSC_SERVICE_ACCOUNT or GSC_SITE is not set' }, result ? 200 : 503);
 });
 
 /** TikTok (src/tiktok.ts): connect once, then post videos from the pipeline. All routes need the STATS_KEY except the
@@ -1703,7 +1746,9 @@ export default {
       // and send steps run from the five-minute ticks below.
       ctx.waitUntil(
         ensureDatabase(env.DB)
-          // The owner's directory sheet first (src/sheet.ts), so the digest below reflects it.
+          // Yesterday's Google search numbers (src/gsc.ts) and the owner's directory sheet (src/sheet.ts) first, so the
+          // digest below reflects both.
+          .then(() => analyticsStep(env, true).then((a) => console.log(`gsc analytics: ${a ? `${a.week.impressions} impressions, ${a.week.clicks} clicks` : 'off'}`)).catch((err) => console.error(`gsc analytics failed: ${String(err)}`)))
           .then(() => syncSheet(env).then((s) => console.log(`sheet: ${JSON.stringify({ tabs: s.tabs, rows: s.rows, changed: s.changed.length, error: s.error ?? null })}`)).catch((err) => console.error(`sheet sync failed: ${String(err)}`)))
           .then(() => dailyOutreach(env))
           .then(async (r) => { console.log(`outreach: ${JSON.stringify(r)}`); await outreachDigest(env, r); })
@@ -1734,9 +1779,13 @@ export default {
           }
           // Quiet ticks write the script of a queued video (src/videos.ts), else do one small unit of backlink outreach
           // (src/backlinks.ts), else translate a few pages (src/translate.ts).
-          return scriptNext(env).then((did) => (did ? undefined : outreachStep(env))).then((step) => {
+          return scriptNext(env).then((did) => (did ? undefined : outreachStep(env))).then(async (step) => {
             if (typeof step === 'string') { console.log(`outreach: ${step}`); return; }
-            if (step === null) return translateStep(env);
+            if (step !== null) return;
+            // Google's view of a few sitemap pages (src/gsc.ts), every page about once a day; translations otherwise.
+            const g = await inspectStep(env, gscOptions(env)).catch((err) => { console.error(`gsc inspect failed: ${String(err)}`); return null; });
+            if (g?.inspected) { console.log(`gsc: ${JSON.stringify(g)}`); return; }
+            return translateStep(env);
           });
         })
         .catch((err) => console.error(`article drafting failed: ${String(err)}`)),

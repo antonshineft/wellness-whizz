@@ -21,10 +21,9 @@ export function trustpilotBadge(): string {
           <script type="text/javascript" src="https://widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js" async></script>`;
 }
 
-/** Fine print under the footer: the IndieTools listing link, kept in the page for their badge check but unobtrusive. */
-export function footerFinePrint(): string {
-  return `
-      <p class="ww-footer-fine">Listed on <a href="https://www.indietools.app/products/wellness-whizz" target="_blank" rel="noopener">IndieTools</a></p>`;
+/** The IndieTools "listed on" badge, shown beside Trustpilot in the footer's social row. */
+export function indieToolsBadge(): string {
+  return `<a href="https://www.indietools.app/products/wellness-whizz" target="_blank" rel="noopener" class="ww-badge-link"><img src="https://www.indietools.app/badges/listed-on-indietools-dark.png" alt="Listed on IndieTools" width="138" height="44" loading="lazy"></a>`;
 }
 
 export const WF_PAGE_IDS = {
@@ -222,11 +221,11 @@ export function footer(): string {
           <a href="/about" class="text-58 ww-footer-link">About</a>
           <a href="/terms" class="text-58 ww-footer-link">Terms and Conditions</a>
         </div>
-        <nav class="frame-222 ww-footer-social">${trustpilotBadge()}
+        <nav class="frame-222 ww-footer-social">${trustpilotBadge()}${indieToolsBadge()}
           <a href="https://chat.openai.com/g/g-pqcxd1t8o-wellness-whizz" target="_blank" rel="noopener" aria-label="Wellness Whizz GPT on ChatGPT" class="w-inline-block"><img src="/images/Vectors-Wrapper_9.svg" loading="lazy" width="37.501739501953125" height="38" alt="ChatGPT" class="vectors-wrapper-59"></a>
           <a href="https://www.tiktok.com/@theaiwellnesswhiz?_t=8jPysLbiyxN&amp;_r=1" target="_blank" rel="noopener" aria-label="Wellness Whizz on TikTok" class="w-inline-block"><img src="/images/Vectors-Wrapper_10.svg" loading="lazy" width="33" height="38" alt="TikTok" class="vectors-wrapper-60"></a><a href="https://x.com/aiwwio" target="_blank" rel="noopener" aria-label="Wellness Whizz on X" class="w-inline-block"><img src="/images/x-logo-light.svg" loading="lazy" width="34" height="38" alt="X (Twitter)" class="vectors-wrapper-61 ww-x-icon"></a>
         </nav>
-      </div>${footerFinePrint()}
+      </div>
     </footer>
   </section>`;
 }

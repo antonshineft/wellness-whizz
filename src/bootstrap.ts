@@ -9,6 +9,7 @@
  */
 import schemaSql from '../migrations/0001_init.sql';
 import { PROSPECT_SQL } from './backlinks';
+import { GSC_SQL } from './gsc';
 import supplementsJson from '../data/supplements.json';
 import resultsJson from '../data/results.json';
 import manifestJson from '../data/manifest.json';
@@ -53,6 +54,7 @@ const TABLES = ['supplements', 'sessions', 'session_supplements', 'meta', 'event
 /** CREATE TABLE IF NOT EXISTS statements for tables that arrived after the first release (same SQL as the migration). */
 const LATER_TABLES: string[] = [
   ...PROSPECT_SQL,
+  ...GSC_SQL,
   `CREATE TABLE IF NOT EXISTS videos (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL UNIQUE, status TEXT NOT NULL, script_json TEXT NOT NULL DEFAULT '', caption TEXT NOT NULL DEFAULT '', video_url TEXT NOT NULL DEFAULT '', duration REAL NOT NULL DEFAULT 0, set_index INTEGER NOT NULL DEFAULT 0, publish_id TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT '', attempts INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, rendered_at TEXT)`,
   `CREATE TABLE IF NOT EXISTS tiktok_auth (id INTEGER PRIMARY KEY CHECK (id = 1), open_id TEXT NOT NULL, access_token TEXT NOT NULL, access_expires_at TEXT NOT NULL, refresh_token TEXT NOT NULL, refresh_expires_at TEXT NOT NULL, scope TEXT NOT NULL DEFAULT '', display_name TEXT NOT NULL DEFAULT '', avatar_url TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS tiktok_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, publish_id TEXT NOT NULL, title TEXT NOT NULL, privacy TEXT NOT NULL, status TEXT NOT NULL, fail_reason TEXT NOT NULL DEFAULT '', post_id TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,

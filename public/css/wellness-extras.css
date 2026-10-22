@@ -565,15 +565,15 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-shelf-link { display: inline-block; margin-top: 10px; color: inherit; text-decoration: underline; text-underline-offset: 3px; opacity: .8; }
 .ww-shelf-link:hover { opacity: 1; }
 
-/* Footer: Trustpilot sits in the social row (src/render/partials.ts); the IndieTools listing is a fine-print line. */
+/* Footer: Trustpilot and the IndieTools badge sit in the social row before the icons (src/render/partials.ts). */
 .ww-footer-social { width: auto; max-width: none; gap: 28px; flex-wrap: wrap; justify-content: flex-end; }
 .ww-footer-social .ww-trustbox { flex: 0 1 240px; min-width: 200px; }
 .ww-trustpilot-link { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px; border: 1px solid #ffffff2e; border-radius: 12px; color: #fff; font-family: Aeonik, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none; white-space: nowrap; }
 .ww-trustpilot-link:hover { background: #ffffff14; }
 .ww-trustpilot-link img { width: 20px; height: 20px; }
-.ww-footer-fine { margin: -44px 0 0; font-size: 12px; line-height: 18px; color: #ffffff59; }
-.ww-footer-fine a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
-@media (max-width: 767px) { .ww-footer-social { justify-content: center; } .ww-footer-social .ww-trustpilot-link, .ww-footer-social .ww-trustbox { flex: 0 0 100%; justify-content: center; box-sizing: border-box; } .ww-footer-fine { margin-top: -24px; } }
+.ww-badge-link { display: inline-flex; }
+.ww-badge-link img { display: block; width: 138px; height: 44px; border-radius: 10px; }
+@media (max-width: 767px) { .ww-footer-social { justify-content: center; gap: 16px 20px; } .ww-footer-social .ww-trustpilot-link, .ww-footer-social .ww-trustbox { flex: 0 0 100%; justify-content: center; box-sizing: border-box; } }
 
 /* Quiz validation notes (public/js/quiz.js replaces the browser's bubbles): yellow is the site's attention colour. */
 .ww-field-error { display: none; align-items: center; gap: 10px; width: 100%; max-width: 600px; margin: 12px auto 0; padding: 10px 14px; box-sizing: border-box; border-radius: 14px; background: #f2cd4a1f; border: 1px solid #f2cd4a80; color: #fff; font-size: 14px; line-height: 20px; text-align: left; }
