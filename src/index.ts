@@ -41,9 +41,9 @@ import { generateSupplementImage, imageGenerationEnabled, loadImage, storeImage,
 import { attachIherbProducts, supplementsWithoutPhotos } from './products';
 import { alertRecipient, emailEnabled, emailStatus, resultsEmail, sendEmail } from './email';
 import { weeklyReportEmail } from './report';
-import { fileNote, listResearchNotes, pruneAbstractlessNotes, pubmedUrl, repairNotes, researchBatch, type NoteOverrides } from './research';
+import { fileNote, getResearchNote, listResearchNotes, notePath, notesForSupplement, pruneAbstractlessNotes, pubmedUrl, repairNotes, researchBatch, type NoteOverrides } from './research';
 import { feedXml, indexSync, renderSitemap, sitemapEntries } from './indexing';
-import { renderResearchPage } from './render/research';
+import { renderResearchNote, renderResearchPage } from './render/research';
 import { renderSupplementsIndex } from './render/supplements-index';
 import { buildQueue, enqueue, listSocialPosts, postDue, postingPlan, sendState, setSocialStatus, siteOrigin } from './social/content';
 import { xEnabled } from './social/x';
@@ -471,6 +471,9 @@ app.get('/llms.txt', async (c) => {
     '## Articles',
     ...(await allPosts(c.env.DB)).map((p) => line(p.title, `/blog/${p.slug}`, p.description)),
     '',
+    '## Research notes',
+    ...(await listResearchNotes(c.env.DB, 40)).map((n) => line(n.title, notePath(n), n.takeaway || n.summary)),
+    '',
     '## Supplement guides',
     ...supplements.map((s) => line(s.name, `/supplement/${s.slug}`, s.summary)),
     '',
@@ -489,6 +492,23 @@ pageRoute('/research', async (c, lang) => {
   const notes = await listResearchNotes(c.env.DB, 100);
   track(c, { type: 'page_view', page: '/research' });
   return sendPage(c, renderResearchPage(notes, new URL(c.req.url).origin), lang, '/research', 'public, max-age=600');
+});
+
+/** One research note on its own page (src/render/research.ts): /research/<pmid>-<title-slug>; a stale slug redirects. */
+pageRoute('/research/:slug', async (c, lang) => {
+  const slug = c.req.param('slug') ?? '';
+  const pmid = /^(\d{1,12})(?:-|$)/.exec(slug)?.[1];
+  if (!pmid) return c.notFound();
+  const note = await getResearchNote(c.env.DB, pmid);
+  if (!note) return c.notFound();
+  const path = notePath(note);
+  if (`/research/${slug}` !== path) return c.redirect(localizePath(path, lang), 301);
+  const [sup, related] = await Promise.all([
+    note.supplement_slug ? getSupplementBySlug(c.env.DB, note.supplement_slug) : Promise.resolve(null),
+    notesForSupplement(c.env.DB, note.supplement_id, note.pmid, 6),
+  ]);
+  track(c, { type: 'page_view', page: path });
+  return sendPage(c, renderResearchNote(note, sup, related, new URL(c.req.url).origin), lang, path, 'public, max-age=600');
 });
 
 // ---------- shelf scan (src/shelf.ts) ----------
@@ -1965,6 +1985,8 @@ const BOT_UA =
 function isBot(request: Request): boolean {
   const ua = request.headers.get('user-agent') ?? '';
   if (!ua.trim()) return true;
+  // Every browser sends Accept-Language; scrapers with a borrowed browser user agent mostly do not.
+  if (!request.headers.get('accept-language')) return true;
   const cf = (request as Request & { cf?: { botManagement?: { verifiedBot?: boolean }; verifiedBotCategory?: string } }).cf;
   if (cf?.botManagement?.verifiedBot || cf?.verifiedBotCategory) return true;
   return BOT_UA.test(ua);

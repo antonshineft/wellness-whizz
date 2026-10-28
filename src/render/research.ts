@@ -3,10 +3,11 @@
  * Every note is in the HTML (search engines and no-JS readers see the full list); /js/research.js adds the category
  * and study-type filters and shows the list ten notes at a time.
  */
+import type { Supplement } from '../db';
 import { escapeHtml } from '../html';
-import { noteLabel, pubmedUrl, type ResearchNote } from '../research';
+import { noteLabel, notePath, pubmedUrl, type ResearchNote } from '../research';
 import { page } from './layout';
-import { pageShell, quizCta } from './pages';
+import { formatDate, pageShell, quizCta, reviewedLine } from './pages';
 import { WF_PAGE_IDS } from './partials';
 
 /** How many notes show before the first "Show more". */
@@ -46,10 +47,10 @@ export function renderResearchPage(notes: ResearchNote[], origin: string): strin
           (n) => `
         <article class="ww-note" id="pmid-${escapeHtml(n.pmid)}" data-category="${escapeHtml(slugify((n.supplement_category ?? '').trim() || 'Other'))}" data-types="${escapeHtml(studyTypes(n).join(' '))}">
           <div class="ww-note-meta"><a class="ww-tag" href="/supplement/${escapeHtml(n.supplement_slug ?? '')}">${escapeHtml(n.supplement_name ?? '')}</a><span>${noteLabel(n)}</span>${n.pub_type ? `<span>${escapeHtml(n.pub_type)}</span>` : ''}</div>
-          <h2><a href="${escapeHtml(pubmedUrl(n.pmid))}" target="_blank" rel="noopener">${escapeHtml(n.title)}</a></h2>
+          <h2><a href="${escapeHtml(notePath(n))}">${escapeHtml(n.title)}</a></h2>
           <p>${escapeHtml(n.summary)}</p>
           ${n.takeaway ? `<p class="ww-note-takeaway"><strong>What it means:</strong> ${escapeHtml(n.takeaway)}</p>` : ''}
-          <p class="ww-note-links"><a href="${escapeHtml(pubmedUrl(n.pmid))}" target="_blank" rel="noopener">Read on PubMed</a> · <a href="/supplement/${escapeHtml(n.supplement_slug ?? '')}">${escapeHtml(n.supplement_name ?? '')} profile</a></p>
+          <p class="ww-note-links"><a href="${escapeHtml(notePath(n))}">Read the note</a> · <a href="${escapeHtml(pubmedUrl(n.pmid))}" target="_blank" rel="noopener">Read on PubMed</a> · <a href="/supplement/${escapeHtml(n.supplement_slug ?? '')}">${escapeHtml(n.supplement_name ?? '')} profile</a></p>
         </article>`,
         )
         .join('')
@@ -84,5 +85,91 @@ export function renderResearchPage(notes: ResearchNote[], origin: string): strin
     head: `\n  <link rel="canonical" href="${escapeHtml(origin)}/research">`,
     body: shell,
     scripts: notes.length ? '  <script src="/js/research.js"></script>' : '',
+  });
+}
+
+// ---------- one note on its own page ----------
+
+const NOTE_DISCLAIMER =
+  'This note summarises one study in plain language and is not medical advice. Supplements can interact with medicines and conditions; talk to a pharmacist or doctor before starting one.';
+
+function clip(text: string, max: number): string {
+  const t = text.replace(/\s+/g, ' ').trim();
+  return t.length > max ? `${t.slice(0, max - 1).replace(/\s+\S*$/, '')}…` : t;
+}
+
+/**
+ * /research/<pmid>-<slug>: the plain-language summary, the takeaway, a short profile of the supplement with a link
+ * to its guide, the other notes about it, and the paper on PubMed. English only; the Spanish site gets the chrome.
+ */
+export function renderResearchNote(n: ResearchNote, sup: Supplement | null, related: readonly ResearchNote[], origin: string): string {
+  const path = notePath(n);
+  const url = `${origin}${path}`;
+  const name = n.supplement_name ?? sup?.name ?? '';
+  const supSlug = n.supplement_slug ?? sup?.slug ?? '';
+  const description = clip(n.takeaway || n.summary, 155);
+  const filed = n.created_at.slice(0, 10);
+  const about = sup
+    ? `
+          <h2>About ${escapeHtml(name)}</h2>
+          <p>${escapeHtml(sup.summary)}</p>${sup.why_consider ? `\n          <p>${escapeHtml(sup.why_consider)}</p>` : ''}
+          <p><a href="/supplement/${escapeHtml(supSlug)}" class="fakebutton ww-buy w-button ww-rnote-btn">Open the ${escapeHtml(name)} guide</a></p>`
+    : '';
+  const relatedHtml = related.length
+    ? `
+          <section class="ww-rnote-related">
+            <h2>More research on ${escapeHtml(name)}</h2>
+            <ul>${related.map((r) => `\n              <li><a href="${escapeHtml(notePath(r))}">${escapeHtml(r.title)}</a><span>${noteLabel(r)}</span></li>`).join('')}
+            </ul>
+          </section>`
+    : '';
+  const body = `
+      <article class="ww-prose ww-rnote">
+        <div class="ww-article-meta"><a class="ww-tag" href="/supplement/${escapeHtml(supSlug)}">${escapeHtml(name)}</a><span>${noteLabel(n)}</span>${n.pub_type ? `<span>${escapeHtml(n.pub_type)}</span>` : ''}<span>Filed ${escapeHtml(formatDate(filed))}</span></div>
+        ${reviewedLine(filed, 'ww-reviewed-top')}
+        <h2>In plain language</h2>
+        <p>${escapeHtml(n.summary)}</p>${n.takeaway ? `
+        <h2>What it means for you</h2>
+        <p>${escapeHtml(n.takeaway)}</p>` : ''}
+        <p class="ww-note-links"><a href="${escapeHtml(pubmedUrl(n.pmid))}" target="_blank" rel="noopener">Read the paper on PubMed</a> · <a href="/research">All research notes</a></p>${about}${relatedHtml}
+        <p class="ww-note">${escapeHtml(NOTE_DISCLAIMER)} <a href="/about#disclaimer">Read our full medical disclaimer.</a></p>
+      </article>${quizCta()}`;
+  const shell = pageShell({
+    eyebrow: name ? `Research notes · ${name}` : 'Research notes',
+    title: n.title,
+    lead: clip(n.summary, 220),
+    body,
+    variant: 'plain',
+  });
+  const safe = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
+  const article = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: n.title,
+    description,
+    datePublished: filed,
+    dateModified: filed,
+    author: { '@type': 'Organization', name: 'Wellness Whizz editorial team', url: `${origin}/about` },
+    publisher: { '@type': 'Organization', name: 'Wellness Whizz', url: origin, logo: { '@type': 'ImageObject', url: `${origin}/images/webclip.png` } },
+    mainEntityOfPage: url,
+    ...(name ? { about: { '@type': 'Substance', name } } : {}),
+    citation: { '@type': 'ScholarlyArticle', headline: n.title, url: pubmedUrl(n.pmid), ...(n.journal ? { publisher: { '@type': 'Organization', name: n.journal } } : {}) },
+  };
+  const breadcrumbs = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: `${origin}/` },
+      { '@type': 'ListItem', position: 2, name: 'Research notes', item: `${origin}/research` },
+      { '@type': 'ListItem', position: 3, name: n.title, item: url },
+    ],
+  };
+  return page({
+    title: clip(name && !n.title.toLowerCase().includes(name.toLowerCase()) ? `${name} study: ${n.title}` : n.title, 60),
+    description,
+    pageId: WF_PAGE_IDS.supplement,
+    bodyClass: 'body-2',
+    head: `\n  <link rel="canonical" href="${escapeHtml(url)}">\n  <meta property="og:type" content="article">\n  <meta property="article:published_time" content="${escapeHtml(filed)}">\n  <script type="application/ld+json">${safe(article)}</script>\n  <script type="application/ld+json">${safe(breadcrumbs)}</script>`,
+    body: shell,
   });
 }

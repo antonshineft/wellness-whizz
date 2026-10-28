@@ -494,6 +494,22 @@ Set the var `SITEMAP_LANGS` to an empty string to list only the English pages in
 Console inspection walk) while `/es/` stays live with its hreflang links; set it to `es` or remove it to list the
 Spanish pages again. Useful while Google's crawl budget for a new domain is small.
 
+### Research notes as pages
+
+Every research note also has its own page, `/research/<pmid>-<title-slug>` (`notePath` in `src/research.ts`,
+`renderResearchNote` in `src/render/research.ts`): the plain-language summary, the takeaway, a short profile of the
+supplement with a link to its guide, the other notes about it and the paper on PubMed, with Article and breadcrumb
+structured data. The notes are in the sitemap, the feed links to them, the hourly IndexNow ping submits new ones, and
+`/llms.txt` lists the latest forty. A stale slug redirects to the current one. The pages are English only.
+
+### Visitor statistics and crawlers
+
+`track()` in `src/index.ts` drops requests whose user agent names a bot, that Cloudflare marks as a verified bot, or
+that carry no `Accept-Language` header (browsers always send one; scrapers with a borrowed browser user agent mostly
+do not). Crawlers that slip through anyway are removed when the numbers are read: an address with more than
+`CRAWLER_EVENTS_PER_DAY` (40) events in one day counts as a crawler and all of its events stay out of `/api/stats`
+and the Monday report; `/api/stats` says how many addresses and events that rule removed (`crawlers_excluded`).
+
 ## Google Search Console
 
 `src/gsc.ts` asks Google, with a service account, how the site is doing. Setup: enable the Search Console API in a

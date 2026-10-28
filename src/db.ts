@@ -504,6 +504,15 @@ export async function exportSupplements(db: D1Database): Promise<Supplement[]> {
 // ---------- events (measurement) ----------
 
 export type EventType = 'home_view' | 'quiz_view' | 'result_view' | 'supplement_view' | 'page_view' | 'outbound_click' | 'subscribe' | 'share';
+/**
+ * An address that fires more than this many events in one day is a crawler with a browser-like user agent (the ones
+ * that say what they are never get in: src/index.ts isBot), so the statistics leave every event of such an address out.
+ */
+export const CRAWLER_EVENTS_PER_DAY = 40;
+const CRAWLER_IPS = `SELECT DISTINCT ip_hash FROM events WHERE ts >= datetime('now', '-30 days') AND ip_hash IS NOT NULL GROUP BY ip_hash, date(ts) HAVING COUNT(*) > ${CRAWLER_EVENTS_PER_DAY}`;
+/** WHERE fragment: the event comes from a visitor, not from one of those addresses. */
+const HUMAN = `(ip_hash IS NULL OR ip_hash NOT IN (${CRAWLER_IPS}))`;
+
 export const EVENT_TYPES: readonly EventType[] = ['home_view', 'quiz_view', 'result_view', 'supplement_view', 'page_view', 'outbound_click', 'subscribe', 'share'];
 
 export interface EventInput {
@@ -531,15 +540,17 @@ export interface Stats {
   top_supplements_30_days: { slug: string; clicks: number }[];
   top_products_30_days: { slug: string; product: string; clicks: number }[];
   referrers_30_days: { referrer: string; views: number }[];
+  /** What the crawler rule above left out of the last 30 days. */
+  crawlers_excluded: { addresses: number; events_30_days: number };
 }
 
-/** Funnel numbers for the last 7 and 30 days. */
+/** Funnel numbers for the last 7 and 30 days (events from crawler addresses left out). */
 export async function statsSummary(db: D1Database): Promise<Stats> {
-  const [byType, quizzes, topSupplements, topProducts, referrers] = await Promise.all([
+  const [byType, quizzes, topSupplements, topProducts, referrers, crawlers] = await Promise.all([
     db
       .prepare(
         `SELECT type, SUM(ts >= datetime('now', '-7 days')) AS d7, COUNT(*) AS d30
-         FROM events WHERE ts >= datetime('now', '-30 days') GROUP BY type`,
+         FROM events WHERE ts >= datetime('now', '-30 days') AND ${HUMAN} GROUP BY type`,
       )
       .all<{ type: string; d7: number; d30: number }>(),
     db
@@ -552,24 +563,27 @@ export async function statsSummary(db: D1Database): Promise<Stats> {
     db
       .prepare(
         `SELECT slug, COUNT(*) AS clicks FROM events
-         WHERE type = 'outbound_click' AND ts >= datetime('now', '-30 days') AND slug IS NOT NULL
+         WHERE type = 'outbound_click' AND ts >= datetime('now', '-30 days') AND slug IS NOT NULL AND ${HUMAN}
          GROUP BY slug ORDER BY clicks DESC LIMIT 20`,
       )
       .all<{ slug: string; clicks: number }>(),
     db
       .prepare(
         `SELECT slug, product, COUNT(*) AS clicks FROM events
-         WHERE type = 'outbound_click' AND ts >= datetime('now', '-30 days') AND product IS NOT NULL
+         WHERE type = 'outbound_click' AND ts >= datetime('now', '-30 days') AND product IS NOT NULL AND ${HUMAN}
          GROUP BY slug, product ORDER BY clicks DESC LIMIT 20`,
       )
       .all<{ slug: string; product: string; clicks: number }>(),
     db
       .prepare(
         `SELECT referrer, COUNT(*) AS views FROM events
-         WHERE referrer IS NOT NULL AND ts >= datetime('now', '-30 days')
+         WHERE referrer IS NOT NULL AND ts >= datetime('now', '-30 days') AND ${HUMAN}
          GROUP BY referrer ORDER BY views DESC LIMIT 20`,
       )
       .all<{ referrer: string; views: number }>(),
+    db
+      .prepare(`SELECT COUNT(DISTINCT ip_hash) AS addresses, COUNT(*) AS events FROM events WHERE ts >= datetime('now', '-30 days') AND ip_hash IN (${CRAWLER_IPS})`)
+      .first<{ addresses: number; events: number }>(),
   ]);
   const funnel: Stats['funnel'] = {};
   for (const type of EVENT_TYPES) funnel[type] = { last_7_days: 0, last_30_days: 0 };
@@ -586,6 +600,7 @@ export async function statsSummary(db: D1Database): Promise<Stats> {
     top_supplements_30_days: topSupplements.results,
     top_products_30_days: topProducts.results,
     referrers_30_days: referrers.results,
+    crawlers_excluded: { addresses: Number(crawlers?.addresses ?? 0), events_30_days: Number(crawlers?.events ?? 0) },
   };
 }
 
@@ -618,7 +633,7 @@ export async function weeklyNumbers(db: D1Database): Promise<WeeklyNumbers> {
     db
       .prepare(
         `SELECT type, SUM(ts >= datetime('now', '-7 days')) AS w1, SUM(ts < datetime('now', '-7 days')) AS w0
-         FROM events WHERE ts >= datetime('now', '-14 days') GROUP BY type`,
+         FROM events WHERE ts >= datetime('now', '-14 days') AND ${HUMAN} GROUP BY type`,
       )
       .all<{ type: string; w1: number; w0: number }>(),
     db
@@ -640,28 +655,28 @@ export async function weeklyNumbers(db: D1Database): Promise<WeeklyNumbers> {
     db
       .prepare(
         `SELECT e.slug, COALESCE(s.name, e.slug) AS name, COUNT(*) AS clicks FROM events e LEFT JOIN supplements s ON s.slug = e.slug
-         WHERE e.type = 'outbound_click' AND e.ts >= datetime('now', '-7 days') AND e.slug IS NOT NULL
+         WHERE e.type = 'outbound_click' AND e.ts >= datetime('now', '-7 days') AND e.slug IS NOT NULL AND ${HUMAN}
          GROUP BY e.slug ORDER BY clicks DESC LIMIT 8`,
       )
       .all<{ slug: string; name: string; clicks: number }>(),
     db
       .prepare(
         `SELECT slug, product, COUNT(*) AS clicks FROM events
-         WHERE type = 'outbound_click' AND ts >= datetime('now', '-7 days') AND product IS NOT NULL
+         WHERE type = 'outbound_click' AND ts >= datetime('now', '-7 days') AND product IS NOT NULL AND ${HUMAN}
          GROUP BY slug, product ORDER BY clicks DESC LIMIT 8`,
       )
       .all<{ slug: string; product: string; clicks: number }>(),
     db
       .prepare(
         `SELECT e.slug, COALESCE(s.name, e.slug) AS name, COUNT(*) AS views FROM events e LEFT JOIN supplements s ON s.slug = e.slug
-         WHERE e.type = 'supplement_view' AND e.ts >= datetime('now', '-7 days') AND e.slug IS NOT NULL
+         WHERE e.type = 'supplement_view' AND e.ts >= datetime('now', '-7 days') AND e.slug IS NOT NULL AND ${HUMAN}
          GROUP BY e.slug ORDER BY views DESC LIMIT 8`,
       )
       .all<{ slug: string; name: string; views: number }>(),
     db
       .prepare(
         `SELECT referrer, COUNT(*) AS views FROM events
-         WHERE referrer IS NOT NULL AND ts >= datetime('now', '-7 days')
+         WHERE referrer IS NOT NULL AND ts >= datetime('now', '-7 days') AND ${HUMAN}
          GROUP BY referrer ORDER BY views DESC LIMIT 8`,
       )
       .all<{ referrer: string; views: number }>(),

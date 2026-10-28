@@ -308,15 +308,50 @@ export async function pruneAbstractlessNotes(db: D1Database): Promise<{ notes: n
   return { notes: notes.meta?.changes ?? 0, posts: posts.meta?.changes ?? 0 };
 }
 
+const NOTE_SELECT = `SELECT n.*, s.name AS supplement_name, s.slug AS supplement_slug, s.category AS supplement_category FROM research_notes n
+       JOIN supplements s ON s.id = n.supplement_id`;
+
 export async function listResearchNotes(db: D1Database, limit = 100): Promise<ResearchNote[]> {
   const { results } = await db
-    .prepare(
-      `SELECT n.*, s.name AS supplement_name, s.slug AS supplement_slug, s.category AS supplement_category FROM research_notes n
-       JOIN supplements s ON s.id = n.supplement_id WHERE n.summary != '' ORDER BY n.created_at DESC, n.id DESC LIMIT ?`,
-    )
+    .prepare(`${NOTE_SELECT} WHERE n.summary != '' ORDER BY n.created_at DESC, n.id DESC LIMIT ?`)
     .bind(limit)
     .all<ResearchNote>();
   return results;
+}
+
+export async function getResearchNote(db: D1Database, pmid: string): Promise<ResearchNote | null> {
+  return (await db.prepare(`${NOTE_SELECT} WHERE n.pmid = ? AND n.summary != ''`).bind(pmid).first<ResearchNote>()) ?? null;
+}
+
+/** Other notes about the same supplement, newest first. */
+export async function notesForSupplement(db: D1Database, supplementId: number, excludePmid = '', limit = 6): Promise<ResearchNote[]> {
+  const { results } = await db
+    .prepare(`${NOTE_SELECT} WHERE n.supplement_id = ? AND n.pmid != ? AND n.summary != '' ORDER BY n.created_at DESC, n.id DESC LIMIT ?`)
+    .bind(supplementId, excludePmid, limit)
+    .all<ResearchNote>();
+  return results;
+}
+
+/** Notes filed after `since` (an SQLite datetime), for the search-engine pings in src/indexing.ts. */
+export async function notesSince(db: D1Database, since: string, limit = 200): Promise<Pick<ResearchNote, 'pmid' | 'title'>[]> {
+  const { results } = await db
+    .prepare(`SELECT pmid, title FROM research_notes WHERE summary != '' AND created_at > ? ORDER BY created_at DESC LIMIT ?`)
+    .bind(since, limit)
+    .all<{ pmid: string; title: string }>();
+  return results;
+}
+
+/** The note's own page: /research/<pmid>-<title-slug> (src/render/research.ts renderResearchNote). */
+export function notePath(n: Pick<ResearchNote, 'pmid' | 'title'>): string {
+  const slug = n.title
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^\x00-\x7f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 70)
+    .replace(/-$/, '');
+  return `/research/${encodeURIComponent(n.pmid)}${slug ? `-${slug}` : ''}`;
 }
 
 export async function unqueuedNotes(db: D1Database, limit: number): Promise<ResearchNote[]> {

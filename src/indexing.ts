@@ -17,7 +17,7 @@ import type { BlogPost } from './blog/types';
 import { localizePath, type Lang } from './i18n';
 import { translatedRefs } from './translate';
 import { getMeta, setMeta } from './db';
-import { listResearchNotes, pubmedUrl, type ResearchNote } from './research';
+import { listResearchNotes, notePath, notesSince, pubmedUrl, type ResearchNote } from './research';
 
 export interface IndexingEnv {
   DB: D1Database;
@@ -114,7 +114,8 @@ async function latestNoteAt(db: D1Database): Promise<string | undefined> {
  * carry none, supplement pages carry their last content change and the lists carry their newest item.
  */
 export async function sitemapEntries(db: D1Database, curatedOnly: boolean, langs: readonly Lang[] = []): Promise<SitemapEntry[]> {
-  const [supplements, noteAt, posts] = await Promise.all([supplementStamps(db, curatedOnly), latestNoteAt(db), allPosts(db)]);
+  const [supplements, noteAt, posts, notes] = await Promise.all([supplementStamps(db, curatedOnly), latestNoteAt(db), allPosts(db), listResearchNotes(db, 500)]);
+  const noteEntries = notes.map((n) => ({ loc: notePath(n), lastmod: day(n.created_at), priority: '0.5' }));
   const supplementEntries = supplements.map((s) => ({
     loc: `/supplement/${s.slug}`,
     lastmod: day(s.updated_at || s.created_at),
@@ -133,7 +134,7 @@ export async function sitemapEntries(db: D1Database, curatedOnly: boolean, langs
     { loc: '/about', priority: '0.5' },
     { loc: '/terms', priority: '0.2' },
   ];
-  const entries = [...statics, ...postEntries, ...supplementEntries];
+  const entries = [...statics, ...postEntries, ...noteEntries, ...supplementEntries];
   // The translated site: its static pages, and the supplement pages and articles whose translation exists.
   for (const lang of langs) {
     if (lang === 'en') continue;
@@ -143,6 +144,7 @@ export async function sitemapEntries(db: D1Database, curatedOnly: boolean, langs
       if (sup) return sups.has(sup[1]);
       const post = /^\/blog\/(.+)$/.exec(loc);
       if (post) return articles.has(post[1]);
+      if (loc.startsWith('/research/')) return false; // research notes are English only
       return true;
     };
     const english = entries.filter((e) => !/^\/es(\/|$)/.test(e.loc));
@@ -196,7 +198,7 @@ function noteItem(site: string, n: ResearchNote): FeedItem {
   const text = [n.summary, n.takeaway ? `What it means: ${n.takeaway}` : '', `Study: ${pubmedUrl(n.pmid)}`].filter(Boolean).join(' ');
   return {
     title: name ? `New research on ${name}: ${n.title}` : n.title,
-    link: `${site}/research#pmid-${encodeURIComponent(n.pmid)}`,
+    link: `${site}${notePath(n)}`,
     description: text,
     category: 'Research notes',
     at: n.created_at,
@@ -338,6 +340,7 @@ export async function indexSync(env: IndexingEnv, opts: IndexSyncOptions = {}): 
     }
     if (noteCount !== state.notes) {
       paths.add('/research');
+      for (const n of await notesSince(db, state.since)) paths.add(notePath(n));
       feedChanged = true;
     }
   }
