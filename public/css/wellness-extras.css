@@ -592,3 +592,13 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-rnote-related li { margin: 0 0 12px; padding: 12px 16px; background: #ecf3f6; border-radius: 16px; }
 .ww-rnote-related li a { display: block; font-weight: 500; }
 .ww-rnote-related li span { display: block; font-size: 14px; line-height: 20px; opacity: .7; margin-top: 2px; }
+/* "Latest Research" on supplement pages: the newest notes about the supplement (src/render/supplement.ts). */
+.ww-rl-body .ww-rl-list { list-style: none; padding: 0; margin: 0; }
+.ww-rl-item { padding: 14px 0; border-top: 1px solid #ffffff1f; }
+.ww-rl-item:first-child { border-top: 0; padding-top: 0; }
+.ww-rl-body .ww-rl-title { color: #fff; font-weight: 500; text-decoration: underline; text-decoration-color: #87d581; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.ww-rl-body .ww-rl-title:hover { color: #87d581; }
+.ww-rl-meta { display: block; font-size: 14px; line-height: 20px; opacity: .7; margin-top: 2px; }
+.ww-rl-body .ww-rl-take { margin: 6px 0 0; opacity: .85; }
+.ww-rl-more { margin: 16px 0 0; }
+.ww-rl-body .ww-rl-more a { color: #87d581; }

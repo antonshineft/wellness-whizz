@@ -353,14 +353,16 @@ pageRoute('/supplement/:slug', async (c, lang) => {
   // hreflang links, so links from the Spanish site never dead-end and search engines only see the translated version.
   const translation = lang === 'en' ? null : await getTranslation<SupplementTranslation>(c.env.DB, lang, 'supplement', supplement.slug);
   const pending = lang !== 'en' && !translation;
-  const [exploreEn, relatedEn] = await Promise.all([
+  const [exploreEn, relatedEn, notes] = await Promise.all([
     listSupplements(c.env.DB, 200, curatedOnly(c.env)),
     relatedSupplements(c.env.DB, supplement, 4, curatedOnly(c.env)),
+    // The research notes are English only, so the Spanish page does without the block.
+    lang === 'en' ? notesForSupplement(c.env.DB, supplement.id, '', 5) : Promise.resolve([]),
   ]);
   const [explore, related] = await Promise.all([localizeSupplements(c.env.DB, lang, exploreEn), localizeSupplements(c.env.DB, lang, relatedEn)]);
   const alternates = lang === 'en' ? await hasTranslation(c.env.DB, 'es', 'supplement', supplement.slug) : !pending;
   track(c, { type: 'supplement_view', page: `/supplement/${supplement.slug}`, slug: supplement.slug });
-  const html = renderSupplementPage(localizeSupplement(supplement, translation), explore, c.env, { related, origin: new URL(c.req.url).origin });
+  const html = renderSupplementPage(localizeSupplement(supplement, translation), explore, c.env, { related, origin: new URL(c.req.url).origin, notes });
   const body = pending ? new Response(html, { status: 200, headers: { ...htmlHeaders('public, max-age=60'), 'x-robots-tag': 'noindex' } }) : html;
   return sendPage(c, body, lang, `/supplement/${supplement.slug}`, 'public, max-age=300', alternates);
 });

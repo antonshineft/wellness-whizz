@@ -3,6 +3,7 @@ import type { Supplement } from '../db';
 import { escapeHtml } from '../html';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
+import { noteLabel, notePath, type ResearchNote } from '../research';
 import { reviewedLine } from './pages';
 import {
   EFFECTIVITY_LABELS, SAFETY_LABELS, WF_PAGE_IDS, blendAttr, cardImage, detailImage, exploreSection, footer, headerTags, navbar,
@@ -212,6 +213,32 @@ export interface SupplementPageExtras {
   related?: Supplement[];
   /** Site origin for canonical URL and structured data. */
   origin?: string;
+  /** The newest research notes about this supplement (src/research.ts), shown as "Latest Research". */
+  notes?: readonly ResearchNote[];
+}
+
+/** "Latest Research": the newest notes about this supplement, each linking its own page under /research/. */
+function researchSection(notes: readonly ResearchNote[]): string {
+  if (!notes.length) return '';
+  const items = notes
+    .map(
+      (n) => `
+          <li class="ww-rl-item">
+            <a href="${escapeHtml(notePath(n))}" class="ww-rl-title">${escapeHtml(n.title)}</a>
+            <span class="ww-rl-meta">${noteLabel(n)}${n.pub_type ? ` · ${escapeHtml(n.pub_type)}` : ''}</span>${n.takeaway ? `
+            <p class="ww-rl-take">${escapeHtml(n.takeaway)}</p>` : ''}
+          </li>`,
+    )
+    .join('');
+  return `
+    <div class="frame-209 recent ww-rl" id="research">
+      <h3 class="heading-green recent">Latest Research</h3>
+      <div class="rich-text-block-4 links ww-rl-body">
+        <ul class="ww-rl-list">${items}
+        </ul>
+        <p class="ww-rl-more"><a href="/research">All research notes</a></p>
+      </div>
+    </div>`;
 }
 
 function seoHead(sup: Supplement, origin: string): string {
@@ -384,7 +411,7 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
       })}
     </div>${productCards(env, sup)}
   </div>
-  <section class="info">${synergySection(sup)}${insightsSection(sup)}${studiesSection(sup)}${faqSection(sup)}
+  <section class="info">${synergySection(sup)}${insightsSection(sup)}${studiesSection(sup)}${researchSection(extras.notes ?? [])}${faqSection(sup)}
   </section>${relatedSection(extras.related ?? [])}${exploreSection(explore)}${footer()}${stickyBuyBar(env, sup)}`;
 
   return page({

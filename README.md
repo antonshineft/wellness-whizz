@@ -500,7 +500,9 @@ Every research note also has its own page, `/research/<pmid>-<title-slug>` (`not
 `renderResearchNote` in `src/render/research.ts`): the plain-language summary, the takeaway, a short profile of the
 supplement with a link to its guide, the other notes about it and the paper on PubMed, with Article and breadcrumb
 structured data. The notes are in the sitemap, the feed links to them, the hourly IndexNow ping submits new ones, and
-`/llms.txt` lists the latest forty. A stale slug redirects to the current one. The pages are English only.
+`/llms.txt` lists the latest forty. A stale slug redirects to the current one. The pages are English only. Every
+English supplement page shows its newest five notes as "Latest Research" (`researchSection` in
+`src/render/supplement.ts`), each linking the note's page.
 
 ### Visitor statistics and crawlers
 
