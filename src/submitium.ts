@@ -200,8 +200,11 @@ async function sheets<T>(env: SubmitiumEnv, url: string, init: { method?: string
     return sheets<T>(env, url, init, false);
   }
   if (res.status === 403) {
+    // Either the sheet is not shared with the service account, or the Sheets API is off in its Google Cloud project.
+    const detail = (await res.text()).slice(0, 300);
     const who = serviceAccountEmail(env);
-    throw new Error(`the sheet is not shared with the service account${who ? ` (share it with ${who} as an editor)` : ''}`);
+    if (/has not been used|is disabled|accessNotConfigured/i.test(detail)) throw new Error(`the Google Sheets API is not enabled in the service account's project: ${detail.replace(/\s+/g, ' ')}`);
+    throw new Error(`the sheet is not shared with the service account${who ? ` (share it with ${who} as an editor)` : ''}: ${detail.replace(/\s+/g, ' ')}`);
   }
   if (!res.ok) throw new Error(`Sheets API ${res.status}: ${(await res.text()).slice(0, 200)}`);
   return (await res.json()) as T;
