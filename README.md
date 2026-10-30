@@ -264,8 +264,10 @@ address, and what the last hourly run did or why it skipped (for example `X keys
   (`indieToolsBadge`). Under that bar sits the Submitium badge wall (`src/badges.ts`): the directory badges this
   product is listed on, fetched on the server by `@submitium/badges` with the `SUBMITIUM_API_KEY` secret, checked
   against Submitium's signature, kept for 60 seconds in D1 (meta `submitium:wall`) and refreshed in the background,
-  then printed as plain links and images into the footer's `.ww-badge-wall` container by `sendPage`. Without the
-  secret the container is removed; before the first directory listing the wall shows one placeholder line.
+  then printed as plain links and images into the footer's `.ww-badge-wall` container by `sendPage`, on the
+  homepage only (the directories check the homepage; a block of outbound links on every page would read as a
+  sitewide link exchange). Elsewhere, and without the secret, the container is removed; before the first directory
+  listing the wall shows one placeholder line.
   The order itself is tracked by `src/submitium.ts`: `data/submitium-directories.json` lists the directories
   bought (name, domain, Ahrefs rating, category); every morning the Worker reads the same badge feed. A badge
   appears as soon as Submitium queues a directory that wants its badge on the site (status "badge": shown in the

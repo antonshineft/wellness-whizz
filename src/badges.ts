@@ -1,8 +1,8 @@
 /**
  * The Submitium badge wall (https://submitium.com): the directory badges this product is listed on,
  * rendered on the server by @submitium/badges as plain links and images, no script. It sits in the
- * footer's bottom bar (src/render/partials.ts and public/index.html carry an empty `.ww-badge-wall`
- * container; sendPage in src/index.ts fills it).
+ * footer's bottom bar of the homepage only (src/render/partials.ts and public/index.html carry an empty
+ * `.ww-badge-wall` container; sendPage in src/index.ts fills it on the homepage and removes it elsewhere).
  *
  * The package reads the project's API key, checks Submitium's signature and keeps the last good wall in
  * memory. A Worker isolate is short-lived, so this module also keeps a copy in D1 (meta `submitium:wall`)

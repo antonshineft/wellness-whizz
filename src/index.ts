@@ -248,8 +248,9 @@ function pageRoute(path: string, handler: (c: Context<AppContext>, lang: Lang) =
 /** The finished page: hreflang links on both versions; in Spanish also the translated chrome and /es/ links. */
 async function sendPage(c: Context<AppContext>, body: string | Response, lang: Lang, enPath: string, cacheControl: string, alternates = true): Promise<Response> {
   const page = typeof body === 'string' ? new Response(body, { status: 200, headers: htmlHeaders(cacheControl) }) : body;
-  // The footer's directory badge wall (src/badges.ts): filled from the cached copy, nothing when there is no key.
-  const res = withBadgeWall(page, await badgeWallHtml(c.env, (job) => c.executionCtx.waitUntil(job)));
+  // The footer's directory badge wall (src/badges.ts), on the homepage only: the directories check the homepage, and a
+  // block of outbound links on every page would read as a sitewide link exchange. Elsewhere the container is removed.
+  const res = withBadgeWall(page, enPath === '/' ? await badgeWallHtml(c.env, (job) => c.executionCtx.waitUntil(job)) : '');
   if (lang === 'en' && !alternates) return res;
   return localizeResponse(res, lang, { origin: new URL(c.req.url).origin, path: enPath, alternates });
 }
