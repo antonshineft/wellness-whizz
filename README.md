@@ -261,7 +261,11 @@ address, and what the last hourly run did or why it skipped (for example `X keys
   Wellness Whizz editorial team · Last reviewed <date>" line (`reviewedLine` in the same file) that links the About
   page. The footer's social row starts with Trustpilot (`trustpilotBadge` in `src/render/partials.ts`: a profile link
   until the business unit id is set there, then the TrustBox widget) followed by the IndieTools "listed on" badge
-  (`indieToolsBadge`).
+  (`indieToolsBadge`). Under that bar sits the Submitium badge wall (`src/badges.ts`): the directory badges this
+  product is listed on, fetched on the server by `@submitium/badges` with the `SUBMITIUM_API_KEY` secret, checked
+  against Submitium's signature, kept for 60 seconds in D1 (meta `submitium:wall`) and refreshed in the background,
+  then printed as plain links and images into the footer's `.ww-badge-wall` container by `sendPage`. Without the
+  secret the container is removed; before the first directory listing the wall shows one placeholder line.
 - `/blog` lists the articles in `src/blog/posts/*.ts` (newest first) and `/blog/<slug>` renders one. An article is a
   plain TypeScript module (see `src/blog/types.ts`): write `href="iherb:magnesium glycinate"` for an iHerb search link
   with your referral code and click tracking, `<ww-shop slugs="…"></ww-shop>` for product cards from the catalogue

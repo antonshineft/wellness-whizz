@@ -602,3 +602,8 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-rl-body .ww-rl-take { margin: 6px 0 0; opacity: .85; }
 .ww-rl-more { margin: 16px 0 0; }
 .ww-rl-body .ww-rl-more a { color: #87d581; }
+
+/* ---------- Submitium badge wall (src/badges.ts): its own full-width row under the footer's bottom bar ---------- */
+.ww-badge-wall { margin-top: -36px; color: #fff; font-family: Aeonik, sans-serif; }
+.ww-badge-wall:empty { display: none; }
+@media (max-width: 479px) { .ww-badge-wall { margin-top: -28px; } }

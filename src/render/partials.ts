@@ -226,6 +226,7 @@ export function footer(): string {
           <a href="https://www.tiktok.com/@theaiwellnesswhiz?_t=8jPysLbiyxN&amp;_r=1" target="_blank" rel="noopener" aria-label="Wellness Whizz on TikTok" class="w-inline-block"><img src="/images/Vectors-Wrapper_10.svg" loading="lazy" width="33" height="38" alt="TikTok" class="vectors-wrapper-60"></a><a href="https://x.com/aiwwio" target="_blank" rel="noopener" aria-label="Wellness Whizz on X" class="w-inline-block"><img src="/images/x-logo-light.svg" loading="lazy" width="34" height="38" alt="X (Twitter)" class="vectors-wrapper-61 ww-x-icon"></a>
         </nav>
       </div>
+      <div class="frame-220 ww-badge-wall"></div>
     </footer>
   </section>`;
 }

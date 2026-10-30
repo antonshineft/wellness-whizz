@@ -25,6 +25,7 @@ import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect,
 import { renderTikTokAdmin } from './render/tiktok-admin';
 import { getVideo, listVideos, markFailed, markPosted, markReady, nextJob, parseScript, queueVideo, scriptNext } from './videos';
 import { actOnProspect, addProspect, checkWins, counts as prospectCounts, dailyOutreach, discoverProspects, draftPending, findContacts, listProspects, noteReply, outreachDigest, outreachStep, recentEvents, sendApproved, type ProspectKind } from './backlinks';
+import { badgeWallHtml, withBadgeWall } from './badges';
 import { renderBacklinksAdmin } from './render/backlinks-admin';
 import { renderBacklinksKit } from './render/backlinks-kit';
 import DIRECTORIES from '../data/directories.json';
@@ -117,6 +118,8 @@ export interface Bindings {
   BACKLINK_SHEET_ID?: string;
   /** Google Search Console (src/gsc.ts): the service account's JSON key (secret) and the property, e.g. sc-domain:aiww.io. */
   GSC_SERVICE_ACCOUNT?: string;
+  /** Submitium project key (secret): the directory badge wall in the footer (src/badges.ts). */
+  SUBMITIUM_API_KEY?: string;
   GSC_SITE?: string;
   GSC_RECHECK_DAYS?: string;
   /** Supplements per cron run of the article writer; "0" disables the scheduled backfill. */
@@ -240,8 +243,10 @@ function pageRoute(path: string, handler: (c: Context<AppContext>, lang: Lang) =
 }
 
 /** The finished page: hreflang links on both versions; in Spanish also the translated chrome and /es/ links. */
-function sendPage(c: Context<AppContext>, body: string | Response, lang: Lang, enPath: string, cacheControl: string, alternates = true): Response {
-  const res = typeof body === 'string' ? new Response(body, { status: 200, headers: htmlHeaders(cacheControl) }) : body;
+async function sendPage(c: Context<AppContext>, body: string | Response, lang: Lang, enPath: string, cacheControl: string, alternates = true): Promise<Response> {
+  const page = typeof body === 'string' ? new Response(body, { status: 200, headers: htmlHeaders(cacheControl) }) : body;
+  // The footer's directory badge wall (src/badges.ts): filled from the cached copy, nothing when there is no key.
+  const res = withBadgeWall(page, await badgeWallHtml(c.env, (job) => c.executionCtx.waitUntil(job)));
   if (lang === 'en' && !alternates) return res;
   return localizeResponse(res, lang, { origin: new URL(c.req.url).origin, path: enPath, alternates });
 }
