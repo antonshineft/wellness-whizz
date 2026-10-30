@@ -267,9 +267,12 @@ address, and what the last hourly run did or why it skipped (for example `X keys
   then printed as plain links and images into the footer's `.ww-badge-wall` container by `sendPage`. Without the
   secret the container is removed; before the first directory listing the wall shows one placeholder line.
   The order itself is tracked by `src/submitium.ts`: `data/submitium-directories.json` lists the directories
-  bought (name, domain, Ahrefs rating, category); every morning the Worker reads the same badge feed, marks a
-  directory live when its badge appears (with the listing link), flags anything still waiting 45 days after the
-  submission date (`SUBMITIUM_SUBMITTED_BY`, default 2026-11-03) as overdue, and rewrites a "Submitium" tab in the
+  bought (name, domain, Ahrefs rating, category); every morning the Worker reads the same badge feed. A badge
+  appears as soon as Submitium queues a directory that wants its badge on the site (status "badge": shown in the
+  footer, listing pending); when the badge's link leaves the directory's homepage for the listing's own page the
+  directory is "live" (the page is fetched once to confirm it mentions the site); directories that need no badge
+  stay "queued" until their listing link appears. Anything still waiting 45 days after the submission date
+  (`SUBMITIUM_SUBMITTED_BY`, default 2026-11-03) is overdue. The step rewrites a "Submitium" tab in the
   backlinks sheet through the Search Console service account (share the sheet with its email as an editor;
   `GET /api/admin/submitium?key=…` shows that email, the state, and `&run=1` runs the step now). The tab uses the
   `ID | Resource | Status | …` layout, so `src/sheet.ts` reads it back like any other tab: those rows join the
