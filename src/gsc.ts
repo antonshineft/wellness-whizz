@@ -55,7 +55,7 @@ interface ServiceAccount {
   private_key: string;
 }
 
-function credentials(env: GscEnv): ServiceAccount | null {
+export function credentials(env: GscEnv): ServiceAccount | null {
   const raw = (env.GSC_SERVICE_ACCOUNT ?? '').trim();
   if (!raw) return null;
   try {
@@ -102,11 +102,13 @@ export async function signJwt(sa: ServiceAccount, scope = SCOPE, now = Math.floo
   return `${header}.${claims}.${base64url(signature)}`;
 }
 
-async function accessToken(env: GscEnv, fresh = false): Promise<string> {
+/** A Google access token for the service account; one cached token per scope (Search Console by default, Sheets for src/submitium.ts). */
+export async function accessToken(env: GscEnv, fresh = false, scope = SCOPE): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
+  const metaKey = scope === SCOPE ? TOKEN_META : `${TOKEN_META}:${scope.replace(/^https:\/\/www\.googleapis\.com\/auth\//, '')}`;
   if (!fresh) {
     try {
-      const cached = JSON.parse((await getMeta(env.DB, TOKEN_META)) ?? 'null') as { token?: string; exp?: number } | null;
+      const cached = JSON.parse((await getMeta(env.DB, metaKey)) ?? 'null') as { token?: string; exp?: number } | null;
       if (cached?.token && (cached.exp ?? 0) > now + 120) return cached.token;
     } catch {
       /* no usable cache */
@@ -114,7 +116,7 @@ async function accessToken(env: GscEnv, fresh = false): Promise<string> {
   }
   const sa = credentials(env);
   if (!sa) throw new Error('GSC_SERVICE_ACCOUNT is not set or is not a service account key');
-  const assertion = await signJwt(sa);
+  const assertion = await signJwt(sa, scope);
   const res = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -122,7 +124,7 @@ async function accessToken(env: GscEnv, fresh = false): Promise<string> {
   });
   if (!res.ok) throw new Error(`Google token ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const j = (await res.json()) as { access_token: string; expires_in: number };
-  await setMeta(env.DB, TOKEN_META, JSON.stringify({ token: j.access_token, exp: now + (j.expires_in || 3600) }));
+  await setMeta(env.DB, metaKey, JSON.stringify({ token: j.access_token, exp: now + (j.expires_in || 3600) }));
   return j.access_token;
 }
 

@@ -13,6 +13,7 @@ import { claudeJson, claudeModel, type ClaudeEnv } from './claude';
 import { alertRecipient, emailEnabled, sendEmail, type EmailEnv } from './email';
 import { gscDigestLine, gscSummary, type GscEnv } from './gsc';
 import { videoDigestLine } from './videos';
+import { submitiumDigestLine, type SubmitiumEnv } from './submitium';
 import { sheetChanges, sheetDigestLine, SHEET_SQL, type SheetEnv } from './sheet';
 
 export interface BacklinkEnv extends ClaudeEnv, EmailEnv {
@@ -571,13 +572,16 @@ export async function outreachDigest(env: BacklinkEnv, s: OutreachSummary): Prom
   const googleLine = await gscDigestLine(env as GscEnv).catch(() => '');
   // The video pipeline (src/videos.ts): a failed script or render would otherwise go unnoticed.
   const videoLine = await videoDigestLine(env.DB).catch(() => '');
-  if (!s.awaiting && !s.sent && !s.followUps && !s.drafted && !s.errors.length && !wentLive && !indexMoved && !videoLine) return;
+  // The Submitium order (src/submitium.ts): a directory went live, is overdue, or the sheet tab could not be written.
+  const submitiumLine = await submitiumDigestLine(env as SubmitiumEnv & BacklinkEnv).catch(() => '');
+  if (!s.awaiting && !s.sent && !s.followUps && !s.drafted && !s.errors.length && !wentLive && !indexMoved && !videoLine && !submitiumLine) return;
   const page = `${origin(env)}/api/admin/backlinks?key=${encodeURIComponent(env.STATS_KEY ?? '')}`;
   const lines = [
     s.discovered ? `Discovered ${s.discovered.added} new prospects (${s.discovered.theme}).` : '',
     sheetLine,
     googleLine,
     videoLine,
+    submitiumLine,
     `Last 24 hours: contacts found ${s.contacts}, drafts written ${s.drafted}, pitches sent ${s.sent}${s.skipped ? ` (${s.skipped})` : ''}, follow-ups ${s.followUps}.`,
     s.awaiting ? `${s.awaiting} draft${s.awaiting === 1 ? '' : 's'} waiting for your approval.` : '',
     ...s.errors.map((e) => `Problem: ${e}`),

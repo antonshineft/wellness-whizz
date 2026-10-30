@@ -266,6 +266,14 @@ address, and what the last hourly run did or why it skipped (for example `X keys
   against Submitium's signature, kept for 60 seconds in D1 (meta `submitium:wall`) and refreshed in the background,
   then printed as plain links and images into the footer's `.ww-badge-wall` container by `sendPage`. Without the
   secret the container is removed; before the first directory listing the wall shows one placeholder line.
+  The order itself is tracked by `src/submitium.ts`: `data/submitium-directories.json` lists the directories
+  bought (name, domain, Ahrefs rating, category); every morning the Worker reads the same badge feed, marks a
+  directory live when its badge appears (with the listing link), flags anything still waiting 45 days after the
+  submission date (`SUBMITIUM_SUBMITTED_BY`, default 2026-11-03) as overdue, and rewrites a "Submitium" tab in the
+  backlinks sheet through the Search Console service account (share the sheet with its email as an editor;
+  `GET /api/admin/submitium?key=…` shows that email, the state, and `&run=1` runs the step now). The tab uses the
+  `ID | Resource | Status | …` layout, so `src/sheet.ts` reads it back like any other tab: those rows join the
+  counts, the "went live" line of the daily digest and the weekly report.
 - `/blog` lists the articles in `src/blog/posts/*.ts` (newest first) and `/blog/<slug>` renders one. An article is a
   plain TypeScript module (see `src/blog/types.ts`): write `href="iherb:magnesium glycinate"` for an iHerb search link
   with your referral code and click tracking, `<ww-shop slugs="…"></ww-shop>` for product cards from the catalogue

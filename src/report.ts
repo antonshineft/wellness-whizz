@@ -43,7 +43,7 @@ function longDate(iso: string): string {
   return new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 }
 
-export function weeklyReportEmail(origin: string, n: WeeklyNumbers, content: ContentProgress): { subject: string; html: string; text: string } {
+export function weeklyReportEmail(origin: string, n: WeeklyNumbers, content: ContentProgress, extra: string[] = []): { subject: string; html: string; text: string } {
   const rows = lines(n);
   const clicks = n.events.outbound_click.this_week;
   const quizzes = n.quizzes.this_week;
@@ -77,6 +77,7 @@ export function weeklyReportEmail(origin: string, n: WeeklyNumbers, content: Con
     `X: ${posts}${n.social.failed_this_week ? `, ${n.social.failed_this_week} failed` : ''}, ${n.social.queued} waiting.`,
     `Research: ${n.research.notes} ${n.research.notes === 1 ? 'note' : 'notes'} on /research, ${n.research.notes_this_week} new this week.`,
     `Catalogue: ${content.supplements} supplements, ${content.with_article} with an article, ${content.with_studies} with studies, ${content.with_faqs} with FAQs, ${content.without_product_photos} without product photos.`,
+    ...extra,
     '',
     botNote,
     `Full numbers: ${origin}/api/stats?key=<your STATS_KEY>`,
@@ -120,6 +121,7 @@ export function weeklyReportEmail(origin: string, n: WeeklyNumbers, content: Con
         <li>X: ${escapeHtml(posts)}${n.social.failed_this_week ? `, <b>${n.social.failed_this_week} failed</b>` : ''}, ${n.social.queued} waiting.</li>
         <li>Research: ${n.research.notes} ${n.research.notes === 1 ? 'note' : 'notes'} on <a href="${escapeHtml(`${origin}/research`)}" style="color:#1d272d">/research</a>, ${n.research.notes_this_week} new this week.</li>
         <li>Catalogue: ${content.supplements} supplements, ${content.with_article} with an article, ${content.with_studies} with studies, ${content.with_faqs} with FAQs, ${content.without_product_photos} without product photos.</li>
+        ${extra.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}
       </ul>
     </div>
     <p style="font-size:12px;line-height:18px;opacity:.6;padding:16px 8px 0">${escapeHtml(botNote)} Full numbers: ${escapeHtml(origin)}/api/stats?key=&lt;your STATS_KEY&gt;</p>

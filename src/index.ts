@@ -26,6 +26,7 @@ import { renderTikTokAdmin } from './render/tiktok-admin';
 import { getVideo, listVideos, markFailed, markPosted, markReady, nextJob, parseScript, queueVideo, scriptNext } from './videos';
 import { actOnProspect, addProspect, checkWins, counts as prospectCounts, dailyOutreach, discoverProspects, draftPending, findContacts, listProspects, noteReply, outreachDigest, outreachStep, recentEvents, sendApproved, type ProspectKind } from './backlinks';
 import { badgeWallHtml, withBadgeWall } from './badges';
+import { serviceAccountEmail, submitiumDigestLine, submitiumReportLine, submitiumState, submitiumStep } from './submitium';
 import { renderBacklinksAdmin } from './render/backlinks-admin';
 import { renderBacklinksKit } from './render/backlinks-kit';
 import DIRECTORIES from '../data/directories.json';
@@ -120,6 +121,8 @@ export interface Bindings {
   GSC_SERVICE_ACCOUNT?: string;
   /** Submitium project key (secret): the directory badge wall in the footer (src/badges.ts). */
   SUBMITIUM_API_KEY?: string;
+  /** The day Submitium promised to have every directory submitted by (src/submitium.ts; default 2026-11-03). */
+  SUBMITIUM_SUBMITTED_BY?: string;
   GSC_SITE?: string;
   GSC_RECHECK_DAYS?: string;
   /** Supplements per cron run of the article writer; "0" disables the scheduled backfill. */
@@ -822,8 +825,8 @@ function parseMeta(value: string | null): unknown {
 
 /** The Monday numbers email for the current week. */
 async function weeklyReport(env: Bindings): Promise<{ subject: string; html: string; text: string }> {
-  const [numbers, content] = await Promise.all([weeklyNumbers(env.DB), contentProgress(env.DB, MIN_ARTICLE_LENGTH)]);
-  return weeklyReportEmail(siteOrigin(env), numbers, content);
+  const [numbers, content, submitium] = await Promise.all([weeklyNumbers(env.DB), contentProgress(env.DB, MIN_ARTICLE_LENGTH), submitiumReportLine(env).catch(() => '')]);
+  return weeklyReportEmail(siteOrigin(env), numbers, content, [submitium].filter(Boolean));
 }
 
 /**
@@ -1310,6 +1313,16 @@ app.post('/api/tiktok/post', async (c) => {
 });
 
 /** Short videos per article (src/videos.ts). The render job (GitHub Actions) uses /next, /ready and /failed. */
+/** Submitium (src/submitium.ts): the state of the directory order; ?run=1 reads the feed and rewrites the sheet tab now. */
+app.get('/api/admin/submitium', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  const state = c.req.query('run') === '1' ? await submitiumStep(c.env) : await submitiumState(c.env);
+  return c.json({ share_sheet_with: serviceAccountEmail(c.env), state });
+});
+
 app.get('/api/admin/videos', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
@@ -1783,6 +1796,7 @@ export default {
           // Yesterday's Google search numbers (src/gsc.ts) and the owner's directory sheet (src/sheet.ts) first, so the
           // digest below reflects both.
           .then(() => analyticsStep(env, true).then((a) => console.log(`gsc analytics: ${a ? `${a.week.impressions} impressions, ${a.week.clicks} clicks` : 'off'}`)).catch((err) => console.error(`gsc analytics failed: ${String(err)}`)))
+          .then(() => submitiumStep(env).then((s) => console.log(`submitium: ${s.live}/${s.directories.length} live, new ${s.newly_live.length}, sheet ${s.sheet.error ?? 'ok'}, feed ${s.error ?? 'ok'}`)).catch((err) => console.error(`submitium failed: ${String(err)}`)))
           .then(() => syncSheet(env).then((s) => console.log(`sheet: ${JSON.stringify({ tabs: s.tabs, rows: s.rows, changed: s.changed.length, error: s.error ?? null })}`)).catch((err) => console.error(`sheet sync failed: ${String(err)}`)))
           .then(() => dailyOutreach(env))
           .then(async (r) => { console.log(`outreach: ${JSON.stringify(r)}`); await outreachDigest(env, r); })
