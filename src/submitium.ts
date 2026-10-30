@@ -138,7 +138,7 @@ export async function submitiumStep(env: SubmitiumEnv): Promise<SubmitiumState> 
     const link = badge ? listingLink(badge.href) : '';
     if (link) return { ...base, status: 'live', listing_url: link, live_at: old?.status === 'live' ? old.live_at : today, verified: old?.listing_url === link ? old.verified : '' };
     // A listing once linked stays live even if the feed later drops the badge (a directory can stop asking for it).
-    if (old?.status === 'live' && old.listing_url) return { ...old, ...base, status: 'live' };
+    if (old?.status === 'live' && listingLink(old.listing_url)) return { ...old, ...base, status: 'live' };
     const waiting: DirectoryStatus = overdue ? 'overdue' : badge ? 'badge' : 'queued';
     return { ...base, status: waiting, listing_url: '', live_at: null, verified: '' };
   };
