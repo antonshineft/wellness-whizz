@@ -75,3 +75,63 @@
     if (link.getAttribute('data-track') === 'outbound_click') window.gtag_report_conversion();
   }, true);
 })();
+
+// ---------- "Explore manually": a square preview of the supplement's product on hover (desktop only) ----------
+(function () {
+  if (!window.matchMedia || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  var list = document.querySelector('.linksnav');
+  if (!list) return;
+  var peek = null, img = null, timer = null, current = null;
+  function ensure() {
+    if (peek) return;
+    peek = document.createElement('div');
+    peek.className = 'ww-peek';
+    peek.setAttribute('aria-hidden', 'true');
+    img = document.createElement('img');
+    img.alt = '';
+    img.decoding = 'async';
+    peek.appendChild(img);
+    document.body.appendChild(peek);
+  }
+  function place(link) {
+    var r = link.getBoundingClientRect(), w = 170, h = 170, gap = 10;
+    var left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), window.innerWidth - w - 8);
+    var top = r.top - gap - h >= 8 ? r.top - gap - h : r.bottom + gap;
+    peek.style.left = Math.round(left + window.scrollX) + 'px';
+    peek.style.top = Math.round(top + window.scrollY) + 'px';
+  }
+  function show(link) {
+    var src = link.getAttribute('data-img');
+    if (!src) return;
+    ensure();
+    current = link;
+    img.style.mixBlendMode = link.getAttribute('data-blend') === '1' ? 'multiply' : '';
+    place(link);
+    var on = function () { if (current === link) peek.classList.add('is-on'); };
+    if (img.getAttribute('src') !== src) {
+      peek.classList.remove('is-on');
+      img.onload = on;
+      img.src = src;
+    } else {
+      on();
+    }
+  }
+  function hide() {
+    current = null;
+    clearTimeout(timer);
+    if (peek) peek.classList.remove('is-on');
+  }
+  list.addEventListener('mouseover', function (e) {
+    var a = e.target.closest ? e.target.closest('a.link[data-img]') : null;
+    if (!a || a === current) return;
+    clearTimeout(timer);
+    timer = setTimeout(function () { show(a); }, 60);
+  });
+  list.addEventListener('mouseout', function (e) {
+    var a = e.target.closest ? e.target.closest('a.link[data-img]') : null;
+    if (!a) return;
+    if (e.relatedTarget && a.contains(e.relatedTarget)) return;
+    hide();
+  });
+  window.addEventListener('scroll', hide, { passive: true });
+})();

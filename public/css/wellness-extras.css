@@ -607,3 +607,8 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-badge-wall { margin-top: -36px; color: #fff; font-family: Aeonik, sans-serif; }
 .ww-badge-wall:empty { display: none; }
 @media (max-width: 479px) { .ww-badge-wall { margin-top: -28px; } }
+
+/* ---------- "Explore manually": the product preview that public/js/site.js shows above a link on hover ---------- */
+.ww-peek { position: absolute; z-index: 60; width: 170px; height: 170px; padding: 16px; box-sizing: border-box; background: #fdf1cf; border-radius: 20px; box-shadow: 0 14px 36px rgba(29, 39, 45, .22); opacity: 0; transform: translateY(6px) scale(.96); transition: opacity .16s ease, transform .16s ease; pointer-events: none; }
+.ww-peek.is-on { opacity: 1; transform: none; }
+.ww-peek img { display: block; width: 100%; height: 100%; object-fit: contain; }

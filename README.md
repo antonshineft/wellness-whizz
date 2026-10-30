@@ -260,8 +260,8 @@ address, and what the last hourly run did or why it skipped (for example `X keys
   `src/render/pages.ts`; the footer links point at them. Supplement pages and articles carry a "Reviewed by the
   Wellness Whizz editorial team · Last reviewed <date>" line (`reviewedLine` in the same file) that links the About
   page. The footer's social row starts with Trustpilot (`trustpilotBadge` in `src/render/partials.ts`: a profile link
-  until the business unit id is set there, then the TrustBox widget) followed by the IndieTools "listed on" badge
-  (`indieToolsBadge`). Under that bar sits the Submitium badge wall (`src/badges.ts`): the directory badges this
+  until the business unit id is set there, then the TrustBox widget); on the homepage the IndieTools "listed on"
+  badge follows it (`public/index.html` only). Under that bar sits the Submitium badge wall (`src/badges.ts`): the directory badges this
   product is listed on, fetched on the server by `@submitium/badges` with the `SUBMITIUM_API_KEY` secret, checked
   against Submitium's signature, kept for 60 seconds in D1 (meta `submitium:wall`) and refreshed in the background,
   then printed as plain links and images into the footer's `.ww-badge-wall` container by `sendPage`, on the
@@ -279,6 +279,9 @@ address, and what the last hourly run did or why it skipped (for example `X keys
   `GET /api/admin/submitium?key=…` shows that email, the state, and `&run=1` runs the step now). The tab uses the
   `ID | Resource | Status | …` layout, so `src/sheet.ts` reads it back like any other tab: those rows join the
   counts, the "went live" line of the daily digest and the weekly report.
+- The "Explore manually" list (homepage and supplement pages, `exploreItem` in `src/render/partials.ts`) carries each
+  supplement's product photo in `data-img`; on devices with a mouse, `public/js/site.js` shows it on hover as a square
+  tile on the cream background, floating above the link.
 - `/blog` lists the articles in `src/blog/posts/*.ts` (newest first) and `/blog/<slug>` renders one. An article is a
   plain TypeScript module (see `src/blog/types.ts`): write `href="iherb:magnesium glycinate"` for an iHerb search link
   with your referral code and click tracking, `<ww-shop slugs="…"></ww-shop>` for product cards from the catalogue
