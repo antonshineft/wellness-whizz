@@ -12,6 +12,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { claudeJson, claudeModel, type ClaudeEnv } from './claude';
 import { alertRecipient, emailEnabled, sendEmail, type EmailEnv } from './email';
 import { gscDigestLine, gscSummary, type GscEnv } from './gsc';
+import { videoDigestLine } from './videos';
 import { sheetChanges, sheetDigestLine, SHEET_SQL, type SheetEnv } from './sheet';
 
 export interface BacklinkEnv extends ClaudeEnv, EmailEnv {
@@ -568,12 +569,15 @@ export async function outreachDigest(env: BacklinkEnv, s: OutreachSummary): Prom
   const google = await gscSummary(env as GscEnv).catch(() => null);
   const indexMoved = !!google && (google.pages.newlyIndexed.length > 0 || google.pages.dropped.length > 0);
   const googleLine = await gscDigestLine(env as GscEnv).catch(() => '');
-  if (!s.awaiting && !s.sent && !s.followUps && !s.drafted && !s.errors.length && !wentLive && !indexMoved) return;
+  // The video pipeline (src/videos.ts): a failed script or render would otherwise go unnoticed.
+  const videoLine = await videoDigestLine(env.DB).catch(() => '');
+  if (!s.awaiting && !s.sent && !s.followUps && !s.drafted && !s.errors.length && !wentLive && !indexMoved && !videoLine) return;
   const page = `${origin(env)}/api/admin/backlinks?key=${encodeURIComponent(env.STATS_KEY ?? '')}`;
   const lines = [
     s.discovered ? `Discovered ${s.discovered.added} new prospects (${s.discovered.theme}).` : '',
     sheetLine,
     googleLine,
+    videoLine,
     `Last 24 hours: contacts found ${s.contacts}, drafts written ${s.drafted}, pitches sent ${s.sent}${s.skipped ? ` (${s.skipped})` : ''}, follow-ups ${s.followUps}.`,
     s.awaiting ? `${s.awaiting} draft${s.awaiting === 1 ? '' : 's'} waiting for your approval.` : '',
     ...s.errors.map((e) => `Problem: ${e}`),

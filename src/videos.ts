@@ -98,6 +98,15 @@ export async function getVideo(db: D1Database, slug: string): Promise<VideoRow |
   return (await db.prepare('SELECT * FROM videos WHERE slug = ?').bind(slug).first<VideoRow>()) ?? null;
 }
 
+/** One line for the daily digest: videos posted or failed in the last 24 hours ('' when nothing happened). */
+export async function videoDigestLine(db: D1Database): Promise<string> {
+  const rows = (await db.prepare("SELECT slug, status, error FROM videos WHERE updated_at >= datetime('now', '-1 day') AND status IN ('posted', 'failed') ORDER BY updated_at DESC LIMIT 10").all<Pick<VideoRow, 'slug' | 'status' | 'error'>>()).results ?? [];
+  if (!rows.length) return '';
+  const posted = rows.filter((r) => r.status === 'posted').map((r) => r.slug);
+  const failed = rows.filter((r) => r.status === 'failed').map((r) => `${r.slug} (${(r.error || 'unknown error').replace(/^\w+Error: /, '').slice(0, 120)})`);
+  return [posted.length ? `Videos posted: ${posted.join(', ')}.` : '', failed.length ? `Video FAILED, needs a re-queue: ${failed.join('; ')}.` : ''].filter(Boolean).join(' ');
+}
+
 export async function listVideos(db: D1Database, limit = 30): Promise<VideoRow[]> {
   return (await db.prepare('SELECT * FROM videos ORDER BY id DESC LIMIT ?').bind(limit).all<VideoRow>()).results;
 }
@@ -195,12 +204,12 @@ ${body}
 ${faq ? `FAQ:\n${faq}` : ''}
 
 Write the three-segment script, the caption, the hashtags, product_slug and popup_after.`;
-  let script = tidyScript(await claudeJson<VideoScript>(env, SCRIPT_SYSTEM, user, scriptSchema, { tier: 'fast', maxTokens: 1500, timeoutMs: 60_000 }), sup?.slug ?? hero);
+  let script = tidyScript(await claudeJson<VideoScript>(env, SCRIPT_SYSTEM, user, scriptSchema, { tier: 'fast', maxTokens: 4000, timeoutMs: 60_000 }), sup?.slug ?? hero);
   // The model tends to overshoot; one shortening pass keeps the render under budget (HeyGen bills per second).
   if (wordCount(script) > MAX_SCRIPT_WORDS) {
     const shorter = await claudeJson<VideoScript>(env, SCRIPT_SYSTEM,
       `${user}\n\nYour previous script was ${wordCount(script)} words, which is too long:\n${JSON.stringify(script.segments)}\n\nRewrite it to at most ${MAX_SCRIPT_WORDS - 5} words in total, same three segments and postures, keep the key numbers and the closing line, drop the least important sentence(s).`,
-      scriptSchema, { tier: 'fast', maxTokens: 1500, timeoutMs: 60_000 });
+      scriptSchema, { tier: 'fast', maxTokens: 4000, timeoutMs: 60_000 });
     const tidied = tidyScript(shorter, sup?.slug ?? hero);
     if (wordCount(tidied) < wordCount(script)) script = tidied;
   }
