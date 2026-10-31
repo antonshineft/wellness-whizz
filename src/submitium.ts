@@ -33,11 +33,11 @@ interface Directory {
   category: string;
 }
 
-export type DirectoryStatus = 'queued' | 'badge' | 'live' | 'overdue';
+export type DirectoryStatus = 'queued' | 'badge' | 'linked' | 'live' | 'overdue';
 
 export interface DirectoryState extends Directory {
   status: DirectoryStatus;
-  /** The listing's page once Submitium links it (the badge's link leaves the directory's homepage). */
+  /** The listing's page once Submitium links it (the badge's link leaves the directory's homepage); "linked" until that page is seen to mention the site, then "live". */
   listing_url: string;
   live_at: string | null;
   /** The listing page was fetched and mentions the site ('yes'), did not ('no'), could not be fetched ('unreachable'), or was not checked yet (''). */
@@ -49,6 +49,7 @@ export interface SubmitiumState {
   at: string;
   directories: DirectoryState[];
   live: number;
+  linked: number;
   badge: number;
   queued: number;
   overdue: number;
@@ -136,9 +137,12 @@ export async function submitiumStep(env: SubmitiumEnv): Promise<SubmitiumState> 
     // The feed could not be read: keep what we knew.
     if (!badges && old) return { ...old, checked: today };
     const link = badge ? listingLink(badge.href) : '';
-    if (link) return { ...base, status: 'live', listing_url: link, live_at: old?.status === 'live' ? old.live_at : today, verified: old?.listing_url === link ? old.verified : '' };
-    // A listing once linked stays live even if the feed later drops the badge (a directory can stop asking for it).
-    if (old?.status === 'live' && listingLink(old.listing_url)) return { ...old, ...base, status: 'live' };
+    if (link) {
+      const verified = old?.listing_url === link ? old.verified : '';
+      return { ...base, status: verified === 'yes' ? 'live' : 'linked', listing_url: link, live_at: old?.live_at ?? today, verified };
+    }
+    // A listing once linked stays as it was even if the feed later drops the badge (a directory can stop asking for it).
+    if ((old?.status === 'live' || old?.status === 'linked') && listingLink(old.listing_url)) return { ...old, ...base };
     const waiting: DirectoryStatus = overdue ? 'overdue' : badge ? 'badge' : 'queued';
     return { ...base, status: waiting, listing_url: '', live_at: null, verified: '' };
   };
@@ -152,11 +156,15 @@ export async function submitiumStep(env: SubmitiumEnv): Promise<SubmitiumState> 
     if (known.has(key(b.name)) || knownHosts.has(host(b.domain))) continue;
     directories.push(classify({ name: b.name, domain: host(b.domain), dr: null, category: '' }, previous.get(key(b.name)), b));
   }
-  // Confirm a few listing pages per run: the ones never checked first, then the oldest checks.
+  // Confirm a few listing pages per run (never checked first): a page that mentions the site makes the row live.
   let budget = VERIFY_PER_RUN;
-  for (const d of directories.filter((x) => x.status === 'live' && x.verified !== 'yes').sort((a, b) => (a.verified ? 1 : 0) - (b.verified ? 1 : 0))) {
+  for (const d of directories.filter((x) => x.status === 'linked').sort((a, b) => (a.verified ? 1 : 0) - (b.verified ? 1 : 0))) {
     if (budget-- <= 0) break;
     d.verified = await verifyListing(d.listing_url);
+    if (d.verified === 'yes') {
+      d.status = 'live';
+      d.live_at = today;
+    }
   }
   const newly = directories.filter((d) => d.status === 'live' && previous.get(key(d.name))?.status !== 'live').map((d) => d.name);
   const count = (status: DirectoryStatus) => directories.filter((d) => d.status === status).length;
@@ -164,6 +172,7 @@ export async function submitiumStep(env: SubmitiumEnv): Promise<SubmitiumState> 
     at: now,
     directories,
     live: count('live'),
+    linked: count('linked'),
     badge: count('badge'),
     queued: count('queued'),
     overdue: count('overdue'),
@@ -222,7 +231,7 @@ async function writeTab(env: SubmitiumEnv, rows: DirectoryState[], submittedBy: 
   const count = (status: DirectoryStatus) => rows.filter((r) => r.status === status).length;
   const values: string[][] = [
     [`Wellness Whizz — Submitium order (${rows.length} directories, submitted by Submitium by ${submittedBy})`],
-    [`Written by the Worker every morning from the Submitium badge feed. ${count('live')} live; ${count('badge')} with the badge in our footer, listing pending; ${count('queued')} queued${count('overdue') ? `; ${count('overdue')} overdue (still waiting ${OVERDUE_AFTER_DAYS} days after the submission date)` : ''}. Last written ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC.`],
+    [`Written by the Worker every morning from the Submitium badge feed. ${count('live')} live (listing page confirmed); ${count('linked')} with a listing link awaiting approval; ${count('badge')} with the badge in our footer, listing pending; ${count('queued')} queued${count('overdue') ? `; ${count('overdue')} overdue (still waiting ${OVERDUE_AFTER_DAYS} days after the submission date)` : ''}. Last written ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC.`],
     [],
     ['ID', 'Resource', 'Status', 'Resource URL', 'Submission URL', 'Listing URL', 'Checked', 'Batch', 'Note'],
     ...rows.map((r, i) => [
@@ -238,8 +247,10 @@ async function writeTab(env: SubmitiumEnv, rows: DirectoryState[], submittedBy: 
         r.dr !== null ? `DR ${r.dr}` : '',
         r.category,
         r.status === 'live'
-          ? `listing linked since ${r.live_at}${r.verified === 'yes' ? ', page confirmed' : r.verified === 'no' ? ', page does not mention us yet' : r.verified === 'unreachable' ? ', page not reachable' : ''}`
-          : r.status === 'badge'
+          ? `live, listing page confirmed ${r.live_at}`
+          : r.status === 'linked'
+            ? `listing link received, awaiting approval${r.verified === 'no' ? ' (page does not mention us yet)' : r.verified === 'unreachable' ? ' (page not reachable yet)' : ''}`
+            : r.status === 'badge'
             ? 'badge in our footer, listing pending'
             : r.status === 'overdue'
               ? 'OVERDUE: still waiting long after the submission date, ask Submitium'
@@ -267,7 +278,7 @@ export async function submitiumDigestLine(env: SubmitiumEnv): Promise<string> {
   if (s.sheet.error) parts.push(`sheet tab not updated: ${s.sheet.error}`);
   if (s.error) parts.push(`feed: ${s.error}`);
   if (!parts.length) return '';
-  return `Submitium: ${s.live} of ${s.directories.length} directories live, ${s.badge} with the badge up and the listing pending, ${s.queued} queued; ${parts.join('; ')}.`;
+  return `Submitium: ${s.live} of ${s.directories.length} directories live, ${s.linked} awaiting approval with a listing link, ${s.badge} with the badge up, ${s.queued} queued; ${parts.join('; ')}.`;
 }
 
 /** For the weekly report: always the totals. */
@@ -277,5 +288,5 @@ export async function submitiumReportLine(env: SubmitiumEnv): Promise<string> {
   if (!s) return '';
   const since = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
   const week = s.directories.filter((d) => d.status === 'live' && d.live_at && d.live_at >= since).length;
-  return `Submitium: ${s.live} of ${s.directories.length} directories live (${week} new this week), ${s.badge} with the badge up and the listing pending, ${s.queued} queued${s.overdue ? `, ${s.overdue} overdue` : ''}.`;
+  return `Submitium: ${s.live} of ${s.directories.length} directories live (${week} new this week), ${s.linked} awaiting approval with a listing link, ${s.badge} with the badge up, ${s.queued} queued${s.overdue ? `, ${s.overdue} overdue` : ''}.`;
 }

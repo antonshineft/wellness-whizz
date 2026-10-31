@@ -272,7 +272,8 @@ address, and what the last hourly run did or why it skipped (for example `X keys
   bought (name, domain, Ahrefs rating, category); every morning the Worker reads the same badge feed. A badge
   appears as soon as Submitium queues a directory that wants its badge on the site (status "badge": shown in the
   footer, listing pending); when the badge's link leaves the directory's homepage for the listing's own page the
-  directory is "live" (the page is fetched once to confirm it mentions the site); directories that need no badge
+  directory is "linked" (awaiting approval) and becomes "live" once that page is seen to mention the site (a few pages
+  are fetched per run); directories that need no badge
   stay "queued" until their listing link appears. Anything still waiting 45 days after the submission date
   (`SUBMITIUM_SUBMITTED_BY`, default 2026-11-03) is overdue. The step rewrites a "Submitium" tab in the
   backlinks sheet through the Search Console service account (share the sheet with its email as an editor;
