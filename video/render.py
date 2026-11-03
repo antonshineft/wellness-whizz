@@ -119,24 +119,48 @@ def _video_part(interaction: dict) -> dict | None:
 
 
 def _download_file(uri: str, out: Path) -> None:
-    """A generated video delivered as a Google-hosted file: wait until it is ACTIVE, then download it."""
-    name = uri.rstrip('/').rsplit('/', 1)[-1]
-    for _ in range(90):
-        r = google('GET', f'{GOOGLE}/v1beta/files/{name}')
-        state = r.json().get('state') if r.ok else None
-        if state == 'ACTIVE':
-            break
-        if state == 'FAILED':
-            raise RuntimeError(f'Google file {name} failed to process')
-        time.sleep(5)
-    for url in (f'{GOOGLE}/download/v1beta/files/{name}:download?alt=media', f'{uri}?alt=media', uri):
-        r = google('GET', url, timeout=600, stream=True)
-        if r.ok and (r.headers.get('content-type', '').startswith('video') or int(r.headers.get('content-length') or 0) > 100_000):
+    """A generated video delivered as a Google-hosted file. The uri may already be a download link (":download" or
+    "alt=media") or a file resource; a resource is polled until ACTIVE, then fetched through the download endpoint."""
+    log(f'video uri: {uri[:200]}')
+    m = re.search(r'files/([^/:?&]+)', uri)
+    name = m.group(1) if m else ''
+    direct = ':download' in uri or 'alt=media' in uri
+    if name and not direct:
+        for _ in range(90):
+            r = google('GET', f'{GOOGLE}/v1beta/files/{name}')
+            try:
+                state = r.json().get('state') if r.ok else None
+            except ValueError:
+                break  # not a file resource after all; try downloading as is
+            if state == 'ACTIVE':
+                break
+            if state == 'FAILED':
+                raise RuntimeError(f'Google file {name} failed to process')
+            time.sleep(5)
+    candidates = [uri] if direct else []
+    if name:
+        candidates += [f'{GOOGLE}/download/v1beta/files/{name}:download?alt=media', f'{GOOGLE}/v1beta/files/{name}:download?alt=media']
+    candidates += [uri + ('&' if '?' in uri else '?') + 'alt=media', uri]
+    seen: set[str] = set()
+    for url in candidates:
+        if url in seen:
+            continue
+        seen.add(url)
+        try:
+            r = google('GET', url, timeout=600, stream=True)
+        except requests.RequestException as e:
+            log(f'download {url[:120]}: {e}')
+            continue
+        ctype = r.headers.get('content-type', '')
+        if r.ok and (ctype.startswith('video') or ctype.startswith('application/octet-stream') or int(r.headers.get('content-length') or 0) > 100_000):
             with open(out, 'wb') as f:
                 for chunk in r.iter_content(1 << 20):
                     f.write(chunk)
-            return
-    raise RuntimeError(f'could not download the generated video from {uri}')
+            if out.stat().st_size > 100_000:
+                log(f'downloaded {out.stat().st_size // 1024} kB from {url[:120]}')
+                return
+        log(f'download {url[:120]}: HTTP {r.status_code} {ctype} {r.headers.get("content-length", "?")} bytes')
+    raise RuntimeError(f'could not download the generated video from {uri[:200]}')
 
 
 def _request(prompt: str, refs: bool, fmt: dict) -> dict:
