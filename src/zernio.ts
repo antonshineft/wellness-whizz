@@ -63,11 +63,16 @@ export async function listAccounts(env: ZernioEnv): Promise<{ ok: true; accounts
 
 /** Upload a video to Zernio's media store (presigned PUT) and return its public URL. */
 export async function uploadVideo(env: ZernioEnv, bytes: ArrayBuffer, filename: string): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
-  const p = await call<{ uploadUrl: string; publicUrl: string }>(env, 'POST', '/media/presign', { filename, contentType: 'video/mp4' });
+  return uploadMedia(env, bytes, filename, 'video/mp4');
+}
+
+/** Upload any media file (video, or a JPEG/PNG cover) to Zernio's media store and return its public URL. */
+export async function uploadMedia(env: ZernioEnv, bytes: ArrayBuffer, filename: string, contentType: string): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
+  const p = await call<{ uploadUrl: string; publicUrl: string }>(env, 'POST', '/media/presign', { filename, contentType });
   if (!p.ok) return p;
   let up: Response;
   try {
-    up = await fetch(p.data.uploadUrl, { method: 'PUT', headers: { 'content-type': 'video/mp4' }, body: bytes });
+    up = await fetch(p.data.uploadUrl, { method: 'PUT', headers: { 'content-type': contentType }, body: bytes });
   } catch (e) {
     return { ok: false, message: `Zernio upload: ${(e as Error).message}` };
   }
@@ -86,6 +91,8 @@ export interface ZernioPostOptions {
   allowStitch?: boolean;
   madeWithAi?: boolean;
   title?: string;
+  /** Instagram: a 1080x1920 JPEG/PNG used as the Reel cover (what the profile grid shows). */
+  coverUrl?: string;
 }
 
 export async function createPost(env: ZernioEnv, o: ZernioPostOptions): Promise<{ ok: true; id: string; status: string } | { ok: false; message: string }> {
@@ -94,7 +101,9 @@ export async function createPost(env: ZernioEnv, o: ZernioPostOptions): Promise<
   const body: Record<string, unknown> = {
     content: o.content,
     publishNow: true,
-    platforms: o.targets.map((t) => ({ platform: t.platform, accountId: t.accountId })),
+    platforms: o.targets.map((t) => (t.platform === 'instagram' && o.coverUrl
+      ? { platform: t.platform, accountId: t.accountId, platformSpecificData: { instagramThumbnail: o.coverUrl } }
+      : { platform: t.platform, accountId: t.accountId })),
     mediaItems: [{ type: 'video', url: o.mediaUrl }],
     title: (o.title ?? o.content).slice(0, 100),
     visibility: 'public',

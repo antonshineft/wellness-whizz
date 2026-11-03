@@ -15,7 +15,7 @@ import { allPosts } from './blog/store';
 import type { BlogPost } from './blog/types';
 import { getSupplementBySlug } from './db';
 import { alertRecipient, emailEnabled, sendEmail } from './email';
-import { createPost as zernioCreatePost, listAccounts as zernioAccounts, uploadVideo as zernioUpload, zernioEnabled, type ZernioEnv } from './zernio';
+import { createPost as zernioCreatePost, listAccounts as zernioAccounts, uploadMedia as zernioUploadMedia, uploadVideo as zernioUpload, zernioEnabled, type ZernioEnv } from './zernio';
 
 export interface VideoEnv {
   DB: D1Database;
@@ -338,7 +338,7 @@ export async function nextJob(env: VideoEnv, onlySlug?: string): Promise<RenderJ
   };
 }
 
-export async function markReady(env: VideoEnv, slug: string, videoUrl: string, duration: number): Promise<boolean> {
+export async function markReady(env: VideoEnv, slug: string, videoUrl: string, duration: number, coverUrl = ''): Promise<boolean> {
   const row = await getVideo(env.DB, slug);
   if (!row) return false;
   await env.DB.prepare("UPDATE videos SET status = 'ready', video_url = ?, duration = ?, error = '', rendered_at = datetime('now'), updated_at = datetime('now') WHERE id = ?")
@@ -346,7 +346,7 @@ export async function markReady(env: VideoEnv, slug: string, videoUrl: string, d
   const page = `${origin(env)}/api/admin/tiktok?key=${encodeURIComponent(env.STATS_KEY ?? '')}&video=${encodeURIComponent(slug)}`;
   const script = parseScript(row.script_json);
   if (env.VIDEO_AUTOPOST !== 'false' && zernioEnabled(env as ZernioEnv)) {
-    const posted = await autoPost(env, { ...row, video_url: videoUrl });
+    const posted = await autoPost(env, { ...row, video_url: videoUrl }, coverUrl);
     if (posted.ok) {
       await notify(env, `Posted on ${posted.where}: ${script?.title ?? slug}`,
         `<p>The video for <strong>${escapeHtml(slug)}</strong> (${Math.round(duration)} s) was posted through Zernio to ${escapeHtml(posted.where)}. It is live within a few minutes.</p>
@@ -368,8 +368,9 @@ export async function markReady(env: VideoEnv, slug: string, videoUrl: string, d
   return true;
 }
 
-/** Post a rendered video through every connected Zernio account (public, labelled as AI content). */
-export async function autoPost(env: VideoEnv, row: VideoRow): Promise<{ ok: true; where: string } | { ok: false; message: string }> {
+/** Post a rendered video through every connected Zernio account (public, labelled as AI content); the cover, when
+ *  there is one, becomes the Instagram Reel cover so the profile grid shows the title rather than a random frame. */
+export async function autoPost(env: VideoEnv, row: VideoRow, coverUrl = ''): Promise<{ ok: true; where: string } | { ok: false; message: string }> {
   const z = env as ZernioEnv;
   const accounts = await zernioAccounts(z);
   if (!accounts.ok) return { ok: false, message: accounts.message };
@@ -379,7 +380,18 @@ export async function autoPost(env: VideoEnv, row: VideoRow): Promise<{ ok: true
   if (!res.ok) return { ok: false, message: `fetching the rendered file failed: HTTP ${res.status}` };
   const up = await zernioUpload(z, await res.arrayBuffer(), `${row.slug}-${Date.now()}.mp4`);
   if (!up.ok) return up;
-  const post = await zernioCreatePost(z, { content: row.caption, mediaUrl: up.url, targets, privacy: 'PUBLIC_TO_EVERYONE', allowComment: true, allowDuet: false, allowStitch: false, madeWithAi: true, title: parseScript(row.script_json)?.title ?? row.slug });
+  let cover = '';
+  if (coverUrl && targets.some((t) => t.platform === 'instagram')) {
+    try {
+      const cr = await fetch(coverUrl, { redirect: 'follow' });
+      const cu = cr.ok ? await zernioUploadMedia(z, await cr.arrayBuffer(), `${row.slug}-${Date.now()}-cover.jpg`, 'image/jpeg') : null;
+      if (cu?.ok) cover = cu.url;
+      else console.warn(`video cover not attached for ${row.slug}: ${cu ? cu.message : `HTTP ${cr.status}`}`);
+    } catch (err) {
+      console.warn(`video cover not attached for ${row.slug}: ${String(err)}`);
+    }
+  }
+  const post = await zernioCreatePost(z, { content: row.caption, mediaUrl: up.url, targets, privacy: 'PUBLIC_TO_EVERYONE', allowComment: true, allowDuet: false, allowStitch: false, madeWithAi: true, title: parseScript(row.script_json)?.title ?? row.slug, coverUrl: cover });
   if (!post.ok) return post;
   await markPosted(env, row.slug, `zernio:${post.id}`);
   return { ok: true, where: targets.map((t) => t.platform).join(', ') };

@@ -203,6 +203,11 @@ def generate_first(prompt: str, out: Path) -> Path:
         except RuntimeError as e:
             log(f'clip 1 attempt {i + 1} failed: {e}')
             errors.append(str(e))
+            if 'RESOURCE_EXHAUSTED' in str(e):
+                raise RuntimeError('Google answered RESOURCE_EXHAUSTED: the API key\'s project has no quota for '
+                                   f'{MODEL}. The model is paid-tier only, so this almost always means billing is not '
+                                   'enabled on that project (aistudio.google.com, API keys, upgrade/set up billing); '
+                                   'otherwise check the model\'s quota in Google Cloud. ' + str(e)[:400])
     raise RuntimeError('every request shape failed: ' + ' || '.join(errors)[:1500])
 
 
@@ -371,12 +376,45 @@ def compose(clips: list[Path], narrations: list[tuple[Path, list[dict], float]],
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+# Cover: a clean frame from the first clip with the title, for the Instagram grid (set as the Reel cover when posting)
+
+def make_cover(clip: Path, title: str, out: Path) -> Path:
+    import textwrap
+    from PIL import Image, ImageDraw, ImageFont
+    frame = WORK / 'cover-frame.png'
+    ffmpeg('-ss', '2.5', '-i', str(clip), '-frames:v', '1', str(frame))
+    im = Image.open(frame).convert('RGB').resize((W, H), Image.LANCZOS)
+    d = ImageDraw.Draw(im)
+    size, width = 84, 20
+    lines = textwrap.wrap(title, width)
+    if len(lines) > 3:
+        size, width = 70, 25
+        lines = textwrap.wrap(title, width)[:3]
+    font = ImageFont.truetype(str(FONTS / 'Inter-ExtraBold.otf'), size)
+    small = ImageFont.truetype(str(FONTS / 'Inter-SemiBold.otf'), 40)
+    # the title sits in the upper middle: the grid shows roughly the central 4:5 of a 9:16 cover
+    y, pad_x, pad_y, gap = 520, 34, 18, 14
+    for ln in lines:
+        bbox = d.textbbox((0, 0), ln, font=font)
+        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        x = (W - tw) // 2
+        d.rounded_rectangle([x - pad_x, y - pad_y, x + tw + pad_x, y + th + pad_y + 8], radius=18, fill=(253, 241, 207))
+        d.text((x - bbox[0], y - bbox[1]), ln, font=font, fill=(48, 48, 48))
+        y += th + pad_y * 2 + gap
+    tag = 'Wellness Whizz'
+    bbox = d.textbbox((0, 0), tag, font=small)
+    d.text(((W - (bbox[2] - bbox[0])) // 2 - bbox[0], y + 10 - bbox[1]), tag, font=small, fill=(48, 48, 48))
+    im.save(out, quality=92, optimize=True)
+    return out
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Publish
 
-def upload_release_asset(path: Path, slug: str) -> str:
+def upload_release_asset(path: Path, slug: str, suffix: str = '.mp4') -> str:
     repo = os.environ['GH_REPO']
     tag = 'videos'
-    name = f"{slug}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M')}.mp4"
+    name = f"{slug}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M')}{suffix}"
     # The download URL uses the asset's file name ("file#label" only sets a label), so upload a copy with the final name.
     named = path.with_name(name)
     shutil.copyfile(path, named)
@@ -433,9 +471,13 @@ def render(job: dict) -> Path:
         clips = generate_clips(job, WORK)
     (WORK / 'words.json').write_text(json.dumps([n[1] for n in narrations], indent=1))
 
-    # 3. compose
+    # 3. compose, plus a cover for the Instagram grid
     out = WORK / f'{slug}.mp4'
     compose(clips, narrations, out)
+    try:
+        make_cover(clips[0], job['script'].get('title') or job.get('title') or slug, WORK / f'{slug}-cover.jpg')
+    except Exception as e:  # noqa: BLE001
+        log(f'cover failed ({e}); posting without one')
     return out
 
 
@@ -464,10 +506,15 @@ def main() -> int:
             return 0
         url = upload_release_asset(out, job['slug'])
         log(f'uploaded {url}')
+        cover = out.with_name(f"{job['slug']}-cover.jpg")
+        cover_url = upload_release_asset(cover, job['slug'], '-cover.jpg') if cover.exists() else ''
+        if cover_url:
+            log(f'uploaded {cover_url}')
+        report = {'video_url': url, 'duration': dur, 'cover_url': cover_url}
         if REVIEW:
-            log(f'review run: not reported to the site. To post it: POST {ORIGIN}/api/admin/videos/{job["slug"]}/ready with {{"video_url": "{url}", "duration": {dur:.1f}}}')
+            log(f'review run: not reported to the site. To post it: POST {ORIGIN}/api/admin/videos/{job["slug"]}/ready with {json.dumps(report)}')
             return 0
-        rr = site('POST', f"/api/admin/videos/{job['slug']}/ready", json={'video_url': url, 'duration': dur})
+        rr = site('POST', f"/api/admin/videos/{job['slug']}/ready", json=report)
         log(f'reported ready: HTTP {rr.status_code} {rr.text[:120]}')
         return 0 if rr.ok else 1
     except Exception as e:  # noqa: BLE001

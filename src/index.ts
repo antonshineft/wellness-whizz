@@ -1363,9 +1363,9 @@ app.post('/api/admin/videos/:slug/ready', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
-  const body = (await c.req.json().catch(() => ({}))) as { video_url?: string; duration?: number };
+  const body = (await c.req.json().catch(() => ({}))) as { video_url?: string; duration?: number; cover_url?: string };
   if (!body.video_url) return c.json({ error: 'video_url is required' }, 400);
-  const ok = await markReady(c.env, c.req.param('slug') ?? '', body.video_url, Number(body.duration ?? 0));
+  const ok = await markReady(c.env, c.req.param('slug') ?? '', body.video_url, Number(body.duration ?? 0), String(body.cover_url ?? ''));
   return c.json({ ok }, ok ? 200 : 404);
 });
 
