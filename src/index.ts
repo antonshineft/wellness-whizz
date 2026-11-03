@@ -1391,6 +1391,17 @@ app.get('/api/admin/videos/:slug/file', async (c) => {
   return new Response(res.body, { headers: { 'content-type': 'video/mp4', 'cache-control': 'private, max-age=600', 'content-disposition': `inline; filename="${row.slug}.mp4"` } });
 });
 
+/** The month's render counter (src/videos.ts): read it, or set it with ?used=N after a manual correction. */
+app.post('/api/admin/videos/month', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const used = parseInt(c.req.query('used') ?? '', 10);
+  if (!Number.isFinite(used) || used < 0) return c.json({ error: 'used must be a number' }, 400);
+  await setMeta(c.env.DB, `videos:renders:${new Date().toISOString().slice(0, 7)}`, String(used));
+  return c.json({ month: { used: await rendersThisMonth(c.env.DB), limit: monthlyLimit(c.env) } });
+});
+
 /** Manual state fix for a video row (queued | scripted | ready | posted | failed). */
 app.post('/api/admin/videos/:slug/status', async (c) => {
   const denied = authorized(c);
