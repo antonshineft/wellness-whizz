@@ -147,8 +147,7 @@ def generate_clip(prompt: str, out: Path, label: str) -> Path:
         'model': MODEL,
         'input': content,
         'response_format': {'type': 'video', 'aspect_ratio': '9:16', 'resolution': RESOLUTION, 'delivery': 'uri'},
-        'background': True,
-        'store': False,
+        'background': True,  # polled below; Google requires store=true (the default) for background runs
     }
     r = google('POST', f'{GOOGLE}/v1beta/interactions', json=body, timeout=300)
     if not r.ok:
