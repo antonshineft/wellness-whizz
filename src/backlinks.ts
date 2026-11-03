@@ -12,7 +12,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { claudeJson, claudeModel, type ClaudeEnv } from './claude';
 import { alertRecipient, emailEnabled, sendEmail, type EmailEnv } from './email';
 import { gscDigestLine, gscSummary, type GscEnv } from './gsc';
-import { videoDigestLine } from './videos';
+import { monthlyLimit, videoDigestLine } from './videos';
 import { submitiumDigestLine, type SubmitiumEnv } from './submitium';
 import { sheetChanges, sheetDigestLine, SHEET_SQL, type SheetEnv } from './sheet';
 
@@ -571,7 +571,7 @@ export async function outreachDigest(env: BacklinkEnv, s: OutreachSummary): Prom
   const indexMoved = !!google && (google.pages.newlyIndexed.length > 0 || google.pages.dropped.length > 0);
   const googleLine = await gscDigestLine(env as GscEnv).catch(() => '');
   // The video pipeline (src/videos.ts): a failed script or render would otherwise go unnoticed.
-  const videoLine = await videoDigestLine(env.DB).catch(() => '');
+  const videoLine = await videoDigestLine(env.DB, monthlyLimit(env)).catch(() => '');
   // The Submitium order (src/submitium.ts): a directory went live, is overdue, or the sheet tab could not be written.
   const submitiumLine = await submitiumDigestLine(env as SubmitiumEnv & BacklinkEnv).catch(() => '');
   if (!s.awaiting && !s.sent && !s.followUps && !s.drafted && !s.errors.length && !wentLive && !indexMoved && !videoLine && !submitiumLine) return;

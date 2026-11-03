@@ -55,6 +55,7 @@
     "GSC_RECHECK_DAYS": "7",
     // A rendered video is posted through Zernio as soon as it is ready (src/videos.ts); "false" waits for the posting page.
     "VIDEO_AUTOPOST": "true",
+    "VIDEO_MONTHLY_LIMIT": "8",
     "SITE_LANGS": "en,es",
     "ARTICLE_EFFORT": "high",
     // iHerb Rewards / referral code, appended to every iherb.com link the site generates.

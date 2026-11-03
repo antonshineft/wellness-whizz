@@ -13,7 +13,7 @@
 import { claudeJson } from './claude';
 import { allPosts } from './blog/store';
 import type { BlogPost } from './blog/types';
-import { getSupplementBySlug } from './db';
+import { getMeta, getSupplementBySlug, setMeta } from './db';
 import { alertRecipient, emailEnabled, sendEmail } from './email';
 import { createPost as zernioCreatePost, listAccounts as zernioAccounts, uploadMedia as zernioUploadMedia, uploadVideo as zernioUpload, zernioEnabled, type ZernioEnv } from './zernio';
 
@@ -36,6 +36,8 @@ export interface VideoEnv {
   VIDEO_AUTOQUEUE?: string;
   /** "false" keeps rendered videos on the posting page instead of posting them through Zernio at once. */
   VIDEO_AUTOPOST?: string;
+  /** Renders per calendar month the render job may start (default DEFAULT_MONTHLY_LIMIT); the rest wait for next month. */
+  VIDEO_MONTHLY_LIMIT?: string;
   ZERNIO_API_KEY?: string;
 }
 
@@ -83,6 +85,27 @@ export const MAX_SCENE_WORDS = 24;
 /** Spoken words per video. The render job refuses scripts far above this. */
 const MAX_SCRIPT_WORDS = SCENES * MAX_SCENE_WORDS;
 const MAX_ATTEMPTS = 2;
+/** Each render costs real money (Google video model, narrator), so the job hands out at most this many a month. */
+export const DEFAULT_MONTHLY_LIMIT = 8;
+
+export function monthlyLimit(env: VideoEnv): number {
+  const n = parseInt(env.VIDEO_MONTHLY_LIMIT ?? '', 10);
+  return Number.isFinite(n) && n >= 0 ? n : DEFAULT_MONTHLY_LIMIT;
+}
+
+function monthKey(): string {
+  return `videos:renders:${new Date().toISOString().slice(0, 7)}`;
+}
+
+/** Renders started this calendar month (UTC): a counter in meta, seeded from the rows the first time it is read. */
+export async function rendersThisMonth(db: D1Database): Promise<number> {
+  const stored = await getMeta(db, monthKey());
+  if (stored !== null) return parseInt(stored, 10) || 0;
+  const n = (await db.prepare(`SELECT COUNT(*) AS n FROM videos WHERE status = 'rendering'
+    OR (status IN ('ready', 'posted') AND strftime('%Y-%m', COALESCE(rendered_at, updated_at)) = strftime('%Y-%m', 'now'))`).first<{ n: number }>())?.n ?? 0;
+  await setMeta(db, monthKey(), String(n));
+  return n;
+}
 
 export function videosAutoQueue(env: VideoEnv): boolean {
   return env.VIDEO_AUTOQUEUE !== 'false';
@@ -111,12 +134,15 @@ export async function getVideo(db: D1Database, slug: string): Promise<VideoRow |
 }
 
 /** One line for the daily digest: videos posted or failed in the last 24 hours ('' when nothing happened). */
-export async function videoDigestLine(db: D1Database): Promise<string> {
+export async function videoDigestLine(db: D1Database, limit = DEFAULT_MONTHLY_LIMIT): Promise<string> {
   const rows = (await db.prepare("SELECT slug, status, error FROM videos WHERE updated_at >= datetime('now', '-1 day') AND status IN ('posted', 'failed') ORDER BY updated_at DESC LIMIT 10").all<Pick<VideoRow, 'slug' | 'status' | 'error'>>()).results ?? [];
-  if (!rows.length) return '';
+  const waiting = (await db.prepare("SELECT COUNT(*) AS n FROM videos WHERE status = 'scripted'").first<{ n: number }>())?.n ?? 0;
+  const used = await rendersThisMonth(db);
+  const held = waiting && used >= limit ? `Video limit reached (${used} of ${limit} this month); ${waiting} wait for next month.` : '';
+  if (!rows.length) return held;
   const posted = rows.filter((r) => r.status === 'posted').map((r) => r.slug);
   const failed = rows.filter((r) => r.status === 'failed').map((r) => `${r.slug} (${(r.error || 'unknown error').replace(/^\w+Error: /, '').slice(0, 120)})`);
-  return [posted.length ? `Videos posted: ${posted.join(', ')}.` : '', failed.length ? `Video FAILED, needs a re-queue: ${failed.join('; ')}.` : ''].filter(Boolean).join(' ');
+  return [posted.length ? `Videos posted: ${posted.join(', ')} (${used} of ${limit} this month).` : '', failed.length ? `Video FAILED, needs a re-queue: ${failed.join('; ')}.` : '', held].filter(Boolean).join(' ');
 }
 
 export async function listVideos(db: D1Database, limit = 30): Promise<VideoRow[]> {
@@ -323,9 +349,16 @@ export async function nextJob(env: VideoEnv, onlySlug?: string): Promise<RenderJ
     await env.DB.prepare("UPDATE videos SET status = 'queued', script_json = '', error = 'script rewritten for the explainer format', updated_at = datetime('now') WHERE id = ?").bind(row.id).run();
     return null;
   }
+  const used = await rendersThisMonth(env.DB);
+  const limit = monthlyLimit(env);
+  if (used >= limit) {
+    console.warn(`video render for ${row.slug} held: ${used} of ${limit} renders used this month`);
+    return null;
+  }
   const sup = script.product_slug ? await getSupplementBySlug(env.DB, script.product_slug) : null;
   const image = sup?.products?.find((p) => p.image)?.image ?? sup?.image ?? null;
   await env.DB.prepare("UPDATE videos SET status = 'rendering', error = '', updated_at = datetime('now') WHERE id = ?").bind(row.id).run();
+  await setMeta(env.DB, monthKey(), String(used + 1));
   return {
     slug: row.slug,
     title: script.title,

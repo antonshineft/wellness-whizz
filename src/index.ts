@@ -23,7 +23,7 @@ import { renderShelfPage, renderShelfResult } from './render/shelf';
 import { queueQuizDataArticle, quizDataSummary } from './quizdata';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
-import { getVideo, listVideos, markFailed, markPosted, markReady, nextJob, parseScript, queueVideo, scriptNext } from './videos';
+import { getVideo, listVideos, markFailed, markPosted, markReady, monthlyLimit, nextJob, parseScript, queueVideo, rendersThisMonth, scriptNext } from './videos';
 import { actOnProspect, addProspect, checkWins, counts as prospectCounts, dailyOutreach, discoverProspects, draftPending, findContacts, listProspects, noteReply, outreachDigest, outreachStep, recentEvents, sendApproved, type ProspectKind } from './backlinks';
 import { badgeWallHtml, withBadgeWall } from './badges';
 import { serviceAccountEmail, submitiumDigestLine, submitiumReportLine, submitiumState, submitiumStep } from './submitium';
@@ -109,6 +109,7 @@ export interface Bindings {
   TIKTOK_CLIENT_SECRET?: string;
   /** "false" stops published articles from queueing a short video (src/videos.ts). */
   VIDEO_AUTOQUEUE?: string;
+  VIDEO_MONTHLY_LIMIT?: string;
   /** Zernio (src/zernio.ts): posts to TikTok, Instagram and others through Zernio's connected accounts. */
   ZERNIO_API_KEY?: string;
   /** Backlink outreach (src/backlinks.ts): pitches per day (default 10, 0 pauses), "true" sends without approval, signature name. */
@@ -1329,7 +1330,7 @@ app.get('/api/admin/videos', async (c) => {
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
   c.header('cache-control', 'no-store');
-  return c.json({ videos: await listVideos(c.env.DB) });
+  return c.json({ videos: await listVideos(c.env.DB), month: { used: await rendersThisMonth(c.env.DB), limit: monthlyLimit(c.env) } });
 });
 
 app.post('/api/admin/videos/queue', async (c) => {
