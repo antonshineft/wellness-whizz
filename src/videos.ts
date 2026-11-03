@@ -1,12 +1,14 @@
 /**
- * Short videos for TikTok, one per published article.
+ * Short explainer videos for TikTok, one per published article.
  *
  * Queue: publishing an article queues a video (status "queued"). The 5-minute cron turns the next queued one into a
- * script with Claude (status "scripted"). A GitHub Actions job (video/render.py, .github/workflows/render-video.yml)
- * asks /api/admin/videos/next for the oldest scripted job, renders it (HeyGen clips for each posture, word-aligned
- * captions, product popup, music), publishes the mp4 as a release asset on the repository and reports back to
- * /api/admin/videos/<slug>/ready (status "ready"), which emails the owner a link to the posting page with the video
- * and caption pre-filled. Posting it from that page marks the row "posted".
+ * six-scene script with Claude (status "scripted"): one surprising fact per scene, spoken by a narrator, plus a
+ * description of the hand-drawn animated scene that goes with it. A GitHub Actions job (video/render.py,
+ * .github/workflows/render-video.yml) asks /api/admin/videos/next for the oldest scripted job, renders it (one clip per
+ * scene with Google's Gemini Omni Flash in the site's illustration style, ElevenLabs narration, burned-in captions,
+ * a music bed), publishes the mp4 as a release asset on the repository and reports back to
+ * /api/admin/videos/<slug>/ready (status "ready"), which posts it through Zernio (status "posted") or, with
+ * VIDEO_AUTOPOST=false, emails the owner a link to the posting page with the video and caption pre-filled.
  */
 import { claudeJson } from './claude';
 import { allPosts } from './blog/store';
@@ -56,20 +58,30 @@ export interface VideoRow {
   rendered_at: string | null;
 }
 
-export type Pose = 'headshot' | 'half-body' | 'standing';
+export interface VideoScene {
+  /** What the narrator says over this scene: at most MAX_SCENE_WORDS words, about nine seconds. */
+  narration: string;
+  /** What the viewer sees: the animated scene described for the video model, no text or numbers on screen. */
+  visual: string;
+}
 
 export interface VideoScript {
   title: string;
-  segments: { pose: Pose; text: string }[];
+  /** SCENES scenes of ten seconds: the hook, four facts, a calm ending. */
+  scenes: VideoScene[];
   caption: string;
   hashtags: string[];
   product_slug: string;
-  popup_after: string;
 }
 
 const RENDER_STALE_MINUTES = 150;
-/** Spoken words per video; about 40 seconds with the HeyGen voice. The render job refuses scripts far above this. */
-const MAX_SCRIPT_WORDS = 100;
+/** Scenes per video; each is a ten-second clip. */
+export const SCENES = 6;
+const MIN_SCENES = 4;
+/** Spoken words per scene; the narrator (ElevenLabs "Daniel") fits about 22 words into nine seconds at his natural pace. */
+export const MAX_SCENE_WORDS = 24;
+/** Spoken words per video. The render job refuses scripts far above this. */
+const MAX_SCRIPT_WORDS = SCENES * MAX_SCENE_WORDS;
 const MAX_ATTEMPTS = 2;
 
 export function videosAutoQueue(env: VideoEnv): boolean {
@@ -111,10 +123,11 @@ export async function listVideos(db: D1Database, limit = 30): Promise<VideoRow[]
   return (await db.prepare('SELECT * FROM videos ORDER BY id DESC LIMIT ?').bind(limit).all<VideoRow>()).results;
 }
 
+/** The stored script, or null when it is missing, malformed or in the retired presenter format (segments with poses). */
 export function parseScript(json: string): VideoScript | null {
   try {
     const s = JSON.parse(json) as VideoScript;
-    return Array.isArray(s.segments) && s.segments.length ? s : null;
+    return Array.isArray(s.scenes) && s.scenes.length >= MIN_SCENES && s.scenes.every((sc) => typeof sc?.narration === 'string' && typeof sc?.visual === 'string') ? s : null;
   } catch {
     return null;
   }
@@ -123,40 +136,48 @@ export function parseScript(json: string): VideoScript | null {
 // ---------------------------------------------------------------------------------------------------------------------
 // Script writing (Claude, fast tier)
 
-const SCRIPT_SYSTEM = `You write 35 to 40 second spoken scripts for short vertical videos (TikTok, Reels) for Wellness Whizz, an AI supplement guide at aiww.io. One presenter speaks to camera; the video cuts between three postures, one per segment.
+const SCRIPT_SYSTEM = `You write sixty-second explainer videos for TikTok for Wellness Whizz, an AI supplement guide. The video is a hand-drawn animated infographic (a soft-teal cartoon figure, pastel objects, cream paper background) with one narrator. It is built from ${SCENES} scenes of ten seconds; for each scene you write what the narrator says and what the viewer sees.
 
-Rules:
-- Three segments in this order: "headshot" (the hook and the single most useful number), "half-body" (the two or three details that matter), "standing" (the practical takeaway, then the closing line "Full guide at aiww.io.").
-- 80 to 95 words in total across the three segments. Short spoken sentences. Write amounts with digits and units ("3 to 5 g a day", "20 minutes").
-- Use only facts that are in the article. No claims the article does not make, no diagnosis, no "cures". Keep any caveat the article gives for a group of people (pregnancy, medication, kidney disease) if it is important.
-- Plain confident tone, like a knowledgeable friend. No hype, no exclamation marks, no emoji, no em dashes, no bullet points, no hashtags in the spoken text.
-- The caption is one plain sentence for TikTok (at most 140 characters) that states the key fact; hashtags are separate: 3 to 5 lowercase tags without the # sign, the first being the supplement.
-- product_slug is the catalogue slug of the supplement the video is about (given in the task). popup_after is the exact first three words of the sentence during which the product photo should pop up (usually where the form or the product is mentioned, in the second or third segment).`;
+What makes these videos work: every scene is ONE genuinely surprising fact for a curious mind. Origin stories, odd history, strange chemistry, a number that sounds impossible, a myth busted, a counter-intuitive detail about how the body handles the substance. Never the obvious ("vitamin C supports immunity"), never a list of benefits, never "studies show it may help". The first scene is the strongest hook of all: a fact that makes someone stop scrolling. The last scene lands calmly on the one practical takeaway (which form, with what, when), so the video feels finished. No call to action, no "follow", no "link in bio", no website mention anywhere in the narration.
+
+Narration rules:
+- At most ${MAX_SCENE_WORDS} words per scene, usually 16 to 21. Short spoken sentences with a verb. The narrator is a calm, warm British man; write for his voice.
+- Write numbers and years as words, the way they are spoken: "nineteen ninety-two", "about a quarter", "thirty-eight trillion", "ten milligrams". Never digits, never the percent sign.
+- Facts come from the article first. You may add well-known, well-documented general knowledge about the supplement (its discovery, origin, chemistry, famous studies) that a good reference book would confirm. Never invent a number, a study or a name. Keep any safety caveat the article gives for a group of people if it matters (pregnancy, medication, kidney disease, thyroid).
+- Plain, confident, a little playful. No hype, no exclamation marks, no emoji, no em dashes, no bullet points, no hashtags in the narration, no "did you know".
+
+Visual rules (the "visual" field is handed to a video generation model, so describe it like a shot list):
+- Three beats with timing, "0 to 4 s: ... 4 to 7 s: ... 7 to 10 s: ...", each a concrete thing happening: objects, a simple soft-teal cartoon figure, hands, a kitchen, a lab bench, a stadium, a village. Always in motion: things pour, grow, shrink, fill, drift, light up; the camera pushes in or drifts.
+- Name colours from this palette: soft teal, sage green, pale cerulean, terracotta, straw yellow, cream. One idea per beat, clean and uncluttered, plenty of breathing room.
+- No text, no numbers, no letters, no labels, no logos, no clocks with numerals, no calendars with digits anywhere in the scene; say so in the description when a label would be natural (a blank label, a notebook with only scribble lines).
+- Nothing a safety filter could misread: no powders being snorted or injected, no needles, no blood, no gore, no nudity, no real people, no children, no brand names. A "scoop of white powder" reads badly to filters; say "small soft white spheres" or "a spoon of pale crystals" instead.
+- Scene ${SCENES} is the calm ending: a restful composition (a figure sipping a drink by a window, a sunrise over rooftops, a quiet breakfast table) that settles rather than stops.
+
+The caption is one hook sentence for TikTok (at most 140 characters) stating the most surprising fact; hashtags are separate: 4 or 5 lowercase tags without the # sign, the first being the supplement. product_slug is the catalogue slug of the supplement the video is about (given in the task).`;
 
 const scriptSchema = {
   type: 'object',
   additionalProperties: false,
   properties: {
-    title: { type: 'string', description: 'Working title of the video, at most 60 characters.' },
-    segments: {
+    title: { type: 'string', description: 'Working title of the video, at most 60 characters: the hook in a few words.' },
+    scenes: {
       type: 'array',
-      description: 'Exactly three segments, in the order headshot, half-body, standing.',
+      description: `Exactly ${SCENES} scenes: the hook, four more facts, the calm ending.`,
       items: {
         type: 'object',
         additionalProperties: false,
         properties: {
-          pose: { type: 'string', enum: ['headshot', 'half-body', 'standing'] },
-          text: { type: 'string', description: 'What the presenter says in this segment: 2 to 5 short sentences.' },
+          narration: { type: 'string', description: `What the narrator says during this scene: at most ${MAX_SCENE_WORDS} words, numbers written as words.` },
+          visual: { type: 'string', description: 'The animated scene for the video model: three timed beats, concrete objects and motion, palette colours, no text or numbers anywhere.' },
         },
-        required: ['pose', 'text'],
+        required: ['narration', 'visual'],
       },
     },
     caption: { type: 'string' },
-    hashtags: { type: 'array', items: { type: 'string' }, description: '3 to 5 lowercase tags without the # sign.' },
+    hashtags: { type: 'array', items: { type: 'string' }, description: '4 or 5 lowercase tags without the # sign.' },
     product_slug: { type: 'string' },
-    popup_after: { type: 'string' },
   },
-  required: ['title', 'segments', 'caption', 'hashtags', 'product_slug', 'popup_after'],
+  required: ['title', 'scenes', 'caption', 'hashtags', 'product_slug'],
 };
 
 function plainText(html: string): string {
@@ -179,17 +200,20 @@ export async function writeScript(env: VideoEnv, post: BlogPost): Promise<VideoS
   const hero = post.heroSupplement || post.shop?.[0] || '';
   const sup = hero ? await getSupplementBySlug(env.DB, hero) : null;
   if (env.DEV_FAKE_AI === 'true') {
+    const figure = 'a simple soft-teal cartoon figure';
     return {
-      title: post.title.slice(0, 60),
-      segments: [
-        { pose: 'headshot', text: `Quick one on ${sup?.name ?? post.title}. Here is the number that matters: 3 to 5 g a day, every day.` },
-        { pose: 'half-body', text: 'Loading is optional. 20 g a day for a week gets you there faster, but you hold more water. Skip it and you get there in 3 to 4 weeks.' },
-        { pose: 'standing', text: 'Buy plain monohydrate. The fancy forms cost more and do not do more. Full guide at aiww.io.' },
+      title: `The sprinters' secret: ${sup?.name ?? post.title}`.slice(0, 60),
+      scenes: [
+        { narration: "Barcelona, nineteen ninety-two. Britain's gold-medal sprinters had quietly been using a legal white powder nobody in sport had heard of.", visual: `0 to 4 s: a hand-drawn stadium at dusk, ${figure} explodes from the starting blocks on a terracotta track. 4 to 7 s: the sprinter crosses the line and a plain gold medal swings. 7 to 10 s: a sage-green gym bag on a bench, inside it a plain white tub with a blank label glowing softly.` },
+        { narration: "Creatine. Within a year it was in every gym bag. Today it's the most tested supplement in sport, hundreds of trials deep.", visual: `0 to 4 s: gym bags pop open one after another, each with the same white tub. 4 to 7 s: the tubs become a mountain of blank paper sheets with scribble lines. 7 to 10 s: ${figure} in a straw-yellow coat stands on top and gives a thumbs-up.` },
+        { narration: "It's a battery. Your muscles drain their instant energy in about ten seconds. Creatine recharges it: one more rep, one more sprint.", visual: `0 to 4 s: ${figure} lifts a barbell while a rounded battery beside it drains its straw-yellow bar. 4 to 7 s: small soft white spheres flow in and the bar fills with a glow. 7 to 10 s: one more strong lift, then a sprint on a terracotta track.` },
+        { narration: 'Your brain uses the same battery. In trials, sleep-deprived people and low-store vegetarians scored better on memory tests after taking it.', visual: `0 to 4 s: a side profile of ${figure} with a glowing brain and a small battery inside it. 4 to 7 s: two vignettes, a yawning figure under a crescent moon and a figure eating leafy greens. 7 to 10 s: white spheres fill both batteries and puzzle pieces click together above their heads.` },
+        { narration: "The kidney scare is a reading error. Creatine raises creatinine on blood tests, the number doctors watch, but it's just a harmless by-product.", visual: `0 to 4 s: ${figure} sits worried across a desk from a doctor in a straw-yellow coat; sage-green kidneys float above, glowing healthy. 4 to 7 s: inside a test tube, white spheres break into harmless flecks. 7 to 10 s: the doctor smiles and the figure relaxes.` },
+        { narration: 'Skip the fancy versions. Plain monohydrate is the one from the trials. Three to five grams a day, whenever. Nothing newer beats it.', visual: `0 to 4 s: a shelf of loud colourful tubs shrinks away, leaving one plain white tub. 4 to 7 s: a teaspoon drops small soft white spheres into a glass of water on a wooden table. 7 to 10 s: ${figure} sips by a window at sunrise and leans back, the camera slowly pulling out.` },
       ],
-      caption: `${sup?.name ?? post.title}: the dose that works and how long it takes.`,
-      hashtags: [(sup?.slug ?? 'supplements').replace(/-/g, ''), 'supplements', 'wellness'],
+      caption: "In 1992 Britain's Olympic sprinters were quietly using a legal white powder nobody had heard of. Creatine.",
+      hashtags: [(sup?.slug ?? 'supplements').replace(/-/g, ''), 'supplements', 'gym', 'fitness', 'wellness'],
       product_slug: sup?.slug ?? hero,
-      popup_after: 'Buy plain monohydrate',
     };
   }
   const body = plainText(post.html).slice(0, 14000);
@@ -203,37 +227,42 @@ ${body}
 
 ${faq ? `FAQ:\n${faq}` : ''}
 
-Write the three-segment script, the caption, the hashtags, product_slug and popup_after.`;
-  let script = tidyScript(await claudeJson<VideoScript>(env, SCRIPT_SYSTEM, user, scriptSchema, { tier: 'fast', maxTokens: 4000, timeoutMs: 60_000 }), sup?.slug ?? hero);
-  // The model tends to overshoot; one shortening pass keeps the render under budget (HeyGen bills per second).
-  if (wordCount(script) > MAX_SCRIPT_WORDS) {
+Write the ${SCENES}-scene script (narration and visual for each), the caption, the hashtags and product_slug.`;
+  let script = tidyScript(await claudeJson<VideoScript>(env, SCRIPT_SYSTEM, user, scriptSchema, { tier: 'fast', maxTokens: 6000, timeoutMs: 90_000 }), sup?.slug ?? hero);
+  // The model tends to overshoot; one shortening pass keeps every scene inside its ten seconds.
+  const long = script.scenes.map((s, i) => ({ i, n: words(s.narration) })).filter((x) => x.n > MAX_SCENE_WORDS);
+  if (long.length || wordCount(script) > MAX_SCRIPT_WORDS) {
     const shorter = await claudeJson<VideoScript>(env, SCRIPT_SYSTEM,
-      `${user}\n\nYour previous script was ${wordCount(script)} words, which is too long:\n${JSON.stringify(script.segments)}\n\nRewrite it to at most ${MAX_SCRIPT_WORDS - 5} words in total, same three segments and postures, keep the key numbers and the closing line, drop the least important sentence(s).`,
-      scriptSchema, { tier: 'fast', maxTokens: 4000, timeoutMs: 60_000 });
+      `${user}\n\nYour previous script is too long for the narrator: ${long.map((x) => `scene ${x.i + 1} has ${x.n} words`).join(', ') || `${wordCount(script)} words in total`}. Here it is:\n${JSON.stringify(script)}\n\nRewrite it with at most ${MAX_SCENE_WORDS - 2} words in every scene's narration, same scenes and facts, same visuals; cut the least important clause of each long scene.`,
+      scriptSchema, { tier: 'fast', maxTokens: 6000, timeoutMs: 90_000 });
     const tidied = tidyScript(shorter, sup?.slug ?? hero);
-    if (wordCount(tidied) < wordCount(script)) script = tidied;
+    if (Math.max(...tidied.scenes.map((s) => words(s.narration))) <= Math.max(...script.scenes.map((s) => words(s.narration)))) script = tidied;
   }
-  if (wordCount(script) > MAX_SCRIPT_WORDS + 15) throw new Error(`script is ${wordCount(script)} words even after shortening`);
+  const worst = Math.max(...script.scenes.map((s) => words(s.narration)));
+  if (worst > MAX_SCENE_WORDS + 6) throw new Error(`a scene still has ${worst} words after shortening`);
   return script;
 }
 
+function words(text: string): number {
+  return text.split(/\s+/).filter(Boolean).length;
+}
+
 export function wordCount(s: VideoScript): number {
-  return s.segments.reduce((n, seg) => n + seg.text.split(/\s+/).filter(Boolean).length, 0);
+  return s.scenes.reduce((n, sc) => n + words(sc.narration), 0);
 }
 
 function tidyScript(s: VideoScript, fallbackSlug: string): VideoScript {
-  const clean = (t: string) => t.replace(/\s*[—–]\s*/g, ', ').replace(/!/g, '.').replace(/\s+/g, ' ').trim();
-  const poses: Pose[] = ['headshot', 'half-body', 'standing'];
-  const segments = s.segments.slice(0, 3).map((seg, i) => ({ pose: poses[i], text: clean(seg.text) }));
-  while (segments.length < 3) segments.push({ pose: poses[segments.length], text: 'Full guide at aiww.io.' });
-  if (!/aiww\.io/i.test(segments[2].text)) segments[2].text = `${segments[2].text} Full guide at aiww.io.`;
+  const clean = (t: string) => (t ?? '').replace(/\s*[—–]\s*/g, ', ').replace(/!/g, '.').replace(/\s+/g, ' ').trim();
+  // No website call to action in the spoken text: drop any sentence that names the site.
+  const noCta = (t: string) => t.split(/(?<=[.?])\s+/).filter((sentence) => !/aiww\.io|link in bio|follow (us|me)/i.test(sentence)).join(' ').trim();
+  const scenes = (s.scenes ?? []).slice(0, SCENES).map((sc) => ({ narration: noCta(clean(sc.narration)), visual: clean(sc.visual) })).filter((sc) => sc.narration && sc.visual);
+  if (scenes.length < MIN_SCENES) throw new Error(`the script has ${scenes.length} usable scenes; ${SCENES} expected`);
   return {
     title: clean(s.title).slice(0, 60),
-    segments,
+    scenes,
     caption: clean(s.caption).slice(0, 140),
     hashtags: (s.hashtags ?? []).map((h) => h.replace(/[^a-z0-9]/gi, '').toLowerCase()).filter(Boolean).slice(0, 5),
     product_slug: (s.product_slug || fallbackSlug).trim(),
-    popup_after: clean(s.popup_after),
   };
 }
 
@@ -290,7 +319,8 @@ export async function nextJob(env: VideoEnv, onlySlug?: string): Promise<RenderJ
   if (!row) return null;
   const script = parseScript(row.script_json);
   if (!script) {
-    await env.DB.prepare("UPDATE videos SET status = 'failed', error = 'script is not valid JSON', updated_at = datetime('now') WHERE id = ?").bind(row.id).run();
+    // Malformed, or written for the retired presenter format: back to the queue, the next cron rewrites it.
+    await env.DB.prepare("UPDATE videos SET status = 'queued', script_json = '', error = 'script rewritten for the explainer format', updated_at = datetime('now') WHERE id = ?").bind(row.id).run();
     return null;
   }
   const sup = script.product_slug ? await getSupplementBySlug(env.DB, script.product_slug) : null;

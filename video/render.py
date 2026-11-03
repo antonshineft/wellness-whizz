@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
-"""Render one queued short video and hand it back to the site.
+"""Render one queued explainer video and hand it back to the site.
 
-Flow: GET /api/admin/videos/next -> HeyGen clip per posture (voice from video/portraits/manifest.json) -> word timings
-with faster-whisper aligned to the script -> ffmpeg: clips concatenated, karaoke captions, product popup, music ->
-release asset on the repository -> POST /api/admin/videos/<slug>/ready (the site emails the owner a posting link).
+Flow: GET /api/admin/videos/next -> one ten-second clip per scene from Google's Gemini Omni Flash (the site's hand-drawn
+style, three reference images in video/style) -> narration per scene from ElevenLabs with word timestamps -> ffmpeg:
+clips concatenated (the model's own audio dropped), narration, burned-in captions, a music bed -> release asset on the
+repository -> POST /api/admin/videos/<slug>/ready (the site posts it through Zernio or emails a posting link).
 
-Environment: WW_ORIGIN (default https://aiww.io), WW_STATS_KEY, HEYGEN_API_KEY, GH_TOKEN + GH_REPO (release upload),
-JOB_SLUG (optional: render this slug instead of the oldest job), RENDER_LOCAL=1 (no upload, no report: writes the mp4
-into video/work and prints its path), RENDER_WORK (work directory, default video/work).
+Environment: WW_ORIGIN (default https://aiww.io), WW_STATS_KEY, GEMINI_API_KEY, ELEVENLABS_API_KEY, ELEVENLABS_VOICE
+(default: "Daniel"), VIDEO_MODEL (default gemini-omni-1.1-flash), VIDEO_RESOLUTION (default 1080p), GH_TOKEN + GH_REPO
+(release upload), JOB_SLUG (optional: render this slug instead of the oldest job).
+Local runs: RENDER_LOCAL=1 (no upload, no report: writes the mp4 into video/work and prints its path), RENDER_JOB (a job
+json file instead of asking the site), RENDER_CLIPS (a directory with clip1.mp4 ... to reuse instead of generating),
+RENDER_WORK (work directory, default video/work).
 """
 from __future__ import annotations
 
-import difflib
+import base64
 import json
 import os
 import re
@@ -19,24 +23,37 @@ import shutil
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
-from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parent
 WORK = Path(os.environ.get('RENDER_WORK') or ROOT / 'work')
 ORIGIN = (os.environ.get('WW_ORIGIN') or 'https://aiww.io').rstrip('/')
 KEY = os.environ.get('WW_STATS_KEY', '')
-HEYGEN = os.environ.get('HEYGEN_API_KEY', '')
+GEMINI = os.environ.get('GEMINI_API_KEY', '')
+ELEVEN = os.environ.get('ELEVENLABS_API_KEY', '')
+VOICE = os.environ.get('ELEVENLABS_VOICE') or 'onwK4e9ZLuTAKqWW03F9'  # "Daniel"
+MODEL = os.environ.get('VIDEO_MODEL') or 'gemini-omni-1.1-flash'
+RESOLUTION = os.environ.get('VIDEO_RESOLUTION') or '1080p'
 LOCAL = os.environ.get('RENDER_LOCAL') == '1'
-W, H, FPS = 1080, 1920, 25
-MAX_WORDS = 125  # credit guard: the site keeps scripts near 100 words; anything above this is refused before any HeyGen call
-MUSIC_VOLUME = 0.14
-POPUP_SECONDS = 4.5
-FONTS = REPO / 'public' / 'fonts'
+GOOGLE = 'https://generativelanguage.googleapis.com'
+W, H, FPS = 1080, 1920, 24
+SCENE_SECONDS = 10
+MAX_SCENES = 7  # cost guard: the site writes six scenes; anything above this is refused before any paid call
+MAX_SCENE_WORDS = 30
+NARRATION_DELAY = 0.15  # seconds of clip before the narrator starts
+NARRATION_TARGET = SCENE_SECONDS - 0.45  # the narration must end before the clip does
+MAX_TEMPO = 1.12  # the most the narration is sped up; beyond that the scene is held on its last frame for the rest
+MAX_HOLD = 1.5  # seconds a scene may run past the clip (last frame held) before the script is considered too long
+BED_VOLUME = 0.16
+PARALLEL_CLIPS = 2
+STYLE = sorted((ROOT / 'style').glob('ref-*.jpg'))
+FONTS = ROOT / 'fonts'
+BED = ROOT / 'assets' / 'bed.mp3'
 
 
 def log(*a: object) -> None:
@@ -46,8 +63,7 @@ def log(*a: object) -> None:
 def site(method: str, path: str, **kw) -> requests.Response:
     params = dict(kw.pop('params', {}) or {})
     params['key'] = KEY
-    r = requests.request(method, f'{ORIGIN}{path}', params=params, timeout=120, **kw)
-    return r
+    return requests.request(method, f'{ORIGIN}{path}', params=params, timeout=120, **kw)
 
 
 def ffprobe_duration(f: Path) -> float:
@@ -55,247 +71,275 @@ def ffprobe_duration(f: Path) -> float:
     return float(out.strip())
 
 
+def ffmpeg(*args: str) -> None:
+    subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', *args], check=True)
+
+
 # ---------------------------------------------------------------------------------------------------------------------
-# HeyGen
+# Clips: Gemini Omni Flash, one ten-second clip per scene in the style of the reference images
 
-def heygen(method: str, path: str, **kw) -> dict:
-    r = requests.request(method, f'https://api.heygen.com{path}', headers={'x-api-key': HEYGEN}, timeout=180, **kw)
-    try:
-        j = r.json()
-    except ValueError:
-        raise RuntimeError(f'HeyGen {path}: HTTP {r.status_code} {r.text[:200]}')
-    if r.status_code >= 400 or j.get('error'):
-        raise RuntimeError(f'HeyGen {path}: HTTP {r.status_code} {json.dumps(j.get("error") or j)[:300]}')
-    return j.get('data', j)
+STYLE_BLOCK = ('Style: digital hand-drawn 2D illustration with a digital gouache feel, muted pastel-earth palette (pale cerulean, '
+               'soft teal, sage green, terracotta, straw yellow, cream), thin dark-grey ink outlines, flat colour fills with gentle '
+               'minimal shading, subtle paper-grain texture, rounded organic shapes, diffuse ambient light, modern hand-drawn '
+               'animated explainer mood. Clean, uncluttered composition on a plain cream paper background with plenty of breathing room.')
 
 
-def prepare_portrait(src: Path, out: Path) -> Path:
-    """Crop the portrait to 9:16 and hand HeyGen a 2160x3840 frame (Lanczos, lightly sharpened) so its output is not an
-    upscale of a crop: the avatar comes back crisper than from the 1088px source."""
-    from PIL import ImageEnhance
-    im = Image.open(src).convert('RGB')
-    w, h = im.size
-    target = 9 / 16
-    if w / h > target:
-        nw = int(h * target)
-        im = im.crop(((w - nw) // 2, 0, (w - nw) // 2 + nw, h))
+def scene_prompt(index: int, count: int, topic: str, visual: str) -> str:
+    refs = ' '.join(f'<IMAGE_REF_{i}>' for i in range(len(STYLE)))
+    role = 'the opening hook' if index == 0 else 'the calm ending' if index == count - 1 else f'scene {index + 1} of {count}'
+    return (f'Animated explainer infographic, vertical 9:16, {SCENE_SECONDS} seconds, {role} of a short video about {topic}, '
+            f'in the style of {refs}.\n\n'
+            f'{STYLE_BLOCK}\n\n'
+            f'Sequence ({SCENE_SECONDS} seconds, one continuous shot, always in motion, no static holds, soft easing, gentle sparkles, '
+            f'continuous slow camera drift):\n{visual}\n\n'
+            'Use the given images only as style references for the rendering look. Do not use them as initial frames and do not '
+            'reproduce their subjects (no neurons, no cell diagrams, no mouths or pills from them).\n'
+            'No text of any kind: no words, no letters, no numbers, no labels, no logos, no watermark, no numerals on clocks, no '
+            'readable writing on paper (only abstract scribble strokes). No photos, no realistic 3D, no realistic anatomy.\n'
+            'Audio: no spoken words, no voice, no dialogue, no singing. Only a soft, minimal ambient music bed and subtle '
+            'paper-scribble sound effects, quiet.')
+
+
+def google(method: str, url: str, **kw) -> requests.Response:
+    headers = {'x-goog-api-key': GEMINI, **kw.pop('headers', {})}
+    return requests.request(method, url, headers=headers, timeout=kw.pop('timeout', 180), **kw)
+
+
+def _video_part(interaction: dict) -> dict | None:
+    for step in interaction.get('steps') or []:
+        if step.get('type') != 'model_output':
+            continue
+        for part in step.get('content') or []:
+            if part.get('type') == 'video':
+                return part
+    return None
+
+
+def _download_file(uri: str, out: Path) -> None:
+    """A generated video delivered as a Google-hosted file: wait until it is ACTIVE, then download it."""
+    name = uri.rstrip('/').rsplit('/', 1)[-1]
+    for _ in range(90):
+        r = google('GET', f'{GOOGLE}/v1beta/files/{name}')
+        state = r.json().get('state') if r.ok else None
+        if state == 'ACTIVE':
+            break
+        if state == 'FAILED':
+            raise RuntimeError(f'Google file {name} failed to process')
+        time.sleep(5)
+    for url in (f'{GOOGLE}/download/v1beta/files/{name}:download?alt=media', f'{uri}?alt=media', uri):
+        r = google('GET', url, timeout=600, stream=True)
+        if r.ok and (r.headers.get('content-type', '').startswith('video') or int(r.headers.get('content-length') or 0) > 100_000):
+            with open(out, 'wb') as f:
+                for chunk in r.iter_content(1 << 20):
+                    f.write(chunk)
+            return
+    raise RuntimeError(f'could not download the generated video from {uri}')
+
+
+def generate_clip(prompt: str, out: Path, label: str) -> Path:
+    """One clip from Gemini Omni Flash with the style references, run in the background and polled."""
+    content = [{'type': 'image', 'data': base64.b64encode(p.read_bytes()).decode(), 'mime_type': 'image/jpeg'} for p in STYLE]
+    content.append({'type': 'text', 'text': prompt})
+    body = {
+        'model': MODEL,
+        'input': content,
+        'response_format': {'type': 'video', 'aspect_ratio': '9:16', 'resolution': RESOLUTION, 'delivery': 'uri'},
+        'background': True,
+        'store': False,
+    }
+    r = google('POST', f'{GOOGLE}/v1beta/interactions', json=body, timeout=300)
+    if not r.ok:
+        raise RuntimeError(f'Omni {label}: HTTP {r.status_code} {r.text[:300]}')
+    interaction = r.json()
+    iid = interaction.get('id')
+    t0 = time.time()
+    while interaction.get('status') in ('in_progress', 'requires_action', None) and time.time() - t0 < 1500:
+        time.sleep(10)
+        rr = google('GET', f'{GOOGLE}/v1beta/interactions/{iid}')
+        if rr.ok:
+            interaction = rr.json()
+        else:
+            log(f'{label}: poll HTTP {rr.status_code}, retrying')
+    status = interaction.get('status')
+    if status != 'completed':
+        err = interaction.get('error') or interaction.get('status_details') or ''
+        raise RuntimeError(f'Omni {label}: {status} {json.dumps(err)[:300]}')
+    part = _video_part(interaction)
+    if not part:
+        raise RuntimeError(f'Omni {label}: no video in the response ({json.dumps(interaction)[:300]})')
+    if part.get('data'):
+        out.write_bytes(base64.b64decode(part['data']))
+    elif part.get('uri'):
+        _download_file(part['uri'], out)
     else:
-        nh = int(w / target)
-        top = max(0, (h - nh) // 3)
-        im = im.crop((0, top, w, top + nh))
-    im = im.resize((2160, 3840), Image.LANCZOS)
-    im = ImageEnhance.Sharpness(im).enhance(1.35)
-    im.save(out, quality=93, optimize=True)
+        raise RuntimeError(f'Omni {label}: video part has neither data nor uri')
+    log(f'{label}: {ffprobe_duration(out):.1f} s in {time.time() - t0:.0f} s')
     return out
 
 
-def upload_asset(path: Path) -> str:
-    prepared = prepare_portrait(path, WORK / f'portrait-{path.stem}.jpg')
-    with open(prepared, 'rb') as f:
-        d = heygen('POST', '/v3/assets', files={'file': (prepared.name, f, 'image/jpeg')})
-    return d['asset_id']
+def generate_clips(job: dict, out_dir: Path) -> list[Path]:
+    scenes = job['script']['scenes']
+    topic = job.get('product_name') or job['title']
+    clips = [out_dir / f'clip{i + 1}.mp4' for i in range(len(scenes))]
 
+    def one(i: int) -> Path:
+        prompt = scene_prompt(i, len(scenes), topic, scenes[i]['visual'])
+        try:
+            return generate_clip(prompt, clips[i], f'clip {i + 1}')
+        except RuntimeError as e:
+            # The safety filter sometimes trips on an innocent description; one retry with a gentler framing.
+            if 'safety' not in str(e).lower() and 'blocked' not in str(e).lower():
+                raise
+            log(f'clip {i + 1}: blocked ({str(e)[:120]}); retrying with a gentler framing')
+            gentle = prompt.replace('Sequence (', 'A wholesome, family-friendly educational cartoon. Sequence (')
+            return generate_clip(gentle, clips[i], f'clip {i + 1} (retry)')
 
-def create_clip(asset_id: str, text: str, voice_id: str, title: str) -> str:
-    d = heygen('POST', '/v3/videos', json={
-        'type': 'image',
-        'image': {'type': 'asset_id', 'asset_id': asset_id},
-        'title': title,
-        'aspect_ratio': '9:16',
-        'resolution': '1080p',
-        'fit': 'cover',
-        'script': text,
-        'voice_id': voice_id,
-        'output_format': 'mp4',
-    })
-    return d['video_id']
-
-
-def wait_clips(video_ids: list[str], out: list[Path], timeout_s: int = 1500) -> None:
-    pending = {vid: i for i, vid in enumerate(video_ids)}
-    t0 = time.time()
-    while pending:
-        if time.time() - t0 > timeout_s:
-            raise RuntimeError(f'HeyGen clips still processing after {timeout_s} s: {list(pending)}')
-        for vid in list(pending):
-            d = heygen('GET', f'/v3/videos/{vid}')
-            st = d.get('status')
-            if st == 'completed':
-                r = requests.get(d['video_url'], timeout=300)
-                r.raise_for_status()
-                out[pending[vid]].write_bytes(r.content)
-                log(f'clip {pending[vid] + 1} done ({d.get("duration")} s)')
-                del pending[vid]
-            elif st == 'failed':
-                raise RuntimeError(f'HeyGen clip {vid} failed: {d.get("error")}')
-        if pending:
-            time.sleep(15)
+    with ThreadPoolExecutor(max_workers=PARALLEL_CLIPS) as pool:
+        list(pool.map(one, range(len(scenes))))
+    return clips
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Word timings: whisper transcription aligned to the script text
+# Narration: ElevenLabs with word timestamps, trimmed and fitted into the scene
 
-SMALL = {'0': 'zero', '1': 'one', '2': 'two', '3': 'three', '4': 'four', '5': 'five', '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine', '10': 'ten',
-         '12': 'twelve', '15': 'fifteen', '20': 'twenty', '30': 'thirty', '40': 'forty', '50': 'fifty', '60': 'sixty', '100': 'hundred'}
-
-
-def norm(w: str) -> str:
-    x = re.sub(r'[^a-z0-9]', '', w.lower())
-    return SMALL.get(x, x)
-
-
-def transcribe_words(wav: Path, model) -> list[dict]:
-    segments, _info = model.transcribe(str(wav), language='en', word_timestamps=True, beam_size=5, vad_filter=False)
-    words = []
-    for seg in segments:
-        for w in seg.words or []:
-            if w.word.strip():
-                words.append({'w': w.word.strip(), 's': float(w.start), 'e': float(w.end)})
+def narrate(text: str, mp3: Path) -> list[dict]:
+    r = requests.post(f'https://api.elevenlabs.io/v1/text-to-speech/{VOICE}/with-timestamps', params={'output_format': 'mp3_44100_128'},
+                      headers={'xi-api-key': ELEVEN, 'content-type': 'application/json'}, timeout=180,
+                      json={'text': text, 'model_id': 'eleven_multilingual_v2',
+                            'voice_settings': {'stability': 0.5, 'similarity_boost': 0.8, 'style': 0.3, 'use_speaker_boost': True}})
+    if not r.ok:
+        raise RuntimeError(f'ElevenLabs: HTTP {r.status_code} {r.text[:200]}')
+    res = r.json()
+    mp3.write_bytes(base64.b64decode(res['audio_base64']))
+    al = res['alignment']
+    words: list[dict] = []
+    cur, ws, we = '', 0.0, 0.0
+    for ch, s, e in zip(al['characters'], al['character_start_times_seconds'], al['character_end_times_seconds']):
+        if ch.isspace():
+            if cur:
+                words.append({'w': cur, 's': ws, 'e': we})
+                cur = ''
+        else:
+            if not cur:
+                ws = s
+            cur += ch
+            we = e
+    if cur:
+        words.append({'w': cur, 's': ws, 'e': we})
     return words
 
 
-def align(script_words: list[str], heard: list[dict], duration: float) -> list[dict]:
-    """Give every script word a start/end: matched words take whisper's timing, the rest are interpolated."""
-    a = [norm(w) for w in script_words]
-    b = [norm(w['w']) for w in heard]
-    timed: list[dict | None] = [None] * len(a)
-    sm = difflib.SequenceMatcher(a=a, b=b, autojunk=False)
-    for tag, i1, i2, j1, j2 in sm.get_opcodes():
-        if tag == 'equal':
-            for k in range(i2 - i1):
-                timed[i1 + k] = {'s': heard[j1 + k]['s'], 'e': heard[j1 + k]['e']}
-        elif tag == 'replace' and (i2 - i1) == (j2 - j1):
-            for k in range(i2 - i1):
-                timed[i1 + k] = {'s': heard[j1 + k]['s'], 'e': heard[j1 + k]['e']}
-    matched = sum(1 for t in timed if t)
-    speech_start = heard[0]['s'] if heard else 0.3
-    speech_end = heard[-1]['e'] if heard else max(0.6, duration - 0.3)
-    # interpolate gaps by character length between the nearest timed neighbours
-    i = 0
-    while i < len(a):
-        if timed[i]:
-            i += 1
-            continue
-        j = i
-        while j < len(a) and not timed[j]:
-            j += 1
-        left = timed[i - 1]['e'] if i > 0 and timed[i - 1] else speech_start
-        right = timed[j]['s'] if j < len(a) else speech_end
-        if right <= left:
-            right = left + 0.25 * (j - i)
-        total = sum(len(a[k]) + 1 for k in range(i, j)) or 1
-        t = left
-        for k in range(i, j):
-            span = (right - left) * (len(a[k]) + 1) / total
-            timed[k] = {'s': t, 'e': min(right, t + span)}
-            t += span
-        i = j
-    out = [{'w': script_words[k], 's': timed[k]['s'], 'e': timed[k]['e']} for k in range(len(a))]
-    # monotonic, never beyond the clip
-    last = 0.0
-    for w in out:
-        w['s'] = max(last, min(w['s'], duration))
-        w['e'] = max(w['s'] + 0.05, min(w['e'], duration))
-        last = w['e']
-    log(f'aligned {matched}/{len(a)} words from speech, rest interpolated')
-    return out
+def fit_narration(mp3: Path, words: list[dict], wav: Path, max_len: float) -> tuple[list[dict], float]:
+    """Trim the silence around the speech and, if needed, speed it up a little so it ends before the clip does."""
+    start = max(0.0, words[0]['s'] - 0.05)
+    end = words[-1]['e'] + 0.08
+    dur = end - start
+    f = min(dur / max_len, MAX_TEMPO) if dur > max_len else 1.0
+    af = f'atrim=start={start:.3f}:end={end:.3f},asetpts=PTS-STARTPTS' + (f',atempo={f:.4f}' if f > 1 else '')
+    ffmpeg('-i', str(mp3), '-af', af, '-ar', '48000', '-ac', '2', str(wav))
+    fitted = [{'w': w['w'], 's': (w['s'] - start) / f, 'e': (w['e'] - start) / f} for w in words]
+    return fitted, ffprobe_duration(wav)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Captions and popup
+# Captions: two to five words at a time, real text burned in at assembly (never drawn by the video model)
 
-def ass_time(t: float) -> str:
-    return f"{int(t // 3600)}:{int(t % 3600 // 60):02d}:{t % 60:05.2f}"
+STOP = {'a', 'an', 'the', 'of', 'in', 'to', 'and', 'or', 'is', 'was', 'had', 'has', 'it', 'its', "it's", 'your', 'on', 'for', 'with', 'at', 'by',
+        'from', 'as', 'but', 'so', 'that', 'this', 'not', 'be', 'you', 'we', 'he', 'she', 'they', 'who'}
 
 
-def write_captions(words: list[dict], dur: float, path: Path) -> int:
-    lines, cur = [], []
-    for w in words:
+def chunk_words(words: list[dict]) -> list[list[dict]]:
+    chunks: list[list[dict]] = []
+    cur: list[dict] = []
+    for i, w in enumerate(words):
         cur.append(w)
-        if len(cur) >= 4 or cur[-1]['e'] - cur[0]['s'] > 1.9 or w['w'].endswith(('.', '?', '!')):
-            lines.append(cur)
+        last = i == len(words) - 1
+        punct = bool(re.search(r'[.!?:;]$', w['w'])) or (w['w'].endswith(',') and len(cur) >= 2)
+        nxt = words[i + 1]['w'].lower() if not last else ''
+        chars = sum(len(x['w']) + 1 for x in cur)
+        if punct or last or len(cur) >= 5 or chars >= 26 or (len(cur) >= 3 and nxt in STOP):
+            chunks.append(cur)
             cur = []
     if cur:
-        lines.append(cur)
-    ass = ['[Script Info]', 'ScriptType: v4.00+', f'PlayResX: {W}', f'PlayResY: {H}', 'WrapStyle: 1', 'ScaledBorderAndShadow: yes', '',
-           '[V4+ Styles]',
-           'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-           'Style: K,Aeonik,76,&H0081D587,&H00FFFFFF,&H002D271D,&H80000000,-1,0,0,0,100,100,0,0,1,5,2,2,80,80,430,1', '',
-           '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text']
-    for ln in lines:
-        start, end = ln[0]['s'], min(ln[-1]['e'] + 0.12, dur)
-        parts = []
-        for i, w in enumerate(ln):
-            nxt = ln[i + 1]['s'] if i + 1 < len(ln) else end
-            parts.append(f"{{\\kf{max(1, round((nxt - w['s']) * 100))}}}{w['w']} ")
-        ass.append(f"Dialogue: 0,{ass_time(start)},{ass_time(end)},K,,0,0,0,,{''.join(parts).strip()}")
-    path.write_text('\n'.join(ass) + '\n')
+        chunks.append(cur)
+    merged: list[list[dict]] = []
+    for c in chunks:
+        if merged and len(c) == 1 and len(merged[-1]) <= 4 and sum(len(x['w']) + 1 for x in merged[-1] + c) <= 30:
+            merged[-1] = merged[-1] + c
+        else:
+            merged.append(c)
+    return merged
+
+
+def ass_time(t: float) -> str:
+    t = max(0.0, t)
+    return f'{int(t // 3600)}:{int(t % 3600 // 60):02d}:{t % 60:05.2f}'
+
+
+def write_captions(scenes: list[dict], path: Path) -> int:
+    """scenes: [{'words': fitted words, 'offset': start of the scene in the video, 'length': scene length}]."""
+    head = ['[Script Info]', 'ScriptType: v4.00+', f'PlayResX: {W}', f'PlayResY: {H}', 'WrapStyle: 0', 'ScaledBorderAndShadow: yes', '',
+            '[V4+ Styles]',
+            'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+            # charcoal text in a pale-yellow box (the site's #fdf1cf), above TikTok's bottom overlay and clear of the right-hand buttons
+            'Style: Cap,Inter ExtraBold,66,&H00303030,&H00303030,&H10CFF1FD,&H10CFF1FD,0,0,0,0,100,100,0.5,0,3,20,0,2,150,150,420,1', '',
+            '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text']
+    lines: list[str] = []
+    for sc in scenes:
+        off = sc['offset'] + NARRATION_DELAY
+        chunks = chunk_words(sc['words'])
+        for k, c in enumerate(chunks):
+            start = c[0]['s']
+            end = chunks[k + 1][0]['s'] if k + 1 < len(chunks) else c[-1]['e'] + 0.35
+            end = min(end, sc['length'] - NARRATION_DELAY - 0.05)
+            text = ' '.join(w['w'] for w in c).replace('{', '(').replace('}', ')')
+            lines.append(f'Dialogue: 0,{ass_time(off + start)},{ass_time(off + end)},Cap,,0,0,0,,{text}')
+    path.write_text('\n'.join(head + lines) + '\n')
     return len(lines)
-
-
-def make_popup(image_url: str | None, path: Path) -> bool:
-    if not image_url:
-        return False
-    try:
-        r = requests.get(image_url, timeout=60)
-        r.raise_for_status()
-        src = Image.open(__import__('io').BytesIO(r.content)).convert('RGBA')
-    except Exception as e:  # noqa: BLE001
-        log(f'product image not usable ({e}); no popup')
-        return False
-    canvas = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    x, y, s = 700, 200, 320
-    shadow = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(shadow).rounded_rectangle([x, y + 12, x + s, y + s + 12], radius=40, fill=(29, 39, 45, 70))
-    canvas.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(18)))
-    ImageDraw.Draw(canvas).rounded_rectangle([x, y, x + s, y + s], radius=40, fill=(253, 241, 207, 250))
-    src.thumbnail((270, 270))
-    canvas.alpha_composite(src, (x + (s - src.width) // 2, y + (s - src.height) // 2))
-    canvas.save(path)
-    return True
-
-
-def find_phrase(words: list[dict], phrase: str) -> float | None:
-    seq = [norm(x) for x in phrase.split()][:3]
-    if not seq:
-        return None
-    ws = [norm(w['w']) for w in words]
-    for i in range(len(ws) - len(seq) + 1):
-        if ws[i:i + len(seq)] == seq:
-            return words[i]['s']
-    return None
 
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Compose
 
-def compose(clips: list[Path], words: list[dict], popup: Path | None, popup_at: float, out: Path) -> float:
-    dur = sum(ffprobe_duration(c) for c in clips)
-    captions = out.with_suffix('.ass')
-    n_lines = write_captions(words, dur, captions)
-    n = len(clips)
+def compose(clips: list[Path], narrations: list[tuple[Path, list[dict], float]], out: Path) -> float:
+    """Each scene is as long as its clip (a short clip is held on its last frame if the narration needs it)."""
+    parts_v: list[Path] = []
+    parts_a: list[Path] = []
+    caption_scenes: list[dict] = []
+    offset = 0.0
+    for i, (clip, (wav, words, nd)) in enumerate(zip(clips, narrations)):
+        cd = ffprobe_duration(clip)
+        length = max(cd, nd + NARRATION_DELAY + 0.45)
+        vf = f'scale={W}:{H}:flags=lanczos,setsar=1,fps={FPS}'
+        if length > cd + 0.05:
+            vf += f',tpad=stop_mode=clone:stop_duration={length - cd:.3f}'
+        v = WORK / f'v{i + 1}.mp4'
+        a = WORK / f'a{i + 1}.wav'
+        ffmpeg('-i', str(clip), '-filter_complex', f'[0:v]{vf}[v]', '-map', '[v]', '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-t', f'{length:.3f}', str(v))
+        delay = int(NARRATION_DELAY * 1000)
+        ffmpeg('-i', str(wav), '-af', f'adelay={delay}|{delay},aformat=sample_rates=48000:channel_layouts=stereo,apad', '-t', f'{length:.3f}', str(a))
+        parts_v.append(v)
+        parts_a.append(a)
+        caption_scenes.append({'words': words, 'offset': offset, 'length': length})
+        offset += length
+    total = offset
+    (WORK / 'vlist.txt').write_text(''.join(f"file '{p.name}'\n" for p in parts_v))
+    ffmpeg('-f', 'concat', '-safe', '0', '-i', str(WORK / 'vlist.txt'), '-c', 'copy', str(WORK / 'video-only.mp4'))
     inputs: list[str] = []
-    for c in clips:
-        inputs += ['-i', str(c)]
-    inputs += ['-i', str(ROOT / 'assets' / 'music.mp3')]
-    if popup:
-        inputs += ['-loop', '1', '-t', f'{dur:.2f}', '-i', str(popup)]
-    cat = ''.join(f'[{i}:v][{i}:a]' for i in range(n)) + f'concat=n={n}:v=1:a=1[cv][ca]'
-    fc = [cat, f'[cv]scale={W}:{H}:flags=lanczos,fps={FPS},unsharp=5:5:0.5:5:5:0.0[base]']
-    last = 'base'
-    if popup:
-        ps, pe = popup_at, min(dur - 0.5, popup_at + POPUP_SECONDS)
-        fc.append(f'[{n + 1}:v]format=rgba,fade=t=in:st={ps:.2f}:d=0.3:alpha=1,fade=t=out:st={pe - 0.3:.2f}:d=0.3:alpha=1[pp]')
-        fc.append(f"[base][pp]overlay=0:0:enable='between(t,{ps:.2f},{pe:.2f})'[v1]")
-        last = 'v1'
-    fc.append(f"[{last}]subtitles={captions}:fontsdir={FONTS},fade=t=out:st={dur - 0.4:.2f}:d=0.4,format=yuv420p[out]")
-    fc.append(f'[{n}:a]atrim=0:{dur + 0.5:.2f},volume={MUSIC_VOLUME},afade=t=in:st=0:d=0.8,afade=t=out:st={dur - 1.5:.2f}:d=1.5[m]')
-    fc.append('[ca][m]amix=inputs=2:duration=first:normalize=0[a]')
-    cmd = ['ffmpeg', '-loglevel', 'error', '-y', *inputs, '-filter_complex', ';'.join(fc), '-map', '[out]', '-map', '[a]', '-t', f'{dur:.2f}', '-r', str(FPS),
-           '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', str(out)]
-    subprocess.run(cmd, check=True)
-    log(f'composed {out.name}: {dur:.1f} s, {n_lines} caption lines, popup at {popup_at:.1f}' if popup else f'composed {out.name}: {dur:.1f} s, {n_lines} caption lines')
-    return dur
+    for a in parts_a:
+        inputs += ['-i', str(a)]
+    ffmpeg(*inputs, '-filter_complex', ''.join(f'[{k}:a]' for k in range(len(parts_a))) + f'concat=n={len(parts_a)}:v=0:a=1[a]', '-map', '[a]', str(WORK / 'narration.wav'))
+    captions = WORK / 'captions.ass'
+    n_lines = write_captions(caption_scenes, captions)
+    ffmpeg('-i', str(WORK / 'video-only.mp4'), '-i', str(WORK / 'narration.wav'), '-stream_loop', '-1', '-i', str(BED),
+           '-filter_complex',
+           f"[0:v]ass={captions}:fontsdir={FONTS}[v];"
+           f'[2:a]atrim=0:{total + 1:.2f},aformat=sample_rates=48000:channel_layouts=stereo,volume={BED_VOLUME},afade=t=in:st=0:d=1.5,afade=t=out:st={total - 1.5:.2f}:d=1.5[bed];'
+           '[1:a][bed]amix=inputs=2:duration=first:dropout_transition=2,volume=1.5[a]',
+           '-map', '[v]', '-map', '[a]', '-t', f'{total:.3f}', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
+           '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-movflags', '+faststart', str(out))
+    log(f'composed {out.name}: {total:.1f} s, {len(clips)} scenes, {n_lines} caption lines')
+    return total
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -323,73 +367,64 @@ def upload_release_asset(path: Path, slug: str) -> str:
 
 def render(job: dict) -> Path:
     slug = job['slug']
-    script = job['script']
-    segments = script['segments']
-    total_words = sum(len(s['text'].split()) for s in segments)
-    if total_words > MAX_WORDS:
-        raise RuntimeError(f'script has {total_words} words; refusing to spend credits on more than {MAX_WORDS}')
-    manifest = json.loads((ROOT / 'portraits' / 'manifest.json').read_text())
-    sets = manifest['sets']
-    chosen = sets[int(job.get('set_index') or 0) % len(sets)]
-    log(f'job {slug}: {len(segments)} segments, {total_words} words, outfit {chosen["name"]}')
+    scenes = job['script']['scenes']
+    if not 1 <= len(scenes) <= MAX_SCENES:
+        raise RuntimeError(f'script has {len(scenes)} scenes; refusing to render more than {MAX_SCENES}')
+    longest = max(len(s['narration'].split()) for s in scenes)
+    if longest > MAX_SCENE_WORDS:
+        raise RuntimeError(f'a scene has {longest} words; the narrator cannot fit more than {MAX_SCENE_WORDS} into ten seconds')
+    if not STYLE:
+        raise RuntimeError('no style references in video/style')
+    log(f'job {slug}: {len(scenes)} scenes, {sum(len(s["narration"].split()) for s in scenes)} words, {MODEL} at {RESOLUTION}')
     WORK.mkdir(parents=True, exist_ok=True)
     for f in WORK.glob('*'):
         if f.is_file():
             f.unlink()
 
-    # 1. HeyGen clips
-    assets: dict[str, str] = {}
-    video_ids: list[str] = []
-    clips = [WORK / f'seg{i + 1}.mp4' for i in range(len(segments))]
-    for i, seg in enumerate(segments):
-        pose = seg['pose'] if seg['pose'] in chosen['poses'] else list(chosen['poses'])[0]
-        if pose not in assets:
-            assets[pose] = upload_asset(ROOT / 'portraits' / chosen['poses'][pose])
-        video_ids.append(create_clip(assets[pose], seg['text'], manifest['voice_id'], f'{slug} {i + 1} {pose}'))
-        log(f'clip {i + 1} queued ({pose}, {len(seg["text"].split())} words)')
-    wait_clips(video_ids, clips)
+    # 1. narration first: it is cheap, and a script the narrator cannot fit fails before any clip is paid for
+    narrations: list[tuple[Path, list[dict], float]] = []
+    for i, sc in enumerate(scenes):
+        mp3 = WORK / f'vo{i + 1}.mp3'
+        words = narrate(sc['narration'], mp3)
+        fitted, nd = fit_narration(mp3, words, WORK / f'vo{i + 1}.wav', NARRATION_TARGET)
+        over = nd + NARRATION_DELAY + 0.45 - SCENE_SECONDS
+        if over > MAX_HOLD:
+            raise RuntimeError(f'scene {i + 1} narration is {nd:.1f} s even at {MAX_TEMPO}x; shorten it ({len(sc["narration"].split())} words)')
+        narrations.append((WORK / f'vo{i + 1}.wav', fitted, nd))
+        log(f'narration {i + 1}: {nd:.2f} s' + (f' (the scene is held {over:.1f} s longer)' if over > 0 else ''))
 
-    # 2. word timings
-    from faster_whisper import WhisperModel  # imported late: slow to load
-    model = WhisperModel('base.en', device='cpu', compute_type='int8')
-    words: list[dict] = []
-    offset = 0.0
-    for i, (clip, seg) in enumerate(zip(clips, segments)):
-        wav = WORK / f'seg{i + 1}.wav'
-        subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-i', str(clip), '-vn', '-ac', '1', '-ar', '16000', str(wav)], check=True)
-        dur = ffprobe_duration(clip)
-        heard = transcribe_words(wav, model)
-        for w in align(seg['text'].split(), heard, dur):
-            words.append({'w': w['w'], 's': w['s'] + offset, 'e': w['e'] + offset})
-        offset += dur
-    (WORK / 'words.json').write_text(json.dumps(words, indent=1))
+    # 2. clips
+    reuse = os.environ.get('RENDER_CLIPS')
+    if reuse:
+        clips = [Path(reuse) / f'clip{i + 1}.mp4' for i in range(len(scenes))]
+        missing = [c for c in clips if not c.exists()]
+        if missing:
+            raise RuntimeError(f'RENDER_CLIPS is missing {missing[0].name}')
+        log(f'reusing {len(clips)} clips from {reuse}')
+    else:
+        clips = generate_clips(job, WORK)
+    (WORK / 'words.json').write_text(json.dumps([n[1] for n in narrations], indent=1))
 
-    # 3. popup
-    popup = WORK / 'popup.png'
-    has_popup = make_popup(job.get('product_image'), popup)
-    popup_at = find_phrase(words, script.get('popup_after') or '')
-    if popup_at is None:
-        seg3_start = sum(ffprobe_duration(c) for c in clips[:2]) if len(clips) >= 3 else 0.0
-        popup_at = seg3_start + 0.3
-    popup_at = max(0.2, popup_at - 0.1)
-
-    # 4. compose
+    # 3. compose
     out = WORK / f'{slug}.mp4'
-    compose(clips, words, popup if has_popup else None, popup_at, out)
+    compose(clips, narrations, out)
     return out
 
 
 def main() -> int:
-    if not KEY or not HEYGEN:
-        # Not configured yet (repository secrets WW_STATS_KEY and HEYGEN_API_KEY): nothing to do, no failure.
-        log('secrets WW_STATS_KEY / HEYGEN_API_KEY are not set on this runner; skipping')
-        return 0
-    params = {'slug': os.environ['JOB_SLUG']} if os.environ.get('JOB_SLUG') else {}
-    r = site('GET', '/api/admin/videos/next', params=params)
-    if r.status_code != 200:
-        print(f'next job: HTTP {r.status_code} {r.text[:200]}', file=sys.stderr)
-        return 1
-    job = r.json()
+    if os.environ.get('RENDER_JOB'):
+        job = json.loads(Path(os.environ['RENDER_JOB']).read_text())
+    else:
+        if not KEY or not GEMINI or not ELEVEN:
+            # Not configured yet (repository secrets WW_STATS_KEY, GEMINI_API_KEY, ELEVENLABS_API_KEY): nothing to do, no failure.
+            log('secrets WW_STATS_KEY / GEMINI_API_KEY / ELEVENLABS_API_KEY are not all set on this runner; skipping')
+            return 0
+        params = {'slug': os.environ['JOB_SLUG']} if os.environ.get('JOB_SLUG') else {}
+        r = site('GET', '/api/admin/videos/next', params=params)
+        if r.status_code != 200:
+            print(f'next job: HTTP {r.status_code} {r.text[:200]}', file=sys.stderr)
+            return 1
+        job = r.json()
     if not job or job.get('job', 'x') is None or not job.get('slug'):
         log('no job waiting')
         return 0
