@@ -139,19 +139,31 @@ def _download_file(uri: str, out: Path) -> None:
     raise RuntimeError(f'could not download the generated video from {uri}')
 
 
-def generate_clip(prompt: str, out: Path, label: str) -> Path:
-    """One clip from Gemini Omni Flash with the style references, run in the background and polled."""
-    content = [{'type': 'image', 'data': base64.b64encode(p.read_bytes()).decode(), 'mime_type': 'image/jpeg'} for p in STYLE]
-    content.append({'type': 'text', 'text': prompt})
-    body = {
-        'model': MODEL,
-        'input': content,
-        'response_format': {'type': 'video', 'aspect_ratio': '9:16', 'resolution': RESOLUTION, 'delivery': 'uri'},
-        'background': True,  # polled below; Google requires store=true (the default) for background runs
-    }
-    r = google('POST', f'{GOOGLE}/v1beta/interactions', json=body, timeout=300)
+def _request(prompt: str, refs: bool, fmt: dict) -> dict:
+    content: list[dict] = []
+    if refs:
+        content = [{'type': 'image', 'data': base64.b64encode(p.read_bytes()).decode(), 'mime_type': 'image/jpeg'} for p in STYLE]
+    content.append({'type': 'text', 'text': prompt if refs else re.sub(r'in the style of (<IMAGE_REF_\d+>\s*)+', 'in a hand-drawn illustration style', prompt)})
+    return {'model': MODEL, 'input': content, 'response_format': {'type': 'video', 'aspect_ratio': '9:16', **fmt},
+            'background': True}  # polled below; Google requires store=true (the default) for background runs
+
+
+# Request shapes tried in order for the first clip; whichever works is kept for the rest of the video.
+CONFIGS: list[tuple[str, bool, dict]] = [
+    ('style refs, 1080p, uri delivery', True, {'resolution': RESOLUTION, 'delivery': 'uri'}),
+    ('style refs, 720p', True, {'resolution': '720p'}),
+    ('style refs, default format', True, {}),
+    ('no refs, 720p', False, {'resolution': '720p'}),
+]
+_config: dict = {'index': 0}
+
+
+def generate_clip(prompt: str, out: Path, label: str, config: int | None = None) -> Path:
+    """One clip from Gemini Omni Flash, run in the background and polled."""
+    name, refs, fmt = CONFIGS[_config['index'] if config is None else config]
+    r = google('POST', f'{GOOGLE}/v1beta/interactions', json=_request(prompt, refs, fmt), timeout=300)
     if not r.ok:
-        raise RuntimeError(f'Omni {label}: HTTP {r.status_code} {r.text[:300]}')
+        raise RuntimeError(f'Omni {label} ({name}): HTTP {r.status_code} {r.text[:400]}')
     interaction = r.json()
     iid = interaction.get('id')
     t0 = time.time()
@@ -164,40 +176,54 @@ def generate_clip(prompt: str, out: Path, label: str) -> Path:
             log(f'{label}: poll HTTP {rr.status_code}, retrying')
     status = interaction.get('status')
     if status != 'completed':
-        err = interaction.get('error') or interaction.get('status_details') or ''
-        raise RuntimeError(f'Omni {label}: {status} {json.dumps(err)[:300]}')
+        detail = {k: v for k, v in interaction.items() if k not in ('steps',)}
+        texts = [c.get('text') for st in interaction.get('steps') or [] for c in st.get('content') or [] if c.get('text')]
+        raise RuntimeError(f'Omni {label} ({name}): {status} {json.dumps(detail)[:700]} {" | ".join(texts)[:400]}')
     part = _video_part(interaction)
     if not part:
-        raise RuntimeError(f'Omni {label}: no video in the response ({json.dumps(interaction)[:300]})')
+        raise RuntimeError(f'Omni {label} ({name}): no video in the response ({json.dumps(interaction)[:500]})')
     if part.get('data'):
         out.write_bytes(base64.b64decode(part['data']))
     elif part.get('uri'):
         _download_file(part['uri'], out)
     else:
-        raise RuntimeError(f'Omni {label}: video part has neither data nor uri')
-    log(f'{label}: {ffprobe_duration(out):.1f} s in {time.time() - t0:.0f} s')
+        raise RuntimeError(f'Omni {label} ({name}): video part has neither data nor uri ({json.dumps(part)[:300]})')
+    log(f'{label}: {ffprobe_duration(out):.1f} s in {time.time() - t0:.0f} s ({name})')
     return out
+
+
+def generate_first(prompt: str, out: Path) -> Path:
+    """The first clip also finds a request shape the API accepts; every failure is logged in full."""
+    errors: list[str] = []
+    for i in range(len(CONFIGS)):
+        try:
+            clip = generate_clip(prompt, out, 'clip 1', config=i)
+            _config['index'] = i
+            return clip
+        except RuntimeError as e:
+            log(f'clip 1 attempt {i + 1} failed: {e}')
+            errors.append(str(e))
+    raise RuntimeError('every request shape failed: ' + ' || '.join(errors)[:1500])
 
 
 def generate_clips(job: dict, out_dir: Path) -> list[Path]:
     scenes = job['script']['scenes']
     topic = job.get('product_name') or job['title']
     clips = [out_dir / f'clip{i + 1}.mp4' for i in range(len(scenes))]
+    prompts = [scene_prompt(i, len(scenes), topic, scenes[i]['visual']) for i in range(len(scenes))]
+    generate_first(prompts[0], clips[0])
 
     def one(i: int) -> Path:
-        prompt = scene_prompt(i, len(scenes), topic, scenes[i]['visual'])
         try:
-            return generate_clip(prompt, clips[i], f'clip {i + 1}')
+            return generate_clip(prompts[i], clips[i], f'clip {i + 1}')
         except RuntimeError as e:
             # The safety filter sometimes trips on an innocent description; one retry with a gentler framing.
-            if 'safety' not in str(e).lower() and 'blocked' not in str(e).lower():
-                raise
-            log(f'clip {i + 1}: blocked ({str(e)[:120]}); retrying with a gentler framing')
-            gentle = prompt.replace('Sequence (', 'A wholesome, family-friendly educational cartoon. Sequence (')
+            log(f'clip {i + 1} failed ({str(e)[:200]}); retrying once with a gentler framing')
+            gentle = prompts[i].replace('Sequence (', 'A wholesome, family-friendly educational cartoon. Sequence (')
             return generate_clip(gentle, clips[i], f'clip {i + 1} (retry)')
 
     with ThreadPoolExecutor(max_workers=PARALLEL_CLIPS) as pool:
-        list(pool.map(one, range(len(scenes))))
+        list(pool.map(one, range(1, len(scenes))))
     return clips
 
 
