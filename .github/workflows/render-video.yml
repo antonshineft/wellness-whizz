@@ -14,6 +14,11 @@ on:
         description: 'Article slug to render (default: the oldest scripted job)'
         required: false
         default: ''
+      review:
+        description: 'Review run: render and upload the file, but do not report it to the site (nothing is posted)'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -49,6 +54,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           JOB_SLUG: ${{ github.event.inputs.slug }}
+          RENDER_REVIEW: ${{ github.event.inputs.review == 'true' && '1' || '' }}
         run: python video/render.py
       - name: Keep the work files for a week
         if: always()

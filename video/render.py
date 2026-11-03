@@ -9,6 +9,8 @@ repository -> POST /api/admin/videos/<slug>/ready (the site posts it through Zer
 Environment: WW_ORIGIN (default https://aiww.io), WW_STATS_KEY, GEMINI_API_KEY, ELEVENLABS_API_KEY, ELEVENLABS_VOICE
 (default: "Daniel"), VIDEO_MODEL (default gemini-omni-1.1-flash), VIDEO_RESOLUTION (default 1080p), GH_TOKEN + GH_REPO
 (release upload), JOB_SLUG (optional: render this slug instead of the oldest job).
+Review runs: RENDER_REVIEW=1 renders and uploads the file but does not report it ready, so nothing is posted; the row
+goes back to "scripted" by itself after 150 minutes unless /api/admin/videos/<slug>/ready is called with the file's URL.
 Local runs: RENDER_LOCAL=1 (no upload, no report: writes the mp4 into video/work and prints its path), RENDER_JOB (a job
 json file instead of asking the site), RENDER_CLIPS (a directory with clip1.mp4 ... to reuse instead of generating),
 RENDER_WORK (work directory, default video/work).
@@ -40,6 +42,7 @@ VOICE = os.environ.get('ELEVENLABS_VOICE') or 'onwK4e9ZLuTAKqWW03F9'  # "Daniel"
 MODEL = os.environ.get('VIDEO_MODEL') or 'gemini-omni-1.1-flash'
 RESOLUTION = os.environ.get('VIDEO_RESOLUTION') or '1080p'
 LOCAL = os.environ.get('RENDER_LOCAL') == '1'
+REVIEW = os.environ.get('RENDER_REVIEW') == '1'
 GOOGLE = 'https://generativelanguage.googleapis.com'
 W, H, FPS = 1080, 1920, 24
 SCENE_SECONDS = 10
@@ -436,6 +439,9 @@ def main() -> int:
             return 0
         url = upload_release_asset(out, job['slug'])
         log(f'uploaded {url}')
+        if REVIEW:
+            log(f'review run: not reported to the site. To post it: POST {ORIGIN}/api/admin/videos/{job["slug"]}/ready with {{"video_url": "{url}", "duration": {dur:.1f}}}')
+            return 0
         rr = site('POST', f"/api/admin/videos/{job['slug']}/ready", json={'video_url': url, 'duration': dur})
         log(f'reported ready: HTTP {rr.status_code} {rr.text[:120]}')
         return 0 if rr.ok else 1
