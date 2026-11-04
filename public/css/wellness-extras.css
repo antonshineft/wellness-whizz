@@ -436,7 +436,7 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-hero-h1 { display: contents; margin: 0; font-weight: inherit; }
 
 /* The X profile links replace faded placeholder icons; show them at full strength like the other social icons. */
-.ww-x-icon { opacity: 1; }
+.ww-x-icon, .ww-ig-icon { opacity: 1; }
 
 /* ---------- email capture: thank-you state ---------- */
 .ww-capture form.is-done input, .ww-capture form.is-done button { display: none; }

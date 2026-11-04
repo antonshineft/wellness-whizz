@@ -16,6 +16,7 @@ export function renderBacklinksKit(origin: string): string {
     ['Alternatives to', 'Examine.com, Cronometer, Care/of quiz, Hims quiz'],
     ['Twitter / X', 'https://x.com/aiwwio (adjust to the real handle)'],
     ['TikTok', 'https://www.tiktok.com/@theaiwellnesswhiz'],
+    ['Instagram', 'https://www.instagram.com/aiww.io/'],
     ['Logo (square)', `${origin}/images/logo-512.png`],
     ['Screenshots', `${origin}/ (home), ${origin}/wellness-quiz (quiz), ${origin}/supplement/creatine (a supplement page), ${origin}/shelf (scanner)`],
     ['Show HN title', 'Show HN: Wellness Whizz, a free AI supplement quiz that cites its sources'],

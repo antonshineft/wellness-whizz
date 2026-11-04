@@ -237,7 +237,7 @@ export function renderAbout(origin: string): string {
         <p>Wellness Whizz is free and has no accounts, no paywall and no newsletter you did not ask for. It is funded by the iHerb referral programme: product links on this site carry our referral code, and iHerb pays us a small commission when you buy through them. You pay the same price as without the code.</p>
         <p>Commissions do not influence what the advisor recommends or how a supplement is rated. No brand can pay for a place in the results, a guide or an article, and we do not sell or share your quiz answers. Our <a href="/terms#privacy">privacy practices</a> are described in the terms.</p>
         <h2 id="contact">Contact</h2>
-        <p>Questions, corrections and requests to delete a results page: <a href="mailto:hello@aiww.io">hello@aiww.io</a>. We also post on <a href="https://x.com/aiwwio" target="_blank" rel="noopener">X</a> and <a href="https://www.tiktok.com/@theaiwellnesswhiz" target="_blank" rel="noopener">TikTok</a>.</p>
+        <p>Questions, corrections and requests to delete a results page: <a href="mailto:hello@aiww.io">hello@aiww.io</a>. We also post on <a href="https://www.instagram.com/aiww.io/" target="_blank" rel="noopener">Instagram</a>, <a href="https://www.tiktok.com/@theaiwellnesswhiz" target="_blank" rel="noopener">TikTok</a> and <a href="https://x.com/aiwwio" target="_blank" rel="noopener">X</a>.</p>
         <p class="ww-legal-updated">Last updated: ${escapeHtml(formatDate(ABOUT_UPDATED))}</p>
       </section>${quizCta()}${faqHtml(ABOUT_FAQ)}`;
 
@@ -257,7 +257,7 @@ export function renderAbout(origin: string): string {
     url: `${origin}/`,
     logo: `${origin}/images/webclip.png`,
     email: 'hello@aiww.io',
-    sameAs: ['https://x.com/aiwwio', 'https://www.tiktok.com/@theaiwellnesswhiz'],
+    sameAs: ['https://www.instagram.com/aiww.io/', 'https://x.com/aiwwio', 'https://www.tiktok.com/@theaiwellnesswhiz'],
   };
   const aboutPage = {
     '@context': 'https://schema.org',
