@@ -299,33 +299,95 @@ def fit_narration(mp3: Path, words: list[dict], wav: Path, max_len: float) -> tu
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Captions: two to five words at a time, real text burned in at assembly (never drawn by the video model)
+# Captions: karaoke lines (green once spoken, white before), real text burned in at assembly, numbers shown as digits
 
-STOP = {'a', 'an', 'the', 'of', 'in', 'to', 'and', 'or', 'is', 'was', 'had', 'has', 'it', 'its', "it's", 'your', 'on', 'for', 'with', 'at', 'by',
-        'from', 'as', 'but', 'so', 'that', 'this', 'not', 'be', 'you', 'we', 'he', 'she', 'they', 'who'}
+SITE_FONTS = REPO / 'public' / 'fonts'  # Aeonik, the site's font
+ONES = {'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10, 'eleven': 11,
+        'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15, 'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19}
+TENS = {'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50, 'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90}
+SCALES = {'hundred': 100, 'thousand': 1_000, 'million': 1_000_000, 'billion': 1_000_000_000, 'trillion': 1_000_000_000_000}
+UNITS = {'percent': '%', 'per cent': '%'}
 
 
-def chunk_words(words: list[dict]) -> list[list[dict]]:
-    chunks: list[list[dict]] = []
-    cur: list[dict] = []
-    for i, w in enumerate(words):
-        cur.append(w)
-        last = i == len(words) - 1
-        punct = bool(re.search(r'[.!?:;]$', w['w'])) or (w['w'].endswith(',') and len(cur) >= 2)
-        nxt = words[i + 1]['w'].lower() if not last else ''
-        chars = sum(len(x['w']) + 1 for x in cur)
-        if punct or last or len(cur) >= 5 or chars >= 26 or (len(cur) >= 3 and nxt in STOP):
-            chunks.append(cur)
-            cur = []
-    if cur:
-        chunks.append(cur)
-    merged: list[list[dict]] = []
-    for c in chunks:
-        if merged and len(c) == 1 and len(merged[-1]) <= 4 and sum(len(x['w']) + 1 for x in merged[-1] + c) <= 30:
-            merged[-1] = merged[-1] + c
+NUMBER_UNITS = {'percent', 'per', 'gram', 'grams', 'milligram', 'milligrams', 'microgram', 'micrograms', 'kilo', 'kilos', 'kilogram', 'kilograms',
+                'litre', 'litres', 'liter', 'liters', 'millilitre', 'millilitres', 'second', 'seconds', 'minute', 'minutes', 'hour', 'hours', 'day',
+                'days', 'week', 'weeks', 'month', 'months', 'year', 'years', 'time', 'times', 'cup', 'cups', 'calorie', 'calories', 'degrees'}
+
+
+def _pieces(w: str) -> tuple[list[str], str, str]:
+    """"ninety-two." -> (["ninety", "two"], suffix "", tail "."); "twenty-fold" -> (["twenty"], "-fold", "")."""
+    core = re.sub(r"[.,;:!?]+$", '', w)
+    tail = w[len(core):]
+    parts = core.lower().split('-')
+    num = []
+    for k, piece in enumerate(parts):
+        if piece in ONES or piece in TENS or piece in SCALES:
+            num.append(piece)
         else:
-            merged.append(c)
-    return merged
+            return num, '-' + '-'.join(parts[k:]) if num and k > 0 else '', tail
+    return num, '', tail
+
+
+def _value(pieces: list[str]) -> tuple[str, bool]:
+    """Spoken number words to text: (digits, is_year). "nineteen ninety two" -> ("1992", True); "thirty eight trillion" -> ("38 trillion", False)."""
+    vals = [ONES.get(x, TENS.get(x, -SCALES.get(x, 0))) for x in pieces if x != 'and']
+    if len(vals) in (2, 3) and 10 <= vals[0] <= 99 and vals[0] % 10 != 0 and all(0 <= v < 100 for v in vals[1:]) and (len(vals) == 2 or vals[1] in TENS.values()):
+        return str(vals[0] * 100 + sum(vals[1:])), True
+    total, current, big = 0, 0, ''
+    for v in vals:
+        if v >= 0:
+            current += v
+        elif v == -100:
+            current = max(current, 1) * 100
+        elif v >= -1000:
+            total += max(current, 1) * -v
+            current = 0
+        else:
+            big = {1_000_000: 'million', 1_000_000_000: 'billion', 1_000_000_000_000: 'trillion'}[-v]
+            total = max(current, 1)
+            current = 0
+    n = total + current
+    text = f'{n:,}' if n >= 1000 else str(n)
+    return (f'{text} {big}' if big else text), False
+
+
+def digits_for_numbers(words: list[dict]) -> list[dict]:
+    """Merge spoken number words into one caption token shown as digits ("nineteen ninety-two." -> "1992.")."""
+    out: list[dict] = []
+    i = 0
+    while i < len(words):
+        pieces: list[str] = []
+        j = i
+        suffix = tail = ''
+        while j < len(words):
+            num, sfx, tl = _pieces(words[j]['w'])
+            if not num and not (pieces and words[j]['w'].lower() == 'and' and j + 1 < len(words) and _pieces(words[j + 1]['w'])[0]):
+                break
+            if num:
+                pieces += num
+                suffix, tail = sfx, tl
+            j += 1
+            if sfx or tl:
+                break  # "twenty-fold" or a word ending in punctuation closes the number
+        if not pieces:
+            out.append(words[i])
+            i += 1
+            continue
+        nxt = words[j]['w'].lower().rstrip('.,;:!?') if j < len(words) else ''
+        text, is_year = _value(pieces)
+        if (pieces == ['one'] and nxt not in NUMBER_UNITS) or all(x in SCALES for x in pieces):
+            out.append(words[i])  # "one more rep", "a hundred people", "a million" stay words
+            i += 1
+            continue
+        if nxt == 'percent' or (nxt == 'per' and j + 1 < len(words) and words[j + 1]['w'].lower().startswith('cent')):
+            k = j + (2 if nxt == 'per' else 1)
+            tail = re.sub(r"^[^\s]*?([.,;:!?]*)$", r"\1", words[k - 1]['w'])
+            out.append({'w': f'{text}%{tail}', 's': words[i]['s'], 'e': words[k - 1]['e']})
+            i = k
+            continue
+        out.append({'w': text + suffix + tail, 's': words[i]['s'], 'e': words[j - 1]['e']})
+        i = j
+    return out
 
 
 def ass_time(t: float) -> str:
@@ -334,23 +396,36 @@ def ass_time(t: float) -> str:
 
 
 def write_captions(scenes: list[dict], path: Path) -> int:
-    """scenes: [{'words': fitted words, 'offset': start of the scene in the video, 'length': scene length}]."""
-    head = ['[Script Info]', 'ScriptType: v4.00+', f'PlayResX: {W}', f'PlayResY: {H}', 'WrapStyle: 0', 'ScaledBorderAndShadow: yes', '',
+    """scenes: [{'words': fitted words, 'offset': start of the scene in the video, 'length': scene length}].
+    Lines of up to four words; each word fills from white to green as it is spoken (ASS \\kf karaoke)."""
+    head = ['[Script Info]', 'ScriptType: v4.00+', f'PlayResX: {W}', f'PlayResY: {H}', 'WrapStyle: 1', 'ScaledBorderAndShadow: yes', '',
             '[V4+ Styles]',
             'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-            # charcoal text in a pale-yellow box (the site's #fdf1cf), above TikTok's bottom overlay and clear of the right-hand buttons
-            'Style: Cap,Inter ExtraBold,66,&H00303030,&H00303030,&H10CFF1FD,&H10CFF1FD,0,0,0,0,100,100,0.5,0,3,20,0,2,150,150,420,1', '',
+            # the look of the site's earlier videos: green once spoken, white before, dark outline, above TikTok's bottom overlay
+            'Style: K,Aeonik,76,&H0081D587,&H00FFFFFF,&H002D271D,&H80000000,-1,0,0,0,100,100,0,0,1,5,2,2,80,80,430,1', '',
             '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text']
     lines: list[str] = []
     for sc in scenes:
         off = sc['offset'] + NARRATION_DELAY
-        chunks = chunk_words(sc['words'])
-        for k, c in enumerate(chunks):
-            start = c[0]['s']
-            end = chunks[k + 1][0]['s'] if k + 1 < len(chunks) else c[-1]['e'] + 0.35
-            end = min(end, sc['length'] - NARRATION_DELAY - 0.05)
-            text = ' '.join(w['w'] for w in c).replace('{', '(').replace('}', ')')
-            lines.append(f'Dialogue: 0,{ass_time(off + start)},{ass_time(off + end)},Cap,,0,0,0,,{text}')
+        words = digits_for_numbers(sc['words'])
+        groups: list[list[dict]] = []
+        cur: list[dict] = []
+        for w in words:
+            cur.append(w)
+            if len(cur) >= 4 or cur[-1]['e'] - cur[0]['s'] > 1.9 or w['w'].endswith(('.', '?', '!')):
+                groups.append(cur)
+                cur = []
+        if cur:
+            groups.append(cur)
+        for k, g in enumerate(groups):
+            start = g[0]['s']
+            end = min(g[-1]['e'] + 0.12, sc['length'] - NARRATION_DELAY - 0.05)
+            parts = []
+            for i, w in enumerate(g):
+                nxt = g[i + 1]['s'] if i + 1 < len(g) else end
+                text = w['w'].replace('{', '(').replace('}', ')')
+                parts.append(f"{{\\kf{max(1, round((nxt - w['s']) * 100))}}}{text} ")
+            lines.append(f"Dialogue: 0,{ass_time(off + start)},{ass_time(off + end)},K,,0,0,0,,{''.join(parts).strip()}")
     path.write_text('\n'.join(head + lines) + '\n')
     return len(lines)
 
@@ -390,7 +465,7 @@ def compose(clips: list[Path], narrations: list[tuple[Path, list[dict], float]],
     n_lines = write_captions(caption_scenes, captions)
     ffmpeg('-i', str(WORK / 'video-only.mp4'), '-i', str(WORK / 'narration.wav'), '-stream_loop', '-1', '-i', str(BED),
            '-filter_complex',
-           f"[0:v]ass={captions}:fontsdir={FONTS}[v];"
+           f"[0:v]ass={captions}:fontsdir={SITE_FONTS}[v];"
            f'[2:a]atrim=0:{total + 1:.2f},aformat=sample_rates=48000:channel_layouts=stereo,volume={BED_VOLUME},afade=t=in:st=0:d=1.5,afade=t=out:st={total - 1.5:.2f}:d=1.5[bed];'
            '[1:a][bed]amix=inputs=2:duration=first:dropout_transition=2,volume=1.5[a]',
            '-map', '[v]', '-map', '[a]', '-t', f'{total:.3f}', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',

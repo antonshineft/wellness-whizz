@@ -177,7 +177,7 @@ This is a story, not advice, and nothing in it may need a disclaimer: no doses, 
 
 Narration rules:
 - At most ${MAX_SCENE_WORDS} words per scene, usually 16 to 21. Short spoken sentences with a verb. The narrator is a calm, warm British man; write for his voice.
-- Write numbers and years as words, the way they are spoken: "nineteen ninety-two", "about a quarter", "thirty-eight trillion", "ten milligrams". Never digits, never the percent sign.
+- Write numbers and years as digits, as the captions show them: "1992", "38 trillion", "90 percent", "200 milligrams". Spell units out in full (milligrams, grams, percent) so the narrator reads them correctly; no symbols, no abbreviations.
 - Facts come from the article first. You may add well-known, well-documented general knowledge about the supplement (its discovery, origin, chemistry, famous experiments) that a good reference book would confirm. Never invent a number, a study or a name. A study may appear as a story ("in a famous experiment, mice given it lived longer"), never as a promise for the viewer.
 - Plain, confident, a little playful. No hype, no exclamation marks, no emoji, no em dashes, no bullet points, no hashtags in the narration, no "did you know".
 
@@ -202,7 +202,7 @@ const scriptSchema = {
         type: 'object',
         additionalProperties: false,
         properties: {
-          narration: { type: 'string', description: `What the narrator says during this scene: at most ${MAX_SCENE_WORDS} words, numbers written as words.` },
+          narration: { type: 'string', description: `What the narrator says during this scene: at most ${MAX_SCENE_WORDS} words, numbers as digits, units spelled out.` },
           visual: { type: 'string', description: 'The animated scene for the video model: three timed beats, concrete objects and motion, palette colours, no text or numbers anywhere.' },
         },
         required: ['narration', 'visual'],
