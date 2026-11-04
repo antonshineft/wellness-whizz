@@ -23,7 +23,7 @@ import { renderShelfPage, renderShelfResult } from './render/shelf';
 import { queueQuizDataArticle, quizDataSummary } from './quizdata';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
-import { getVideo, listVideos, markFailed, markPosted, markReady, monthlyLimit, nextJob, parseScript, queueVideo, rendersThisMonth, scriptNext } from './videos';
+import { approveVideo, getVideo, listVideos, markFailed, markPosted, markReady, monthlyLimit, nextJob, parseScript, queueVideo, rendersThisMonth, rewriteVideo, scriptNext } from './videos';
 import { actOnProspect, addProspect, checkWins, counts as prospectCounts, dailyOutreach, discoverProspects, draftPending, findContacts, listProspects, noteReply, outreachDigest, outreachStep, recentEvents, sendApproved, type ProspectKind } from './backlinks';
 import { badgeWallHtml, withBadgeWall } from './badges';
 import { serviceAccountEmail, submitiumDigestLine, submitiumReportLine, submitiumState, submitiumStep } from './submitium';
@@ -110,6 +110,7 @@ export interface Bindings {
   /** "false" stops published articles from queueing a short video (src/videos.ts). */
   VIDEO_AUTOQUEUE?: string;
   VIDEO_MONTHLY_LIMIT?: string;
+  VIDEO_APPROVAL?: string;
   /** Zernio (src/zernio.ts): posts to TikTok, Instagram and others through Zernio's connected accounts. */
   ZERNIO_API_KEY?: string;
   /** Backlink outreach (src/backlinks.ts): pitches per day (default 10, 0 pauses), "true" sends without approval, signature name. */
@@ -1402,13 +1403,35 @@ app.post('/api/admin/videos/month', async (c) => {
   return c.json({ month: { used: await rendersThisMonth(c.env.DB), limit: monthlyLimit(c.env) } });
 });
 
-/** Manual state fix for a video row (queued | scripted | ready | posted | failed). */
+/** The one-tap links in the approval email (src/videos.ts askApproval): a small page the owner can read on a phone. */
+function tapPage(title: string, message: string): string {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>
+<body style="font-family:Arial,Helvetica,sans-serif;background:#fdf1cf;color:#1d272d;margin:0;padding:40px 20px"><div style="max-width:520px;margin:0 auto;background:#fff;border-radius:16px;padding:28px"><h1 style="font-size:22px;margin:0 0 12px">${title}</h1><p style="font-size:17px;line-height:1.5;margin:0">${message}</p></div></body></html>`;
+}
+
+app.get('/api/admin/videos/:slug/approve', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const r = await approveVideo(c.env, c.req.param('slug') ?? '');
+  return c.html(tapPage(r.ok ? 'Approved' : 'Not approved', r.message), r.ok ? 200 : 400);
+});
+
+app.get('/api/admin/videos/:slug/rewrite', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const r = await rewriteVideo(c.env, c.req.param('slug') ?? '');
+  return c.html(tapPage(r.ok ? 'Rewriting' : 'Not rewritten', r.message), r.ok ? 200 : 400);
+});
+
+/** Manual state fix for a video row (queued | scripted | approved | ready | posted | failed). */
 app.post('/api/admin/videos/:slug/status', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
   const status = c.req.query('status') ?? '';
-  if (!['queued', 'scripted', 'ready', 'posted', 'failed'].includes(status)) return c.json({ error: 'bad status' }, 400);
+  if (!['queued', 'scripted', 'approved', 'ready', 'posted', 'failed'].includes(status)) return c.json({ error: 'bad status' }, 400);
   await c.env.DB.prepare("UPDATE videos SET status = ?, updated_at = datetime('now') WHERE slug = ?").bind(status, c.req.param('slug') ?? '').run();
   return c.json({ ok: true, video: await getVideo(c.env.DB, c.req.param('slug') ?? '') });
 });

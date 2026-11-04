@@ -38,10 +38,13 @@ export interface VideoEnv {
   VIDEO_AUTOPOST?: string;
   /** Renders per calendar month the render job may start (default DEFAULT_MONTHLY_LIMIT); the rest wait for next month. */
   VIDEO_MONTHLY_LIMIT?: string;
+  /** "false" renders every script at once; otherwise the owner gets the script by email and approves it with one tap. */
+  VIDEO_APPROVAL?: string;
   ZERNIO_API_KEY?: string;
 }
 
-export type VideoStatus = 'queued' | 'scripted' | 'rendering' | 'ready' | 'posted' | 'failed';
+/** scripted = written, waiting for the owner's approval (unless VIDEO_APPROVAL=false); approved = cleared to render. */
+export type VideoStatus = 'queued' | 'scripted' | 'approved' | 'rendering' | 'ready' | 'posted' | 'failed';
 
 export interface VideoRow {
   id: number;
@@ -107,6 +110,10 @@ export async function rendersThisMonth(db: D1Database): Promise<number> {
   return n;
 }
 
+export function approvalRequired(env: VideoEnv): boolean {
+  return env.VIDEO_APPROVAL !== 'false';
+}
+
 export function videosAutoQueue(env: VideoEnv): boolean {
   return env.VIDEO_AUTOQUEUE !== 'false';
 }
@@ -136,7 +143,7 @@ export async function getVideo(db: D1Database, slug: string): Promise<VideoRow |
 /** One line for the daily digest: videos posted or failed in the last 24 hours ('' when nothing happened). */
 export async function videoDigestLine(db: D1Database, limit = DEFAULT_MONTHLY_LIMIT): Promise<string> {
   const rows = (await db.prepare("SELECT slug, status, error FROM videos WHERE updated_at >= datetime('now', '-1 day') AND status IN ('posted', 'failed') ORDER BY updated_at DESC LIMIT 10").all<Pick<VideoRow, 'slug' | 'status' | 'error'>>()).results ?? [];
-  const waiting = (await db.prepare("SELECT COUNT(*) AS n FROM videos WHERE status = 'scripted'").first<{ n: number }>())?.n ?? 0;
+  const waiting = (await db.prepare("SELECT COUNT(*) AS n FROM videos WHERE status = 'approved'").first<{ n: number }>())?.n ?? 0;
   const used = await rendersThisMonth(db);
   const held = waiting && used >= limit ? `Video limit reached (${used} of ${limit} this month); ${waiting} wait for next month.` : '';
   if (!rows.length) return held;
@@ -164,12 +171,14 @@ export function parseScript(json: string): VideoScript | null {
 
 const SCRIPT_SYSTEM = `You write sixty-second explainer videos for TikTok for Wellness Whizz, an AI supplement guide. The video is a hand-drawn animated infographic (a soft-teal cartoon figure, pastel objects, cream paper background) with one narrator. It is built from ${SCENES} scenes of ten seconds; for each scene you write what the narrator says and what the viewer sees.
 
-What makes these videos work: every scene is ONE genuinely surprising fact for a curious mind. Origin stories, odd history, strange chemistry, a number that sounds impossible, a myth busted, a counter-intuitive detail about how the body handles the substance. Never the obvious ("vitamin C supports immunity"), never a list of benefits, never "studies show it may help". The first scene is the strongest hook of all: a fact that makes someone stop scrolling. The last scene lands calmly on the one practical takeaway (which form, with what, when), so the video feels finished. No call to action, no "follow", no "link in bio", no website mention anywhere in the narration.
+What makes these videos work: every scene is ONE genuinely surprising fact for a curious mind. Origin stories, odd history, who discovered it and how, strange chemistry, an animal or a food that is full of it, a number that sounds impossible, a myth busted, a counter-intuitive detail about how the body handles the substance. Never the obvious ("vitamin C supports immunity"), never a list of benefits, never "studies show it may help". The first scene is the strongest hook of all: a fact that makes someone stop scrolling. The last scene lands the story calmly on its best closing image or fact, so the video feels finished.
+
+This is a story, not advice, and nothing in it may need a disclaimer: no doses, no "take X milligrams", no "with food", no timing instructions, no warnings, no "ask a doctor", no "if you are pregnant / on medication", no claims that it treats, cures or prevents anything, no comparisons with medicines. If the article's practical advice is the only thing left, find the history and the chemistry instead. No call to action, no "follow", no "link in bio", no website mention anywhere in the narration.
 
 Narration rules:
 - At most ${MAX_SCENE_WORDS} words per scene, usually 16 to 21. Short spoken sentences with a verb. The narrator is a calm, warm British man; write for his voice.
 - Write numbers and years as words, the way they are spoken: "nineteen ninety-two", "about a quarter", "thirty-eight trillion", "ten milligrams". Never digits, never the percent sign.
-- Facts come from the article first. You may add well-known, well-documented general knowledge about the supplement (its discovery, origin, chemistry, famous studies) that a good reference book would confirm. Never invent a number, a study or a name. Keep any safety caveat the article gives for a group of people if it matters (pregnancy, medication, kidney disease, thyroid).
+- Facts come from the article first. You may add well-known, well-documented general knowledge about the supplement (its discovery, origin, chemistry, famous experiments) that a good reference book would confirm. Never invent a number, a study or a name. A study may appear as a story ("in a famous experiment, mice given it lived longer"), never as a promise for the viewer.
 - Plain, confident, a little playful. No hype, no exclamation marks, no emoji, no em dashes, no bullet points, no hashtags in the narration, no "did you know".
 
 Visual rules (the "visual" field is handed to a video generation model, so describe it like a shot list):
@@ -177,7 +186,7 @@ Visual rules (the "visual" field is handed to a video generation model, so descr
 - Name colours from this palette: soft teal, sage green, pale cerulean, terracotta, straw yellow, cream. One idea per beat, clean and uncluttered, plenty of breathing room.
 - No text, no numbers, no letters, no labels, no logos, no clocks with numerals, no calendars with digits anywhere in the scene; say so in the description when a label would be natural (a blank label, a notebook with only scribble lines).
 - Nothing a safety filter could misread: no powders being snorted or injected, no needles, no blood, no gore, no nudity, no real people, no children, no brand names. A "scoop of white powder" reads badly to filters; say "small soft white spheres" or "a spoon of pale crystals" instead.
-- Scene ${SCENES} is the calm ending: a restful composition (a figure sipping a drink by a window, a sunrise over rooftops, a quiet breakfast table) that settles rather than stops.
+- Scene ${SCENES} is the calm ending: a restful composition (a figure by a window, a sunrise over rooftops, a quiet table, the place the story began) that settles rather than stops.
 
 The caption is one hook sentence for TikTok (at most 140 characters) stating the most surprising fact; hashtags are separate: 4 or 5 lowercase tags without the # sign, the first being the supplement. product_slug is the catalogue slug of the supplement the video is about (given in the task).`;
 
@@ -188,7 +197,7 @@ const scriptSchema = {
     title: { type: 'string', description: 'Working title of the video, at most 60 characters: the hook in a few words.' },
     scenes: {
       type: 'array',
-      description: `Exactly ${SCENES} scenes: the hook, four more facts, the calm ending.`,
+      description: `Exactly ${SCENES} scenes: the hook, four more story facts, the calm ending; no advice, doses or warnings anywhere.`,
       items: {
         type: 'object',
         additionalProperties: false,
@@ -235,7 +244,7 @@ export async function writeScript(env: VideoEnv, post: BlogPost): Promise<VideoS
         { narration: "It's a battery. Your muscles drain their instant energy in about ten seconds. Creatine recharges it: one more rep, one more sprint.", visual: `0 to 4 s: ${figure} lifts a barbell while a rounded battery beside it drains its straw-yellow bar. 4 to 7 s: small soft white spheres flow in and the bar fills with a glow. 7 to 10 s: one more strong lift, then a sprint on a terracotta track.` },
         { narration: 'Your brain uses the same battery. In trials, sleep-deprived people and low-store vegetarians scored better on memory tests after taking it.', visual: `0 to 4 s: a side profile of ${figure} with a glowing brain and a small battery inside it. 4 to 7 s: two vignettes, a yawning figure under a crescent moon and a figure eating leafy greens. 7 to 10 s: white spheres fill both batteries and puzzle pieces click together above their heads.` },
         { narration: "The kidney scare is a reading error. Creatine raises creatinine on blood tests, the number doctors watch, but it's just a harmless by-product.", visual: `0 to 4 s: ${figure} sits worried across a desk from a doctor in a straw-yellow coat; sage-green kidneys float above, glowing healthy. 4 to 7 s: inside a test tube, white spheres break into harmless flecks. 7 to 10 s: the doctor smiles and the figure relaxes.` },
-        { narration: 'Skip the fancy versions. Plain monohydrate is the one from the trials. Three to five grams a day, whenever. Nothing newer beats it.', visual: `0 to 4 s: a shelf of loud colourful tubs shrinks away, leaving one plain white tub. 4 to 7 s: a teaspoon drops small soft white spheres into a glass of water on a wooden table. 7 to 10 s: ${figure} sips by a window at sunrise and leans back, the camera slowly pulling out.` },
+        { narration: 'The powder in the tub is the same molecule that sits in a steak, made from two cheap chemicals. Nothing exotic, and nothing newer has beaten it.', visual: `0 to 4 s: a shelf of loud colourful tubs shrinks away, leaving one plain white tub. 4 to 7 s: a teaspoon drops small soft white spheres into a glass of water on a wooden table. 7 to 10 s: ${figure} sips by a window at sunrise and leans back, the camera slowly pulling out.` },
       ],
       caption: "In 1992 Britain's Olympic sprinters were quietly using a legal white powder nobody had heard of. Creatine.",
       hashtags: [(sup?.slug ?? 'supplements').replace(/-/g, ''), 'supplements', 'gym', 'fitness', 'wellness'],
@@ -280,7 +289,7 @@ export function wordCount(s: VideoScript): number {
 function tidyScript(s: VideoScript, fallbackSlug: string): VideoScript {
   const clean = (t: string) => (t ?? '').replace(/\s*[—–]\s*/g, ', ').replace(/!/g, '.').replace(/\s+/g, ' ').trim();
   // No website call to action in the spoken text: drop any sentence that names the site.
-  const noCta = (t: string) => t.split(/(?<=[.?])\s+/).filter((sentence) => !/aiww\.io|link in bio|follow (us|me)/i.test(sentence)).join(' ').trim();
+  const noCta = (t: string) => t.split(/(?<=[.?])\s+/).filter((sentence) => !/aiww\.io|link in bio|follow (us|me)|ask (a|your) doctor|talk to (a|your) doctor|consult/i.test(sentence)).join(' ').trim();
   const scenes = (s.scenes ?? []).slice(0, SCENES).map((sc) => ({ narration: noCta(clean(sc.narration)), visual: clean(sc.visual) })).filter((sc) => sc.narration && sc.visual);
   if (scenes.length < MIN_SCENES) throw new Error(`the script has ${scenes.length} usable scenes; ${SCENES} expected`);
   return {
@@ -309,8 +318,10 @@ export async function scriptNext(env: VideoEnv): Promise<boolean> {
   try {
     const script = await writeScript(env, post);
     const count = (await env.DB.prepare("SELECT COUNT(*) AS n FROM videos WHERE status IN ('rendering', 'ready', 'posted')").first<{ n: number }>())?.n ?? 0;
-    await env.DB.prepare("UPDATE videos SET status = 'scripted', script_json = ?, caption = ?, set_index = ?, error = '', updated_at = datetime('now') WHERE id = ?")
-      .bind(JSON.stringify(script), captionFor(script, row.slug), count, row.id).run();
+    const status = approvalRequired(env) ? 'scripted' : 'approved';
+    await env.DB.prepare("UPDATE videos SET status = ?, script_json = ?, caption = ?, set_index = ?, error = '', updated_at = datetime('now') WHERE id = ?")
+      .bind(status, JSON.stringify(script), captionFor(script, row.slug), count, row.id).run();
+    if (status === 'scripted') await askApproval(env, row.slug, script, post.title);
   } catch (err) {
     const attempts = row.attempts + 1;
     const give_up = attempts >= MAX_ATTEMPTS;
@@ -319,6 +330,46 @@ export async function scriptNext(env: VideoEnv): Promise<boolean> {
     if (give_up) await notify(env, `Video script failed: ${row.slug}`, `<p>Writing the script for <strong>${row.slug}</strong> failed twice:</p><pre>${escapeHtml(String(err).slice(0, 800))}</pre>`, `Writing the script for ${row.slug} failed twice:\n${String(err).slice(0, 800)}`);
   }
   return true;
+}
+
+/** The owner's say before money is spent: the script by email, with one tap to render it and one to have it rewritten. */
+async function askApproval(env: VideoEnv, slug: string, script: VideoScript, articleTitle: string): Promise<void> {
+  const key = encodeURIComponent(env.STATS_KEY ?? '');
+  const approve = `${origin(env)}/api/admin/videos/${encodeURIComponent(slug)}/approve?key=${key}`;
+  const rewrite = `${origin(env)}/api/admin/videos/${encodeURIComponent(slug)}/rewrite?key=${key}`;
+  const used = await rendersThisMonth(env.DB);
+  const scenes = script.scenes.map((sc, i) => `<li style="margin:0 0 8px">${escapeHtml(sc.narration)}</li>`).join('');
+  const button = (href: string, label: string, bg: string) => `<a href="${escapeHtml(href)}" style="display:inline-block;background:${bg};color:#fff;text-decoration:none;border-radius:10px;padding:12px 18px;font-size:16px;margin:0 8px 8px 0">${label}</a>`;
+  await notify(env, `Video script to approve: ${script.title}`,
+    `<p>A script is ready for the article <strong>${escapeHtml(articleTitle)}</strong>. Nothing is rendered until you approve it (${used} of ${monthlyLimit(env)} renders used this month).</p>
+<p style="font-size:18px;margin:16px 0 6px"><strong>${escapeHtml(script.title)}</strong></p>
+<ol style="padding-left:20px">${scenes}</ol>
+<p style="color:#555">Caption: ${escapeHtml(captionFor(script, slug))}</p>
+<p>${button(approve, 'Approve and render', '#1d272d')}${button(rewrite, 'Rewrite it', '#7a6a4f')}</p>
+<p style="color:#777;font-size:13px">Approve: it renders within three hours and posts itself to TikTok and Instagram. Rewrite: a new script arrives within a few minutes.</p>`,
+    `A script is ready for "${articleTitle}". Nothing is rendered until you approve it (${used} of ${monthlyLimit(env)} renders used this month).\n\n${script.title}\n${script.scenes.map((sc, i) => `${i + 1}. ${sc.narration}`).join('\n')}\n\nCaption: ${captionFor(script, slug)}\n\nApprove and render: ${approve}\nRewrite it: ${rewrite}`);
+}
+
+/** One tap from the approval email: the script may be rendered. */
+export async function approveVideo(env: VideoEnv, slug: string): Promise<{ ok: boolean; message: string }> {
+  const row = await getVideo(env.DB, slug);
+  if (!row) return { ok: false, message: `No video for "${slug}".` };
+  if (row.status === 'approved' || row.status === 'rendering') return { ok: true, message: `Already approved; it renders within three hours.` };
+  if (row.status === 'ready' || row.status === 'posted') return { ok: true, message: `This one is already ${row.status}.` };
+  if (row.status !== 'scripted' || !parseScript(row.script_json)) return { ok: false, message: `The script for "${slug}" is not ready (status ${row.status}).` };
+  await env.DB.prepare("UPDATE videos SET status = 'approved', updated_at = datetime('now') WHERE id = ?").bind(row.id).run();
+  const used = await rendersThisMonth(env.DB);
+  const limit = monthlyLimit(env);
+  return { ok: true, message: used >= limit ? `Approved. The month's ${limit} renders are used, so it renders at the start of next month.` : 'Approved. It renders within three hours and posts itself to TikTok and Instagram.' };
+}
+
+/** One tap from the approval email: a fresh script, and a fresh email. */
+export async function rewriteVideo(env: VideoEnv, slug: string): Promise<{ ok: boolean; message: string }> {
+  const row = await getVideo(env.DB, slug);
+  if (!row) return { ok: false, message: `No video for "${slug}".` };
+  if (!['scripted', 'approved', 'failed'].includes(row.status)) return { ok: false, message: `"${slug}" is ${row.status}; only a script waiting for approval can be rewritten.` };
+  await env.DB.prepare("UPDATE videos SET status = 'queued', script_json = '', error = '', attempts = 0, updated_at = datetime('now') WHERE id = ?").bind(row.id).run();
+  return { ok: true, message: 'A new script is being written; it arrives by email within a few minutes.' };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -337,11 +388,12 @@ export interface RenderJob {
 
 /** Hand the oldest scripted video to the render job (and recover a render that never reported back). */
 export async function nextJob(env: VideoEnv, onlySlug?: string): Promise<RenderJob | null> {
-  await env.DB.prepare(`UPDATE videos SET status = 'scripted', error = 'render timed out; retrying', updated_at = datetime('now')
-    WHERE status = 'rendering' AND updated_at < datetime('now', ?)`).bind(`-${RENDER_STALE_MINUTES} minutes`).run();
+  await env.DB.prepare(`UPDATE videos SET status = ?, error = 'render timed out; retrying', updated_at = datetime('now')
+    WHERE status = 'rendering' AND updated_at < datetime('now', ?)`).bind(approvalRequired(env) ? 'approved' : 'scripted', `-${RENDER_STALE_MINUTES} minutes`).run();
+  const ready = approvalRequired(env) ? 'approved' : 'scripted';
   const row = onlySlug
-    ? await env.DB.prepare("SELECT * FROM videos WHERE slug = ? AND status IN ('scripted', 'ready', 'failed')").bind(onlySlug).first<VideoRow>()
-    : await env.DB.prepare("SELECT * FROM videos WHERE status = 'scripted' ORDER BY id LIMIT 1").first<VideoRow>();
+    ? await env.DB.prepare("SELECT * FROM videos WHERE slug = ? AND status IN ('scripted', 'approved', 'ready', 'failed')").bind(onlySlug).first<VideoRow>()
+    : await env.DB.prepare('SELECT * FROM videos WHERE status = ? ORDER BY id LIMIT 1').bind(ready).first<VideoRow>();
   if (!row) return null;
   const script = parseScript(row.script_json);
   if (!script) {
@@ -434,7 +486,7 @@ export async function markFailed(env: VideoEnv, slug: string, error: string): Pr
   const row = await getVideo(env.DB, slug);
   if (!row) return false;
   const attempts = row.attempts + 1;
-  const status = attempts >= MAX_ATTEMPTS ? 'failed' : 'scripted';
+  const status = attempts >= MAX_ATTEMPTS ? 'failed' : approvalRequired(env) ? 'approved' : 'scripted';
   await env.DB.prepare("UPDATE videos SET status = ?, attempts = ?, error = ?, updated_at = datetime('now') WHERE id = ?").bind(status, attempts, error.slice(0, 1000), row.id).run();
   if (status === 'failed') await notify(env, `Video render failed: ${slug}`, `<p>Rendering <strong>${escapeHtml(slug)}</strong> failed twice:</p><pre>${escapeHtml(error.slice(0, 1200))}</pre>`, `Rendering ${slug} failed twice:\n${error.slice(0, 1200)}`);
   return true;
