@@ -58,7 +58,6 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GOOGLE_VERTEX_PROJECT: ${{ secrets.GOOGLE_VERTEX_PROJECT }}
           GOOGLE_GCS_BUCKET: ${{ vars.GOOGLE_GCS_BUCKET }}
-          GOOGLE_DRIVE_FOLDER: ${{ vars.GOOGLE_DRIVE_FOLDER || '1u5sucQtLyO_cmQ0S0XsVjarcgwHH9iRR' }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           ELEVENLABS_VOICE: ${{ vars.ELEVENLABS_VOICE }}
           VIDEO_RESOLUTION: ${{ vars.VIDEO_RESOLUTION }}
