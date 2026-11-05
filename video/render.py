@@ -70,7 +70,7 @@ REVIEW = os.environ.get('RENDER_REVIEW') == '1'
 GOOGLE = 'https://generativelanguage.googleapis.com'
 W, H, FPS = 1080, 1920, 24
 SCENE_SECONDS = 10
-MAX_SCENES = 7  # cost guard: the site writes six scenes; anything above this is refused before any paid call
+MAX_SCENES = 10  # cost guard: the site writes nine scenes (90 s); anything above this is refused before any paid call
 MAX_SCENE_WORDS = 30
 NARRATION_DELAY = 0.15  # seconds of clip before the narrator starts
 NARRATION_TARGET = SCENE_SECONDS - 0.45  # the narration must end before the clip does

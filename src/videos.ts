@@ -77,7 +77,7 @@ export interface VideoScript {
   /** The connected angle the script opens from (shown to the owner when choosing). */
   angle?: string;
   title: string;
-  /** SCENES scenes of ten seconds: the hook, four facts, a calm ending. */
+  /** SCENES scenes of ten seconds: the hook, seven story beats that build, a wow ending. */
   scenes: VideoScene[];
   caption: string;
   hashtags: string[];
@@ -86,7 +86,7 @@ export interface VideoScript {
 
 const RENDER_STALE_MINUTES = 150;
 /** Scenes per video; each is a ten-second clip. */
-export const SCENES = 6;
+export const SCENES = 9;
 const MIN_SCENES = 4;
 /** Spoken words per scene; the narrator (ElevenLabs "Liam") fits about 22 words into nine seconds at his natural pace. */
 export const MAX_SCENE_WORDS = 24;
@@ -176,11 +176,11 @@ export function parseScript(json: string): VideoScript | null {
 
 export const VARIANTS = 3;
 
-const SCRIPT_SYSTEM = `You write sixty-second explainer videos for TikTok for Wellness Whizz, an AI supplement guide. The video is a hand-drawn animated infographic (a soft-teal cartoon figure, pastel objects, cream paper background) with one narrator. It is built from ${SCENES} scenes of ten seconds; for each scene you write what the narrator says and what the viewer sees.
+const SCRIPT_SYSTEM = `You write ninety-second story videos for TikTok and Instagram Reels for Wellness Whizz, an AI supplement guide. The video is a hand-drawn animated infographic (a soft-teal cartoon figure, pastel objects, cream paper background) with one narrator. It is built from ${SCENES} scenes of ten seconds; for each scene you write what the narrator says and what the viewer sees.
 
 You deliver ${VARIANTS} complete, different scripts for the owner to choose from. Each opens from a different CONNECTED ANGLE: something adjacent that a curious person already cares about (a historical event, an animal, a food, a word's origin, a famous experiment or scientist, an everyday object, a place) and arrives at the supplement by the second or third scene, so the viewer is pulled in before they know what the video is about. Name the angle in the "angle" field. The three angles must not overlap. The tone is smart and engaging: the voice of a well-read friend who has just found something out, not a lecturer and not a salesman.
 
-What makes these videos work: every scene is ONE genuinely surprising fact for a curious mind. Origin stories, odd history, who discovered it and how, strange chemistry, an animal or a food that is full of it, a number that sounds impossible, a myth busted, a counter-intuitive detail about how the body handles the substance. Never the obvious ("vitamin C supports immunity"), never a list of benefits, never "studies show it may help". The first scene is the strongest hook of all: a fact that makes someone stop scrolling. The last scene lands the story calmly on its best closing image or fact, so the video feels finished.
+What makes these videos work: every scene is ONE genuinely surprising fact for a curious mind. Origin stories, odd history, who discovered it and how, strange chemistry, an animal or a food that is full of it, a number that sounds impossible, a myth busted, a counter-intuitive detail about how the body handles the substance. Never the obvious ("vitamin C supports immunity"), never a list of benefits, never "studies show it may help". The first scene is the strongest hook of all: a fact that makes someone stop scrolling. The middle scenes must build, each raising the stakes or widening the picture (a question is planted early and answered late; a number grows; a detail from scene 2 returns transformed), so the viewer keeps watching to the end. Scenes 7 and 8 are the payoff: the biggest reveal of the whole story, the fact that makes someone say wow out loud. Scene 9 is the ending: one sentence that ties the opening image to the supplement in a way that feels inevitable and complete, a line people repeat to a friend. The video must feel finished, never cut off.
 
 This is a story, not advice, and nothing in it may need a disclaimer: no doses, no "take X milligrams", no "with food", no timing instructions, no warnings, no "ask a doctor", no "if you are pregnant / on medication", no claims that it treats, cures or prevents anything. A popular nickname ("the internet calls it nature's Ozempic") is a great story beat, told as what people say and why, never as a claim that it works like the medicine. If the article's practical advice is the only thing left, find the history and the chemistry instead. No call to action, no "follow", no "link in bio", no website mention anywhere in the narration.
 
@@ -195,7 +195,7 @@ Visual rules (the "visual" field is handed to a video generation model, so descr
 - Name colours from this palette: soft teal, sage green, pale cerulean, terracotta, straw yellow, cream. One idea per beat, clean and uncluttered, plenty of breathing room.
 - No text, no numbers, no letters, no labels, no logos, no clocks with numerals, no calendars with digits anywhere in the scene; say so in the description when a label would be natural (a blank label, a notebook with only scribble lines).
 - Nothing a safety filter could misread: no powders being snorted or injected, no needles, no blood, no gore, no nudity, no real people, no children, no brand names. A "scoop of white powder" reads badly to filters; say "small soft white spheres" or "a spoon of pale crystals" instead.
-- Scene ${SCENES} is the calm ending: a restful composition (a figure by a window, a sunrise over rooftops, a quiet table, the place the story began) that settles rather than stops.
+- Scene ${SCENES} is the ending: return to the place or object the story began with, now changed by what we learned, in a restful composition (a figure by a window, a sunrise over rooftops, a quiet table) that settles rather than stops.
 
 The caption is one hook sentence for TikTok (at most 140 characters) stating the most surprising fact; hashtags are separate: 4 or 5 lowercase tags without the # sign, the first being the supplement. product_slug is the catalogue slug of the supplement the video is about (given in the task).`;
 
@@ -207,7 +207,7 @@ const scriptSchema = {
     title: { type: 'string', description: 'Working title of the video, at most 60 characters: the hook in a few words.' },
     scenes: {
       type: 'array',
-      description: `Exactly ${SCENES} scenes: the hook, four more story facts, the calm ending; no advice, doses or warnings anywhere.`,
+      description: `Exactly ${SCENES} scenes: the hook, seven story beats that build to the wow reveal in scenes 7 and 8, the ending; no advice, doses or warnings anywhere.`,
       items: {
         type: 'object',
         additionalProperties: false,
