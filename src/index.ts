@@ -23,7 +23,7 @@ import { renderShelfPage, renderShelfResult } from './render/shelf';
 import { queueQuizDataArticle, quizDataSummary } from './quizdata';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
-import { approveVideo, getVideo, listVideos, markFailed, markPosted, markReady, monthlyLimit, nextJob, parseScript, queueVideo, rendersThisMonth, rewriteVideo, scriptNext } from './videos';
+import { approveVideo, autoPost, getVideo, listVideos, markFailed, markPosted, markReady, monthlyLimit, nextJob, parseScript, queueVideo, rendersThisMonth, rewriteVideo, scriptNext } from './videos';
 import { actOnProspect, addProspect, checkWins, counts as prospectCounts, dailyOutreach, discoverProspects, draftPending, findContacts, listProspects, noteReply, outreachDigest, outreachStep, recentEvents, sendApproved, type ProspectKind } from './backlinks';
 import { badgeWallHtml, withBadgeWall } from './badges';
 import { serviceAccountEmail, submitiumDigestLine, submitiumReportLine, submitiumState, submitiumStep } from './submitium';
@@ -1425,6 +1425,19 @@ app.get('/api/admin/videos/:slug/rewrite', async (c) => {
   await ensureDatabase(c.env.DB);
   const r = await rewriteVideo(c.env, c.req.param('slug') ?? '');
   return c.html(tapPage(r.ok ? 'Rewriting' : 'Not rewritten', r.message), r.ok ? 200 : 400);
+});
+
+/** The owner has watched a rendered video: schedule it for the next free morning slot (src/videos.ts autoPost). */
+app.post('/api/admin/videos/:slug/schedule', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const row = await getVideo(c.env.DB, c.req.param('slug') ?? '');
+  if (!row || !row.video_url) return c.json({ error: 'no rendered video for that slug' }, 404);
+  if (row.status === 'posted') return c.json({ error: `already scheduled (${row.publish_id})` }, 409);
+  const cover = row.video_url.replace(/\.mp4$/, '-cover.jpg');  // the render job uploads the cover next to the video
+  const r = await autoPost(c.env, row, cover);
+  return r.ok ? c.json({ ok: true, where: r.where, when: r.when }) : c.json({ ok: false, error: r.message }, 502);
 });
 
 /** Manual state fix for a video row (queued | scripted | approved | ready | posted | failed). */

@@ -488,12 +488,12 @@ export async function markReady(env: VideoEnv, slug: string, videoUrl: string, d
       `The video for ${slug} is rendered but the automatic post failed: ${posted.message}\n\nPost it by hand: ${page}`);
     return true;
   }
-  await notify(env, `Video ready to post: ${script?.title ?? slug}`,
+  await notify(env, `Video rendered, waiting for your go: ${script?.title ?? slug}`,
     `<p>The video for <strong>${escapeHtml(slug)}</strong> is rendered (${Math.round(duration)} s).</p>
 <p><a href="${escapeHtml(videoUrl)}">Watch it</a> · <a href="${escapeHtml(page)}" style="display:inline-block;background:#1d272d;color:#fff;text-decoration:none;border-radius:10px;padding:12px 18px;font-size:16px">Post to TikTok</a></p>
 <p style="color:#555">Caption: ${escapeHtml(row.caption)}</p>
-<p style="color:#777;font-size:13px">Nothing is posted until you press Post on that page.</p>`,
-    `The video for ${slug} is rendered (${Math.round(duration)} s).\n\nWatch: ${videoUrl}\nPost to TikTok: ${page}\n\nCaption: ${row.caption}\n\nNothing is posted until you press Post on that page.`);
+<p style="color:#777;font-size:13px">Nothing is posted until you say so: watch it in the chat with Claude and reply there, and it is scheduled for the next free morning slot.</p>`,
+    `The video for ${slug} is rendered (${Math.round(duration)} s).\n\nWatch: ${videoUrl}\nPost to TikTok: ${page}\n\nCaption: ${row.caption}\n\nNothing is posted until you say so: watch it in the chat with Claude and reply there, and it is scheduled for the next free morning slot.`);
   return true;
 }
 

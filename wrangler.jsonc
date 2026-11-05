@@ -54,7 +54,7 @@
     // Days between two inspections of the same page (the search numbers are pulled daily regardless).
     "GSC_RECHECK_DAYS": "7",
     // A rendered video is posted through Zernio as soon as it is ready (src/videos.ts); "false" waits for the posting page.
-    "VIDEO_AUTOPOST": "true",
+    "VIDEO_AUTOPOST": "false",
     "VIDEO_MONTHLY_LIMIT": "8",
     "VIDEO_APPROVAL": "true",
     "VIDEO_POST_TIME": "09:00",
