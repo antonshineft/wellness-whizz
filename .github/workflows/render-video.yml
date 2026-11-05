@@ -41,7 +41,7 @@ jobs:
           cache-dependency-path: video/requirements.txt
       - name: Install
         run: |
-          timeout 240 sudo apt-get install -y -qq ffmpeg > /dev/null || (sudo apt-get update -qq && timeout 240 sudo apt-get install -y -qq ffmpeg > /dev/null)
+          command -v ffmpeg > /dev/null || timeout 240 sudo apt-get install -y -qq ffmpeg > /dev/null || (sudo apt-get update -qq && timeout 240 sudo apt-get install -y -qq ffmpeg > /dev/null)
           timeout 180 pip install -q -r video/requirements.txt
       - name: Sign in to Google Cloud (Vertex AI, only when a service account is configured)
         id: gcloud
