@@ -1427,6 +1427,27 @@ app.get('/api/admin/videos/:slug/rewrite', async (c) => {
   return c.html(tapPage(r.ok ? 'Rewriting' : 'Not rewritten', r.message), r.ok ? 200 : 400);
 });
 
+/** A hand-written, already approved script (for example a pick from the "Video scripts" sheet tab) for a slug that need
+ *  not be an article: the row is created or replaced and the render job takes it on its next run. */
+app.post('/api/admin/videos/:slug/script', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const slug = (c.req.param('slug') ?? '').trim();
+  const body = (await c.req.json().catch(() => ({}))) as { script?: unknown; caption?: string };
+  const script = parseScript(JSON.stringify(body.script ?? null));
+  if (!slug || !script) return c.json({ error: 'a script with scenes [{narration, visual}] is required' }, 400);
+  const caption = String(body.caption ?? '').trim() || `${script.caption} ${script.hashtags.map((h) => `#${h}`).join(' ')}`.trim();
+  const existing = await getVideo(c.env.DB, slug);
+  if (existing && ['rendering', 'ready', 'posted'].includes(existing.status)) return c.json({ error: `"${slug}" is already ${existing.status}` }, 409);
+  if (existing) {
+    await c.env.DB.prepare("UPDATE videos SET status = 'approved', script_json = ?, caption = ?, error = '', attempts = 0, updated_at = datetime('now') WHERE slug = ?").bind(JSON.stringify(script), caption, slug).run();
+  } else {
+    await c.env.DB.prepare("INSERT INTO videos (slug, status, script_json, caption, created_at, updated_at) VALUES (?, 'approved', ?, ?, datetime('now'), datetime('now'))").bind(slug, JSON.stringify(script), caption).run();
+  }
+  return c.json({ ok: true, video: await getVideo(c.env.DB, slug) });
+});
+
 /** The owner has watched a rendered video: schedule it for the next free morning slot (src/videos.ts autoPost). */
 app.post('/api/admin/videos/:slug/schedule', async (c) => {
   const denied = authorized(c);
