@@ -1,10 +1,13 @@
 // Renders one research carousel: asks the site for a job (copy + note + product photo), fills carousel/template.html,
 // screenshots the four slides with Playwright, uploads them to the "carousels" release and reports them ready.
 // Environment: WW_ORIGIN, WW_STATS_KEY, GH_TOKEN, GH_REPO, optional JOB_PMID (else the oldest queued copy), CAROUSEL_LOCAL=1 to skip upload/report.
-import { chromium } from 'playwright';
+import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
+
+const require = createRequire(import.meta.url);
+const { chromium } = require('playwright');
 
 const ORIGIN = (process.env.WW_ORIGIN || 'https://aiww.io').replace(/\/$/, '');
 const KEY = process.env.WW_STATS_KEY || '';
