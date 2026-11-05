@@ -62,7 +62,7 @@ const copySchema = {
     found: slideSchema(),
     catch: slideSchema(),
     caption: { type: 'string' },
-    hashtags: { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 6 },
+    hashtags: { type: 'array', items: { type: 'string' } },
   },
   required: ['cover', 'found', 'catch', 'caption', 'hashtags'],
 };
