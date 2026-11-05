@@ -37,9 +37,16 @@ WORK = Path(os.environ.get('RENDER_WORK') or ROOT / 'work')
 ORIGIN = (os.environ.get('WW_ORIGIN') or 'https://aiww.io').rstrip('/')
 KEY = os.environ.get('WW_STATS_KEY', '')
 GEMINI = os.environ.get('GEMINI_API_KEY', '')
+# Vertex AI instead of the Gemini API: the project id plus an OAuth access token (minted in the workflow from a service
+# account), optionally a Cloud Storage bucket for the generated files.
+VERTEX_PROJECT = os.environ.get('GOOGLE_VERTEX_PROJECT', '').strip()
+VERTEX_TOKEN = os.environ.get('GOOGLE_ACCESS_TOKEN', '').strip()
+VERTEX_BUCKET = os.environ.get('GOOGLE_GCS_BUCKET', '').strip().replace('gs://', '').strip('/')
+VERTEX = bool(VERTEX_PROJECT and VERTEX_TOKEN)
 ELEVEN = os.environ.get('ELEVENLABS_API_KEY', '')
 VOICE = os.environ.get('ELEVENLABS_VOICE') or 'onwK4e9ZLuTAKqWW03F9'  # "Daniel"
-MODEL = os.environ.get('VIDEO_MODEL') or 'gemini-omni-1.1-flash'
+MODEL = os.environ.get('VIDEO_MODEL') or ('gemini-omni-1.1-flash-preview' if VERTEX else 'gemini-omni-1.1-flash')
+INTERACTIONS = f'https://aiplatform.googleapis.com/v1beta1/projects/{VERTEX_PROJECT}/locations/global/interactions' if VERTEX else 'https://generativelanguage.googleapis.com/v1beta/interactions'
 RESOLUTION = os.environ.get('VIDEO_RESOLUTION') or '1080p'
 LOCAL = os.environ.get('RENDER_LOCAL') == '1'
 REVIEW = os.environ.get('RENDER_REVIEW') == '1'
@@ -104,7 +111,8 @@ def scene_prompt(index: int, count: int, topic: str, visual: str) -> str:
 
 
 def google(method: str, url: str, **kw) -> requests.Response:
-    headers = {'x-goog-api-key': GEMINI, **kw.pop('headers', {})}
+    auth = {'authorization': f'Bearer {VERTEX_TOKEN}'} if VERTEX else {'x-goog-api-key': GEMINI}
+    headers = {**auth, **kw.pop('headers', {})}
     return requests.request(method, url, headers=headers, timeout=kw.pop('timeout', 180), **kw)
 
 
@@ -120,8 +128,19 @@ def _video_part(interaction: dict) -> dict | None:
 
 def _download_file(uri: str, out: Path) -> None:
     """A generated video delivered as a Google-hosted file. The uri may already be a download link (":download" or
-    "alt=media") or a file resource; a resource is polled until ACTIVE, then fetched through the download endpoint."""
+    "alt=media"), a Cloud Storage object (gs://...) or a file resource; a resource is polled until ACTIVE, then fetched
+    through the download endpoint."""
     log(f'video uri: {uri[:200]}')
+    if uri.startswith('gs://'):
+        bucket, _, obj = uri[5:].partition('/')
+        r = google('GET', f'https://storage.googleapis.com/storage/v1/b/{bucket}/o/{requests.utils.quote(obj, safe="")}?alt=media', timeout=600, stream=True)
+        if not r.ok:
+            raise RuntimeError(f'Cloud Storage download failed: HTTP {r.status_code} {r.text[:200]}')
+        with open(out, 'wb') as f:
+            for chunk in r.iter_content(1 << 20):
+                f.write(chunk)
+        log(f'downloaded {out.stat().st_size // 1024} kB from {uri[:120]}')
+        return
     m = re.search(r'files/([^/:?&]+)', uri)
     name = m.group(1) if m else ''
     direct = ':download' in uri or 'alt=media' in uri
@@ -168,6 +187,15 @@ def _request(prompt: str, refs: bool, fmt: dict) -> dict:
     if refs:
         content = [{'type': 'image', 'data': base64.b64encode(p.read_bytes()).decode(), 'mime_type': 'image/jpeg'} for p in STYLE]
     content.append({'type': 'text', 'text': prompt if refs else re.sub(r'in the style of (<IMAGE_REF_\d+>\s*)+', 'in a hand-drawn illustration style', prompt)})
+    if VERTEX:
+        # Vertex AI: response_format is a list, the length is explicit, and a uri delivery needs a Cloud Storage bucket
+        out = {'type': 'video', 'aspect_ratio': '9:16', 'duration': f'{SCENE_SECONDS}s', **fmt}
+        if out.get('delivery') == 'uri':
+            if VERTEX_BUCKET:
+                out['gcs_uri'] = f'gs://{VERTEX_BUCKET}/omni/'
+            else:
+                out.pop('delivery')
+        return {'model': MODEL, 'input': content, 'response_format': [out], 'background': True}
     return {'model': MODEL, 'input': content, 'response_format': {'type': 'video', 'aspect_ratio': '9:16', **fmt},
             'background': True}  # polled below; Google requires store=true (the default) for background runs
 
@@ -185,7 +213,7 @@ _config: dict = {'index': 0}
 def generate_clip(prompt: str, out: Path, label: str, config: int | None = None) -> Path:
     """One clip from Gemini Omni Flash, run in the background and polled."""
     name, refs, fmt = CONFIGS[_config['index'] if config is None else config]
-    r = google('POST', f'{GOOGLE}/v1beta/interactions', json=_request(prompt, refs, fmt), timeout=300)
+    r = google('POST', INTERACTIONS, json=_request(prompt, refs, fmt), timeout=300)
     if not r.ok:
         raise RuntimeError(f'Omni {label} ({name}): HTTP {r.status_code} {r.text[:400]}')
     interaction = r.json()
@@ -193,7 +221,7 @@ def generate_clip(prompt: str, out: Path, label: str, config: int | None = None)
     t0 = time.time()
     while interaction.get('status') in ('in_progress', 'requires_action', None) and time.time() - t0 < 1500:
         time.sleep(10)
-        rr = google('GET', f'{GOOGLE}/v1beta/interactions/{iid}')
+        rr = google('GET', f'{INTERACTIONS}/{iid}')
         if rr.ok:
             interaction = rr.json()
         else:
@@ -518,7 +546,7 @@ def render(job: dict) -> Path:
         raise RuntimeError(f'a scene has {longest} words; the narrator cannot fit more than {MAX_SCENE_WORDS} into ten seconds')
     if not STYLE:
         raise RuntimeError('no style references in video/style')
-    log(f'job {slug}: {len(scenes)} scenes, {sum(len(s["narration"].split()) for s in scenes)} words, {MODEL} at {RESOLUTION}')
+    log(f'job {slug}: {len(scenes)} scenes, {sum(len(s["narration"].split()) for s in scenes)} words, {MODEL} at {RESOLUTION} via {"Vertex AI" if VERTEX else "the Gemini API"}')
     WORK.mkdir(parents=True, exist_ok=True)
     for f in WORK.glob('*'):
         if f.is_file():
@@ -562,9 +590,9 @@ def main() -> int:
     if os.environ.get('RENDER_JOB'):
         job = json.loads(Path(os.environ['RENDER_JOB']).read_text())
     else:
-        if not KEY or not GEMINI or not ELEVEN:
-            # Not configured yet (repository secrets WW_STATS_KEY, GEMINI_API_KEY, ELEVENLABS_API_KEY): nothing to do, no failure.
-            log('secrets WW_STATS_KEY / GEMINI_API_KEY / ELEVENLABS_API_KEY are not all set on this runner; skipping')
+        if not KEY or not (GEMINI or VERTEX) or not ELEVEN:
+            # Not configured yet (repository secrets WW_STATS_KEY, GEMINI_API_KEY or the Vertex pair, ELEVENLABS_API_KEY): nothing to do.
+            log('secrets WW_STATS_KEY / GEMINI_API_KEY (or GOOGLE_VERTEX_PROJECT + GOOGLE_CREDENTIALS_JSON) / ELEVENLABS_API_KEY are not all set; skipping')
             return 0
         params = {'slug': os.environ['JOB_SLUG']} if os.environ.get('JOB_SLUG') else {}
         r = site('GET', '/api/admin/videos/next', params=params)

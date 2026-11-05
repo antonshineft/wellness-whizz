@@ -1,7 +1,8 @@
 # Renders the next queued explainer video (see video/render.py and src/videos.ts) and publishes it as a release asset.
 # Runs every three hours; each run asks the site for one job and exits in seconds when there is none.
-# Secrets: WW_STATS_KEY (the site's admin key), GEMINI_API_KEY (Google AI Studio, paid tier: Gemini Omni Flash makes the
-# clips), ELEVENLABS_API_KEY (the narrator). Optional: ELEVENLABS_VOICE (voice id, default "Daniel"), VIDEO_RESOLUTION
+# Secrets: WW_STATS_KEY (the site's admin key), ELEVENLABS_API_KEY (the narrator), and one Google route for the clips:
+# GEMINI_API_KEY (Google AI Studio, paid tier) or GOOGLE_VERTEX_PROJECT + GOOGLE_CREDENTIALS_JSON (a Vertex AI service
+# account with the Vertex AI User role; optional variable GOOGLE_GCS_BUCKET for the generated files). Optional: ELEVENLABS_VOICE (voice id, default "Daniel"), VIDEO_RESOLUTION
 # (720p or 1080p, default 1080p), VIDEO_MODEL (default gemini-omni-1.1-flash) as repository variables.
 name: Render video
 
@@ -42,11 +43,22 @@ jobs:
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
           pip install -q -r video/requirements.txt
+      - name: Sign in to Google Cloud (Vertex AI, only when a service account is configured)
+        if: ${{ secrets.GOOGLE_CREDENTIALS_JSON != '' }}
+        id: gcloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/cloud-platform
       - name: Render
         env:
           WW_ORIGIN: https://aiww.io
           WW_STATS_KEY: ${{ secrets.WW_STATS_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_VERTEX_PROJECT: ${{ secrets.GOOGLE_VERTEX_PROJECT }}
+          GOOGLE_ACCESS_TOKEN: ${{ steps.gcloud.outputs.access_token }}
+          GOOGLE_GCS_BUCKET: ${{ vars.GOOGLE_GCS_BUCKET }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           ELEVENLABS_VOICE: ${{ vars.ELEVENLABS_VOICE }}
           VIDEO_RESOLUTION: ${{ vars.VIDEO_RESOLUTION }}
