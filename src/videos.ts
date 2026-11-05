@@ -88,8 +88,8 @@ const RENDER_STALE_MINUTES = 150;
 /** Scenes per video; each is a ten-second clip. */
 export const SCENES = 9;
 const MIN_SCENES = 4;
-/** Spoken words per scene; the narrator (ElevenLabs "Liam") fits about 22 words into nine seconds at his natural pace. */
-export const MAX_SCENE_WORDS = 24;
+/** Spoken words per scene; the narrator (ElevenLabs "Liam") speaks about 3 words a second, so 27 to 29 words fill a ten-second scene. */
+export const MAX_SCENE_WORDS = 30;
 /** Spoken words per video. The render job refuses scripts far above this. */
 const MAX_SCRIPT_WORDS = SCENES * MAX_SCENE_WORDS;
 const MAX_ATTEMPTS = 2;
@@ -185,7 +185,7 @@ What makes these videos work: every scene is ONE genuinely surprising fact for a
 This is a story, not advice, and nothing in it may need a disclaimer: no doses, no "take X milligrams", no "with food", no timing instructions, no warnings, no "ask a doctor", no "if you are pregnant / on medication", no claims that it treats, cures or prevents anything. A popular nickname ("the internet calls it nature's Ozempic") is a great story beat, told as what people say and why, never as a claim that it works like the medicine. If the article's practical advice is the only thing left, find the history and the chemistry instead. No call to action, no "follow", no "link in bio", no website mention anywhere in the narration.
 
 Narration rules:
-- At most ${MAX_SCENE_WORDS} words per scene, usually 16 to 21. Short spoken sentences with a verb. The narrator is a calm, warm British man; write for his voice.
+- Between 26 and ${MAX_SCENE_WORDS} words per scene, usually 27 to 29, so the narration fills the whole ten seconds with no silent tail. Short spoken sentences with a verb. The narrator is a calm, warm man; write for his voice.
 - Write numbers and years as digits, as the captions show them: "1992", "38 trillion", "90 percent", "200 milligrams". Spell units out in full (milligrams, grams, percent) so the narrator reads them correctly; no symbols, no abbreviations.
 - Facts come from the article first. You may add well-known, well-documented general knowledge about the supplement (its discovery, origin, chemistry, famous experiments) that a good reference book would confirm. Never invent a number, a study or a name. A study may appear as a story ("in a famous experiment, mice given it lived longer"), never as a promise for the viewer.
 - Plain, confident, a little playful. No hype, no exclamation marks, no emoji, no em dashes, no bullet points, no hashtags in the narration, no "did you know".
@@ -302,7 +302,7 @@ Write ${VARIANTS} complete ${SCENES}-scene scripts from three different connecte
   const over = scripts.map((sc, k) => ({ k, n: longest(sc) })).filter((x) => x.n > MAX_SCENE_WORDS);
   if (over.length) {
     const shorter = (await claudeJson<{ variants: VideoScript[] }>(env, SCRIPT_SYSTEM,
-      `${user}\n\nYour previous scripts have scenes too long for the narrator (${over.map((x) => `script ${x.k + 1}: a scene has ${x.n} words`).join('; ')}). Here they are:\n${JSON.stringify({ variants: scripts })}\n\nReturn the same ${scripts.length} scripts with at most ${MAX_SCENE_WORDS - 2} words in every scene's narration, same angles, facts and visuals; cut the least important clause of each long scene.`,
+      `${user}\n\nYour previous scripts have scenes too long for the narrator (${over.map((x) => `script ${x.k + 1}: a scene has ${x.n} words`).join('; ')}). Here they are:\n${JSON.stringify({ variants: scripts })}\n\nReturn the same ${scripts.length} scripts with between 26 and ${MAX_SCENE_WORDS - 1} words in every scene's narration, same angles, facts and visuals; cut the least important clause of each long scene.`,
       variantsSchema, { tier: 'fast', maxTokens: 16000, timeoutMs: 120_000 })).variants.slice(0, VARIANTS).map((sc) => tidyScript(sc, sup?.slug ?? hero));
     if (shorter.length === scripts.length && Math.max(...shorter.map(longest)) <= Math.max(...scripts.map(longest))) scripts = shorter;
   }

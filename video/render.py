@@ -88,11 +88,14 @@ FFMPEG = _ffmpeg_path()
 W, H, FPS = 1080, 1920, 24
 SCENE_SECONDS = 10
 MAX_SCENES = 10  # cost guard: the site writes nine scenes (90 s); anything above this is refused before any paid call
-MAX_SCENE_WORDS = 30
+MAX_SCENE_WORDS = 34
 NARRATION_DELAY = 0.15  # seconds of clip before the narrator starts
 NARRATION_TARGET = SCENE_SECONDS - 0.45  # the narration must end before the clip does
 MAX_TEMPO = 1.12  # the most the narration is sped up; beyond that the scene is held on its last frame for the rest
 MAX_HOLD = 1.5  # seconds a scene may run past the clip (last frame held) before the script is considered too long
+SCENE_PAUSE = 0.55  # seconds of picture after the narrator stops; the rest of a ten-second clip is cut, not left silent
+LAST_PAUSE = 1.4  # the final scene breathes a little longer so the video feels finished
+MIN_SCENE = 6.5  # a clip is never cut shorter than this, so every scene still gets its visual beat
 BED_VOLUME = 0.16
 PARALLEL_CLIPS = 2
 STYLE = sorted((ROOT / 'style').glob('ref-*.jpg'))
@@ -505,14 +508,18 @@ def write_captions(scenes: list[dict], path: Path) -> int:
 # Compose
 
 def compose(clips: list[Path], narrations: list[tuple[Path, list[dict], float]], out: Path) -> float:
-    """Each scene is as long as its clip (a short clip is held on its last frame if the narration needs it)."""
+    """Each scene lasts as long as its narration plus a short pause: a ten-second clip is cut when the narrator finishes early,
+    and held on its last frame when the narration overruns."""
     parts_v: list[Path] = []
     parts_a: list[Path] = []
     caption_scenes: list[dict] = []
     offset = 0.0
     for i, (clip, (wav, words, nd)) in enumerate(zip(clips, narrations)):
         cd = ffprobe_duration(clip)
-        length = max(cd, nd + NARRATION_DELAY + 0.45)
+        pause = LAST_PAUSE if i == len(clips) - 1 else SCENE_PAUSE
+        wanted = nd + NARRATION_DELAY + pause
+        # cut the silent tail of a clip the narration does not fill; hold the last frame when the narration overruns
+        length = max(wanted, MIN_SCENE) if wanted < cd else wanted
         vf = f'scale={W}:{H}:flags=lanczos,setsar=1,fps={FPS}'
         if length > cd + 0.05:
             vf += f',tpad=stop_mode=clone:stop_duration={length - cd:.3f}'
