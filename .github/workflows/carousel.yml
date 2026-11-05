@@ -1,6 +1,6 @@
 name: Render carousel
 # Renders an Instagram research carousel from a research note's copy (carousel/build.mjs), uploads the slides to the
-# "carousels" release and marks the row ready on the site. Needs the WW_STATS_KEY secret.
+# "carousels" release and marks the row ready on the site. Manual only: the owner exports the slides from Figma; this job is the fallback.
 on:
   workflow_dispatch:
     inputs:
@@ -8,8 +8,6 @@ on:
         description: PubMed ID of the queued carousel (empty = the oldest queued copy)
         required: false
         default: ""
-  schedule:
-    - cron: "23 7 * * *"
 permissions:
   contents: write
 
