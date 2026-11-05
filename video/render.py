@@ -7,7 +7,7 @@ clips concatenated (the model's own audio dropped), narration, burned-in caption
 repository -> POST /api/admin/videos/<slug>/ready (the site posts it through Zernio or emails a posting link).
 
 Environment: WW_ORIGIN (default https://aiww.io), WW_STATS_KEY, GEMINI_API_KEY, ELEVENLABS_API_KEY, ELEVENLABS_VOICE
-(default: "Daniel"), VIDEO_MODEL (default gemini-omni-1.1-flash), VIDEO_RESOLUTION (default 1080p), GH_TOKEN + GH_REPO
+(default: "Liam"), VIDEO_MODEL (default gemini-omni-1.1-flash), VIDEO_RESOLUTION (default 1080p), GH_TOKEN + GH_REPO
 (release upload), JOB_SLUG (optional: render this slug instead of the oldest job).
 Review runs: RENDER_REVIEW=1 renders and uploads the file but does not report it ready, so nothing is posted; the row
 goes back to "scripted" by itself after 150 minutes unless /api/admin/videos/<slug>/ready is called with the file's URL.
@@ -61,7 +61,7 @@ def _vertex_token() -> str:
 VERTEX_TOKEN = _vertex_token() if VERTEX_PROJECT else ''
 VERTEX = bool(VERTEX_PROJECT and VERTEX_TOKEN)
 ELEVEN = os.environ.get('ELEVENLABS_API_KEY', '')
-VOICE = os.environ.get('ELEVENLABS_VOICE') or 'onwK4e9ZLuTAKqWW03F9'  # "Daniel"
+VOICE = os.environ.get('ELEVENLABS_VOICE') or 'TX3LPaxmHKxFdv7VOQHJ'  # "Liam"
 MODEL = os.environ.get('VIDEO_MODEL') or ('gemini-omni-1.1-flash-preview' if VERTEX else 'gemini-omni-1.1-flash')
 INTERACTIONS = f'https://aiplatform.googleapis.com/v1beta1/projects/{VERTEX_PROJECT}/locations/global/interactions' if VERTEX else 'https://generativelanguage.googleapis.com/v1beta/interactions'
 RESOLUTION = os.environ.get('VIDEO_RESOLUTION') or '1080p'

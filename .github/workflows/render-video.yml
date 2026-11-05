@@ -2,7 +2,7 @@
 # Runs every three hours; each run asks the site for one job and exits in seconds when there is none.
 # Secrets: WW_STATS_KEY (the site's admin key), ELEVENLABS_API_KEY (the narrator), and one Google route for the clips:
 # GEMINI_API_KEY (Google AI Studio, paid tier) or GOOGLE_VERTEX_PROJECT + GOOGLE_CREDENTIALS_JSON (a Vertex AI service
-# account with the Vertex AI User role; optional variable GOOGLE_GCS_BUCKET for the generated files). Optional: ELEVENLABS_VOICE (voice id, default "Daniel"), VIDEO_RESOLUTION
+# account with the Vertex AI User role; optional variable GOOGLE_GCS_BUCKET for the generated files). Optional: ELEVENLABS_VOICE (voice id, default "Liam"), VIDEO_RESOLUTION
 # (720p or 1080p, default 1080p), VIDEO_MODEL (default gemini-omni-1.1-flash) as repository variables.
 name: Render video
 

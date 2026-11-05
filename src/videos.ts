@@ -88,7 +88,7 @@ const RENDER_STALE_MINUTES = 150;
 /** Scenes per video; each is a ten-second clip. */
 export const SCENES = 6;
 const MIN_SCENES = 4;
-/** Spoken words per scene; the narrator (ElevenLabs "Daniel") fits about 22 words into nine seconds at his natural pace. */
+/** Spoken words per scene; the narrator (ElevenLabs "Liam") fits about 22 words into nine seconds at his natural pace. */
 export const MAX_SCENE_WORDS = 24;
 /** Spoken words per video. The render job refuses scripts far above this. */
 const MAX_SCRIPT_WORDS = SCENES * MAX_SCENE_WORDS;
