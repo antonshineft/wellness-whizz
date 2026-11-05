@@ -1,0 +1,43 @@
+# Replace one file in a GitHub release with a corrected version (e.g. a rendered video patched by hand after the
+# video model drew stray text). Manual only. The download URL of a release asset is its file name, so uploading
+# with --clobber under the same name keeps every link (the Worker's video_url, Zernio) pointing at the fixed file.
+name: Replace release asset
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Where to download the corrected file from'
+        required: true
+      name:
+        description: 'Asset file name in the release to replace (e.g. slug-20261105-2204.mp4)'
+        required: true
+      tag:
+        description: 'Release tag'
+        required: false
+        default: 'videos'
+
+permissions:
+  contents: write
+
+jobs:
+  replace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Download the corrected file
+        env:
+          SRC: ${{ github.event.inputs.url }}
+          NAME: ${{ github.event.inputs.name }}
+        run: |
+          case "$NAME" in */*|.*|'') echo "bad asset name"; exit 1;; esac
+          curl -fsSL --retry 3 -o "$NAME" "$SRC"
+          ls -la "$NAME"
+          head -c 12 "$NAME" | od -c | head -1
+      - name: Upload it over the old asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NAME: ${{ github.event.inputs.name }}
+          TAG: ${{ github.event.inputs.tag }}
+        run: gh release upload "$TAG" "$NAME" --clobber
