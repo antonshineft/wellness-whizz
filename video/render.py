@@ -73,6 +73,18 @@ RESOLUTION = os.environ.get('VIDEO_RESOLUTION') or '720p'
 LOCAL = os.environ.get('RENDER_LOCAL') == '1'
 REVIEW = os.environ.get('RENDER_REVIEW') == '1'
 GOOGLE = 'https://generativelanguage.googleapis.com'
+def _ffmpeg_path() -> str:
+    """ffmpeg from PATH, else the binary bundled in the imageio-ffmpeg wheel (what the GitHub job installs)."""
+    if shutil.which('ffmpeg'):
+        return 'ffmpeg'
+    try:
+        import imageio_ffmpeg  # type: ignore
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:  # noqa: BLE001
+        return 'ffmpeg'
+
+
+FFMPEG = _ffmpeg_path()
 W, H, FPS = 1080, 1920, 24
 SCENE_SECONDS = 10
 MAX_SCENES = 10  # cost guard: the site writes nine scenes (90 s); anything above this is refused before any paid call
@@ -99,12 +111,21 @@ def site(method: str, path: str, **kw) -> requests.Response:
 
 
 def ffprobe_duration(f: Path) -> float:
-    out = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', str(f)], capture_output=True, text=True, check=True).stdout
+    """Media duration in seconds. ffprobe when the runner has it; otherwise ffmpeg's own "Duration:" line (the PyPI
+    ffmpeg wheel used on GitHub ships no ffprobe)."""
+    if shutil.which('ffprobe'):
+        out = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', str(f)], capture_output=True, text=True, check=True).stdout
+        return float(out.strip())
+    err = subprocess.run([FFMPEG, '-hide_banner', '-i', str(f), '-f', 'null', '-'], capture_output=True, text=True).stderr
+    m = re.search(r'Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)', err)
+    if not m:
+        raise RuntimeError(f'no duration for {f.name}')
+    out = str(int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3)))
     return float(out.strip())
 
 
 def ffmpeg(*args: str) -> None:
-    subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', *args], check=True)
+    subprocess.run([FFMPEG, '-loglevel', 'error', '-y', *args], check=True)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
