@@ -101,10 +101,16 @@ export function expandArticleHtml(ctx: BlogContext, post: BlogPost): string {
   return html;
 }
 
+/** A category as a filter key: "Dosage guides" -> "dosage-guides" (also the ?category= value in the URL). */
+export function categoryKey(category: string): string {
+  return category.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 export function postCard(ctx: BlogContext, post: BlogPost, hidden = false): string {
   const sup = ctx.supplements.get(post.heroSupplement);
+  const haystack = `${post.title} ${post.excerpt} ${post.category}`.toLowerCase().replace(/\s+/g, ' ').trim();
   return `
-        <a href="/blog/${escapeHtml(post.slug)}" class="ww-post-card${hidden ? ' is-hidden' : ''}">
+        <a href="/blog/${escapeHtml(post.slug)}" class="ww-post-card${hidden ? ' is-hidden' : ''}" data-category="${escapeHtml(categoryKey(post.category))}" data-search="${escapeHtml(haystack)}">
           <div class="ww-post-card-media">${supplementPhoto(sup, post.title, 'width="180" height="180"')}</div>
           <div class="ww-post-card-body">
             <span class="ww-tag">${escapeHtml(post.category)}</span>
@@ -119,15 +125,35 @@ export function postCard(ctx: BlogContext, post: BlogPost, hidden = false): stri
 const BLOG_PAGE_SIZE = 6;
 
 export function renderBlogIndex(ctx: BlogContext, posts: readonly BlogPost[]): string {
+  // Category chips with counts, most-written-about first; the key is what the cards carry in data-category.
+  const categories = new Map<string, { label: string; count: number }>();
+  for (const p of posts) {
+    const key = categoryKey(p.category);
+    const c = categories.get(key);
+    if (c) c.count++;
+    else categories.set(key, { label: p.category, count: 1 });
+  }
+  const chips = [...categories.entries()].sort((a, b) => b[1].count - a[1].count || a[1].label.localeCompare(b[1].label));
+  const chip = (value: string, label: string, count: number, active = false) =>
+    `<button type="button" class="ww-tag ww-rchip${active ? ' is-active' : ''}" data-category="${escapeHtml(value)}" aria-pressed="${active}">${escapeHtml(label)} <b>${count}</b></button>`;
   const body = `
-      <p class="ww-blog-intro">Long reads on how supplements actually work, what the research says, and how to read a label before you buy. Every article is checked against primary sources and links to the products it discusses on iHerb.</p>
-      <div class="ww-posts" id="ww-posts">${posts.map((p, i) => postCard(ctx, p, i >= BLOG_PAGE_SIZE)).join('')}
-      </div>${
-        posts.length > BLOG_PAGE_SIZE
-          ? `
-      <div class="ww-more-wrap"><button type="button" class="bignavbutton w-button ww-teaser-btn ww-more" data-target="ww-posts" data-step="${BLOG_PAGE_SIZE}">Show more</button></div>`
-          : ''
-      }
+      <section class="ww-blog-frame">
+        <p class="ww-blog-intro">Long reads on how supplements actually work, what the research says, and how to read a label before you buy. Every article is checked against primary sources and links to the products it discusses on iHerb.</p>
+        <div class="ww-bfilter" data-blog-filter data-page-size="${BLOG_PAGE_SIZE}">
+          <div class="ww-rfilter-row"><label class="ww-rfilter-label" for="ww-blog-search">Search</label><div class="ww-bsearch-wrap"><input type="search" id="ww-blog-search" class="ww-bsearch" data-blog-search placeholder="Search articles, e.g. magnesium, sleep, creatine" autocomplete="off" aria-label="Search articles"></div></div>
+          <div class="ww-rfilter-row"><span class="ww-rfilter-label">Category</span><div class="ww-rfilter-chips">${chip('', 'All', posts.length, true)}${chips.map(([key, c]) => chip(key, c.label, c.count)).join('')}</div></div>
+          <p class="ww-rfilter-count" data-blog-count aria-live="polite"></p>
+          <div hidden data-blog-strings><span data-k="all">Showing all {n} articles</span><span data-k="some">Showing {n} of {x} articles</span><span data-k="match">Showing {n} of {x} matching articles</span><span data-k="more">Show more ({n} left)</span></div>
+        </div>
+        <div class="ww-posts" id="ww-posts" data-blog-list>${posts.map((p, i) => postCard(ctx, p, i >= BLOG_PAGE_SIZE)).join('')}
+        </div>
+        <p class="ww-bempty" data-blog-empty hidden>No articles match that yet. Try another word, or clear the filters.</p>${
+          posts.length > BLOG_PAGE_SIZE
+            ? `
+        <div class="ww-more-wrap"><button type="button" class="bignavbutton w-button ww-teaser-btn" data-blog-more>Show more</button></div>`
+            : ''
+        }
+      </section>
       <div style="margin-top:32px">${captureBox({ source: 'newsletter' })}</div>${quizCta()}`;
   const shell = pageShell({
     eyebrow: 'Blog',
@@ -144,6 +170,7 @@ export function renderBlogIndex(ctx: BlogContext, posts: readonly BlogPost[]): s
     bodyClass: 'body-2',
     head,
     body: shell,
+    scripts: '  <script src="/js/blog.js"></script>',
   });
 }
 

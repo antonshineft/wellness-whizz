@@ -442,5 +442,15 @@
   "{x}: Benefits, Dosage, Safety & Where to Buy | Wellness Whizz": "{x}: beneficios, dosis, seguridad y dónde comprar | Wellness Whizz",
   "{x}: benefits, contraindications, interactions and research.": "{x}: beneficios, contraindicaciones, interacciones e investigación.",
   "⌘ POSSIBLE INTERACTIONS": "⌘ POSIBLES INTERACCIONES",
-  "✦ ENHANCING EFFECT": "✦ POTENCIA SU EFECTO"
+  "✦ ENHANCING EFFECT": "✦ POTENCIA SU EFECTO",
+  "Search": "Buscar",
+  "Search articles": "Buscar artículos",
+  "Search articles, e.g. magnesium, sleep, creatine": "Busca artículos, p. ej. magnesio, sueño, creatina",
+  "Category": "Categoría",
+  "All": "Todos",
+  "No articles match that yet. Try another word, or clear the filters.": "Ningún artículo coincide todavía. Prueba otra palabra o quita los filtros.",
+  "Showing all {n} articles": "Mostrando los {n} artículos",
+  "Showing {n} of {x} articles": "Mostrando {n} de {x} artículos",
+  "Showing {n} of {x} matching articles": "Mostrando {n} de {x} artículos que coinciden",
+  "Show more ({n} left)": "Mostrar más (quedan {n})"
 }

@@ -216,6 +216,25 @@ a.ww-footer-link:hover { opacity: 1; }
 .ww-post-card p { margin: 0; font-size: 15px; line-height: 23px; opacity: .85; }
 .ww-post-meta { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; opacity: .6; margin-top: auto; }
 .ww-blog-intro { max-width: 780px; margin: 0 0 32px; font-size: 18px; line-height: 30px; }
+/* Blog index: the content body sits in a framed panel (same grey transparent stroke as the research intro),
+   with the intro, a quick search field and category chips above the cards. */
+.ww-blog-frame { border: 1px solid #1d272d1f; border-radius: 28px; padding: 32px; box-sizing: border-box; }
+.ww-blog-frame .ww-blog-intro { margin-bottom: 26px; }
+.ww-bfilter { display: flex; flex-direction: column; gap: 12px; margin: 0 0 28px; padding-bottom: 24px; border-bottom: 1px solid #1d272d1f; }
+.ww-bfilter .ww-rfilter-row { align-items: center; }
+.ww-bfilter .ww-rfilter-row:has(.ww-rfilter-chips) { align-items: flex-start; }
+.ww-bsearch-wrap { flex: 1 1 auto; max-width: 560px; }
+.ww-bsearch { width: 100%; height: 48px; border: 1.5px solid #1d272d33; border-radius: 16px; padding: 0 16px 0 44px; font-family: Aeonik, sans-serif; font-size: 16px; color: #1d272d; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%231d272d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") 16px center no-repeat; outline: none; box-sizing: border-box; appearance: none; -webkit-appearance: none; }
+.ww-bsearch:focus { border-color: #87d581; box-shadow: 0 0 0 3px #87d58155; }
+.ww-bsearch::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.ww-bfilter .ww-rfilter-count { margin: 0 0 0 104px; }
+.ww-bempty { margin: 8px 0 0; font-size: 16px; line-height: 24px; opacity: .75; }
+@media (max-width: 767px) {
+  .ww-blog-frame { padding: 20px 16px; border-radius: 22px; }
+  .ww-bfilter .ww-rfilter-row { align-items: stretch; }
+  .ww-bsearch-wrap { max-width: none; width: 100%; }
+  .ww-bfilter .ww-rfilter-count { margin-left: 0; }
+}
 /* blog article */
 .ww-article-layout { display: grid; grid-template-columns: minmax(0, 780px) 320px; gap: 56px; align-items: start; }
 .ww-article-aside { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 16px; }
