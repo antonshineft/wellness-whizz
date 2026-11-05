@@ -51,15 +51,12 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
-          token_format: access_token
-          access_token_scopes: https://www.googleapis.com/auth/cloud-platform
       - name: Render
         env:
           WW_ORIGIN: https://aiww.io
           WW_STATS_KEY: ${{ secrets.WW_STATS_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GOOGLE_VERTEX_PROJECT: ${{ secrets.GOOGLE_VERTEX_PROJECT }}
-          GOOGLE_ACCESS_TOKEN: ${{ steps.gcloud.outputs.access_token }}
           GOOGLE_GCS_BUCKET: ${{ vars.GOOGLE_GCS_BUCKET }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           ELEVENLABS_VOICE: ${{ vars.ELEVENLABS_VOICE }}

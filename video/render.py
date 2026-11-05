@@ -40,8 +40,25 @@ GEMINI = os.environ.get('GEMINI_API_KEY', '')
 # Vertex AI instead of the Gemini API: the project id plus an OAuth access token (minted in the workflow from a service
 # account), optionally a Cloud Storage bucket for the generated files.
 VERTEX_PROJECT = os.environ.get('GOOGLE_VERTEX_PROJECT', '').strip()
-VERTEX_TOKEN = os.environ.get('GOOGLE_ACCESS_TOKEN', '').strip()
 VERTEX_BUCKET = os.environ.get('GOOGLE_GCS_BUCKET', '').strip().replace('gs://', '').strip('/')
+VERTEX_CREDS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '').strip()
+
+
+def _vertex_token() -> str:
+    """An OAuth access token for Vertex AI: the one the workflow minted, else one minted here from the service account
+    file (a signed JWT exchanged at Google's token endpoint; needs no extra IAM permission)."""
+    if os.environ.get('GOOGLE_ACCESS_TOKEN', '').strip():
+        return os.environ['GOOGLE_ACCESS_TOKEN'].strip()
+    if VERTEX_CREDS and Path(VERTEX_CREDS).exists():
+        from google.auth.transport.requests import Request
+        from google.oauth2 import service_account
+        creds = service_account.Credentials.from_service_account_file(VERTEX_CREDS, scopes=['https://www.googleapis.com/auth/cloud-platform'])
+        creds.refresh(Request())
+        return creds.token or ''
+    return ''
+
+
+VERTEX_TOKEN = _vertex_token() if VERTEX_PROJECT else ''
 VERTEX = bool(VERTEX_PROJECT and VERTEX_TOKEN)
 ELEVEN = os.environ.get('ELEVENLABS_API_KEY', '')
 VOICE = os.environ.get('ELEVENLABS_VOICE') or 'onwK4e9ZLuTAKqWW03F9'  # "Daniel"
