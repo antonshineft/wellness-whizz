@@ -1,0 +1,45 @@
+name: PubMed screenshot test
+# Checks whether a GitHub runner can screenshot a PubMed page (the chat session cannot: PubMed refuses cloud IPs).
+# Building block for the Instagram carousel job. Manual only.
+on:
+  workflow_dispatch:
+    inputs:
+      pmid:
+        description: PubMed ID to screenshot
+        required: true
+        default: "42927507"
+jobs:
+  shot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Playwright
+        run: |
+          npm init -y > /dev/null
+          npm install --no-audit --no-fund playwright@1.49.1 > /dev/null
+          npx playwright install --with-deps chromium > /dev/null
+      - name: Screenshot
+        env:
+          PMID: ${{ github.event.inputs.pmid }}
+        run: |
+          cat > shot.js <<'JS'
+          const { chromium } = require('playwright');
+          (async () => {
+            const b = await chromium.launch();
+            const p = await b.newPage({ viewport: { width: 1280, height: 1100 }, deviceScaleFactor: 2 });
+            const r = await p.goto(`https://pubmed.ncbi.nlm.nih.gov/${process.env.PMID}/`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            console.log('HTTP', r && r.status(), await p.title());
+            await p.waitForTimeout(2000);
+            await p.screenshot({ path: `pubmed-${process.env.PMID}.png` });
+            await b.close();
+          })();
+          JS
+          node shot.js
+          ls -la pubmed-*.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pubmed-screenshot
+          path: pubmed-*.png
