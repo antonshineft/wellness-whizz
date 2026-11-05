@@ -499,9 +499,14 @@ export async function markReady(env: VideoEnv, slug: string, videoUrl: string, d
 
 /** The next posting slot: the first day from tomorrow that has no scheduled post yet, at VIDEO_POST_TIME in VIDEO_TIMEZONE.
  *  Returns the local time without an offset (Zernio reads it in the given timezone) and a label for the email. */
-export async function nextSlot(env: VideoEnv): Promise<{ local: string; timezone: string; label: string }> {
+export async function nextSlot(env: VideoEnv, fixedDay?: string): Promise<{ local: string; timezone: string; label: string }> {
   const timezone = (env.VIDEO_TIMEZONE ?? '').trim() || 'Europe/Madrid';
   const time = /^\d{2}:\d{2}$/.test((env.VIDEO_POST_TIME ?? '').trim()) ? env.VIDEO_POST_TIME!.trim() : '09:00';
+  if (fixedDay && /^\d{4}-\d{2}-\d{2}$/.test(fixedDay)) {
+    // A fixed day (the owner's calendar alternates statics and videos), still at the usual morning time.
+    const label = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${fixedDay}T12:00:00Z`));
+    return { local: `${fixedDay}T${time}:00`, timezone, label: `${label} at ${time}` };
+  }
   const taken = await zernioScheduledDays(env as ZernioEnv, timezone).catch(() => new Set<string>());
   const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
   for (let d = 1; d <= 60; d++) {
@@ -516,8 +521,8 @@ export async function nextSlot(env: VideoEnv): Promise<{ local: string; timezone
 }
 
 /** Schedule a rendered video through every connected Zernio account (public, labelled as AI content) for the next free
- *  morning slot; the cover, when there is one, becomes the Instagram Reel cover so the profile grid shows artwork. */
-export async function autoPost(env: VideoEnv, row: VideoRow, coverUrl = ''): Promise<{ ok: true; where: string; when: string } | { ok: false; message: string }> {
+ *  morning slot (or the given YYYY-MM-DD day); the cover, when there is one, becomes the Instagram Reel cover so the profile grid shows artwork. */
+export async function autoPost(env: VideoEnv, row: VideoRow, coverUrl = '', day?: string): Promise<{ ok: true; where: string; when: string } | { ok: false; message: string }> {
   const z = env as ZernioEnv;
   const accounts = await zernioAccounts(z);
   if (!accounts.ok) return { ok: false, message: accounts.message };
@@ -538,7 +543,7 @@ export async function autoPost(env: VideoEnv, row: VideoRow, coverUrl = ''): Pro
       console.warn(`video cover not attached for ${row.slug}: ${String(err)}`);
     }
   }
-  const slot = await nextSlot(env);
+  const slot = await nextSlot(env, day);
   const post = await zernioCreatePost(z, { content: row.caption, mediaUrl: up.url, targets, privacy: 'PUBLIC_TO_EVERYONE', allowComment: true, allowDuet: false, allowStitch: false, madeWithAi: true, title: parseScript(row.script_json)?.title ?? row.slug, coverUrl: cover, scheduledFor: slot.local, timezone: slot.timezone });
   if (!post.ok) return post;
   await markPosted(env, row.slug, `zernio:${post.id}`);

@@ -1458,7 +1458,9 @@ app.post('/api/admin/videos/:slug/schedule', async (c) => {
   if (!row || !row.video_url) return c.json({ error: 'no rendered video for that slug' }, 404);
   if (row.status === 'posted') return c.json({ error: `already scheduled (${row.publish_id})` }, 409);
   const cover = row.video_url.replace(/\.mp4$/, '-cover.jpg');  // the render job uploads the cover next to the video
-  const r = await autoPost(c.env, row, cover);
+  const when = (c.req.query('when') ?? '').trim();  // optional YYYY-MM-DD: a fixed calendar day instead of the next free one
+  if (when && !/^\d{4}-\d{2}-\d{2}$/.test(when)) return c.json({ error: 'when must be YYYY-MM-DD' }, 400);
+  const r = await autoPost(c.env, row, cover, when || undefined);
   return r.ok ? c.json({ ok: true, where: r.where, when: r.when }) : c.json({ ok: false, error: r.message }, 502);
 });
 
