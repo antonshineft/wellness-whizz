@@ -7,7 +7,7 @@ clips concatenated (the model's own audio dropped), narration, burned-in caption
 repository -> POST /api/admin/videos/<slug>/ready (the site posts it through Zernio or emails a posting link).
 
 Environment: WW_ORIGIN (default https://aiww.io), WW_STATS_KEY, GEMINI_API_KEY, ELEVENLABS_API_KEY, ELEVENLABS_VOICE
-(default: "Liam"), VIDEO_MODEL (default gemini-omni-1.1-flash), VIDEO_RESOLUTION (default 1080p), GH_TOKEN + GH_REPO
+(default: "Liam"), GOOGLE_DRIVE_FOLDER (a Drive folder shared with the service account; finished videos are copied there), VIDEO_MODEL (default gemini-omni-1.1-flash), VIDEO_RESOLUTION (default 1080p), GH_TOKEN + GH_REPO
 (release upload), JOB_SLUG (optional: render this slug instead of the oldest job).
 Review runs: RENDER_REVIEW=1 renders and uploads the file but does not report it ready, so nothing is posted; the row
 goes back to "scripted" by itself after 150 minutes unless /api/admin/videos/<slug>/ready is called with the file's URL.
@@ -44,18 +44,26 @@ VERTEX_BUCKET = os.environ.get('GOOGLE_GCS_BUCKET', '').strip().replace('gs://',
 VERTEX_CREDS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '').strip()
 
 
-def _vertex_token() -> str:
-    """An OAuth access token for Vertex AI: the one the workflow minted, else one minted here from the service account
-    file (a signed JWT exchanged at Google's token endpoint; needs no extra IAM permission)."""
-    if os.environ.get('GOOGLE_ACCESS_TOKEN', '').strip():
-        return os.environ['GOOGLE_ACCESS_TOKEN'].strip()
+DRIVE_FOLDER = os.environ.get('GOOGLE_DRIVE_FOLDER', '').strip()  # a Drive folder shared with the service account: finished videos are copied there
+
+
+def _service_account_token(scope: str) -> str:
+    """An OAuth access token minted from the service account file for one scope (a signed JWT exchanged at Google's
+    token endpoint; needs no extra IAM permission). Empty when there is no service account file."""
     if VERTEX_CREDS and Path(VERTEX_CREDS).exists():
         from google.auth.transport.requests import Request
         from google.oauth2 import service_account
-        creds = service_account.Credentials.from_service_account_file(VERTEX_CREDS, scopes=['https://www.googleapis.com/auth/cloud-platform'])
+        creds = service_account.Credentials.from_service_account_file(VERTEX_CREDS, scopes=[scope])
         creds.refresh(Request())
         return creds.token or ''
     return ''
+
+
+def _vertex_token() -> str:
+    """An OAuth access token for Vertex AI: the one the workflow minted, else one minted here from the service account file."""
+    if os.environ.get('GOOGLE_ACCESS_TOKEN', '').strip():
+        return os.environ['GOOGLE_ACCESS_TOKEN'].strip()
+    return _service_account_token('https://www.googleapis.com/auth/cloud-platform')
 
 
 VERTEX_TOKEN = _vertex_token() if VERTEX_PROJECT else ''
@@ -551,6 +559,36 @@ def upload_release_asset(path: Path, slug: str, suffix: str = '.mp4') -> str:
     return url
 
 
+def upload_to_drive(path: Path, name: str, mime: str) -> str:
+    """Copy a finished file into the owner's Drive folder (GOOGLE_DRIVE_FOLDER, shared with the service account) with a
+    resumable upload. Returns the file's link, or '' when Drive is not configured or the upload fails: the video is
+    already on the release, so this never fails the render."""
+    if not DRIVE_FOLDER:
+        return ''
+    try:
+        token = _service_account_token('https://www.googleapis.com/auth/drive.file')
+        if not token:
+            return ''
+        start = requests.post('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,webViewLink',
+                              headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': mime},
+                              json={'name': name, 'parents': [DRIVE_FOLDER]}, timeout=60)
+        if not start.ok:
+            log(f'drive: upload not started: HTTP {start.status_code} {start.text[:200]}'
+                + (' (enable the Google Drive API for the project)' if start.status_code == 403 else ''))
+            return ''
+        with open(path, 'rb') as f:
+            done = requests.put(start.headers['Location'], headers={'Content-Type': mime}, data=f, timeout=900)
+        if not done.ok:
+            log(f'drive: upload failed: HTTP {done.status_code} {done.text[:200]}')
+            return ''
+        link = done.json().get('webViewLink', '')
+        log(f'drive: {name} -> {link}')
+        return link
+    except Exception as e:  # noqa: BLE001
+        log(f'drive: upload skipped: {e}')
+        return ''
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 
 def render(job: dict) -> Path:
@@ -632,6 +670,9 @@ def main() -> int:
         cover_url = upload_release_asset(cover, job['slug'], '-cover.jpg') if cover.exists() else ''
         if cover_url:
             log(f'uploaded {cover_url}')
+        upload_to_drive(out, Path(url).name, 'video/mp4')
+        if cover.exists():
+            upload_to_drive(cover, Path(cover_url).name if cover_url else cover.name, 'image/jpeg')
         report = {'video_url': url, 'duration': dur, 'cover_url': cover_url}
         if REVIEW:
             log(f'review run: not reported to the site. To post it: POST {ORIGIN}/api/admin/videos/{job["slug"]}/ready with {json.dumps(report)}')
