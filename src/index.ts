@@ -23,6 +23,7 @@ import { renderShelfPage, renderShelfResult } from './render/shelf';
 import { queueQuizDataArticle, quizDataSummary } from './quizdata';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
+import { carouselJob, getCarousel, listCarousels, markCarouselFailed, markCarouselReady, queueCarousel, scheduleCarousel, setCarouselStatus } from './carousels';
 import { approveVideo, autoPost, getVideo, listVideos, markFailed, markPosted, markReady, monthlyLimit, nextJob, parseScript, queueVideo, rendersThisMonth, rewriteVideo, scriptNext } from './videos';
 import { actOnProspect, addProspect, checkWins, counts as prospectCounts, dailyOutreach, discoverProspects, draftPending, findContacts, listProspects, noteReply, outreachDigest, outreachStep, recentEvents, sendApproved, type ProspectKind } from './backlinks';
 import { badgeWallHtml, withBadgeWall } from './badges';
@@ -1459,6 +1460,75 @@ app.post('/api/admin/videos/:slug/schedule', async (c) => {
   const cover = row.video_url.replace(/\.mp4$/, '-cover.jpg');  // the render job uploads the cover next to the video
   const r = await autoPost(c.env, row, cover);
   return r.ok ? c.json({ ok: true, where: r.where, when: r.when }) : c.json({ ok: false, error: r.message }, 502);
+});
+
+// ---- Instagram research carousels (src/carousels.ts) ----
+app.get('/api/admin/carousels', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  return c.json({ carousels: await listCarousels(c.env.DB) });
+});
+
+/** Write the copy for a research note and queue it for the render job (?force=1 rewrites an existing copy). */
+app.post('/api/admin/carousels/:pmid', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const pmid = (c.req.param('pmid') ?? '').trim();
+  if (!/^\d+$/.test(pmid)) return c.json({ error: 'a numeric PMID is required' }, 400);
+  const r = await queueCarousel(c.env, pmid, c.req.query('force') === '1');
+  return c.json({ ...r, carousel: await getCarousel(c.env.DB, pmid) }, r.ok ? 200 : 400);
+});
+
+/** The render job asks for work: the given PMID, else the oldest row with copy. */
+app.get('/api/admin/carousels/next', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  const job = await carouselJob(c.env, (c.req.query('pmid') ?? '').trim() || undefined);
+  return c.json(job ? { job } : { job: null });
+});
+
+app.post('/api/admin/carousels/:pmid/ready', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const body = (await c.req.json().catch(() => ({}))) as { images?: unknown };
+  const images = Array.isArray(body.images) ? body.images.filter((u): u is string => typeof u === 'string' && /^https?:\/\//.test(u)) : [];
+  if (images.length < 2) return c.json({ error: 'images (at least 2 URLs) are required' }, 400);
+  const ok = await markCarouselReady(c.env, c.req.param('pmid') ?? '', images);
+  return c.json({ ok }, ok ? 200 : 404);
+});
+
+app.post('/api/admin/carousels/:pmid/failed', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const body = (await c.req.json().catch(() => ({}))) as { error?: string };
+  const ok = await markCarouselFailed(c.env, c.req.param('pmid') ?? '', String(body.error ?? 'unknown'));
+  return c.json({ ok }, ok ? 200 : 404);
+});
+
+/** The owner has seen the slides: schedule them as an Instagram carousel for the next free morning slot. */
+app.post('/api/admin/carousels/:pmid/schedule', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const r = await scheduleCarousel(c.env, c.req.param('pmid') ?? '');
+  return r.ok ? c.json({ ok: true, where: r.where, when: r.when }) : c.json({ ok: false, error: r.message }, 502);
+});
+
+app.post('/api/admin/carousels/:pmid/status', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const status = c.req.query('status') ?? '';
+  if (!['copied', 'rendering', 'ready', 'posted', 'failed'].includes(status)) return c.json({ error: 'bad status' }, 400);
+  const ok = await setCarouselStatus(c.env, c.req.param('pmid') ?? '', status as never);
+  return c.json({ ok }, ok ? 200 : 404);
 });
 
 /** Manual state fix for a video row (queued | scripted | approved | ready | posted | failed). */

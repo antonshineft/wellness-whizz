@@ -1,0 +1,44 @@
+name: Render carousel
+# Renders an Instagram research carousel from a research note's copy (carousel/build.mjs), uploads the slides to the
+# "carousels" release and marks the row ready on the site. Needs the WW_STATS_KEY secret.
+on:
+  workflow_dispatch:
+    inputs:
+      pmid:
+        description: PubMed ID of the queued carousel (empty = the oldest queued copy)
+        required: false
+        default: ""
+  schedule:
+    - cron: "23 7 * * *"
+concurrency:
+  group: render-carousel
+  cancel-in-progress: false
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Playwright
+        run: |
+          cd carousel && npm init -y > /dev/null && npm install --no-audit --no-fund playwright@1.49.1 > /dev/null
+          npx playwright install --with-deps chromium > /dev/null
+      - name: Render
+        env:
+          WW_ORIGIN: https://aiww.io
+          WW_STATS_KEY: ${{ secrets.WW_STATS_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          JOB_PMID: ${{ github.event.inputs.pmid }}
+        run: cd carousel && node build.mjs
+      - name: Keep the slides for a week
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: carousel-work
+          path: carousel/work
+          retention-days: 7
+          if-no-files-found: ignore

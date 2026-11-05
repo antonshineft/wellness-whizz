@@ -82,7 +82,10 @@ export async function uploadMedia(env: ZernioEnv, bytes: ArrayBuffer, filename: 
 
 export interface ZernioPostOptions {
   content: string;
-  mediaUrl: string;
+  /** One video (the usual case) ... */
+  mediaUrl?: string;
+  /** ... or an explicit list, e.g. several images for an Instagram carousel. */
+  mediaItems?: { type: 'image' | 'video'; url: string }[];
   targets: { platform: string; accountId: string }[];
   /** TikTok: only PUBLIC_TO_EVERYONE publishes directly; anything else goes to TikTok drafts (draft: true). */
   privacy?: string;
@@ -107,7 +110,7 @@ export async function createPost(env: ZernioEnv, o: ZernioPostOptions): Promise<
     platforms: o.targets.map((t) => (t.platform === 'instagram' && o.coverUrl
       ? { platform: t.platform, accountId: t.accountId, platformSpecificData: { instagramThumbnail: o.coverUrl } }
       : { platform: t.platform, accountId: t.accountId })),
-    mediaItems: [{ type: 'video', url: o.mediaUrl }],
+    mediaItems: o.mediaItems ?? (o.mediaUrl ? [{ type: 'video', url: o.mediaUrl }] : []),
     title: (o.title ?? o.content).slice(0, 100),
     visibility: 'public',
   };

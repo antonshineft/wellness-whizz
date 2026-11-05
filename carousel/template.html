@@ -1,0 +1,76 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:Aeonik;src:url(../public/fonts/Aeonik-Regular.otf);font-weight:400}
+@font-face{font-family:Aeonik;src:url(../public/fonts/Aeonik-Medium.otf);font-weight:500}
+@font-face{font-family:Aeonik;src:url(../public/fonts/Aeonik-Bold.otf);font-weight:700}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Aeonik,'DM Sans',sans-serif;color:#1d272d;background:#fff}
+.s{width:1080px;height:1350px;position:relative;background:#fff2cb;overflow:hidden}
+.mark{position:absolute;left:508px;top:1196px;width:65px;height:65px}
+.mark img{width:65px;height:65px;display:block}
+.pill{position:absolute;left:50%;transform:translateX(-50%);background:#fff;border-radius:999px;padding:10px 22px;font-size:28px;font-weight:500;white-space:nowrap}
+.counter{top:80px}
+.content{position:absolute;left:90px;width:900px;display:flex;flex-direction:column;align-items:center;gap:56px;text-align:center}
+h1{font-weight:700;font-size:122px;line-height:112px;text-transform:capitalize}
+.card{background:#fff;border-radius:44px;padding:52px 56px;width:900px;display:flex;flex-direction:column;gap:36px}
+.card .q{font-size:42px;line-height:56px}
+.card .src{font-size:28px;font-weight:500;color:#5b655f}
+.take{font-size:38px;line-height:50px}
+/* cover */
+.cover .content{top:105px;gap:40px}
+.cover .mark{position:static;width:127px;height:127px}
+.cover .mark img{width:127px;height:127px}
+.cover h1{font-size:123px;line-height:111px}
+.cover .sub{font-size:40px;line-height:52px;color:rgba(0,0,0,.78);width:760px}
+.cover .product{width:402px;height:402px;object-fit:contain}
+.cover .cta{top:1111px}
+/* source */
+.pub{background:#fff;border-radius:44px;padding:52px 56px;width:900px;text-align:left}
+.pub .lg{color:#20558a;font-weight:700;font-size:44px;display:flex;align-items:baseline;gap:6px}.pub .lg span{font-weight:400;font-size:28px;opacity:.7}
+.pub .tag{display:inline-block;background:#e8eef5;color:#20558a;border-radius:8px;padding:6px 14px;font-size:24px;font-weight:500;margin-top:24px}
+.pub h3{font-size:32px;line-height:40px;margin-top:30px;color:#1a1a1a;font-weight:700}
+.pub .j{font-size:26px;color:#5b655f;margin-top:28px}.pub .p{font-size:28px;color:#20558a;font-weight:500;margin-top:10px}
+.pub .abs{font-size:24px;line-height:32px;color:#444;margin-top:26px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+</style></head><body>
+<div class="s cover" id="s1">
+  <div class="content">
+    <div class="mark"><img src="../public/images/Vectors-Wrapper_4.svg" alt=""></div>
+    <h1 id="c-head"></h1>
+    <div class="sub" id="c-sub"></div>
+    <img class="product" id="c-img" alt="">
+  </div>
+  <div class="pill cta">Recent research →</div>
+</div>
+<div class="s" id="s2">
+  <div class="pill counter">2/4</div>
+  <div class="content" data-center><h1 id="f-head"></h1><div class="card"><div class="q" id="f-q"></div><div class="src" id="f-src"></div></div><div class="take" id="f-take"></div></div>
+  <div class="mark"><img src="../public/images/Vectors-Wrapper_4.svg" alt=""></div>
+</div>
+<div class="s" id="s3">
+  <div class="pill counter">3/4</div>
+  <div class="content" data-center><h1 id="k-head"></h1><div class="card"><div class="q" id="k-q"></div><div class="src" id="k-src"></div></div><div class="take" id="k-take"></div></div>
+  <div class="mark"><img src="../public/images/Vectors-Wrapper_4.svg" alt=""></div>
+</div>
+<div class="s" id="s4">
+  <div class="pill counter">4/4</div>
+  <div class="content" data-center><h1>The source.</h1>
+    <div class="pub"><div class="lg">PubMed<span>.gov</span></div><div class="tag" id="p-type"></div><h3 id="p-title"></h3><div class="j" id="p-journal"></div><div class="p" id="p-pmid"></div><div class="abs" id="p-abs"></div></div>
+    <div class="take">Plain-language note at aiww.io/research</div></div>
+  <div class="mark"><img src="../public/images/Vectors-Wrapper_4.svg" alt=""></div>
+</div>
+<script>
+window.fill = function (job) {
+  const c = job.copy, n = job.note;
+  const set = (id, t) => { document.getElementById(id).textContent = t; };
+  set('c-head', c.cover.headline); set('c-sub', c.cover.sub);
+  const img = document.getElementById('c-img'); if (job.supplement.image) img.src = job.supplement.image; else img.style.display = 'none';
+  set('f-head', c.found.headline); set('f-q', c.found.quote); set('f-src', c.found.source); set('f-take', c.found.takeaway);
+  set('k-head', c.catch.headline); set('k-q', c.catch.quote); set('k-src', c.catch.source); set('k-take', c.catch.takeaway);
+  set('p-type', (n.pub_type || 'Journal Article').split(',').map(s => s.trim()).filter(s => s && s !== 'Journal Article').slice(0, 2).join(' · ') || 'Journal Article');
+  set('p-title', n.title); set('p-journal', `${n.journal} · ${n.pub_date}`); set('p-pmid', `PMID: ${job.pmid}`); set('p-abs', n.summary);
+  // centre each content block in the free area between the counter and the mark (90 top, 230 bottom)
+  for (const el of document.querySelectorAll('[data-center]')) { const h = el.getBoundingClientRect().height; el.style.top = Math.max(190, 90 + (1350 - 90 - 230 - h) / 2) + 'px'; }
+};
+</script>
+</body></html>
