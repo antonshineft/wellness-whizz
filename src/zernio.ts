@@ -93,6 +93,9 @@ export interface ZernioPostOptions {
   title?: string;
   /** Instagram: a 1080x1920 JPEG/PNG used as the Reel cover (what the profile grid shows). */
   coverUrl?: string;
+  /** When set, the post is scheduled for this local time ("2026-11-06T09:00:00" in `timezone`) instead of published now. */
+  scheduledFor?: string;
+  timezone?: string;
 }
 
 export async function createPost(env: ZernioEnv, o: ZernioPostOptions): Promise<{ ok: true; id: string; status: string } | { ok: false; message: string }> {
@@ -100,7 +103,7 @@ export async function createPost(env: ZernioEnv, o: ZernioPostOptions): Promise<
   const privacy = o.privacy || 'PUBLIC_TO_EVERYONE';
   const body: Record<string, unknown> = {
     content: o.content,
-    publishNow: true,
+    ...(o.scheduledFor ? { publishNow: false, scheduledFor: o.scheduledFor, timezone: o.timezone ?? 'Europe/Madrid' } : { publishNow: true }),
     platforms: o.targets.map((t) => (t.platform === 'instagram' && o.coverUrl
       ? { platform: t.platform, accountId: t.accountId, platformSpecificData: { instagramThumbnail: o.coverUrl } }
       : { platform: t.platform, accountId: t.accountId })),
@@ -126,6 +129,18 @@ export async function createPost(env: ZernioEnv, o: ZernioPostOptions): Promise<
   const r = await call<{ post: { _id: string; status: string } }>(env, 'POST', '/posts', body);
   if (!r.ok) return r;
   return { ok: true, id: r.data.post?._id ?? '', status: r.data.post?.status ?? 'unknown' };
+}
+
+/** The local dates (YYYY-MM-DD in the post's timezone, as Zernio stores them in UTC) that already have a scheduled post. */
+export async function scheduledDays(env: ZernioEnv, timezone: string): Promise<Set<string>> {
+  const r = await call<{ posts?: { status?: string; scheduledFor?: string }[] }>(env, 'GET', '/posts?limit=100');
+  const days = new Set<string>();
+  if (!r.ok) return days;
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+  for (const p of r.data.posts ?? []) {
+    if (p.status === 'scheduled' && p.scheduledFor) days.add(fmt.format(new Date(p.scheduledFor)));
+  }
+  return days;
 }
 
 export async function getPost(env: ZernioEnv, id: string): Promise<{ ok: true; post: unknown } | { ok: false; message: string }> {

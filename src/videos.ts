@@ -15,7 +15,7 @@ import { allPosts } from './blog/store';
 import type { BlogPost } from './blog/types';
 import { getMeta, getSupplementBySlug, setMeta } from './db';
 import { alertRecipient, emailEnabled, sendEmail } from './email';
-import { createPost as zernioCreatePost, listAccounts as zernioAccounts, uploadMedia as zernioUploadMedia, uploadVideo as zernioUpload, zernioEnabled, type ZernioEnv } from './zernio';
+import { createPost as zernioCreatePost, listAccounts as zernioAccounts, scheduledDays as zernioScheduledDays, uploadMedia as zernioUploadMedia, uploadVideo as zernioUpload, zernioEnabled, type ZernioEnv } from './zernio';
 
 export interface VideoEnv {
   DB: D1Database;
@@ -40,6 +40,9 @@ export interface VideoEnv {
   VIDEO_MONTHLY_LIMIT?: string;
   /** "false" renders every script at once; otherwise the owner gets the script by email and approves it with one tap. */
   VIDEO_APPROVAL?: string;
+  /** Local time and zone of the daily posting slot (default 09:00 Europe/Madrid); a rendered video takes the next free day. */
+  VIDEO_POST_TIME?: string;
+  VIDEO_TIMEZONE?: string;
   ZERNIO_API_KEY?: string;
 }
 
@@ -382,7 +385,7 @@ ${button(approve(k), `Approve script ${k + 1} and render`, '#1d272d')}</div>`).j
     `<p>${scripts.length} scripts are ready for the article <strong>${escapeHtml(articleTitle)}</strong>, each from a different angle. Nothing is rendered until you pick one (${used} of ${monthlyLimit(env)} renders used this month).</p>
 ${blocks}
 <p>${button(rewrite, 'Rewrite all three', '#7a6a4f')}</p>
-<p style="color:#777;font-size:13px">Approve: it renders within three hours and posts itself to TikTok and Instagram. Rewrite: three new scripts arrive within a few minutes.</p>`,
+<p style="color:#777;font-size:13px">Approve: it renders within three hours and is scheduled for the next free morning slot on TikTok and Instagram. Rewrite: three new scripts arrive within a few minutes.</p>`,
     `${scripts.length} scripts are ready for "${articleTitle}". Nothing is rendered until you pick one (${used} of ${monthlyLimit(env)} renders used this month).\n\n${text}\n\nRewrite all: ${rewrite}`);
 }
 
@@ -401,7 +404,7 @@ export async function approveVideo(env: VideoEnv, slug: string, pick = 1): Promi
   const used = await rendersThisMonth(env.DB);
   const limit = monthlyLimit(env);
   const which = variants ? `Script ${Math.min(Math.max(pick, 1), variants.length)}, "${chosen.title}", approved.` : 'Approved.';
-  return { ok: true, message: used >= limit ? `${which} The month's ${limit} renders are used, so it renders at the start of next month.` : `${which} It renders within three hours and posts itself to TikTok and Instagram.` };
+  return { ok: true, message: used >= limit ? `${which} The month's ${limit} renders are used, so it renders at the start of next month.` : `${which} It renders within three hours and is scheduled for the next free morning slot on TikTok and Instagram.` };
 }
 
 /** One tap from the approval email: a fresh script, and a fresh email. */
@@ -474,10 +477,10 @@ export async function markReady(env: VideoEnv, slug: string, videoUrl: string, d
   if (env.VIDEO_AUTOPOST !== 'false' && zernioEnabled(env as ZernioEnv)) {
     const posted = await autoPost(env, { ...row, video_url: videoUrl }, coverUrl);
     if (posted.ok) {
-      await notify(env, `Posted on ${posted.where}: ${script?.title ?? slug}`,
-        `<p>The video for <strong>${escapeHtml(slug)}</strong> (${Math.round(duration)} s) was posted through Zernio to ${escapeHtml(posted.where)}. It is live within a few minutes.</p>
-<p style="color:#555">Caption: ${escapeHtml(row.caption)}</p><p><a href="${escapeHtml(videoUrl)}">Watch the file</a> · <a href="${escapeHtml(page)}">Posting page</a></p>`,
-        `The video for ${slug} (${Math.round(duration)} s) was posted through Zernio to ${posted.where}.\n\nCaption: ${row.caption}\n\nFile: ${videoUrl}\nPosting page: ${page}`);
+      await notify(env, `Scheduled for ${posted.when} on ${posted.where}: ${script?.title ?? slug}`,
+        `<p>The video for <strong>${escapeHtml(slug)}</strong> (${Math.round(duration)} s) is scheduled through Zernio for <strong>${escapeHtml(posted.when)}</strong> on ${escapeHtml(posted.where)}.</p>
+<p style="color:#555">Caption: ${escapeHtml(row.caption)}</p><p><a href="${escapeHtml(videoUrl)}">Watch the file</a> · <a href="https://zernio.com" target="_blank">Change it in Zernio</a> · <a href="${escapeHtml(page)}">Posting page</a></p>`,
+        `The video for ${slug} (${Math.round(duration)} s) is scheduled through Zernio for ${posted.when} on ${posted.where}.\n\nCaption: ${row.caption}\n\nFile: ${videoUrl}\nPosting page: ${page}`);
       return true;
     }
     await notify(env, `Video rendered, posting failed: ${script?.title ?? slug}`,
@@ -494,9 +497,27 @@ export async function markReady(env: VideoEnv, slug: string, videoUrl: string, d
   return true;
 }
 
-/** Post a rendered video through every connected Zernio account (public, labelled as AI content); the cover, when
- *  there is one, becomes the Instagram Reel cover so the profile grid shows the title rather than a random frame. */
-export async function autoPost(env: VideoEnv, row: VideoRow, coverUrl = ''): Promise<{ ok: true; where: string } | { ok: false; message: string }> {
+/** The next posting slot: the first day from tomorrow that has no scheduled post yet, at VIDEO_POST_TIME in VIDEO_TIMEZONE.
+ *  Returns the local time without an offset (Zernio reads it in the given timezone) and a label for the email. */
+export async function nextSlot(env: VideoEnv): Promise<{ local: string; timezone: string; label: string }> {
+  const timezone = (env.VIDEO_TIMEZONE ?? '').trim() || 'Europe/Madrid';
+  const time = /^\d{2}:\d{2}$/.test((env.VIDEO_POST_TIME ?? '').trim()) ? env.VIDEO_POST_TIME!.trim() : '09:00';
+  const taken = await zernioScheduledDays(env as ZernioEnv, timezone).catch(() => new Set<string>());
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+  for (let d = 1; d <= 60; d++) {
+    const day = fmt.format(new Date(Date.now() + d * 86_400_000));
+    if (!taken.has(day)) {
+      const label = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${day}T12:00:00Z`));
+      return { local: `${day}T${time}:00`, timezone, label: `${label} at ${time}` };
+    }
+  }
+  const day = fmt.format(new Date(Date.now() + 86_400_000));
+  return { local: `${day}T${time}:00`, timezone, label: `tomorrow at ${time}` };
+}
+
+/** Schedule a rendered video through every connected Zernio account (public, labelled as AI content) for the next free
+ *  morning slot; the cover, when there is one, becomes the Instagram Reel cover so the profile grid shows artwork. */
+export async function autoPost(env: VideoEnv, row: VideoRow, coverUrl = ''): Promise<{ ok: true; where: string; when: string } | { ok: false; message: string }> {
   const z = env as ZernioEnv;
   const accounts = await zernioAccounts(z);
   if (!accounts.ok) return { ok: false, message: accounts.message };
@@ -517,10 +538,11 @@ export async function autoPost(env: VideoEnv, row: VideoRow, coverUrl = ''): Pro
       console.warn(`video cover not attached for ${row.slug}: ${String(err)}`);
     }
   }
-  const post = await zernioCreatePost(z, { content: row.caption, mediaUrl: up.url, targets, privacy: 'PUBLIC_TO_EVERYONE', allowComment: true, allowDuet: false, allowStitch: false, madeWithAi: true, title: parseScript(row.script_json)?.title ?? row.slug, coverUrl: cover });
+  const slot = await nextSlot(env);
+  const post = await zernioCreatePost(z, { content: row.caption, mediaUrl: up.url, targets, privacy: 'PUBLIC_TO_EVERYONE', allowComment: true, allowDuet: false, allowStitch: false, madeWithAi: true, title: parseScript(row.script_json)?.title ?? row.slug, coverUrl: cover, scheduledFor: slot.local, timezone: slot.timezone });
   if (!post.ok) return post;
   await markPosted(env, row.slug, `zernio:${post.id}`);
-  return { ok: true, where: targets.map((t) => t.platform).join(', ') };
+  return { ok: true, where: targets.map((t) => t.platform).join(', '), when: slot.label };
 }
 
 export async function markFailed(env: VideoEnv, slug: string, error: string): Promise<boolean> {

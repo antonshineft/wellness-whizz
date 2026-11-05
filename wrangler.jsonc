@@ -57,6 +57,8 @@
     "VIDEO_AUTOPOST": "true",
     "VIDEO_MONTHLY_LIMIT": "8",
     "VIDEO_APPROVAL": "true",
+    "VIDEO_POST_TIME": "09:00",
+    "VIDEO_TIMEZONE": "Europe/Madrid",
     "SITE_LANGS": "en,es",
     "ARTICLE_EFFORT": "high",
     // iHerb Rewards / referral code, appended to every iherb.com link the site generates.
