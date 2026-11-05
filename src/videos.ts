@@ -71,6 +71,8 @@ export interface VideoScene {
 }
 
 export interface VideoScript {
+  /** The connected angle the script opens from (shown to the owner when choosing). */
+  angle?: string;
   title: string;
   /** SCENES scenes of ten seconds: the hook, four facts, a calm ending. */
   scenes: VideoScene[];
@@ -169,11 +171,15 @@ export function parseScript(json: string): VideoScript | null {
 // ---------------------------------------------------------------------------------------------------------------------
 // Script writing (Claude, fast tier)
 
+export const VARIANTS = 3;
+
 const SCRIPT_SYSTEM = `You write sixty-second explainer videos for TikTok for Wellness Whizz, an AI supplement guide. The video is a hand-drawn animated infographic (a soft-teal cartoon figure, pastel objects, cream paper background) with one narrator. It is built from ${SCENES} scenes of ten seconds; for each scene you write what the narrator says and what the viewer sees.
+
+You deliver ${VARIANTS} complete, different scripts for the owner to choose from. Each opens from a different CONNECTED ANGLE: something adjacent that a curious person already cares about (a historical event, an animal, a food, a word's origin, a famous experiment or scientist, an everyday object, a place) and arrives at the supplement by the second or third scene, so the viewer is pulled in before they know what the video is about. Name the angle in the "angle" field. The three angles must not overlap. The tone is smart and engaging: the voice of a well-read friend who has just found something out, not a lecturer and not a salesman.
 
 What makes these videos work: every scene is ONE genuinely surprising fact for a curious mind. Origin stories, odd history, who discovered it and how, strange chemistry, an animal or a food that is full of it, a number that sounds impossible, a myth busted, a counter-intuitive detail about how the body handles the substance. Never the obvious ("vitamin C supports immunity"), never a list of benefits, never "studies show it may help". The first scene is the strongest hook of all: a fact that makes someone stop scrolling. The last scene lands the story calmly on its best closing image or fact, so the video feels finished.
 
-This is a story, not advice, and nothing in it may need a disclaimer: no doses, no "take X milligrams", no "with food", no timing instructions, no warnings, no "ask a doctor", no "if you are pregnant / on medication", no claims that it treats, cures or prevents anything, no comparisons with medicines. If the article's practical advice is the only thing left, find the history and the chemistry instead. No call to action, no "follow", no "link in bio", no website mention anywhere in the narration.
+This is a story, not advice, and nothing in it may need a disclaimer: no doses, no "take X milligrams", no "with food", no timing instructions, no warnings, no "ask a doctor", no "if you are pregnant / on medication", no claims that it treats, cures or prevents anything. A popular nickname ("the internet calls it nature's Ozempic") is a great story beat, told as what people say and why, never as a claim that it works like the medicine. If the article's practical advice is the only thing left, find the history and the chemistry instead. No call to action, no "follow", no "link in bio", no website mention anywhere in the narration.
 
 Narration rules:
 - At most ${MAX_SCENE_WORDS} words per scene, usually 16 to 21. Short spoken sentences with a verb. The narrator is a calm, warm British man; write for his voice.
@@ -194,6 +200,7 @@ const scriptSchema = {
   type: 'object',
   additionalProperties: false,
   properties: {
+    angle: { type: 'string', description: 'The connected angle this script opens from, in a few words (for the owner choosing between scripts).' },
     title: { type: 'string', description: 'Working title of the video, at most 60 characters: the hook in a few words.' },
     scenes: {
       type: 'array',
@@ -212,7 +219,16 @@ const scriptSchema = {
     hashtags: { type: 'array', items: { type: 'string' }, description: '4 or 5 lowercase tags without the # sign.' },
     product_slug: { type: 'string' },
   },
-  required: ['title', 'scenes', 'caption', 'hashtags', 'product_slug'],
+  required: ['angle', 'title', 'scenes', 'caption', 'hashtags', 'product_slug'],
+};
+
+const variantsSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    variants: { type: 'array', description: `Exactly ${VARIANTS} complete scripts, each from a different connected angle.`, items: scriptSchema },
+  },
+  required: ['variants'],
 };
 
 function plainText(html: string): string {
@@ -231,12 +247,23 @@ function plainText(html: string): string {
     .trim();
 }
 
-export async function writeScript(env: VideoEnv, post: BlogPost): Promise<VideoScript> {
+/** Scripts waiting for the owner's choice are stored as {variants: [...]} until one is approved. */
+export function parseVariants(json: string): VideoScript[] | null {
+  try {
+    const v = (JSON.parse(json) as { variants?: VideoScript[] }).variants;
+    return Array.isArray(v) && v.length && v.every((s) => Array.isArray(s?.scenes) && s.scenes.length >= MIN_SCENES) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function writeScripts(env: VideoEnv, post: BlogPost): Promise<VideoScript[]> {
   const hero = post.heroSupplement || post.shop?.[0] || '';
   const sup = hero ? await getSupplementBySlug(env.DB, hero) : null;
   if (env.DEV_FAKE_AI === 'true') {
     const figure = 'a simple soft-teal cartoon figure';
-    return {
+    const one: VideoScript = {
+      angle: 'An Olympic final',
       title: `The sprinters' secret: ${sup?.name ?? post.title}`.slice(0, 60),
       scenes: [
         { narration: "Barcelona, nineteen ninety-two. Britain's gold-medal sprinters had quietly been using a legal white powder nobody in sport had heard of.", visual: `0 to 4 s: a hand-drawn stadium at dusk, ${figure} explodes from the starting blocks on a terracotta track. 4 to 7 s: the sprinter crosses the line and a plain gold medal swings. 7 to 10 s: a sage-green gym bag on a bench, inside it a plain white tub with a blank label glowing softly.` },
@@ -250,6 +277,7 @@ export async function writeScript(env: VideoEnv, post: BlogPost): Promise<VideoS
       hashtags: [(sup?.slug ?? 'supplements').replace(/-/g, ''), 'supplements', 'gym', 'fitness', 'wellness'],
       product_slug: sup?.slug ?? hero,
     };
+    return [one, { ...one, angle: 'A kilo of steak', title: 'A kilo of steak a day' }, { ...one, angle: 'The brain', title: 'Your brain runs on the same battery' }];
   }
   const body = plainText(post.html).slice(0, 14000);
   const faq = (post.faq ?? []).map((f) => `Q: ${f.q}\nA: ${plainText(f.a)}`).join('\n').slice(0, 3000);
@@ -262,20 +290,22 @@ ${body}
 
 ${faq ? `FAQ:\n${faq}` : ''}
 
-Write the ${SCENES}-scene script (narration and visual for each), the caption, the hashtags and product_slug.`;
-  let script = tidyScript(await claudeJson<VideoScript>(env, SCRIPT_SYSTEM, user, scriptSchema, { tier: 'fast', maxTokens: 6000, timeoutMs: 90_000 }), sup?.slug ?? hero);
+Write ${VARIANTS} complete ${SCENES}-scene scripts from three different connected angles (narration and visual for each scene, angle, title, caption, hashtags, product_slug).`;
+  const longest = (sc: VideoScript) => Math.max(...sc.scenes.map((x) => words(x.narration)));
+  let scripts = (await claudeJson<{ variants: VideoScript[] }>(env, SCRIPT_SYSTEM, user, variantsSchema, { tier: 'fast', maxTokens: 16000, timeoutMs: 120_000 })).variants
+    .slice(0, VARIANTS).map((sc) => tidyScript(sc, sup?.slug ?? hero));
+  if (!scripts.length) throw new Error('no scripts came back');
   // The model tends to overshoot; one shortening pass keeps every scene inside its ten seconds.
-  const long = script.scenes.map((s, i) => ({ i, n: words(s.narration) })).filter((x) => x.n > MAX_SCENE_WORDS);
-  if (long.length || wordCount(script) > MAX_SCRIPT_WORDS) {
-    const shorter = await claudeJson<VideoScript>(env, SCRIPT_SYSTEM,
-      `${user}\n\nYour previous script is too long for the narrator: ${long.map((x) => `scene ${x.i + 1} has ${x.n} words`).join(', ') || `${wordCount(script)} words in total`}. Here it is:\n${JSON.stringify(script)}\n\nRewrite it with at most ${MAX_SCENE_WORDS - 2} words in every scene's narration, same scenes and facts, same visuals; cut the least important clause of each long scene.`,
-      scriptSchema, { tier: 'fast', maxTokens: 6000, timeoutMs: 90_000 });
-    const tidied = tidyScript(shorter, sup?.slug ?? hero);
-    if (Math.max(...tidied.scenes.map((s) => words(s.narration))) <= Math.max(...script.scenes.map((s) => words(s.narration)))) script = tidied;
+  const over = scripts.map((sc, k) => ({ k, n: longest(sc) })).filter((x) => x.n > MAX_SCENE_WORDS);
+  if (over.length) {
+    const shorter = (await claudeJson<{ variants: VideoScript[] }>(env, SCRIPT_SYSTEM,
+      `${user}\n\nYour previous scripts have scenes too long for the narrator (${over.map((x) => `script ${x.k + 1}: a scene has ${x.n} words`).join('; ')}). Here they are:\n${JSON.stringify({ variants: scripts })}\n\nReturn the same ${scripts.length} scripts with at most ${MAX_SCENE_WORDS - 2} words in every scene's narration, same angles, facts and visuals; cut the least important clause of each long scene.`,
+      variantsSchema, { tier: 'fast', maxTokens: 16000, timeoutMs: 120_000 })).variants.slice(0, VARIANTS).map((sc) => tidyScript(sc, sup?.slug ?? hero));
+    if (shorter.length === scripts.length && Math.max(...shorter.map(longest)) <= Math.max(...scripts.map(longest))) scripts = shorter;
   }
-  const worst = Math.max(...script.scenes.map((s) => words(s.narration)));
+  const worst = Math.max(...scripts.map(longest));
   if (worst > MAX_SCENE_WORDS + 6) throw new Error(`a scene still has ${worst} words after shortening`);
-  return script;
+  return scripts;
 }
 
 function words(text: string): number {
@@ -293,6 +323,7 @@ function tidyScript(s: VideoScript, fallbackSlug: string): VideoScript {
   const scenes = (s.scenes ?? []).slice(0, SCENES).map((sc) => ({ narration: noCta(clean(sc.narration)), visual: clean(sc.visual) })).filter((sc) => sc.narration && sc.visual);
   if (scenes.length < MIN_SCENES) throw new Error(`the script has ${scenes.length} usable scenes; ${SCENES} expected`);
   return {
+    angle: clean(s.angle ?? '').slice(0, 80),
     title: clean(s.title).slice(0, 60),
     scenes,
     caption: clean(s.caption).slice(0, 140),
@@ -316,12 +347,13 @@ export async function scriptNext(env: VideoEnv): Promise<boolean> {
     return true;
   }
   try {
-    const script = await writeScript(env, post);
+    const scripts = await writeScripts(env, post);
     const count = (await env.DB.prepare("SELECT COUNT(*) AS n FROM videos WHERE status IN ('rendering', 'ready', 'posted')").first<{ n: number }>())?.n ?? 0;
     const status = approvalRequired(env) ? 'scripted' : 'approved';
+    const stored = status === 'scripted' ? JSON.stringify({ variants: scripts }) : JSON.stringify(scripts[0]);
     await env.DB.prepare("UPDATE videos SET status = ?, script_json = ?, caption = ?, set_index = ?, error = '', updated_at = datetime('now') WHERE id = ?")
-      .bind(status, JSON.stringify(script), captionFor(script, row.slug), count, row.id).run();
-    if (status === 'scripted') await askApproval(env, row.slug, script, post.title);
+      .bind(status, stored, captionFor(scripts[0], row.slug), count, row.id).run();
+    if (status === 'scripted') await askApproval(env, row.slug, scripts, post.title);
   } catch (err) {
     const attempts = row.attempts + 1;
     const give_up = attempts >= MAX_ATTEMPTS;
@@ -332,35 +364,44 @@ export async function scriptNext(env: VideoEnv): Promise<boolean> {
   return true;
 }
 
-/** The owner's say before money is spent: the script by email, with one tap to render it and one to have it rewritten. */
-async function askApproval(env: VideoEnv, slug: string, script: VideoScript, articleTitle: string): Promise<void> {
+/** The owner's say before money is spent: the scripts by email, one tap to render the chosen one, one to have them all rewritten. */
+async function askApproval(env: VideoEnv, slug: string, scripts: VideoScript[], articleTitle: string): Promise<void> {
   const key = encodeURIComponent(env.STATS_KEY ?? '');
-  const approve = `${origin(env)}/api/admin/videos/${encodeURIComponent(slug)}/approve?key=${key}`;
+  const approve = (k: number) => `${origin(env)}/api/admin/videos/${encodeURIComponent(slug)}/approve?key=${key}&pick=${k + 1}`;
   const rewrite = `${origin(env)}/api/admin/videos/${encodeURIComponent(slug)}/rewrite?key=${key}`;
   const used = await rendersThisMonth(env.DB);
-  const scenes = script.scenes.map((sc, i) => `<li style="margin:0 0 8px">${escapeHtml(sc.narration)}</li>`).join('');
   const button = (href: string, label: string, bg: string) => `<a href="${escapeHtml(href)}" style="display:inline-block;background:${bg};color:#fff;text-decoration:none;border-radius:10px;padding:12px 18px;font-size:16px;margin:0 8px 8px 0">${label}</a>`;
-  await notify(env, `Video script to approve: ${script.title}`,
-    `<p>A script is ready for the article <strong>${escapeHtml(articleTitle)}</strong>. Nothing is rendered until you approve it (${used} of ${monthlyLimit(env)} renders used this month).</p>
-<p style="font-size:18px;margin:16px 0 6px"><strong>${escapeHtml(script.title)}</strong></p>
-<ol style="padding-left:20px">${scenes}</ol>
-<p style="color:#555">Caption: ${escapeHtml(captionFor(script, slug))}</p>
-<p>${button(approve, 'Approve and render', '#1d272d')}${button(rewrite, 'Rewrite it', '#7a6a4f')}</p>
-<p style="color:#777;font-size:13px">Approve: it renders within three hours and posts itself to TikTok and Instagram. Rewrite: a new script arrives within a few minutes.</p>`,
-    `A script is ready for "${articleTitle}". Nothing is rendered until you approve it (${used} of ${monthlyLimit(env)} renders used this month).\n\n${script.title}\n${script.scenes.map((sc, i) => `${i + 1}. ${sc.narration}`).join('\n')}\n\nCaption: ${captionFor(script, slug)}\n\nApprove and render: ${approve}\nRewrite it: ${rewrite}`);
+  const blocks = scripts.map((sc, k) => `<div style="margin:22px 0;padding:16px 18px;border-radius:14px;background:#fdf1cf">
+<p style="margin:0 0 4px;color:#7a6a4f;font-size:13px;text-transform:uppercase;letter-spacing:.04em">Script ${k + 1}${sc.angle ? ` · ${escapeHtml(sc.angle)}` : ''}</p>
+<p style="font-size:18px;margin:0 0 10px"><strong>${escapeHtml(sc.title)}</strong></p>
+<ol style="padding-left:20px;margin:0 0 10px">${sc.scenes.map((x) => `<li style="margin:0 0 6px">${escapeHtml(x.narration)}</li>`).join('')}</ol>
+<p style="color:#555;font-size:13px;margin:0 0 12px">Caption: ${escapeHtml(captionFor(sc, slug))}</p>
+${button(approve(k), `Approve script ${k + 1} and render`, '#1d272d')}</div>`).join('');
+  const text = scripts.map((sc, k) => `SCRIPT ${k + 1}${sc.angle ? ` (${sc.angle})` : ''}: ${sc.title}\n${sc.scenes.map((x, i) => `${i + 1}. ${x.narration}`).join('\n')}\nCaption: ${captionFor(sc, slug)}\nApprove script ${k + 1}: ${approve(k)}`).join('\n\n');
+  await notify(env, `Choose a video script: ${articleTitle}`,
+    `<p>${scripts.length} scripts are ready for the article <strong>${escapeHtml(articleTitle)}</strong>, each from a different angle. Nothing is rendered until you pick one (${used} of ${monthlyLimit(env)} renders used this month).</p>
+${blocks}
+<p>${button(rewrite, 'Rewrite all three', '#7a6a4f')}</p>
+<p style="color:#777;font-size:13px">Approve: it renders within three hours and posts itself to TikTok and Instagram. Rewrite: three new scripts arrive within a few minutes.</p>`,
+    `${scripts.length} scripts are ready for "${articleTitle}". Nothing is rendered until you pick one (${used} of ${monthlyLimit(env)} renders used this month).\n\n${text}\n\nRewrite all: ${rewrite}`);
 }
 
-/** One tap from the approval email: the script may be rendered. */
-export async function approveVideo(env: VideoEnv, slug: string): Promise<{ ok: boolean; message: string }> {
+/** One tap from the approval email: the chosen script may be rendered. */
+export async function approveVideo(env: VideoEnv, slug: string, pick = 1): Promise<{ ok: boolean; message: string }> {
   const row = await getVideo(env.DB, slug);
   if (!row) return { ok: false, message: `No video for "${slug}".` };
   if (row.status === 'approved' || row.status === 'rendering') return { ok: true, message: `Already approved; it renders within three hours.` };
   if (row.status === 'ready' || row.status === 'posted') return { ok: true, message: `This one is already ${row.status}.` };
-  if (row.status !== 'scripted' || !parseScript(row.script_json)) return { ok: false, message: `The script for "${slug}" is not ready (status ${row.status}).` };
-  await env.DB.prepare("UPDATE videos SET status = 'approved', updated_at = datetime('now') WHERE id = ?").bind(row.id).run();
+  const variants = parseVariants(row.script_json);
+  const single = parseScript(row.script_json);
+  const chosen = variants ? variants[Math.min(Math.max(pick, 1), variants.length) - 1] : single;
+  if (row.status !== 'scripted' || !chosen) return { ok: false, message: `The script for "${slug}" is not ready (status ${row.status}).` };
+  await env.DB.prepare("UPDATE videos SET status = 'approved', script_json = ?, caption = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(JSON.stringify(chosen), captionFor(chosen, slug), row.id).run();
   const used = await rendersThisMonth(env.DB);
   const limit = monthlyLimit(env);
-  return { ok: true, message: used >= limit ? `Approved. The month's ${limit} renders are used, so it renders at the start of next month.` : 'Approved. It renders within three hours and posts itself to TikTok and Instagram.' };
+  const which = variants ? `Script ${Math.min(Math.max(pick, 1), variants.length)}, "${chosen.title}", approved.` : 'Approved.';
+  return { ok: true, message: used >= limit ? `${which} The month's ${limit} renders are used, so it renders at the start of next month.` : `${which} It renders within three hours and posts itself to TikTok and Instagram.` };
 }
 
 /** One tap from the approval email: a fresh script, and a fresh email. */
@@ -369,7 +410,7 @@ export async function rewriteVideo(env: VideoEnv, slug: string): Promise<{ ok: b
   if (!row) return { ok: false, message: `No video for "${slug}".` };
   if (!['scripted', 'approved', 'failed'].includes(row.status)) return { ok: false, message: `"${slug}" is ${row.status}; only a script waiting for approval can be rewritten.` };
   await env.DB.prepare("UPDATE videos SET status = 'queued', script_json = '', error = '', attempts = 0, updated_at = datetime('now') WHERE id = ?").bind(row.id).run();
-  return { ok: true, message: 'A new script is being written; it arrives by email within a few minutes.' };
+  return { ok: true, message: 'Three new scripts are being written; they arrive by email within a few minutes.' };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

@@ -1413,7 +1413,7 @@ app.get('/api/admin/videos/:slug/approve', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
-  const r = await approveVideo(c.env, c.req.param('slug') ?? '');
+  const r = await approveVideo(c.env, c.req.param('slug') ?? '', parseInt(c.req.query('pick') ?? '1', 10) || 1);
   return c.html(tapPage(r.ok ? 'Approved' : 'Not approved', r.message), r.ok ? 200 : 400);
 });
 
