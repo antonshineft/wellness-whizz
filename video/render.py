@@ -91,8 +91,9 @@ MAX_SCENES = 10  # cost guard: the site writes nine scenes (90 s); anything abov
 MAX_SCENE_WORDS = 34
 NARRATION_DELAY = 0.15  # seconds of clip before the narrator starts
 NARRATION_TARGET = SCENE_SECONDS - 0.45  # the narration must end before the clip does
-MAX_TEMPO = 1.12  # the most the narration is sped up; beyond that the scene is held on its last frame for the rest
-MAX_HOLD = float(os.environ.get('RENDER_MAX_HOLD') or '2.0')  # seconds a scene may run past the clip (last frame held) before the script is considered too long
+MAX_TEMPO = 1.0  # the narration is never sped up (the picture is fitted to the voice instead)
+MAX_SLOW = 1.35  # the most a clip is slowed to cover a long narration before its last frame is held
+MAX_HOLD = float(os.environ.get('RENDER_MAX_HOLD') or '5.0')  # seconds a scene may run past the clip (last frame held) before the script is considered too long
 SCENE_PAUSE = 0.55  # seconds of picture after the narrator stops; the rest of a ten-second clip is cut, not left silent
 LAST_PAUSE = 1.4  # the final scene breathes a little longer so the video feels finished
 MIN_SCENE = 6.5  # a clip is never cut shorter than this, so every scene still gets its visual beat
@@ -385,34 +386,12 @@ def has_audio(path: Path) -> bool:
     return 'Audio:' in (r.stderr or '')
 
 
-def soft_landing(src: Path, out: Path, tail_src: float = 0.12, tail_len: float = 0.45) -> None:
-    """The voice model stops dead on the last syllable. Keep the speech untouched and append a short decaying smear built
-    from its last 120 ms, so the line ends like a voice in a room instead of a cut."""
-    d = ffprobe_duration(src)
-    graph = (f'[0:a]asplit[a][b];'
-             f'[b]atrim=start={max(0.0, d - tail_src):.3f},asetpts=PTS-STARTPTS,'
-             f'aecho=in_gain=1:out_gain=0.7:delays=40|80|120|170|230|300:decays=0.55|0.36|0.24|0.15|0.09|0.05,'
-             f'atrim=start={tail_src:.3f}:end={tail_src + tail_len:.3f},asetpts=PTS-STARTPTS,afade=t=out:st=0.15:d={tail_len - 0.15:.3f}[tail];'
-             f'[a][tail]concat=n=2:v=0:a=1[o]')
-    ffmpeg('-i', str(src), '-filter_complex', graph, '-map', '[o]', str(out))
-
-
 def fit_narration(mp3: Path, words: list[dict], wav: Path, max_len: float) -> tuple[list[dict], float]:
-    """Trim the silence around the speech (keeping the consonant before the first word), speed it up a little if needed so
-    it ends before the clip does, then give the ending a soft landing. The returned duration is the speech itself; the
-    landing (under half a second) fits inside the pause every scene has after its narration."""
-    start = max(0.0, words[0]['s'] - 0.12)
-    end = words[-1]['e'] + 0.35
-    dur = end - start
-    f = min(dur / max_len, MAX_TEMPO) if dur > max_len else 1.0
-    af = (f'atrim=start={start:.3f}:end={end:.3f},asetpts=PTS-STARTPTS' + (f',atempo={f:.4f}' if f > 1 else '')
-          + f',afade=t=in:st=0:d=0.02,afade=t=out:st={max(0.0, dur / f - 0.03):.3f}:d=0.03')
-    trimmed = wav.with_name(wav.stem + '-trim.wav')
-    ffmpeg('-i', str(mp3), '-af', af, '-ar', '48000', '-ac', '2', str(trimmed))
-    nd = ffprobe_duration(trimmed)
-    soft_landing(trimmed, wav)
-    fitted = [{'w': w['w'], 's': (w['s'] - start) / f, 'e': (w['e'] - start) / f} for w in words]
-    return fitted, nd
+    """The narration is used exactly as the voice model made it: no trimming, no speed change, no added tail. The picture is
+    fitted to the voice in compose(). Only a 5 ms guard against clicks at the very edges."""
+    d = ffprobe_duration(mp3)
+    ffmpeg('-i', str(mp3), '-af', f'afade=t=in:st=0:d=0.005,afade=t=out:st={max(0.0, d - 0.005):.3f}:d=0.005', '-ar', '48000', '-ac', '2', str(wav))
+    return words, ffprobe_duration(wav)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -566,7 +545,12 @@ def compose(clips: list[Path], narrations: list[tuple[Path, list[dict], float]],
         length = max(wanted, MIN_SCENE) if wanted < cd else wanted
         vf = f'scale={W}:{H}:flags=lanczos,setsar=1,fps={FPS}'
         if length > cd + 0.05:
-            vf += f',tpad=stop_mode=clone:stop_duration={length - cd:.3f}'
+            # the narration outruns the clip: play the clip a little slower (hand-drawn motion hides up to about a third),
+            # and only hold the last frame for whatever is still missing
+            slow = min(length / cd, MAX_SLOW)
+            vf = f'setpts={slow:.4f}*PTS,' + vf
+            if length > cd * slow + 0.05:
+                vf += f',tpad=stop_mode=clone:stop_duration={length - cd * slow:.3f}'
         v = WORK / f'v{i + 1}.mp4'
         a = WORK / f'a{i + 1}.wav'
         fx = WORK / f'fx{i + 1}.wav'
@@ -686,7 +670,7 @@ def render(job: dict) -> Path:
         words = narrate(sc['narration'], mp3)
         fitted, nd = fit_narration(mp3, words, WORK / f'vo{i + 1}.wav', NARRATION_TARGET)
         over = nd + NARRATION_DELAY + 0.45 - SCENE_SECONDS
-        if over > MAX_HOLD:
+        if over > SCENE_SECONDS * (MAX_SLOW - 1) + MAX_HOLD:
             raise RuntimeError(f'scene {i + 1} narration is {nd:.1f} s even at {MAX_TEMPO}x; shorten it ({len(spoken_words(sc["narration"]))} words)')
         narrations.append((WORK / f'vo{i + 1}.wav', fitted, nd))
         log(f'narration {i + 1}: {nd:.2f} s' + (f' (the scene is held {over:.1f} s longer)' if over > 0 else ''))
