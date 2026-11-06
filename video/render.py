@@ -393,7 +393,7 @@ def fit_narration(mp3: Path, words: list[dict], wav: Path, max_len: float) -> tu
     dur = end - start
     f = min(dur / max_len, MAX_TEMPO) if dur > max_len else 1.0
     af = (f'atrim=start={start:.3f}:end={end:.3f},asetpts=PTS-STARTPTS' + (f',atempo={f:.4f}' if f > 1 else '')
-          + f',afade=t=in:st=0:d=0.02,afade=t=out:st={max(0.0, dur / f - 0.12):.3f}:d=0.12')
+          + f',afade=t=in:st=0:d=0.02,afade=t=out:st={max(0.0, dur / f - 0.03):.3f}:d=0.03')  # click guards only: the voice model ends on the last syllable, so a longer fade chops it
     ffmpeg('-i', str(mp3), '-af', af, '-ar', '48000', '-ac', '2', str(wav))
     fitted = [{'w': w['w'], 's': (w['s'] - start) / f, 'e': (w['e'] - start) / f} for w in words]
     return fitted, ffprobe_duration(wav)
