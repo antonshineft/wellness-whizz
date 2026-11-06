@@ -385,18 +385,34 @@ def has_audio(path: Path) -> bool:
     return 'Audio:' in (r.stderr or '')
 
 
+def soft_landing(src: Path, out: Path, tail_src: float = 0.12, tail_len: float = 0.45) -> None:
+    """The voice model stops dead on the last syllable. Keep the speech untouched and append a short decaying smear built
+    from its last 120 ms, so the line ends like a voice in a room instead of a cut."""
+    d = ffprobe_duration(src)
+    graph = (f'[0:a]asplit[a][b];'
+             f'[b]atrim=start={max(0.0, d - tail_src):.3f},asetpts=PTS-STARTPTS,'
+             f'aecho=in_gain=1:out_gain=0.7:delays=40|80|120|170|230|300:decays=0.55|0.36|0.24|0.15|0.09|0.05,'
+             f'atrim=start={tail_src:.3f}:end={tail_src + tail_len:.3f},asetpts=PTS-STARTPTS,afade=t=out:st=0.15:d={tail_len - 0.15:.3f}[tail];'
+             f'[a][tail]concat=n=2:v=0:a=1[o]')
+    ffmpeg('-i', str(src), '-filter_complex', graph, '-map', '[o]', str(out))
+
+
 def fit_narration(mp3: Path, words: list[dict], wav: Path, max_len: float) -> tuple[list[dict], float]:
-    """Trim the silence around the speech (keeping the consonant before the first word and the decay after the last, with
-    short fades so nothing is chopped) and, if needed, speed it up a little so it ends before the clip does."""
+    """Trim the silence around the speech (keeping the consonant before the first word), speed it up a little if needed so
+    it ends before the clip does, then give the ending a soft landing. The returned duration is the speech itself; the
+    landing (under half a second) fits inside the pause every scene has after its narration."""
     start = max(0.0, words[0]['s'] - 0.12)
     end = words[-1]['e'] + 0.35
     dur = end - start
     f = min(dur / max_len, MAX_TEMPO) if dur > max_len else 1.0
     af = (f'atrim=start={start:.3f}:end={end:.3f},asetpts=PTS-STARTPTS' + (f',atempo={f:.4f}' if f > 1 else '')
-          + f',afade=t=in:st=0:d=0.02,afade=t=out:st={max(0.0, dur / f - 0.03):.3f}:d=0.03')  # click guards only: the voice model ends on the last syllable, so a longer fade chops it
-    ffmpeg('-i', str(mp3), '-af', af, '-ar', '48000', '-ac', '2', str(wav))
+          + f',afade=t=in:st=0:d=0.02,afade=t=out:st={max(0.0, dur / f - 0.03):.3f}:d=0.03')
+    trimmed = wav.with_name(wav.stem + '-trim.wav')
+    ffmpeg('-i', str(mp3), '-af', af, '-ar', '48000', '-ac', '2', str(trimmed))
+    nd = ffprobe_duration(trimmed)
+    soft_landing(trimmed, wav)
     fitted = [{'w': w['w'], 's': (w['s'] - start) / f, 'e': (w['e'] - start) / f} for w in words]
-    return fitted, ffprobe_duration(wav)
+    return fitted, nd
 
 
 # ---------------------------------------------------------------------------------------------------------------------
