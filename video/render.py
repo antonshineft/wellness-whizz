@@ -145,9 +145,12 @@ STYLE_BLOCK = ('Style: digital hand-drawn 2D illustration with a digital gouache
 
 def scene_prompt(index: int, count: int, topic: str, visual: str) -> str:
     refs = ' '.join(f'<IMAGE_REF_{i}>' for i in range(len(STYLE)))
-    role = 'the opening hook' if index == 0 else 'the calm ending' if index == count - 1 else f'scene {index + 1} of {count}'
-    return (f'Animated explainer infographic, vertical 9:16, {SCENE_SECONDS} seconds, {role} of a short video about {topic}, '
-            f'in the style of {refs}.\n\n'
+    # No scene numbers in the prompt: given "scene 6 of 9" the model draws a numbered title card ("6. ...") on the footage.
+    role = 'the opening hook' if index == 0 else 'the calm ending' if index == count - 1 else 'a middle scene'
+    return (f'Animated hand-drawn explainer illustration, vertical 9:16, {SCENE_SECONDS} seconds, {role} of a short video about {topic}, '
+            f'in the style of {refs}.\n'
+            'Strictly no titles, headings, captions, scene numbers, labels or lettering of any kind anywhere in the frame, at any moment: '
+            'the picture carries the story alone.\n\n'
             f'{STYLE_BLOCK}\n\n'
             f'Sequence ({SCENE_SECONDS} seconds, one continuous shot, always in motion, no static holds, soft easing, gentle sparkles, '
             f'continuous slow camera drift):\n{visual}\n\n'
