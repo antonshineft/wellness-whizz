@@ -96,7 +96,8 @@ MAX_HOLD = 1.5  # seconds a scene may run past the clip (last frame held) before
 SCENE_PAUSE = 0.55  # seconds of picture after the narrator stops; the rest of a ten-second clip is cut, not left silent
 LAST_PAUSE = 1.4  # the final scene breathes a little longer so the video feels finished
 MIN_SCENE = 6.5  # a clip is never cut shorter than this, so every scene still gets its visual beat
-BED_VOLUME = 0.16
+BED_VOLUME = float(os.environ.get('VIDEO_BED_VOLUME') or '0')  # the music bed; 0 = none (the owner prefers the clips' own sound)
+SFX_VOLUME = float(os.environ.get('VIDEO_SFX_VOLUME') or '0.3')  # the video model's own sound, kept under the narration (0 = drop it)
 PARALLEL_CLIPS = 2
 STYLE = sorted((ROOT / 'style').glob('ref-*.jpg'))
 FONTS = ROOT / 'fonts'
@@ -333,31 +334,54 @@ def generate_clips(job: dict, out_dir: Path) -> list[Path]:
 # ---------------------------------------------------------------------------------------------------------------------
 # Narration: ElevenLabs with word timestamps, trimmed and fitted into the scene
 
+ELEVEN_MODEL = os.environ.get('ELEVENLABS_MODEL') or 'eleven_v3'
+ELEVEN_SPEED = float(os.environ.get('ELEVENLABS_SPEED') or '1.2')
+TAG_RE = re.compile(r'\[[^\]]*\]')
+
+
+def spoken_words(text: str) -> list[str]:
+    """The words the viewer reads: direction tags like [curious] or [pause] and *emphasis* marks are for the narrator only."""
+    return [w.replace('*', '') for w in TAG_RE.sub(' ', text).split() if w.replace('*', '')]
+
+
 def narrate(text: str, mp3: Path) -> list[dict]:
+    settings = {'stability': 0.35, 'similarity_boost': 0.75, 'style': 0.5, 'use_speaker_boost': True, 'speed': ELEVEN_SPEED}
     r = requests.post(f'https://api.elevenlabs.io/v1/text-to-speech/{VOICE}/with-timestamps', params={'output_format': 'mp3_44100_128'},
                       headers={'xi-api-key': ELEVEN, 'content-type': 'application/json'}, timeout=180,
-                      json={'text': text, 'model_id': 'eleven_multilingual_v2',
-                            'voice_settings': {'stability': 0.5, 'similarity_boost': 0.8, 'style': 0.3, 'use_speaker_boost': True}})
+                      json={'text': text, 'model_id': ELEVEN_MODEL, 'voice_settings': settings})
     if not r.ok:
         raise RuntimeError(f'ElevenLabs: HTTP {r.status_code} {r.text[:200]}')
     res = r.json()
     mp3.write_bytes(base64.b64decode(res['audio_base64']))
     al = res['alignment']
     words: list[dict] = []
-    cur, ws, we = '', 0.0, 0.0
-    for ch, s, e in zip(al['characters'], al['character_start_times_seconds'], al['character_end_times_seconds']):
+    cur, ws, we, in_tag = '', 0.0, 0.0, False
+    for ch, s_, e_ in zip(al['characters'], al['character_start_times_seconds'], al['character_end_times_seconds']):
+        if ch == '[':
+            in_tag = True
+        if in_tag:
+            if ch == ']':
+                in_tag = False
+            continue
+        if ch == '*':
+            continue
         if ch.isspace():
             if cur:
                 words.append({'w': cur, 's': ws, 'e': we})
                 cur = ''
         else:
             if not cur:
-                ws = s
+                ws = s_
             cur += ch
-            we = e
+            we = e_
     if cur:
         words.append({'w': cur, 's': ws, 'e': we})
     return words
+
+
+def has_audio(path: Path) -> bool:
+    r = subprocess.run([FFMPEG, '-i', str(path)], capture_output=True, text=True)
+    return 'Audio:' in (r.stderr or '')
 
 
 def fit_narration(mp3: Path, words: list[dict], wav: Path, max_len: float) -> tuple[list[dict], float]:
@@ -512,6 +536,7 @@ def compose(clips: list[Path], narrations: list[tuple[Path, list[dict], float]],
     and held on its last frame when the narration overruns."""
     parts_v: list[Path] = []
     parts_a: list[Path] = []
+    parts_fx: list[Path] = []
     caption_scenes: list[dict] = []
     offset = 0.0
     for i, (clip, (wav, words, nd)) in enumerate(zip(clips, narrations)):
@@ -525,9 +550,16 @@ def compose(clips: list[Path], narrations: list[tuple[Path, list[dict], float]],
             vf += f',tpad=stop_mode=clone:stop_duration={length - cd:.3f}'
         v = WORK / f'v{i + 1}.mp4'
         a = WORK / f'a{i + 1}.wav'
+        fx = WORK / f'fx{i + 1}.wav'
         ffmpeg('-i', str(clip), '-filter_complex', f'[0:v]{vf}[v]', '-map', '[v]', '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-t', f'{length:.3f}', str(v))
         delay = int(NARRATION_DELAY * 1000)
         ffmpeg('-i', str(wav), '-af', f'adelay={delay}|{delay},aformat=sample_rates=48000:channel_layouts=stereo,apad', '-t', f'{length:.3f}', str(a))
+        # the clip's own sound (ambience, effects), padded with silence when the scene is held on its last frame
+        if SFX_VOLUME > 0 and has_audio(clip):
+            ffmpeg('-i', str(clip), '-vn', '-af', f'aformat=sample_rates=48000:channel_layouts=stereo,afade=t=out:st={max(0.0, length - 0.6):.3f}:d=0.6,apad', '-t', f'{length:.3f}', str(fx))
+        else:
+            ffmpeg('-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo', '-t', f'{length:.3f}', str(fx))
+        parts_fx.append(fx)
         parts_v.append(v)
         parts_a.append(a)
         caption_scenes.append({'words': words, 'offset': offset, 'length': length})
@@ -539,13 +571,27 @@ def compose(clips: list[Path], narrations: list[tuple[Path, list[dict], float]],
     for a in parts_a:
         inputs += ['-i', str(a)]
     ffmpeg(*inputs, '-filter_complex', ''.join(f'[{k}:a]' for k in range(len(parts_a))) + f'concat=n={len(parts_a)}:v=0:a=1[a]', '-map', '[a]', str(WORK / 'narration.wav'))
+    fx_inputs: list[str] = []
+    for fx in parts_fx:
+        fx_inputs += ['-i', str(fx)]
+    ffmpeg(*fx_inputs, '-filter_complex', ''.join(f'[{k}:a]' for k in range(len(parts_fx))) + f'concat=n={len(parts_fx)}:v=0:a=1[a]', '-map', '[a]', str(WORK / 'sfx.wav'))
     captions = WORK / 'captions.ass'
     n_lines = write_captions(caption_scenes, captions)
-    ffmpeg('-i', str(WORK / 'video-only.mp4'), '-i', str(WORK / 'narration.wav'), '-stream_loop', '-1', '-i', str(BED),
-           '-filter_complex',
-           f"[0:v]ass={captions}:fontsdir={SITE_FONTS}[v];"
-           f'[2:a]atrim=0:{total + 1:.2f},aformat=sample_rates=48000:channel_layouts=stereo,volume={BED_VOLUME},afade=t=in:st=0:d=1.5,afade=t=out:st={total - 1.5:.2f}:d=1.5[bed];'
-           '[1:a][bed]amix=inputs=2:duration=first:dropout_transition=2,volume=1.5[a]',
+    # narration on top, the model's own sound underneath, and the music bed only when VIDEO_BED_VOLUME is set
+    # (amix averages its inputs, so the mix is scaled back up afterwards)
+    fade = f'afade=t=out:st={total - 1.5:.2f}:d=1.5'
+    if BED_VOLUME > 0:
+        inputs = ['-i', str(WORK / 'video-only.mp4'), '-i', str(WORK / 'narration.wav'), '-stream_loop', '-1', '-i', str(BED), '-i', str(WORK / 'sfx.wav')]
+        graph = (f"[0:v]ass={captions}:fontsdir={SITE_FONTS}[v];"
+                 f'[2:a]atrim=0:{total + 1:.2f},aformat=sample_rates=48000:channel_layouts=stereo,volume={BED_VOLUME},afade=t=in:st=0:d=1.5,{fade}[bed];'
+                 f'[3:a]volume={SFX_VOLUME},{fade}[fx];'
+                 '[1:a][bed][fx]amix=inputs=3:duration=first:dropout_transition=2,volume=2.25,alimiter=limit=0.95[a]')
+    else:
+        inputs = ['-i', str(WORK / 'video-only.mp4'), '-i', str(WORK / 'narration.wav'), '-i', str(WORK / 'sfx.wav')]
+        graph = (f"[0:v]ass={captions}:fontsdir={SITE_FONTS}[v];"
+                 f'[2:a]volume={SFX_VOLUME},{fade}[fx];'
+                 '[1:a][fx]amix=inputs=2:duration=first:dropout_transition=2,volume=1.5,alimiter=limit=0.95[a]')
+    ffmpeg(*inputs, '-filter_complex', graph,
            '-map', '[v]', '-map', '[a]', '-t', f'{total:.3f}', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
            '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-movflags', '+faststart', str(out))
     log(f'composed {out.name}: {total:.1f} s, {len(clips)} scenes, {n_lines} caption lines')
@@ -596,7 +642,7 @@ def render(job: dict) -> Path:
         raise RuntimeError(f'a scene has {longest} words; the narrator cannot fit more than {MAX_SCENE_WORDS} into ten seconds')
     if not STYLE:
         raise RuntimeError('no style references in video/style')
-    log(f'job {slug}: {len(scenes)} scenes, {sum(len(s["narration"].split()) for s in scenes)} words, {MODEL} at {RESOLUTION} via {"Vertex AI" if VERTEX else "the Gemini API"}')
+    log(f'job {slug}: {len(scenes)} scenes, {sum(len(spoken_words(s["narration"])) for s in scenes)} words, {MODEL} at {RESOLUTION} via {"Vertex AI" if VERTEX else "the Gemini API"}')
     WORK.mkdir(parents=True, exist_ok=True)
     for f in WORK.glob('*'):
         if f.is_file():
@@ -610,7 +656,7 @@ def render(job: dict) -> Path:
         fitted, nd = fit_narration(mp3, words, WORK / f'vo{i + 1}.wav', NARRATION_TARGET)
         over = nd + NARRATION_DELAY + 0.45 - SCENE_SECONDS
         if over > MAX_HOLD:
-            raise RuntimeError(f'scene {i + 1} narration is {nd:.1f} s even at {MAX_TEMPO}x; shorten it ({len(sc["narration"].split())} words)')
+            raise RuntimeError(f'scene {i + 1} narration is {nd:.1f} s even at {MAX_TEMPO}x; shorten it ({len(spoken_words(sc["narration"]))} words)')
         narrations.append((WORK / f'vo{i + 1}.wav', fitted, nd))
         log(f'narration {i + 1}: {nd:.2f} s' + (f' (the scene is held {over:.1f} s longer)' if over > 0 else ''))
 
