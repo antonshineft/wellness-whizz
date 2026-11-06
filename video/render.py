@@ -96,8 +96,9 @@ MAX_HOLD = 1.5  # seconds a scene may run past the clip (last frame held) before
 SCENE_PAUSE = 0.55  # seconds of picture after the narrator stops; the rest of a ten-second clip is cut, not left silent
 LAST_PAUSE = 1.4  # the final scene breathes a little longer so the video feels finished
 MIN_SCENE = 6.5  # a clip is never cut shorter than this, so every scene still gets its visual beat
-BED_VOLUME = float(os.environ.get('VIDEO_BED_VOLUME') or '0')  # the music bed; 0 = none (the owner prefers the clips' own sound)
-SFX_VOLUME = float(os.environ.get('VIDEO_SFX_VOLUME') or '0.3')  # the video model's own sound, kept under the narration (0 = drop it)
+BED_VOLUME = float(os.environ.get('VIDEO_BED_VOLUME') or '0.16')  # the music bed under the narration (0 = none)
+SFX_VOLUME = float(os.environ.get('VIDEO_SFX_VOLUME') or '0')  # the video model's own sound under the narration; 0 = dropped (the owner's choice: the clips' effects cut badly between scenes)
+SFX_XFADE = 0.8  # seconds each scene's sound runs past its cut, crossfading into the next scene's sound
 PARALLEL_CLIPS = 2
 STYLE = sorted((ROOT / 'style').glob('ref-*.jpg'))
 FONTS = ROOT / 'fonts'
@@ -554,11 +555,14 @@ def compose(clips: list[Path], narrations: list[tuple[Path, list[dict], float]],
         ffmpeg('-i', str(clip), '-filter_complex', f'[0:v]{vf}[v]', '-map', '[v]', '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-t', f'{length:.3f}', str(v))
         delay = int(NARRATION_DELAY * 1000)
         ffmpeg('-i', str(wav), '-af', f'adelay={delay}|{delay},aformat=sample_rates=48000:channel_layouts=stereo,apad', '-t', f'{length:.3f}', str(a))
-        # the clip's own sound (ambience, effects), padded with silence when the scene is held on its last frame
+        # the clip's own sound (ambience, effects): it runs SFX_XFADE past the cut so scenes crossfade into each other, and
+        # when the scene is held longer than the clip the sound is slowed a little (pitch kept) so it fills the hold
+        fx_len = length + SFX_XFADE
         if SFX_VOLUME > 0 and has_audio(clip):
-            ffmpeg('-i', str(clip), '-vn', '-af', f'aformat=sample_rates=48000:channel_layouts=stereo,afade=t=out:st={max(0.0, length - 0.6):.3f}:d=0.6,apad', '-t', f'{length:.3f}', str(fx))
+            stretch = f'atempo={max(0.5, cd / fx_len):.4f},' if fx_len > cd + 0.05 else ''
+            ffmpeg('-i', str(clip), '-vn', '-af', f'aformat=sample_rates=48000:channel_layouts=stereo,{stretch}afade=t=in:st=0:d=0.25,apad', '-t', f'{fx_len:.3f}', str(fx))
         else:
-            ffmpeg('-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo', '-t', f'{length:.3f}', str(fx))
+            ffmpeg('-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo', '-t', f'{fx_len:.3f}', str(fx))
         parts_fx.append(fx)
         parts_v.append(v)
         parts_a.append(a)
@@ -574,7 +578,16 @@ def compose(clips: list[Path], narrations: list[tuple[Path, list[dict], float]],
     fx_inputs: list[str] = []
     for fx in parts_fx:
         fx_inputs += ['-i', str(fx)]
-    ffmpeg(*fx_inputs, '-filter_complex', ''.join(f'[{k}:a]' for k in range(len(parts_fx))) + f'concat=n={len(parts_fx)}:v=0:a=1[a]', '-map', '[a]', str(WORK / 'sfx.wav'))
+    if len(parts_fx) == 1:
+        fx_graph = '[0:a]acopy[a]'
+    else:
+        fx_graph, prev = '', '[0:a]'
+        for k in range(1, len(parts_fx)):
+            out_label = '[a]' if k == len(parts_fx) - 1 else f'[x{k}]'
+            fx_graph += f'{prev}[{k}:a]acrossfade=d={SFX_XFADE}:c1=tri:c2=tri{out_label};'
+            prev = out_label
+        fx_graph = fx_graph.rstrip(';')
+    ffmpeg(*fx_inputs, '-filter_complex', fx_graph, '-map', '[a]', str(WORK / 'sfx.wav'))
     captions = WORK / 'captions.ass'
     n_lines = write_captions(caption_scenes, captions)
     # narration on top, the model's own sound underneath, and the music bed only when VIDEO_BED_VOLUME is set
