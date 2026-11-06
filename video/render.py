@@ -92,7 +92,7 @@ MAX_SCENE_WORDS = 34
 NARRATION_DELAY = 0.15  # seconds of clip before the narrator starts
 NARRATION_TARGET = SCENE_SECONDS - 0.45  # the narration must end before the clip does
 MAX_TEMPO = 1.12  # the most the narration is sped up; beyond that the scene is held on its last frame for the rest
-MAX_HOLD = 1.5  # seconds a scene may run past the clip (last frame held) before the script is considered too long
+MAX_HOLD = 2.0  # seconds a scene may run past the clip (last frame held) before the script is considered too long
 SCENE_PAUSE = 0.55  # seconds of picture after the narrator stops; the rest of a ten-second clip is cut, not left silent
 LAST_PAUSE = 1.4  # the final scene breathes a little longer so the video feels finished
 MIN_SCENE = 6.5  # a clip is never cut shorter than this, so every scene still gets its visual beat
@@ -386,12 +386,14 @@ def has_audio(path: Path) -> bool:
 
 
 def fit_narration(mp3: Path, words: list[dict], wav: Path, max_len: float) -> tuple[list[dict], float]:
-    """Trim the silence around the speech and, if needed, speed it up a little so it ends before the clip does."""
-    start = max(0.0, words[0]['s'] - 0.05)
-    end = words[-1]['e'] + 0.08
+    """Trim the silence around the speech (keeping the consonant before the first word and the decay after the last, with
+    short fades so nothing is chopped) and, if needed, speed it up a little so it ends before the clip does."""
+    start = max(0.0, words[0]['s'] - 0.12)
+    end = words[-1]['e'] + 0.35
     dur = end - start
     f = min(dur / max_len, MAX_TEMPO) if dur > max_len else 1.0
-    af = f'atrim=start={start:.3f}:end={end:.3f},asetpts=PTS-STARTPTS' + (f',atempo={f:.4f}' if f > 1 else '')
+    af = (f'atrim=start={start:.3f}:end={end:.3f},asetpts=PTS-STARTPTS' + (f',atempo={f:.4f}' if f > 1 else '')
+          + f',afade=t=in:st=0:d=0.02,afade=t=out:st={max(0.0, dur / f - 0.12):.3f}:d=0.12')
     ffmpeg('-i', str(mp3), '-af', af, '-ar', '48000', '-ac', '2', str(wav))
     fitted = [{'w': w['w'], 's': (w['s'] - start) / f, 'e': (w['e'] - start) / f} for w in words]
     return fitted, ffprobe_duration(wav)
