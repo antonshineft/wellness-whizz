@@ -3,6 +3,7 @@
  *   article  - a 3 to 4 post thread for each blog article (once per article)
  *   fact     - a fact from a supplement page, rotating through the catalogue
  *   research - a post per new research note
+ *   weekly   - "This week in supplement research": one thread every Sunday with the week's most useful new studies
  * Posts wait in social_posts and go out from the hourly cron on a fixed schedule: X_POSTS_PER_WEEK posts a week (7 in
  * wrangler.jsonc: one a day), each at X_POST_HOUR_UTC on a posting day (see postingPlan). Each kind has its own lane
  * so a backlog of article threads never stops facts or research notes from being drafted, and the sender takes the
@@ -15,7 +16,7 @@ import { getMeta, listSupplements, setMeta, type Supplement } from '../db';
 import { alertRecipient, sendEmail, type EmailEnv } from '../email';
 import { escapeHtml } from '../html';
 import { chatJson, useFakeAi, type AiEnv } from '../openai';
-import { pubmedUrl, unqueuedNotes } from '../research';
+import { notePath, pubmedUrl, unqueuedNotes, type ResearchNote } from '../research';
 import { postThread, tweetLength, xEnabled, type XEnv } from './x';
 
 export interface SocialEnv extends AiEnv, XEnv, EmailEnv {
@@ -149,6 +150,76 @@ async function factPost(env: SocialEnv, sup: Supplement): Promise<string[]> {
   return [`${text} ${url}`];
 }
 
+const weeklySchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    intro: { type: 'string', description: 'The opening post, under 200 characters: what this thread is and the one finding most worth a reader\'s minute. No hashtags, no emoji, no URL.' },
+    items: {
+      type: 'array',
+      description: 'Four or five studies, most useful first.',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          pmid: { type: 'string', description: 'The PMID of the study, exactly as given.' },
+          text: { type: 'string', description: 'One post under 200 characters: what the study found, in plain words, with the kind of study and its size when known. No URL.' },
+        },
+        required: ['pmid', 'text'],
+      },
+    },
+  },
+  required: ['intro', 'items'],
+} as const;
+
+/** The Sunday (UTC) that closes the week `now` falls in, as YYYY-MM-DD: the key a weekly digest is stored under. */
+function weekKey(now: Date): string {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + ((7 - now.getUTCDay()) % 7)));
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * "This week in supplement research": a thread built from the research notes filed in the last seven days. The model
+ * chooses the four or five most useful to an ordinary reader; every item links to the note's own page on the site.
+ * Null when fewer than three notes were filed.
+ */
+export async function weeklyDigest(env: SocialEnv): Promise<{ week: string; notes: number; tweets: string[] } | null> {
+  const { results: notes } = await env.DB
+    .prepare(
+      `SELECT n.*, s.name AS supplement_name, s.slug AS supplement_slug FROM research_notes n
+       JOIN supplements s ON s.id = n.supplement_id WHERE n.created_at >= datetime('now', '-7 days') AND n.summary != '' ORDER BY n.created_at DESC LIMIT 30`,
+    )
+    .all<ResearchNote>();
+  if (notes.length < 3) return null;
+  const origin = siteOrigin(env);
+  const week = weekKey(new Date());
+  if (useFakeAi(env)) return { week, notes: notes.length, tweets: ['[Dev mode] This week in supplement research.', ...notes.slice(0, 3).map((n) => `[Dev mode] ${n.title.slice(0, 120)} ${origin}${notePath(n)}`)] };
+  const draft = await chatJson<{ intro: string; items: { pmid: string; text: string }[] }>(
+    env,
+    'weekly_digest',
+    weeklySchema,
+    [
+      `Write this week's thread for X from Wellness Whizz, titled in spirit "This week in supplement research". ${VOICE}`,
+      'From the studies below choose the four or five most useful to an ordinary reader who takes supplements. Prefer trials in people and meta-analyses over animal or lab work, and spread the picks over different supplements.',
+      'Say plainly when a result is small, early or in a narrow group. Never turn a finding into advice to take something, and give no doses. Use only what each summary says.',
+      '',
+      ...notes.map((n) => `PMID ${n.pmid} | ${n.supplement_name} | ${n.pub_type || 'study'} | ${n.title}\nSummary: ${n.summary.slice(0, 500)}\nTakeaway: ${n.takeaway.slice(0, 240)}`),
+    ].join('\n'),
+    { tier: 'fast', maxTokens: 3000 },
+  );
+  const byPmid = new Map(notes.map((n) => [n.pmid, n]));
+  const seen = new Set<string>();
+  const items = (draft.items ?? []).filter((i) => byPmid.has(String(i.pmid).trim()) && !seen.has(String(i.pmid).trim()) && seen.add(String(i.pmid).trim()) && String(i.text ?? '').trim()).slice(0, 5);
+  if (items.length < 3) throw new Error('weekly digest: fewer than three usable items came back');
+  const clip = (t: string, max: number) => (t.length > max ? `${t.slice(0, max - 1).replace(/\s+\S*$/, '')}\u2026` : t);
+  const tweets = [
+    clip(String(draft.intro ?? '').trim() || `This week in supplement research: ${notes.length} new studies read, ${items.length} worth knowing.`, 270),
+    ...items.map((i) => `${clip(i.text.trim(), 240)} ${origin}${notePath(byPmid.get(String(i.pmid).trim())!)}`),
+    `Every note from this week, in plain language with the source: ${origin}/research`,
+  ];
+  return { week, notes: notes.length, tweets };
+}
+
 // ---------- queue builders (idempotent, run hourly) ----------
 
 export async function buildQueue(env: SocialEnv): Promise<{ queued: string[] }> {
@@ -206,6 +277,23 @@ export async function buildQueue(env: SocialEnv): Promise<{ queued: string[] }> 
       await enqueue(env.DB, 'research', note.pmid, [text], now);
       await env.DB.prepare('UPDATE research_notes SET queued = 1 WHERE id = ?').bind(note.id).run();
       queued.push(`research:${note.pmid}`);
+    }
+  }
+
+  // 4. Sunday afternoon (UTC): the week's digest thread, once per week (meta flag).
+  if (now.getUTCDay() === 0 && now.getUTCHours() >= 12) {
+    const flag = `x:weekly:${weekKey(now)}`;
+    if (!(await getMeta(env.DB, flag))) {
+      try {
+        const digest = await weeklyDigest(env);
+        await setMeta(env.DB, flag, now.toISOString());
+        if (digest) {
+          await enqueue(env.DB, 'weekly', digest.week, digest.tweets, now);
+          queued.push(`weekly:${digest.week}`);
+        }
+      } catch (err) {
+        console.error(`weekly digest failed: ${String(err)}`);
+      }
     }
   }
   return { queued };

@@ -48,7 +48,7 @@ import { fileNote, getResearchNote, listResearchNotes, notePath, notesForSupplem
 import { feedXml, indexSync, renderSitemap, sitemapEntries } from './indexing';
 import { renderResearchNote, renderResearchPage } from './render/research';
 import { renderSupplementsIndex } from './render/supplements-index';
-import { buildQueue, enqueue, listSocialPosts, postDue, postingPlan, sendState, setSocialStatus, siteOrigin } from './social/content';
+import { buildQueue, enqueue, listSocialPosts, postDue, postingPlan, sendState, setSocialStatus, siteOrigin, weeklyDigest } from './social/content';
 import { xEnabled } from './social/x';
 import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
@@ -591,6 +591,18 @@ app.get('/shelf/:id', async (c) => {
 });
 
 /** Owner-only: the X queue (what was posted, what is waiting, what failed) and simple controls. */
+/** Owner-only: this week's X digest thread as it would be written now (a preview; nothing is queued or posted). */
+app.get('/api/admin/social/weekly', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  try {
+    return c.json({ digest: await weeklyDigest(c.env) });
+  } catch (err) {
+    return c.json({ error: String(err instanceof Error ? err.message : err) }, 502);
+  }
+});
+
 app.get('/api/admin/social', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
