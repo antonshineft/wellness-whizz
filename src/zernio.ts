@@ -165,3 +165,9 @@ export async function postAnalytics(env: ZernioEnv, id: string): Promise<{ ok: t
   const metrics = (post.analytics as Record<string, unknown> | undefined) ?? (perPlatform?.analytics as Record<string, unknown> | undefined);
   return metrics ? { ok: true, metrics } : { ok: false, message: 'no numbers yet' };
 }
+
+/** One post's full analytics answer from Zernio (aggregate `analytics` plus `platformAnalytics` per platform). */
+export async function postAnalyticsRaw(env: ZernioEnv, id: string): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; message: string }> {
+  const r = await call<Record<string, unknown>>(env, 'GET', `/analytics?postId=${encodeURIComponent(id)}`);
+  return r.ok ? { ok: true, data: r.data ?? {} } : r;
+}

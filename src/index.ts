@@ -59,6 +59,7 @@ import {
   countSupplementsNeedingFaqs, supplementsNeedingFaqs, updateSupplementFaqs, CATEGORIES, asFormType, insertSupplement, getSupplementByNameKey, normalizeNameKey,
 } from './db';
 import { runQuizPipeline } from './pipeline';
+import { dashboardToken, snapshotTrials, trialDashboard } from './trialboard';
 import { listTrials, markTrialReady, postTrial, trialJobs, trialStats, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
 import { analyticsStep, gscSummary, inspectStep, type InspectOptions } from './gsc';
@@ -1521,6 +1522,29 @@ app.post('/api/admin/trials/:slug/:n/post', async (c) => {
   return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 502);
 });
 
+/** Owner-only: the dashboard's link (its own token, so the admin key never sits in a URL) and a fresh snapshot of the numbers. */
+app.get('/api/admin/trials/dashboard', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const snapshot = c.req.query('snapshot') === '1' ? await snapshotTrials(c.env) : null;
+  return c.json({ url: `${siteOrigin(c.env)}/trials/${await dashboardToken(c.env.DB)}`, snapshot });
+});
+
+/** The trial-reel dashboard (src/trialboard.ts), opened through its own unguessable link. */
+app.get('/trials/:token', async (c) => {
+  await ensureDatabase(c.env.DB);
+  const token = await dashboardToken(c.env.DB);
+  if ((c.req.param('token') ?? '') !== token) return c.text('Not found', 404);
+  if (c.req.query('refresh') === '1') {
+    // At most one live refresh every ten minutes; the daily cron does the rest.
+    const last = Date.parse((await getMeta(c.env.DB, 'trials:snapshot')) ?? '') || 0;
+    if (Date.now() - last > 10 * 60_000) await snapshotTrials(c.env);
+    return c.redirect(`/trials/${token}`, 302);
+  }
+  return c.body(await trialDashboard(c.env, token), 200, { ...htmlHeaders('no-store'), 'x-robots-tag': 'noindex, nofollow' });
+});
+
 // ---- Instagram research carousels (src/carousels.ts) ----
 app.get('/api/admin/carousels', async (c) => {
   const denied = authorized(c);
@@ -1979,6 +2003,13 @@ export default {
       return;
     }
     if (event.cron === '0 6 * * *') {
+      // Daily: store the numbers of every posted trial reel for the dashboard (src/trialboard.ts).
+      ctx.waitUntil(
+        ensureDatabase(env.DB)
+          .then(() => snapshotTrials(env))
+          .then((r) => console.log(`trial stats: ${JSON.stringify(r)}`))
+          .catch((err) => console.error(`trial stats failed: ${String(err)}`)),
+      );
       // Daily: look for new PubMed papers about a slice of the catalogue (the whole catalogue in about a week).
       ctx.waitUntil(
         ensureDatabase(env.DB)
