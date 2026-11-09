@@ -175,6 +175,18 @@ const weeklySchema = {
   required: ['intro', 'items'],
 } as const;
 
+/**
+ * Which source a drafted post is about, judged by content: the candidate whose text shares the most distinctive words
+ * with the post. The model sometimes puts the right text under the wrong ID, which would link a post to another
+ * study, so links are attached by this match and never by the ID alone. Null when no candidate clearly fits.
+ */
+function matchByContent(post: string, pool: { id: string; text: string }[]): string | null {
+  const wordsOf = (t: string) => new Set(t.toLowerCase().match(/[a-z0-9][a-z0-9-]{4,}/g) ?? []);
+  const w = [...wordsOf(post)];
+  const scored = pool.map((m) => { const words = wordsOf(m.text); return { id: m.id, score: w.filter((x) => words.has(x)).length }; }).sort((a, b) => b.score - a.score);
+  return scored[0] && scored[0].score >= 4 && scored[0].score > (scored[1]?.score ?? 0) ? scored[0].id : null;
+}
+
 /** The Sunday (UTC) that closes the week `now` falls in, as YYYY-MM-DD: the key a weekly digest is stored under. */
 function weekKey(now: Date): string {
   const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + ((7 - now.getUTCDay()) % 7)));
@@ -217,8 +229,12 @@ export async function weeklyDigest(env: SocialEnv): Promise<{ week: string; note
   );
   const byPmid = new Map(notes.map((n) => [n.pmid, n]));
   const seen = new Set<string>();
-  const items = (draft.items ?? []).filter((i) => byPmid.has(String(i.pmid).trim()) && !seen.has(String(i.pmid).trim()) && seen.add(String(i.pmid).trim()) && String(i.text ?? '').trim()).slice(0, 5);
-  if (items.length < 3) throw new Error('weekly digest: fewer than three usable items came back');
+  const notePool = notes.map((n) => ({ id: n.pmid, text: `${n.supplement_name ?? ''} ${n.title} ${n.summary} ${n.takeaway}` }));
+  const items = (draft.items ?? [])
+    .map((i) => ({ text: String(i.text ?? '').trim(), pmid: matchByContent(String(i.text ?? ''), notePool) ?? '' }))
+    .filter((i) => i.text && byPmid.has(i.pmid) && !seen.has(i.pmid) && seen.add(i.pmid))
+    .slice(0, 5);
+  if (items.length < 3) throw new Error('weekly digest: fewer than three posts could be matched to their study');
   const clip = (t: string, max: number) => (t.length > max ? `${t.slice(0, max - 1).replace(/\s+\S*$/, '')}\u2026` : t);
   const tweets = [
     clip(String(draft.intro ?? '').trim() || `This week in supplement research: ${notes.length} new studies read, ${items.length} worth knowing.`, 270),
@@ -302,8 +318,13 @@ export async function discoveriesDigest(env: SocialEnv): Promise<{ week: string;
   const byId = new Map(material.map((m) => [m.id, m]));
   const seen = new Set<string>();
   const norm = (v: unknown) => String(v).replace(/^ID\s+/i, '').trim();
-  const items = (draft.items ?? []).filter((i) => byId.has(norm(i.pmid)) && !seen.has(norm(i.pmid)) && seen.add(norm(i.pmid)) && String(i.text ?? '').trim()).slice(0, 5);
-  if (items.length < 3) throw new Error('discoveries digest: fewer than three usable items came back');
+  // Links are attached by content match, not by the ID the model wrote (see matchByContent).
+  const pool = material.map((m) => ({ id: m.id, text: `${m.title} ${m.text}` }));
+  const items = (draft.items ?? [])
+    .map((i) => ({ text: String(i.text ?? '').trim(), pmid: matchByContent(String(i.text ?? ''), pool) ?? '' }))
+    .filter((i) => i.text && byId.has(i.pmid) && !seen.has(i.pmid) && seen.add(i.pmid))
+    .slice(0, 5);
+  if (items.length < 3) throw new Error('discoveries digest: fewer than three posts could be matched to their source');
   const clip = (t: string, max: number) => (t.length > max ? `${t.slice(0, max - 1).replace(/\s+\S*$/, '')}\u2026` : t);
   const tweets = [
     clip(String(draft.intro ?? '').trim() || 'Discoveries this week, from the leading journals and health agencies.', 270),

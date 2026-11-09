@@ -26,7 +26,6 @@ export const FEEDS: { name: string; url: string }[] = [
   { name: 'Nature (news)', url: 'https://www.nature.com/nature.rss' },
   { name: 'Nature Medicine (new papers)', url: 'https://www.nature.com/nm.rss' },
   { name: 'Science (news)', url: 'https://www.science.org/rss/news_current.xml' },
-  { name: 'Cell (new papers)', url: 'https://www.cell.com/cell/inpress.rss' },
   { name: 'The BMJ (latest)', url: 'https://www.bmj.com/rss/recent.xml' },
   { name: 'NEJM (current articles)', url: 'https://www.nejm.org/action/showFeed?jc=nejm&type=etoc&feed=rss' },
   { name: 'JAMA (current issue)', url: 'https://jamanetwork.com/rss/site_3/67.xml' },
@@ -56,8 +55,9 @@ function parse(xml: string, source: string, key: string, since: number, max: num
     const dateText = strip(tag(b, ['pubDate', 'dc:date', 'updated', 'published', 'prism:coverDate']));
     const when = Date.parse(dateText);
     if (!title || !/^https?:\/\//.test(link)) continue;
+    const secure = link.replace(/^http:\/\//, 'https://');
     if (Number.isFinite(when) && when < since) continue;
-    out.push({ id: `${key}-${out.length + 1}`, source, title: title.slice(0, 220), link, date: Number.isFinite(when) ? new Date(when).toISOString().slice(0, 10) : '', summary: strip(tag(b, ['description', 'summary', 'content:encoded', 'content'])).slice(0, 600) });
+    out.push({ id: `${key}-${out.length + 1}`, source, title: title.slice(0, 220), link: secure, date: Number.isFinite(when) ? new Date(when).toISOString().slice(0, 10) : '', summary: strip(tag(b, ['description', 'summary', 'content:encoded', 'content'])).slice(0, 600) });
     if (out.length >= max) break;
   }
   return out;
