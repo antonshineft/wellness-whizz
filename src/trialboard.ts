@@ -1,6 +1,6 @@
 /**
  * The trial-reel dashboard: every test (one video, its trial reels and the original post) with the numbers Zernio
- * reports, a retention chart and a plain-words review. The daily cron stores a snapshot per post (snapshotTrials), so
+ * reports, bar comparisons and a plain-words review. The daily cron stores a snapshot per post (snapshotTrials), so
  * the page loads from the database and shows what changed since yesterday; "Refresh" takes a new snapshot on demand.
  * The page is opened through its own unguessable link, so the admin key never travels in a URL.
  */
@@ -24,29 +24,24 @@ interface Snapshot {
   shares: number | null;
   saves: number | null;
   follows: number | null;
-  duration: number | null;
-  retention: [number, number][];
 }
 
 function pick(raw: Record<string, unknown>): Snapshot {
   const list = Array.isArray(raw.platformAnalytics) ? (raw.platformAnalytics as Record<string, unknown>[]) : [];
   const ig = list.find((p) => p.platform === 'instagram');
   const a = ((ig?.analytics ?? (list.length ? null : raw.analytics)) ?? {}) as Record<string, unknown>;
-  const num = (k: string) => (typeof a[k] === 'number' && Number.isFinite(a[k] as number) ? (a[k] as number) : null);
-  const curve = (a.retentionCurve ?? {}) as Record<string, unknown>;
-  const retention = Object.entries(curve)
-    .map(([t, v]) => [Number(t), Number(v)] as [number, number])
-    .filter(([t, v]) => Number.isFinite(t) && Number.isFinite(v))
-    .sort((x, y) => x[0] - y[0]);
+  const status = String(ig?.status ?? raw.status ?? '');
+  // A scheduled post, or one Instagram has not counted yet, answers with zeros: those are "no numbers", not results.
+  const counted = status === 'published' && typeof a.views === 'number' && (a.views as number) > 0;
+  const num = (k: string) => (counted && typeof a[k] === 'number' && Number.isFinite(a[k] as number) ? (a[k] as number) : null);
   const watch = num('igReelsAvgWatchTime');
   return {
-    status: String(ig?.status ?? raw.status ?? ''),
-    error: String(ig?.errorMessage ?? '') === 'null' ? '' : String(ig?.errorMessage ?? ''),
+    status,
+    error: typeof ig?.errorMessage === 'string' ? ig.errorMessage : '',
     url: String(ig?.platformPostUrl ?? ''),
     published_at: String(raw.publishedAt ?? ''),
     views: num('views'), reach: num('reach'), skip_rate: num('reelsSkipRate'), avg_watch: watch === null ? null : watch / 1000,
     likes: num('likes'), comments: num('comments'), shares: num('shares'), saves: num('saves'), follows: num('follows'),
-    duration: num('videoDurationSeconds'), retention,
   };
 }
 
@@ -82,7 +77,7 @@ export async function dashboardToken(db: D1Database): Promise<string> {
   return token;
 }
 
-interface Series { key: string; label: string; tag: string; line: string; kind: string; format: string; now: Snapshot | null; before: Snapshot | null; slot: number; file: string; when: string }
+interface Series { key: string; label: string; tag: string; line: string; line2?: string; kind: string; format: string; now: Snapshot | null; before: Snapshot | null; slot: number; file: string; when: string }
 
 async function latestTwo(db: D1Database, ref: string): Promise<[Snapshot | null, Snapshot | null]> {
   const rows = (await db.prepare('SELECT json FROM video_trial_stats WHERE ref = ? ORDER BY day DESC LIMIT 2').bind(ref).all<{ json: string }>()).results ?? [];
@@ -98,7 +93,8 @@ const MIN_VIEWS = 300;
 function review(series: Series[]): string[] {
   const trials = series.filter((s) => s.key !== 'orig');
   const live = trials.filter((s) => s.now && s.now.views !== null);
-  if (!live.length) return ['No numbers yet. Instagram usually reports the first figures a few hours after a reel goes out.'];
+  const refused = trials.filter((s) => s.now?.error);
+  if (!live.length) return [...refused.map((s) => `${s.tag} was not published: ${s.now!.error}`), 'No numbers yet. Instagram usually reports the first figures a few hours after a reel goes out.'];
   const out: string[] = [];
   const thin = live.filter((s) => (s.now?.views ?? 0) < MIN_VIEWS);
   if (thin.length) out.push(`Too early to call: ${thin.map((s) => s.tag).join(', ')} ${thin.length === 1 ? 'has' : 'have'} fewer than ${MIN_VIEWS} views. Treat everything below as a first look.`);
@@ -117,32 +113,24 @@ function review(series: Series[]): string[] {
     const shares = [...enders].filter((s) => per1k(s.now!.shares, s.now!.views) !== null).sort((a, b) => (per1k(b.now!.shares, b.now!.views) as number) - (per1k(a.now!.shares, a.now!.views) as number))[0];
     out.push(`Endings: ${bestWatch.tag} is watched longest (${fmt(bestWatch.now!.avg_watch, 1)} s on average)${shares ? `, and ${shares.tag} is shared most (${fmt(per1k(shares.now!.shares, shares.now!.views), 1)} per 1,000 views)` : ''}. An ending can only move viewers who reach it, so expect small differences.`);
   }
-  const refused = trials.filter((s) => s.now?.error);
   for (const s of refused) out.push(`${s.tag} was not published: ${s.now!.error}`);
   return out;
 }
 
-function chart(series: Series[], id: string): string {
-  const drawn = series.filter((s) => (s.now?.retention.length ?? 0) > 1);
-  if (!drawn.length) return '';
-  const W = 640, H = 260, L = 40, R = 46, T = 12, B = 30;
-  const maxT = Math.max(...drawn.map((s) => s.now!.retention[s.now!.retention.length - 1][0]), 10);
-  const x = (t: number) => L + (t / maxT) * (W - L - R);
-  const y = (v: number) => T + (1 - Math.min(1, Math.max(0, v))) * (H - T - B);
-  const grid = [0, 0.25, 0.5, 0.75, 1].map((v) => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="${v === 0 ? 'axis' : 'grid'}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" class="tick">${v * 100}%</text>`).join('');
-  const step = maxT > 60 ? 20 : 10;
-  const ticks = Array.from({ length: Math.floor(maxT / step) + 1 }, (_, i) => i * step).map((t) => `<text x="${x(t)}" y="${H - 8}" text-anchor="middle" class="tick">${t}s</text>`).join('');
-  // End labels, nudged apart so they never overlap.
-  const ends = drawn.map((s) => ({ s, y: y(s.now!.retention[s.now!.retention.length - 1][1]), x: x(s.now!.retention[s.now!.retention.length - 1][0]) })).sort((a, b) => a.y - b.y);
-  for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 13) ends[i].y = ends[i - 1].y + 13;
-  const lines = drawn.map((s) => `<polyline fill="none" class="s${s.slot}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${s.now!.retention.map(([t, v]) => `${x(t).toFixed(1)},${y(v).toFixed(1)}`).join(' ')}"/>`).join('');
-  const labels = ends.map((e) => `<text x="${e.x + 6}" y="${e.y + 4}" class="endlabel">${escapeHtml(e.s.tag)}</text>`).join('');
-  const data = JSON.stringify({ L, R, W, T, B, H, maxT, series: drawn.map((s) => ({ tag: s.tag, slot: s.slot, pts: s.now!.retention })) }).replace(/</g, '\\u003c');
-  return `<figure class="chart" data-chart='${escapeHtml(data)}' id="${id}">
-<figcaption>Share of viewers still watching, second by second</figcaption>
-<div class="legend">${drawn.map((s) => `<span><i class="sw b${s.slot}"></i>${escapeHtml(s.tag)}</span>`).join('')}</div>
-<div class="plot"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Retention curves; the same numbers are in the table above">${grid}${ticks}${lines}${labels}<line class="cross" y1="${T}" y2="${H - B}" x1="0" x2="0" visibility="hidden"/></svg><div class="tip" hidden></div></div>
-</figure>`;
+/** Three small bar panels, one measure each (never two scales on one axis); colour marks the version, text stays ink. */
+function bars(series: Series[]): string {
+  const panels: { head: string; note: string; value: (s: Snapshot) => number | null; digits: number; suffix: string }[] = [
+    { head: 'Skipped in the first 3 seconds', note: 'lower is better', value: (s) => s.skip_rate, digits: 1, suffix: '%' },
+    { head: 'Average watch time', note: 'higher is better', value: (s) => s.avg_watch, digits: 1, suffix: ' s' },
+    { head: 'Views', note: 'how far Instagram pushed it', value: (s) => s.views, digits: 0, suffix: '' },
+  ];
+  const out = panels.map((p) => {
+    const rows = series.map((s) => ({ s, v: s.now ? p.value(s.now) : null })).filter((r): r is { s: Series; v: number } => r.v !== null);
+    if (rows.length < 2) return '';
+    const max = Math.max(...rows.map((r) => r.v), 0.0001);
+    return `<div class="panel"><h4>${p.head} <span>${p.note}</span></h4>${rows.map((r) => `<div class="bar" title="${escapeHtml(r.s.tag)}: ${fmt(r.v, p.digits)}${p.suffix}"><span class="name">${escapeHtml(r.s.tag)}</span><span class="track"><i class="b${r.s.slot}" style="width:${Math.max(1, (r.v / max) * 100).toFixed(1)}%"></i></span><span class="val">${fmt(r.v, p.digits)}${p.suffix}</span></div>`).join('')}</div>`;
+  }).join('');
+  return out ? `<div class="panels">${out}</div>` : '';
 }
 
 function table(series: Series[]): string {
@@ -169,7 +157,7 @@ function table(series: Series[]): string {
       return `<td class="num${top ? ' top' : ''}" data-label="${c.head}">${v === null ? '–' : `${fmt(v, c.digits)}${c.suffix}`}${top ? ' <span class="star" title="best in this test">★</span>' : ''}${extra}</td>`;
     }).join('');
     const links = [s.now?.url ? `<a href="${escapeHtml(s.now.url)}">on Instagram</a>` : '', s.file ? `<a href="${escapeHtml(s.file)}">file</a>` : ''].filter(Boolean).join(' · ');
-    return `<tr><th scope="row"><span class="who"><i class="sw b${s.slot}"></i><b>${escapeHtml(s.tag)}</b> <em>${escapeHtml(s.label)}</em></span><span class="line">${escapeHtml(s.line)}</span><span class="meta">${escapeHtml(s.when)}${links ? ` · ${links}` : ''}</span></th>${cells}</tr>`;
+    return `<tr><th scope="row"><span class="who"><i class="sw b${s.slot}"></i><b>${escapeHtml(s.tag)}</b> <em>${escapeHtml(s.label)}</em></span><span class="line">${escapeHtml(s.line)}</span>${s.line2 ? `<span class="line">${escapeHtml(s.line2)}</span>` : ''}<span class="meta">${escapeHtml(s.when)}${links ? ` · ${links}` : ''}</span></th>${cells}</tr>`;
   }).join('');
   return `<div class="scroll"><table><thead><tr><th scope="col">Version</th>${cols.map((c) => `<th scope="col" class="num">${c.head}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
@@ -190,7 +178,6 @@ export async function trialDashboard(env: VideoEnv, token: string): Promise<stri
     groups.set(key, [...(groups.get(key) ?? []), r]);
   }
   const cards: string[] = [];
-  let index = 0;
   for (const [key, rows] of [...groups.entries()].sort((a, b) => (a[0].split('|')[1] < b[0].split('|')[1] ? 1 : -1))) {
     const slug = key.split('|')[0];
     const video = await getVideo(env.DB, slug);
@@ -198,17 +185,16 @@ export async function trialDashboard(env: VideoEnv, token: string): Promise<stri
     const series: Series[] = [];
     const [origNow, origBefore] = await latestTwo(env.DB, `video:${slug}`);
     if (origNow && script) {
-      series.push({ key: 'orig', label: 'the post on your feed', tag: 'Original', line: `Opens: ${script.scenes[0].narration} Ends: ${script.scenes[script.scenes.length - 1].narration}`, kind: 'orig', format: '', now: origNow, before: origBefore, slot: 1, file: video?.video_url ?? '', when: `posted ${madrid(origNow.published_at)}` });
+      series.push({ key: 'orig', label: 'the post on your feed', tag: 'Original', line: `Opens: ${script.scenes[0].narration}`, line2: `Ends: ${script.scenes[script.scenes.length - 1].narration}`, kind: 'orig', format: '', now: origNow, before: origBefore, slot: 1, file: video?.video_url ?? '', when: origNow.status === 'published' ? `posted ${madrid(origNow.published_at)}` : 'not posted yet' });
     }
     for (const [i, r] of rows.sort((a, b) => a.n - b.n).slice(0, 3).entries()) {
       const [now, before] = await latestTwo(env.DB, `trial:${r.id}`);
-      series.push({ key: `t${r.n}`, label: `new ${r.kind === 'hook' ? 'opening' : 'ending'} (${r.format})`, tag: `Trial ${r.n}`, line: r.line, kind: r.kind, format: r.format, now, before, slot: i + 2, file: r.video_url, when: `${now?.status === 'published' ? 'posted' : 'scheduled'} ${madrid(now?.published_at || r.scheduled_for)}` });
+      series.push({ key: `t${r.n}`, label: `new ${r.kind === 'hook' ? 'opening' : 'ending'} (${r.format})`, tag: `Trial ${r.n}`, line: r.line, kind: r.kind, format: r.format, now, before, slot: i + 2, file: r.video_url, when: `${now?.status === 'published' ? 'posted' : now?.error ? 'refused' : 'scheduled'} ${madrid((now?.status === 'published' && now.published_at) || r.scheduled_for)}` });
     }
-    index += 1;
     cards.push(`<section class="card"><h2>${escapeHtml(script?.title ?? slug)}</h2>
 <div class="review"><h3>Review</h3><ul>${review(series).map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul></div>
 ${table(series)}
-${chart(series, `c${index}`)}</section>`);
+${bars(series)}</section>`);
   }
   const last = await getMeta(env.DB, 'trials:snapshot');
   const waitingList = waiting.length
@@ -228,10 +214,8 @@ thead th{border-top:0;font-size:12px;color:var(--ink2);font-weight:600;white-spa
 tbody th{font-weight:400;min-width:230px}.who{display:block}.who em{color:var(--ink2);font-style:normal;font-size:13px}.line{display:block;color:var(--ink2);font-size:13px;margin-top:3px}.meta{display:block;color:var(--muted);font-size:12px;margin-top:3px}
 .top{font-weight:700}.star{color:var(--good)}
 .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}.b1{background:var(--s1)}.b2{background:var(--s2)}.b3{background:var(--s3)}.b4{background:var(--s4)}
-.chart{margin:16px 0 0}.chart figcaption{font-size:13px;color:var(--ink2);margin:0 0 6px}.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;margin:0 0 4px}
-.plot{position:relative}.plot svg{display:block;width:100%;height:auto;touch-action:pan-y}.grid{stroke:var(--grid);stroke-width:1}.axis{stroke:var(--axis);stroke-width:1}.tick{fill:var(--muted);font-size:11px}.endlabel{fill:var(--ink2);font-size:11px}
-.s1{stroke:var(--s1)}.s2{stroke:var(--s2)}.s3{stroke:var(--s3)}.s4{stroke:var(--s4)}.cross{stroke:var(--axis);stroke-width:1}
-.tip{position:absolute;top:6px;pointer-events:none;background:var(--surface);border:1px solid var(--axis);border-radius:8px;padding:6px 9px;font-size:12px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.12)}.tip b{display:block;margin-bottom:2px}.tip span{display:block}
+.panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px 22px;margin:16px 0 0}.panel h4{font-size:13px;margin:0 0 6px;font-weight:600}.panel h4 span{color:var(--muted);font-weight:400}
+.bar{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:8px;font-size:13px;padding:3px 0}.bar .name{color:var(--ink2)}.bar .track{display:block;height:10px}.bar .track i{display:block;height:10px;border-radius:0 4px 4px 0;min-width:3px}.bar .val{font-variant-numeric:tabular-nums}.bar:hover .val{font-weight:700}
 .plain{list-style:none;margin:0;padding:0}.plain li{padding:8px 0;border-top:1px solid var(--grid)}.plain li:first-child{border-top:0}
 @media (max-width:640px){thead{display:none}tbody tr{display:block;border-top:1px solid var(--grid);padding:10px 0}tbody th,td{display:block;border:0;padding:2px 0}td.num{display:flex;justify-content:space-between;text-align:right;gap:12px}td.num:before{content:attr(data-label);color:var(--ink2);font-size:13px}td small{display:inline;margin-left:6px}}
 </style></head><body><main>
@@ -241,12 +225,5 @@ ${cards.join('\n') || '<section class="card"><p>No trial has been posted yet.</p
 ${waitingList}
 <p class="sub">How to read it: "Skipped in 3 s" judges the opening (lower is better). Average watch time, shares and saves judge the rest. A test needs about ${MIN_VIEWS} views per version before a difference means anything.</p>
 </main>
-<script>
-document.querySelectorAll('.chart').forEach(function(f){var d=JSON.parse(f.dataset.chart),svg=f.querySelector('svg'),tip=f.querySelector('.tip'),cross=f.querySelector('.cross');
-function move(e){var r=svg.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*d.W,t=Math.max(0,Math.min(d.maxT,(px-d.L)/(d.W-d.L-d.R)*d.maxT)),h='',near=null;
-d.series.forEach(function(s){var p=s.pts.reduce(function(a,b){return Math.abs(b[0]-t)<Math.abs(a[0]-t)?b:a});if(near===null)near=p[0];h+='<span><i class="sw b'+s.slot+'"></i>'+s.tag+': '+Math.round(p[1]*100)+'%</span>'});
-var cx=d.L+near/d.maxT*(d.W-d.L-d.R);cross.setAttribute('x1',cx);cross.setAttribute('x2',cx);cross.setAttribute('visibility','visible');tip.innerHTML='<b>'+near+' s</b>'+h;tip.hidden=false;
-var left=cx/d.W*r.width+10;if(left+tip.offsetWidth>r.width)left=cx/d.W*r.width-tip.offsetWidth-10;tip.style.left=Math.max(0,left)+'px'}
-svg.addEventListener('pointermove',move);svg.addEventListener('pointerdown',move);svg.addEventListener('pointerleave',function(){tip.hidden=true;cross.setAttribute('visibility','hidden')})});
-</script></body></html>`;
+</body></html>`;
 }
