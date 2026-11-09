@@ -89,6 +89,20 @@ const fmt = (n: number | null, digits = 0) => (n === null ? '–' : n.toLocaleSt
 const per1k = (n: number | null, views: number | null) => (n === null || !views ? null : (n / views) * 1000);
 const MIN_VIEWS = 300;
 
+/**
+ * Is the gap between two skip rates real? A two-proportion z-test with views as the sample size (Instagram's skip rate
+ * is its own estimate over the first views, so this is a guide, not a lab result). "needed" is the views per version
+ * that would confirm a gap of the observed size at 95% confidence and 80% power.
+ */
+function skipTest(a: Snapshot, b: Snapshot): { significant: boolean; needed: number } {
+  const p1 = (a.skip_rate as number) / 100, p2 = (b.skip_rate as number) / 100, n1 = a.views as number, n2 = b.views as number;
+  const pooled = (p1 * n1 + p2 * n2) / (n1 + n2);
+  const se = Math.sqrt(pooled * (1 - pooled) * (1 / n1 + 1 / n2));
+  const d = Math.abs(p1 - p2);
+  const mean = (p1 + p2) / 2;
+  return { significant: se > 0 && d / se >= 1.96, needed: d > 0 ? Math.ceil((2 * mean * (1 - mean) * 7.84) / (d * d) / 50) * 50 : 0 };
+}
+
 /** A plain-words reading of one test. Deliberately cautious: small view counts decide nothing. */
 function review(series: Series[]): string[] {
   const trials = series.filter((s) => s.key !== 'orig');
@@ -98,20 +112,21 @@ function review(series: Series[]): string[] {
   const out: string[] = [];
   const thin = live.filter((s) => (s.now?.views ?? 0) < MIN_VIEWS);
   if (thin.length) out.push(`Too early to call: ${thin.map((s) => s.tag).join(', ')} ${thin.length === 1 ? 'has' : 'have'} fewer than ${MIN_VIEWS} views. Treat everything below as a first look.`);
-  const withSkip = series.filter((s) => s.now?.skip_rate !== null && s.now?.skip_rate !== undefined && (s.key === 'orig' || s.kind === 'hook'));
+  const withSkip = series.filter((s) => s.now?.skip_rate !== null && s.now?.skip_rate !== undefined && s.now.views && (s.key === 'orig' || s.kind === 'hook'));
   if (withSkip.length >= 2) {
     const sorted = [...withSkip].sort((a, b) => (a.now!.skip_rate as number) - (b.now!.skip_rate as number));
     const [best, next] = sorted;
-    const gap = (next.now!.skip_rate as number) - (best.now!.skip_rate as number);
-    out.push(gap < 3
-      ? `Openings: no clear winner. ${best.tag} loses ${fmt(best.now!.skip_rate, 1)}% of viewers in the first three seconds and ${next.tag} ${fmt(next.now!.skip_rate, 1)}%, which is too close to separate.`
-      : `Openings: ${best.tag} holds best. It loses ${fmt(best.now!.skip_rate, 1)}% of viewers in the first three seconds, ${fmt(gap, 1)} points fewer than ${next.tag}.`);
+    const t = skipTest(best.now!, next.now!);
+    const figures = `${best.tag} loses ${fmt(best.now!.skip_rate, 1)}% of viewers in the first three seconds, ${next.tag} ${fmt(next.now!.skip_rate, 1)}%`;
+    out.push(t.significant
+      ? `Openings: ${best.tag} wins, and the gap is statistically significant (95% confidence). ${figures}.`
+      : `Openings: no proven winner yet. ${figures}. A gap this size could still be chance; it would need about ${fmt(t.needed)} views per version to confirm.`);
   }
   const enders = series.filter((s) => s.now?.avg_watch !== null && s.now?.avg_watch !== undefined && (s.key === 'orig' || s.kind === 'ending'));
   if (enders.some((s) => s.kind === 'ending') && enders.length >= 2) {
     const bestWatch = [...enders].sort((a, b) => (b.now!.avg_watch as number) - (a.now!.avg_watch as number))[0];
     const shares = [...enders].filter((s) => per1k(s.now!.shares, s.now!.views) !== null).sort((a, b) => (per1k(b.now!.shares, b.now!.views) as number) - (per1k(a.now!.shares, a.now!.views) as number))[0];
-    out.push(`Endings: ${bestWatch.tag} is watched longest (${fmt(bestWatch.now!.avg_watch, 1)} s on average)${shares ? `, and ${shares.tag} is shared most (${fmt(per1k(shares.now!.shares, shares.now!.views), 1)} per 1,000 views)` : ''}. An ending can only move viewers who reach it, so expect small differences.`);
+    out.push(`Endings: ${bestWatch.tag} is watched longest (${fmt(bestWatch.now!.avg_watch, 1)} s on average)${shares ? `, and ${shares.tag} is shared most (${fmt(per1k(shares.now!.shares, shares.now!.views), 1)} per 1,000 views)` : ''}. Instagram gives only averages here, so this is a direction, not proof; trust it once the same ending style wins on three videos.`);
   }
   for (const s of refused) out.push(`${s.tag} was not published: ${s.now!.error}`);
   return out;
