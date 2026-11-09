@@ -83,6 +83,29 @@ function proteinCalculator(): string {
 </div>`;
 }
 
+/** The interactive caffeine chart (<ww-caffeine-chart>); public/js/caffeine-chart.js draws it and fills in the result. */
+function caffeineChart(): string {
+  return `
+<div class="ww-calc ww-caf" data-caffeine-chart>
+  <h3>How much caffeine is still in you at bedtime?</h3>
+  <p class="ww-calc-intro">Add what you drink and when. Drag a cup along the day, drag the bedtime line, or move across the chart to read any moment.</p>
+  <div class="ww-caf-drinks" data-drinks></div>
+  <div class="ww-caf-row">
+    <button type="button" class="ww-caf-add" data-add>+ Add a drink</button>
+    <label class="ww-calc-field"><span>Bedtime</span><input type="time" name="bed" value="23:00"></label>
+    <label class="ww-calc-field"><span>How fast you clear caffeine</span><select name="half">
+      <option value="3">Fast: half gone in 3 hours</option>
+      <option value="5" selected>Typical: half gone in 5 hours</option>
+      <option value="7">Slow: half gone in 7 hours</option>
+      <option value="10">Very slow: half gone in 10 hours</option>
+    </select></label>
+  </div>
+  <div class="ww-caf-plot" data-plot></div>
+  <div class="ww-calc-result" data-result aria-live="polite"><noscript>Turn on JavaScript to use the chart. As a rule of thumb, half of a cup's caffeine is still in you about five hours later, and a quarter after ten.</noscript></div>
+  <p class="ww-calc-note">A simplified model: each drink is absorbed within about 45 minutes and then cleared at the pace you chose. It starts the day from zero and cannot know your own metabolism, so read it as an estimate, not a measurement.</p>
+</div>`;
+}
+
 /** Turn the article conventions (iherb: links, <ww-shop>, <ww-quiz>) into live markup. */
 export function expandArticleHtml(ctx: BlogContext, post: BlogPost): string {
   let html = post.html;
@@ -97,6 +120,7 @@ export function expandArticleHtml(ctx: BlogContext, post: BlogPost): string {
     shopBlock(ctx, post, list.split(',').map((s) => s.trim()).filter(Boolean), 'Related products on iHerb', 'ww-shop-inline'),
   );
   html = html.replace(/<ww-protein-calculator\s*>\s*<\/ww-protein-calculator>/g, () => proteinCalculator());
+  html = html.replace(/<ww-caffeine-chart\s*>\s*<\/ww-caffeine-chart>/g, () => caffeineChart());
   html = html.replace(/<ww-quiz\s*>\s*<\/ww-quiz>/g, () => quizCta('Not sure which one is right for you?', 'The free two-minute quiz weighs your goals, diet and the supplements you already take, then explains its picks.'));
   return html;
 }
@@ -252,6 +276,6 @@ export function renderBlogPost(ctx: BlogContext, post: BlogPost, related: readon
     bodyClass: 'body-2',
     head,
     body: `<div class="ww-progress" aria-hidden="true"></div>${shell}`,
-    scripts: `  <script src="/js/reading-progress.js"></script>${post.html.includes('<ww-protein-calculator') ? '\n  <script src="/js/protein-calc.js" defer></script>' : ''}`,
+    scripts: `  <script src="/js/reading-progress.js"></script>${post.html.includes('<ww-protein-calculator') ? '\n  <script src="/js/protein-calc.js" defer></script>' : ''}${post.html.includes('<ww-caffeine-chart') ? '\n  <script src="/js/caffeine-chart.js" defer></script>' : ''}`,
   });
 }

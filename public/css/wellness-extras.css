@@ -631,3 +631,43 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-peek { position: absolute; z-index: 60; width: 170px; height: 170px; padding: 16px; box-sizing: border-box; background: #fdf1cf; border-radius: 20px; opacity: 0; transform: translateY(6px) scale(.96); transition: opacity .16s ease, transform .16s ease; pointer-events: none; }
 .ww-peek.is-on { opacity: 1; transform: none; }
 .ww-peek img { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+/* Caffeine-through-the-day chart (<ww-caffeine-chart>, public/js/caffeine-chart.js). */
+.ww-caf-drinks { display: grid; gap: 8px; margin: 0 0 12px; }
+.ww-caf-drink { display: grid; grid-template-columns: minmax(0, 1fr) 78px auto 136px 40px; gap: 8px; align-items: center; }
+.ww-caf select, .ww-caf input { box-sizing: border-box; }
+.ww-caf-drink select, .ww-caf-drink input { font: inherit; padding: 10px 10px; border: 1px solid #d9c9a3; border-radius: 10px; background: #fff; min-width: 0; width: 100%; }
+.ww-caf-unit { font-size: 14px; color: #444; white-space: nowrap; }
+.ww-caf-del { width: 40px; height: 40px; border: 0; border-radius: 10px; background: #1d272d14; color: #1d272d; font-size: 20px; line-height: 1; cursor: pointer; }
+.ww-caf-row { display: grid; grid-template-columns: auto minmax(0, 150px) minmax(0, 1fr); gap: 14px; align-items: end; margin: 0 0 14px; }
+.ww-caf-add { font: inherit; font-weight: 600; padding: 11px 16px; border: 0; border-radius: 10px; background: #1d272d; color: #fff; cursor: pointer; white-space: nowrap; }
+.ww-caf-add:disabled { opacity: .4; cursor: default; }
+.ww-caf-plot { position: relative; background: #fff; border-radius: 12px; padding: 6px 0 0; overflow: hidden; }
+.ww-caf-plot svg { display: block; width: 100%; height: auto; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.ww-caf-grid { stroke: #e9e6dc; stroke-width: 1; }
+.ww-caf-axis { stroke: #b9b4a6; stroke-width: 1; }
+.ww-caf-ref { stroke: #8a8577; stroke-width: 1; stroke-dasharray: 4 4; }
+.ww-caf-tick { fill: #77736a; font-size: 11px; font-family: inherit; }
+.ww-caf-sleep { fill: #1d272d; opacity: .06; }
+.ww-caf-area { fill: #2f9e5b; opacity: .22; }
+.ww-caf-line { fill: none; stroke: #1f8a4c; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.ww-caf-bed { stroke: #1d272d; stroke-width: 1.5; }
+.ww-caf-dot { fill: #1d272d; stroke: #fff; stroke-width: 2; }
+.ww-caf-label { fill: #1d272d; font-size: 13px; font-weight: 700; font-family: inherit; }
+.ww-caf-sub { fill: #44484a; font-size: 12px; font-family: inherit; }
+.ww-caf-ruler { stroke: #1d272d; stroke-width: 1; opacity: .45; }
+.ww-caf-rdot { fill: #1f8a4c; stroke: #fff; stroke-width: 2; }
+.ww-caf-handle { cursor: grab; touch-action: none; outline: none; }
+.ww-caf-handle:focus-visible .ww-caf-cup, .ww-caf-handle:focus-visible .ww-caf-grip { stroke: #1f8a4c; stroke-width: 3; }
+.ww-caf-stem { stroke: #1d272d; stroke-width: 1; stroke-dasharray: 2 3; opacity: .5; }
+.ww-caf-cup { fill: #1d272d; stroke: #fff; stroke-width: 2; }
+.ww-caf-grip { fill: #1d272d; }
+.ww-caf-tip { position: absolute; pointer-events: none; background: #1d272d; color: #fff; border-radius: 8px; padding: 6px 9px; font-size: 12px; line-height: 1.3; white-space: nowrap; }
+.ww-caf-tip b { display: block; }
+.ww-caf-plot + .ww-calc-result { margin-top: 12px; }
+@media (max-width: 560px) {
+  .ww-caf-drink { grid-template-columns: 76px auto minmax(0, 1fr) 40px; }
+  .ww-caf-drink select { grid-column: 1 / -1; }
+  .ww-caf-row { grid-template-columns: 1fr 1fr; }
+  .ww-caf-add { grid-column: 1 / -1; }
+}

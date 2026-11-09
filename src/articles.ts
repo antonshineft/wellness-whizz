@@ -55,7 +55,7 @@ export interface TopicIdea {
   why: string;
 }
 
-const ALLOWED_TAGS = new Set(['p', 'h2', 'h3', 'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'blockquote', 'strong', 'em', 'a', 'br', 'ww-shop', 'ww-quiz']);
+const ALLOWED_TAGS = new Set(['p', 'h2', 'h3', 'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'blockquote', 'strong', 'em', 'a', 'br', 'ww-shop', 'ww-quiz', 'ww-caffeine-chart']);
 const KNOWN_CATEGORIES = [...new Set(POSTS.map((p) => p.category))].sort();
 const BODY_WORDS = { min: 1100, max: 2600 };
 /** A drafting round that has not finished in this long lost its Worker; the row goes back to the queue. */
@@ -85,6 +85,7 @@ const ARTICLE_SYSTEM = [
   '  - No other links: no external URLs in the body, sources go in the sources field.',
   '- Exactly one <ww-shop slugs="slug1,slug2,slug3"></ww-shop> block with 2 to 4 catalogue slugs, placed after the main dosing or comparison section.',
   '- Exactly one <ww-quiz></ww-quiz> block, placed before the last or the second-to-last h2 section.',
+  '- Only when the brief asks for the caffeine chart: one <ww-caffeine-chart></ww-caffeine-chart> block (an interactive chart the site draws), right after the opening paragraph. Never in any other article.',
   '',
   'faq: 4 to 6 questions phrased the way people search them, answers of 40 to 80 words that add something the body did not say word for word. Plain text, no HTML, no dashes.',
   '',
@@ -226,6 +227,7 @@ export function tidyArticle(raw: RawArticle, date = today()): BlogPost {
   const html = tidyText(String(raw.html ?? ''))
     .replace(/<ww-shop\s+slugs="([^"]*)"\s*>\s*<\/ww-shop>/g, (_m, s: string) => `<ww-shop slugs="${s.split(',').map((x) => x.trim()).filter(Boolean).join(',')}"></ww-shop>`)
     .replace(/<ww-quiz\s*\/?>\s*(<\/ww-quiz>)?/g, '<ww-quiz></ww-quiz>')
+    .replace(/<ww-caffeine-chart\s*\/?>\s*(<\/ww-caffeine-chart>)?/g, '<ww-caffeine-chart></ww-caffeine-chart>')
     .replace(/<br\s*\/>/g, '<br>');
   const words = wordCount(html);
   const seoTitle = str(raw.seoTitle);
