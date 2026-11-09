@@ -24,7 +24,7 @@ import { queueQuizDataArticle, quizDataSummary } from './quizdata';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
 import { carouselJob, getCarousel, listCarousels, markCarouselFailed, markCarouselReady, queueCarousel, scheduleCarousel, setCarouselStatus } from './carousels';
-import { approveVideo, autoPost, getVideo, listVideos, markFailed, markPosted, markReady, monthlyLimit, nextJob, parseScript, queueVideo, rendersThisMonth, rewriteVideo, scriptNext } from './videos';
+import { approveVideo, keepVideo, autoPost, getVideo, listVideos, markFailed, markPosted, markReady, monthlyLimit, nextJob, parseScript, queueVideo, rendersThisMonth, rewriteVideo, scriptNext } from './videos';
 import { actOnProspect, addProspect, checkWins, counts as prospectCounts, dailyOutreach, discoverProspects, draftPending, findContacts, listProspects, noteReply, outreachDigest, outreachStep, recentEvents, sendApproved, type ProspectKind } from './backlinks';
 import { badgeWallHtml, withBadgeWall } from './badges';
 import { serviceAccountEmail, submitiumDigestLine, submitiumReportLine, submitiumState, submitiumStep } from './submitium';
@@ -1476,6 +1476,14 @@ app.get('/api/admin/videos/:slug/approve', async (c) => {
   return c.html(tapPage(r.ok ? 'Approved' : 'Not approved', r.message), r.ok ? 200 : 400);
 });
 
+app.get('/api/admin/videos/:slug/keep', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const r = await keepVideo(c.env, c.req.param('slug') ?? '', parseInt(c.req.query('pick') ?? '1', 10) || 1);
+  return c.html(tapPage(r.ok ? 'Kept' : 'Not kept', r.message), r.ok ? 200 : 400);
+});
+
 app.get('/api/admin/videos/:slug/rewrite', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
@@ -1723,7 +1731,7 @@ app.post('/api/admin/videos/:slug/status', async (c) => {
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
   const status = c.req.query('status') ?? '';
-  if (!['queued', 'scripted', 'approved', 'ready', 'posted', 'failed'].includes(status)) return c.json({ error: 'bad status' }, 400);
+  if (!['queued', 'scripted', 'kept', 'approved', 'ready', 'posted', 'failed'].includes(status)) return c.json({ error: 'bad status' }, 400);
   await c.env.DB.prepare("UPDATE videos SET status = ?, updated_at = datetime('now') WHERE slug = ?").bind(status, c.req.param('slug') ?? '').run();
   return c.json({ ok: true, video: await getVideo(c.env.DB, c.req.param('slug') ?? '') });
 });

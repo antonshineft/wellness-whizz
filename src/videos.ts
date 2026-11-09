@@ -47,7 +47,7 @@ export interface VideoEnv {
 }
 
 /** scripted = written, waiting for the owner's approval (unless VIDEO_APPROVAL=false); approved = cleared to render. */
-export type VideoStatus = 'queued' | 'scripted' | 'approved' | 'rendering' | 'ready' | 'posted' | 'failed';
+export type VideoStatus = 'queued' | 'scripted' | 'kept' | 'approved' | 'rendering' | 'ready' | 'posted' | 'failed';
 
 export interface VideoRow {
   id: number;
@@ -397,6 +397,7 @@ export async function scriptNext(env: VideoEnv): Promise<boolean> {
 async function askApproval(env: VideoEnv, slug: string, scripts: VideoScript[], articleTitle: string): Promise<void> {
   const key = encodeURIComponent(env.STATS_KEY ?? '');
   const approve = (k: number) => `${origin(env)}/api/admin/videos/${encodeURIComponent(slug)}/approve?key=${key}&pick=${k + 1}`;
+  const keep = (k: number) => `${origin(env)}/api/admin/videos/${encodeURIComponent(slug)}/keep?key=${key}&pick=${k + 1}`;
   const rewrite = `${origin(env)}/api/admin/videos/${encodeURIComponent(slug)}/rewrite?key=${key}`;
   const used = await rendersThisMonth(env.DB);
   const button = (href: string, label: string, bg: string) => `<a href="${escapeHtml(href)}" style="display:inline-block;background:${bg};color:#fff;text-decoration:none;border-radius:10px;padding:12px 18px;font-size:16px;margin:0 8px 8px 0">${label}</a>`;
@@ -405,14 +406,28 @@ async function askApproval(env: VideoEnv, slug: string, scripts: VideoScript[], 
 <p style="font-size:18px;margin:0 0 10px"><strong>${escapeHtml(sc.title)}</strong></p>
 <ol style="padding-left:20px;margin:0 0 10px">${sc.scenes.map((x) => `<li style="margin:0 0 6px">${escapeHtml(x.narration)}</li>`).join('')}</ol>
 <p style="color:#555;font-size:13px;margin:0 0 12px">Caption: ${escapeHtml(captionFor(sc, slug))}</p>
-${button(approve(k), `Approve script ${k + 1} and render`, '#1d272d')}</div>`).join('');
-  const text = scripts.map((sc, k) => `SCRIPT ${k + 1}${sc.angle ? ` (${sc.angle})` : ''}: ${sc.title}\n${sc.scenes.map((x, i) => `${i + 1}. ${x.narration}`).join('\n')}\nCaption: ${captionFor(sc, slug)}\nApprove script ${k + 1}: ${approve(k)}`).join('\n\n');
+${button(keep(k), `Keep script ${k + 1} (no render yet)`, '#1d272d')}${button(approve(k), `Approve script ${k + 1} and render now`, '#7a6a4f')}</div>`).join('');
+  const text = scripts.map((sc, k) => `SCRIPT ${k + 1}${sc.angle ? ` (${sc.angle})` : ''}: ${sc.title}\n${sc.scenes.map((x, i) => `${i + 1}. ${x.narration}`).join('\n')}\nCaption: ${captionFor(sc, slug)}\nKeep script ${k + 1} (no render yet): ${keep(k)}\nApprove script ${k + 1} and render now: ${approve(k)}`).join('\n\n');
   await notify(env, `Choose a video script: ${articleTitle}`,
     `<p>${scripts.length} scripts are ready for the article <strong>${escapeHtml(articleTitle)}</strong>, each from a different angle. Nothing is rendered until you pick one (${used} of ${monthlyLimit(env)} renders used this month).</p>
 ${blocks}
 <p>${button(rewrite, 'Rewrite all three', '#7a6a4f')}</p>
-<p style="color:#777;font-size:13px">Approve: it renders within three hours and is scheduled for the next free morning slot on TikTok and Instagram. Rewrite: three new scripts arrive within a few minutes.</p>`,
+<p style="color:#777;font-size:13px">Keep: the script is saved for a later batch and nothing is rendered or paid for. Approve: it renders within three hours (this spends video credit) and is scheduled for the next free morning slot on TikTok and Instagram. Rewrite: three new scripts arrive within a few minutes.</p>`,
     `${scripts.length} scripts are ready for "${articleTitle}". Nothing is rendered until you pick one (${used} of ${monthlyLimit(env)} renders used this month).\n\n${text}\n\nRewrite all: ${rewrite}`);
+}
+
+/** One tap from the approval email: the chosen script is saved for a later batch. Status "kept" is never handed to the renderer. */
+export async function keepVideo(env: VideoEnv, slug: string, pick = 1): Promise<{ ok: boolean; message: string }> {
+  const row = await getVideo(env.DB, slug);
+  if (!row) return { ok: false, message: `No video for "${slug}".` };
+  if (row.status === 'kept') return { ok: true, message: 'Already kept. Nothing is rendered until you ask for it.' };
+  const variants = parseVariants(row.script_json);
+  const n = Math.min(Math.max(pick, 1), variants?.length ?? 1);
+  const chosen = variants ? variants[n - 1] : parseScript(row.script_json);
+  if (row.status !== 'scripted' || !chosen) return { ok: false, message: `The script for "${slug}" cannot be kept (status ${row.status}).` };
+  await env.DB.prepare("UPDATE videos SET status = 'kept', script_json = ?, caption = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(JSON.stringify(chosen), captionFor(chosen, slug), row.id).run();
+  return { ok: true, message: `Script ${n}, "${chosen.title}", is kept. Nothing is rendered and nothing is spent; it waits for the next batch you ask for.` };
 }
 
 /** One tap from the approval email: the chosen script may be rendered. */
@@ -424,7 +439,7 @@ export async function approveVideo(env: VideoEnv, slug: string, pick = 1): Promi
   const variants = parseVariants(row.script_json);
   const single = parseScript(row.script_json);
   const chosen = variants ? variants[Math.min(Math.max(pick, 1), variants.length) - 1] : single;
-  if (row.status !== 'scripted' || !chosen) return { ok: false, message: `The script for "${slug}" is not ready (status ${row.status}).` };
+  if (!['scripted', 'kept'].includes(row.status) || !chosen) return { ok: false, message: `The script for "${slug}" is not ready (status ${row.status}).` };
   await env.DB.prepare("UPDATE videos SET status = 'approved', script_json = ?, caption = ?, updated_at = datetime('now') WHERE id = ?")
     .bind(JSON.stringify(chosen), captionFor(chosen, slug), row.id).run();
   const used = await rendersThisMonth(env.DB);
@@ -437,7 +452,7 @@ export async function approveVideo(env: VideoEnv, slug: string, pick = 1): Promi
 export async function rewriteVideo(env: VideoEnv, slug: string): Promise<{ ok: boolean; message: string }> {
   const row = await getVideo(env.DB, slug);
   if (!row) return { ok: false, message: `No video for "${slug}".` };
-  if (!['scripted', 'approved', 'failed'].includes(row.status)) return { ok: false, message: `"${slug}" is ${row.status}; only a script waiting for approval can be rewritten.` };
+  if (!['scripted', 'kept', 'approved', 'failed'].includes(row.status)) return { ok: false, message: `"${slug}" is ${row.status}; only a script waiting for approval can be rewritten.` };
   await env.DB.prepare("UPDATE videos SET status = 'queued', script_json = '', error = '', attempts = 0, updated_at = datetime('now') WHERE id = ?").bind(row.id).run();
   return { ok: true, message: 'Three new scripts are being written; they arrive by email within a few minutes.' };
 }
