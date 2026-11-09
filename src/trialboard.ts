@@ -9,8 +9,9 @@ import { escapeHtml } from './html';
 import { listTrials, type TrialRow } from './trials';
 import { getVideo, parseScript, type VideoEnv } from './videos';
 import { postAnalyticsRaw, type ZernioEnv } from './zernio';
+import type { Learned } from './triallearn';
 
-interface Snapshot {
+export interface Snapshot {
   status: string;
   error: string;
   url: string;
@@ -79,7 +80,7 @@ export async function dashboardToken(db: D1Database): Promise<string> {
 
 interface Series { key: string; label: string; tag: string; line: string; line2?: string; kind: string; format: string; now: Snapshot | null; before: Snapshot | null; slot: number; file: string; when: string }
 
-async function latestTwo(db: D1Database, ref: string): Promise<[Snapshot | null, Snapshot | null]> {
+export async function latestTwo(db: D1Database, ref: string): Promise<[Snapshot | null, Snapshot | null]> {
   const rows = (await db.prepare('SELECT json FROM video_trial_stats WHERE ref = ? ORDER BY day DESC LIMIT 2').bind(ref).all<{ json: string }>()).results ?? [];
   const parse = (s?: string) => { try { return s ? (JSON.parse(s) as Snapshot) : null; } catch { return null; } };
   return [parse(rows[0]?.json), parse(rows[1]?.json)];
@@ -94,7 +95,7 @@ const MIN_VIEWS = 300;
  * is its own estimate over the first views, so this is a guide, not a lab result). "needed" is the views per version
  * that would confirm a gap of the observed size at 95% confidence and 80% power.
  */
-function skipTest(a: Snapshot, b: Snapshot): { significant: boolean; needed: number } {
+export function skipTest(a: Snapshot, b: Snapshot): { significant: boolean; needed: number } {
   const p1 = (a.skip_rate as number) / 100, p2 = (b.skip_rate as number) / 100, n1 = a.views as number, n2 = b.views as number;
   const pooled = (p1 * n1 + p2 * n2) / (n1 + n2);
   const se = Math.sqrt(pooled * (1 - pooled) * (1 / n1 + 1 / n2));
@@ -212,6 +213,13 @@ ${table(series)}
 ${bars(series)}</section>`);
   }
   const last = await getMeta(env.DB, 'trials:snapshot');
+  let learned: Learned | null = null;
+  try { learned = JSON.parse((await getMeta(env.DB, 'video:learned')) ?? 'null') as Learned | null; } catch { learned = null; }
+  const verdictWord = { favour: 'favoured', avoid: 'avoided', open: 'still open' } as const;
+  const learnedCard = `<section class="card"><h2>What the script writer has learned</h2>
+${learned?.guidance ? `<div class="review"><h3>Note the writer reads before every new script</h3><p>${escapeHtml(learned.guidance)}</p></div>` : '<p class="sub">Nothing yet. The writer changes only when a format has won or lost on at least three videos.</p>'}
+${learned ? `<p class="sub">${escapeHtml(learned.note)} Checked ${escapeHtml(madrid(learned.at))}; it runs every Monday.</p>` : '<p class="sub">The first weekly check runs on Monday.</p>'}
+${learned?.formats.length ? `<div class="scroll"><table><thead><tr><th scope="col">Format</th><th scope="col" class="num">Tests</th><th scope="col" class="num">Clear wins</th><th scope="col" class="num">Clear losses</th><th scope="col" class="num">Average change</th><th scope="col">Verdict</th></tr></thead><tbody>${learned.formats.map((f) => `<tr><th scope="row">${f.kind === 'hook' ? 'Opening' : 'Ending'}: ${escapeHtml(f.format)}</th><td class="num" data-label="Tests">${f.tests}</td><td class="num" data-label="Clear wins">${f.wins}</td><td class="num" data-label="Clear losses">${f.losses}</td><td class="num" data-label="Average change">${f.mean_change > 0 ? '+' : ''}${fmt(f.mean_change, 1)}${f.kind === 'hook' ? ' pts skipped' : ' s watched'}</td><td data-label="Verdict">${verdictWord[f.verdict]}</td></tr>`).join('')}</tbody></table></div>` : ''}</section>`;
   const waitingList = waiting.length
     ? `<section class="card"><h2>Not posted yet</h2><ul class="plain">${waiting.map((r) => `<li><b>${escapeHtml(r.slug)} · trial ${r.n}</b> (${r.kind === 'hook' ? 'opening' : 'ending'}, ${escapeHtml(r.format)}; ${r.status === 'ready' ? `rendered, <a href="${escapeHtml(r.video_url)}">watch the file</a>` : 'rendering'})<span class="line">${escapeHtml(r.line)}</span></li>`).join('')}</ul></section>`
     : '';
@@ -223,7 +231,7 @@ ${bars(series)}</section>`);
 main{max-width:860px;margin:0 auto;padding:20px 16px 48px}h1{font-size:24px;margin:0 0 4px}h2{font-size:18px;margin:0 0 12px}h3{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);margin:0 0 6px}
 .sub{color:var(--ink2);margin:0 0 18px;font-size:14px}.sub a,.meta a,.plain a{color:inherit}
 .card{background:var(--surface);border:1px solid var(--grid);border-radius:14px;padding:16px;margin:0 0 18px}
-.review{border-left:3px solid var(--axis);padding:2px 0 2px 12px;margin:0 0 14px}.review ul{margin:0;padding-left:18px}.review li{margin:0 0 4px}
+.review{border-left:3px solid var(--axis);padding:2px 0 2px 12px;margin:0 0 14px}.review p{margin:0}.review ul{margin:0;padding-left:18px}.review li{margin:0 0 4px}
 .scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}th,td{padding:10px 8px;border-top:1px solid var(--grid);vertical-align:top;text-align:left}
 thead th{border-top:0;font-size:12px;color:var(--ink2);font-weight:600;white-space:nowrap}.num{text-align:right;white-space:nowrap}td small{display:block;color:var(--muted);font-size:11px;white-space:normal}
 tbody th{font-weight:400;min-width:230px}.who{display:block}.who em{color:var(--ink2);font-style:normal;font-size:13px}.line{display:block;color:var(--ink2);font-size:13px;margin-top:3px}.meta{display:block;color:var(--muted);font-size:12px;margin-top:3px}
@@ -238,6 +246,7 @@ tbody th{font-weight:400;min-width:230px}.who{display:block}.who em{color:var(--
 <p class="sub">Each test shows one video with one line changed per trial. Numbers come from Instagram through Zernio and are stored once a day${last ? `; last update ${escapeHtml(madrid(last))}` : ''}. <a href="/api/trials/${escapeHtml(token)}?refresh=1">Refresh now</a></p>
 ${cards.join('\n') || '<section class="card"><p>No trial has been posted yet.</p></section>'}
 ${waitingList}
+${learnedCard}
 <p class="sub">How to read it: "Skipped in 3 s" judges the opening (lower is better). Average watch time, shares and saves judge the rest. A test needs about ${MIN_VIEWS} views per version before a difference means anything.</p>
 </main>
 </body></html>`;

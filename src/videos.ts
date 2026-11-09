@@ -269,6 +269,20 @@ export function parseVariants(json: string): VideoScript[] | null {
   }
 }
 
+/**
+ * What the weekly trial review (src/triallearn.ts) has learned about openings and endings, as a paragraph for the
+ * writer. Empty until a format has won or lost on at least three videos.
+ */
+async function learnedNote(db: D1Database): Promise<string> {
+  try {
+    const learned = JSON.parse((await getMeta(db, 'video:learned')) ?? 'null') as { guidance?: string } | null;
+    const text = String(learned?.guidance ?? '').trim();
+    return text ? `\n\nWhat tests on real viewers have shown so far. Lean on it for scene 1 and the last scene in at least two of the scripts; every rule above still wins over it:\n${text}` : '';
+  } catch {
+    return '';
+  }
+}
+
 export async function writeScripts(env: VideoEnv, post: BlogPost): Promise<VideoScript[]> {
   const hero = post.heroSupplement || post.shop?.[0] || '';
   const sup = hero ? await getSupplementBySlug(env.DB, hero) : null;
@@ -302,7 +316,7 @@ ${body}
 
 ${faq ? `FAQ:\n${faq}` : ''}
 
-Write ${VARIANTS} complete ${SCENES}-scene scripts from three different connected angles (narration and visual for each scene, angle, title, caption, hashtags, product_slug).`;
+Write ${VARIANTS} complete ${SCENES}-scene scripts from three different connected angles (narration and visual for each scene, angle, title, caption, hashtags, product_slug).${await learnedNote(env.DB)}`;
   const longest = (sc: VideoScript) => Math.max(...sc.scenes.map((x) => words(x.narration)));
   let scripts = (await claudeJson<{ variants: VideoScript[] }>(env, SCRIPT_SYSTEM, user, variantsSchema, { tier: 'fast', maxTokens: 16000, timeoutMs: 120_000 })).variants
     .slice(0, VARIANTS).map((sc) => tidyScript(sc, sup?.slug ?? hero));

@@ -60,6 +60,7 @@ import {
 } from './db';
 import { runQuizPipeline } from './pipeline';
 import { dashboardToken, snapshotTrials, trialDashboard } from './trialboard';
+import { getLearned, learnFromTrials } from './triallearn';
 import { autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
 import { analyticsStep, gscSummary, inspectStep, type InspectOptions } from './gsc';
@@ -1480,6 +1481,25 @@ app.get('/api/admin/trials', async (c) => {
   return c.json({ trials: await listTrials(c.env.DB, slug || undefined) });
 });
 
+/** Owner-only: what the weekly review has taught the script writer (GET), or run the review now (POST). */
+app.get('/api/admin/trials/learn', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  return c.json({ learned: await getLearned(c.env.DB) });
+});
+app.post('/api/admin/trials/learn', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  try {
+    await snapshotTrials(c.env);
+    return c.json({ learned: await learnFromTrials(c.env) });
+  } catch (err) {
+    return c.json({ error: String(err instanceof Error ? err.message : err) }, 502);
+  }
+});
+
 /** The morning workflow asks what to render: yesterday's video with a fresh batch of trials (TRIALS_AUTO=true). */
 app.get('/api/admin/trials/next', async (c) => {
   const denied = authorized(c);
@@ -2008,6 +2028,13 @@ export default {
       return;
     }
     if (event.cron === '0 7 * * MON') {
+      // Monday: the week's trial results become the note the script writer reads (src/triallearn.ts).
+      ctx.waitUntil(
+        ensureDatabase(env.DB)
+          .then(() => learnFromTrials(env))
+          .then((l) => console.log(`trial learning: ${l.status} (${l.note})`))
+          .catch((err) => console.error(`trial learning failed: ${String(err)}`)),
+      );
       ctx.waitUntil(ensureDatabase(env.DB).then(() => checkWins(env, 40)).then((n) => console.log(`backlink wins: ${n}`)).catch((err) => console.error(`win check failed: ${String(err)}`)));
       // Monday morning: the week's numbers by email to the owner (src/report.ts); skipped quietly without Resend.
       ctx.waitUntil(
