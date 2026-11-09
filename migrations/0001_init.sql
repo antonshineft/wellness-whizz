@@ -208,6 +208,8 @@ CREATE TABLE IF NOT EXISTS tiktok_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, p
 -- Short videos per article (src/videos.ts): queue, script, render state and the posted TikTok id.
 CREATE TABLE IF NOT EXISTS videos (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL UNIQUE, status TEXT NOT NULL, script_json TEXT NOT NULL DEFAULT '', caption TEXT NOT NULL DEFAULT '', video_url TEXT NOT NULL DEFAULT '', duration REAL NOT NULL DEFAULT 0, set_index INTEGER NOT NULL DEFAULT 0, publish_id TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT '', attempts INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, rendered_at TEXT);
 CREATE TABLE IF NOT EXISTS video_trials (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL, n INTEGER NOT NULL, kind TEXT NOT NULL, format TEXT NOT NULL DEFAULT '', line TEXT NOT NULL, why TEXT NOT NULL DEFAULT '', status TEXT NOT NULL, video_url TEXT NOT NULL DEFAULT '', publish_id TEXT NOT NULL DEFAULT '', scheduled_for TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE (slug, n));
+CREATE TABLE IF NOT EXISTS dose_labels (url TEXT PRIMARY KEY, title TEXT NOT NULL DEFAULT '', label TEXT NOT NULL DEFAULT '', directions TEXT NOT NULL DEFAULT '', fetched_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS dose_checks (slug TEXT PRIMARY KEY, json TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS video_trial_stats (ref TEXT NOT NULL, day TEXT NOT NULL, json TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (ref, day));
 
 -- Backlink outreach (src/backlinks.ts): prospects, what happened to each, and the directory checklist.

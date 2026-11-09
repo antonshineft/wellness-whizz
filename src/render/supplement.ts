@@ -1,5 +1,6 @@
 /** /supplement/:slug — the "Supplements" CMS template page. */
 import type { Supplement } from '../db';
+import { doseSection, type DoseCheck } from '../dose';
 import { escapeHtml } from '../html';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
@@ -215,6 +216,8 @@ export interface SupplementPageExtras {
   origin?: string;
   /** The newest research notes about this supplement (src/research.ts), shown as "Latest Research". */
   notes?: readonly ResearchNote[];
+  /** The dose check for this supplement's picks (src/dose.ts); shown under the picks when present. */
+  dose?: DoseCheck | null;
 }
 
 /** "Latest Research": the newest notes about this supplement, each linking its own page under /research/. */
@@ -384,7 +387,7 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
         </div>
         ${reviewedLine(sup.updated_at || sup.created_at)}
       </div>
-    </div>${productPicks(env, sup)}
+    </div>${productPicks(env, sup)}${doseSection(extras.dose ?? null)}
     <div data-w-id="2841e5e2-b1d4-d414-f4f8-0c4efba35769" style="opacity:0.27;-webkit-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-moz-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-ms-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0)" class="_3-columns">
       <div class="column-5">
         <div class="frame-226">${detailImage(sup)}</div>

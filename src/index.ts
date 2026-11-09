@@ -61,6 +61,7 @@ import {
 import { runQuizPipeline } from './pipeline';
 import { dashboardToken, snapshotTrials, trialDashboard } from './trialboard';
 import { getLearned, learnFromTrials } from './triallearn';
+import { checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels } from './dose';
 import { feedItems } from './social/feeds';
 import { autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
@@ -91,6 +92,8 @@ export interface Bindings {
   /** The Reddit digest (src/reddit.ts). */
   DIGEST_TO?: string;
   REDDIT_DIGEST?: string;
+  /** The dose check on supplement pages (src/dose.ts): "true", "preview" (only with ?dose=preview) or "false". */
+  DOSE_CHECK?: string;
   /** Trial reels (src/trials.ts): "true" runs the daily loop; TRIALS_SKIP lists video slugs it leaves alone. */
   TRIALS_AUTO?: string;
   TRIALS_SKIP?: string;
@@ -383,7 +386,11 @@ pageRoute('/supplement/:slug', async (c, lang) => {
   const [explore, related] = await Promise.all([localizeSupplements(c.env.DB, lang, exploreEn), localizeSupplements(c.env.DB, lang, relatedEn)]);
   const alternates = lang === 'en' ? await hasTranslation(c.env.DB, 'es', 'supplement', supplement.slug) : !pending;
   track(c, { type: 'supplement_view', page: `/supplement/${supplement.slug}`, slug: supplement.slug });
-  const html = renderSupplementPage(localizeSupplement(supplement, translation), explore, c.env, { related, origin: new URL(c.req.url).origin, notes });
+  // The dose check (src/dose.ts) is English only. DOSE_CHECK "true" shows it to everyone; "preview" (the default)
+  // only with ?dose=preview, so the owner can review it before readers see it; "false" hides it.
+  const doseMode = c.env.DOSE_CHECK ?? 'preview';
+  const dose = lang === 'en' && (doseMode === 'true' || (doseMode === 'preview' && c.req.query('dose') === 'preview')) ? await getDoseCheck(c.env.DB, supplement.slug) : null;
+  const html = renderSupplementPage(localizeSupplement(supplement, translation), explore, c.env, { related, origin: new URL(c.req.url).origin, notes, dose });
   const body = pending ? new Response(html, { status: 200, headers: { ...htmlHeaders('public, max-age=60'), 'x-robots-tag': 'noindex' } }) : html;
   return sendPage(c, body, lang, `/supplement/${supplement.slug}`, 'public, max-age=300', alternates);
 });
@@ -1535,6 +1542,59 @@ app.post('/api/admin/videos/:slug/schedule', async (c) => {
   if (when && !/^\d{4}-\d{2}-\d{2}$/.test(when)) return c.json({ error: 'when must be YYYY-MM-DD' }, 400);
   const r = await autoPost(c.env, row, cover, when || undefined);
   return r.ok ? c.json({ ok: true, where: r.where, when: r.when }) : c.json({ ok: false, error: r.message }, 502);
+});
+
+// ---- Dose check (src/dose.ts): each product pick's daily amount against the official or studied range ----
+/** Owner-only: every supplement with its picks, which have a stored label, and which are checked (for the label collector). */
+app.get('/api/admin/dose/products', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const sups = await listSupplements(c.env.DB, 500, false);
+  const have = new Set((await c.env.DB.prepare('SELECT url FROM dose_labels').all<{ url: string }>()).results.map((r) => r.url));
+  const done = new Set((await c.env.DB.prepare('SELECT slug FROM dose_checks').all<{ slug: string }>()).results.map((r) => r.slug));
+  return c.json({ supplements: sups.map((s) => ({ slug: s.slug, name: s.name, category: s.category, official: !!nutrientFor(s), checked: done.has(s.slug), products: s.products.slice(0, 5).map((p) => ({ name: p.name, url: p.url, label: have.has(p.url) })) })) });
+});
+
+/** The label collector stores what it read from the shop: {items: [{url, title, label, directions}]}. */
+app.post('/api/admin/dose/labels', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const body = (await c.req.json().catch(() => ({}))) as { items?: { url: string; title?: string; label?: string; directions?: string }[] };
+  return c.json({ stored: await storeLabels(c.env.DB, Array.isArray(body.items) ? body.items : []) });
+});
+
+/** Owner-only: check the next supplements through the Claude API (?n=2, or ?slug= for one; &redo=1 checks again). */
+app.post('/api/admin/dose/run', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const sups = (await listSupplements(c.env.DB, 500, false)).filter((s) => s.products.length);
+  const done = new Set((await c.env.DB.prepare('SELECT slug FROM dose_checks').all<{ slug: string }>()).results.map((r) => r.slug));
+  const slug = (c.req.query('slug') ?? '').trim();
+  const redo = c.req.query('redo') === '1';
+  const n = Math.min(4, Math.max(1, Number(c.req.query('n') ?? '2') || 2));
+  const todo = (slug ? sups.filter((s) => s.slug === slug) : sups.filter((s) => redo || !done.has(s.slug))).slice(0, slug ? 1 : n);
+  const results: { slug: string; ok: boolean; note: string }[] = [];
+  for (const s of todo) {
+    try {
+      const check = await checkSupplement(c.env, s);
+      results.push({ slug: s.slug, ok: true, note: check.products.map((p) => p.state).join(',') });
+    } catch (err) {
+      results.push({ slug: s.slug, ok: false, note: String(err instanceof Error ? err.message : err).slice(0, 160) });
+    }
+  }
+  const remaining = sups.filter((s) => !done.has(s.slug) && !results.some((r) => r.slug === s.slug && r.ok)).length;
+  return c.json({ results, remaining, total: sups.length });
+});
+
+/** Owner-only: which pages have a pick outside the comfortable range. */
+app.get('/api/admin/dose/report', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  return c.json(doseReport(await listDoseChecks(c.env.DB)));
 });
 
 // ---- Trial reels (src/trials.ts): the same footage with one line changed, tested on non-followers ----
