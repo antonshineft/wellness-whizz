@@ -27,7 +27,7 @@ jobs:
             gh api "repos/$GH_REPO/actions/artifacts/$id/zip" > a.zip || continue
             unzip -q -o a.zip -d a || continue
             [ -f a/clip1.mp4 ] || { echo "artifact $id: no clips"; continue; }
-            slug=$(cd a && ls ./*-cover.jpg 2> /dev/null | head -1 | sed 's|^\./||; s/-cover\.jpg$//')
+            slug=$(cd a && ls ./*-cover.jpg 2> /dev/null | head -1 | sed 's|^\./||; s/-cover\.jpg$//; s/-[0-9]\{8\}-[0-9]\{4\}$//')
             [ -n "$slug" ] || { echo "artifact $id: no finished video"; continue; }
             if echo "$have" | grep -qx "$slug-clips.zip"; then echo "artifact $id: $slug already kept"; continue; fi
             (cd a && zip -q -0 "../$slug-clips.zip" clip*.mp4)

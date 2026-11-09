@@ -75,7 +75,7 @@ jobs:
         run: |
           cd video/work 2> /dev/null || exit 0
           [ -f clip1.mp4 ] || exit 0
-          slug=$(ls ./*-cover.jpg 2> /dev/null | head -1 | sed 's|^\./||; s/-cover\.jpg$//')
+          slug=$(ls ./*-cover.jpg 2> /dev/null | head -1 | sed 's|^\./||; s/-cover\.jpg$//; s/-[0-9]\{8\}-[0-9]\{4\}$//')
           [ -n "$slug" ] || exit 0
           zip -q -0 "/tmp/$slug-clips.zip" clip*.mp4
           gh release view clips > /dev/null 2>&1 || gh release create clips --title "Raw clips" --notes "The generated scene clips of each video, kept so new cuts can be made without paying for footage again."

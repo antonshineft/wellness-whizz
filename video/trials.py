@@ -2,7 +2,7 @@
 
 Usage: python video/trials.py <slug>
 Env: WW_ORIGIN, WW_STATS_KEY, ELEVENLABS_API_KEY (render.py reads its own), GH_REPO; `gh` signed in through GH_TOKEN.
-The clips come from the "clips" release (<slug>-clips.zip), which the render workflow fills after every new video.
+The clips come from the "clips" release (<slug>-clips.zip, or <slug>-<time stamp>-clips.zip for older renders), which the render workflow fills after every new video.
 No footage is generated here, so a trial costs only its narration.
 """
 import json
@@ -37,11 +37,14 @@ def main() -> int:
         return 0
     clips = ROOT / 'trial-clips' / slug
     clips.mkdir(parents=True, exist_ok=True)
-    archive = clips / f'{slug}-clips.zip'
-    got = subprocess.run(['gh', 'release', 'download', 'clips', '-R', REPO, '-p', archive.name, '-D', str(clips), '--clobber'], capture_output=True, text=True)
-    if got.returncode != 0 or not archive.exists():
-        print(f'the clips release has no {archive.name}: {got.stderr.strip()[:200]}', file=sys.stderr)
+    # Kept as <slug>-clips.zip; sets copied from older artifacts carry the render's time stamp (<slug>-YYYYMMDD-HHMM-clips.zip).
+    got = subprocess.run(['gh', 'release', 'download', 'clips', '-R', REPO, '-p', f'{slug}-clips.zip', '-p', f'{slug}-20??????-????-clips.zip', '-D', str(clips), '--clobber'],
+                         capture_output=True, text=True)
+    found = sorted(clips.glob(f'{slug}-*clips.zip')) + sorted(clips.glob(f'{slug}-clips.zip'))
+    if got.returncode != 0 or not found:
+        print(f'the clips release has no clips for {slug}: {got.stderr.strip()[:200]}', file=sys.stderr)
         return 1
+    archive = found[-1]
     with zipfile.ZipFile(archive) as z:
         z.extractall(clips, members=[n for n in z.namelist() if n.startswith('clip') and n.endswith('.mp4') and '/' not in n])
     failed = 0
