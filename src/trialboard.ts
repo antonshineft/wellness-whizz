@@ -236,7 +236,7 @@ tbody th{font-weight:400;min-width:230px}.who{display:block}.who em{color:var(--
 @media (max-width:640px){thead{display:none}tbody tr{display:block;border-top:1px solid var(--grid);padding:10px 0}tbody th,td{display:block;border:0;padding:2px 0}td.num{display:flex;justify-content:space-between;text-align:right;gap:12px}td.num:before{content:attr(data-label);color:var(--ink2);font-size:13px}td small{display:inline;margin-left:6px}}
 </style></head><body><main>
 <h1>Trial reels</h1>
-<p class="sub">Each test shows one video with one line changed per trial. Numbers come from Instagram through Zernio and are stored once a day${last ? `; last update ${escapeHtml(madrid(last))}` : ''}. <a href="/trials/${escapeHtml(token)}?refresh=1">Refresh now</a></p>
+<p class="sub">Each test shows one video with one line changed per trial. Numbers come from Instagram through Zernio and are stored once a day${last ? `; last update ${escapeHtml(madrid(last))}` : ''}. <a href="/api/trials/${escapeHtml(token)}?refresh=1">Refresh now</a></p>
 ${cards.join('\n') || '<section class="card"><p>No trial has been posted yet.</p></section>'}
 ${waitingList}
 <p class="sub">How to read it: "Skipped in 3 s" judges the opening (lower is better). Average watch time, shares and saves judge the rest. A test needs about ${MIN_VIEWS} views per version before a difference means anything.</p>

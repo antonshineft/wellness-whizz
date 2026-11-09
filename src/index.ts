@@ -1528,11 +1528,11 @@ app.get('/api/admin/trials/dashboard', async (c) => {
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
   const snapshot = c.req.query('snapshot') === '1' ? await snapshotTrials(c.env) : null;
-  return c.json({ url: `${siteOrigin(c.env)}/trials/${await dashboardToken(c.env.DB)}`, snapshot });
+  return c.json({ url: `${siteOrigin(c.env)}/api/trials/${await dashboardToken(c.env.DB)}`, snapshot });
 });
 
 /** The trial-reel dashboard (src/trialboard.ts), opened through its own unguessable link. */
-app.get('/trials/:token', async (c) => {
+app.get('/api/trials/:token', async (c) => {
   await ensureDatabase(c.env.DB);
   const token = await dashboardToken(c.env.DB);
   if ((c.req.param('token') ?? '') !== token) return c.text('Not found', 404);
@@ -1540,7 +1540,7 @@ app.get('/trials/:token', async (c) => {
     // At most one live refresh every ten minutes; the daily cron does the rest.
     const last = Date.parse((await getMeta(c.env.DB, 'trials:snapshot')) ?? '') || 0;
     if (Date.now() - last > 10 * 60_000) await snapshotTrials(c.env);
-    return c.redirect(`/trials/${token}`, 302);
+    return c.redirect(`/api/trials/${token}`, 302);
   }
   return c.body(await trialDashboard(c.env, token), 200, { ...htmlHeaders('no-store'), 'x-robots-tag': 'noindex, nofollow' });
 });
