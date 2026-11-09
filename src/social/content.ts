@@ -19,6 +19,7 @@ import { alertRecipient, sendEmail, type EmailEnv } from '../email';
 import { escapeHtml } from '../html';
 import { chatJson, useFakeAi, type AiEnv } from '../openai';
 import { notePath, pubmedAbstract, pubmedSummaries, pubmedUrl, searchPubmedTerm, unqueuedNotes, type ResearchNote } from '../research';
+import { feedItems, type FeedItem } from './feeds';
 import { postThread, tweetLength, xEnabled, type XEnv } from './x';
 
 export interface SocialEnv extends AiEnv, XEnv, EmailEnv {
@@ -236,72 +237,80 @@ const DISCOVERY_TERM =
 const pickSchema = {
   type: 'object',
   additionalProperties: false,
-  properties: { pmids: { type: 'array', items: { type: 'string' }, description: 'Up to eight PMIDs, most striking first, exactly as given.' } },
+  properties: { pmids: { type: 'array', items: { type: 'string' }, description: 'Up to ten IDs, most striking first, exactly as given.' } },
   required: ['pmids'],
 } as const;
 
 /**
- * "Discoveries this week": striking new findings from the leading journals. Titles are screened first, then the
- * abstracts of the short list are read, so every post rests on what the paper itself reports. Null when PubMed
- * returns too little.
+ * "Discoveries this week": striking new findings from the leading journals (PubMed) and the week's announcements
+ * from regulators, health agencies and journal news desks (src/social/feeds.ts). Titles are screened first, then
+ * the abstracts or summaries of the short list are read, so every post rests on what the source itself reports.
+ * Null when there is too little material.
  */
-export async function discoveriesDigest(env: SocialEnv): Promise<{ week: string; candidates: number; tweets: string[] } | null> {
+export async function discoveriesDigest(env: SocialEnv): Promise<{ week: string; candidates: number; sources: string[]; tweets: string[] } | null> {
   const week = weekKey(new Date());
-  if (useFakeAi(env)) return { week, candidates: 0, tweets: ['[Dev mode] Discoveries this week.', '[Dev mode] One finding.', '[Dev mode] Another finding.'] };
+  if (useFakeAi(env)) return { week, candidates: 0, sources: [], tweets: ['[Dev mode] Discoveries this week.', '[Dev mode] One finding.', '[Dev mode] Another finding.'] };
   const earlier = (await env.DB.prepare("SELECT thread_json FROM social_posts WHERE kind = 'discoveries' ORDER BY id DESC LIMIT 6").all<{ thread_json: string }>()).results.map((r) => r.thread_json).join(' ');
-  const ids = (await searchPubmedTerm(env, DISCOVERY_TERM, 8, 60)).filter((id) => !earlier.includes(`/${id}/`));
+  // Two kinds of candidate: new papers in the leading journals (PubMed) and the week's items from the news feeds.
+  const ids = (await searchPubmedTerm(env, DISCOVERY_TERM, 8, 50)).filter((id) => !earlier.includes(`/${id}/`));
   const summaries = await pubmedSummaries(env, ids);
-  if (summaries.length < 6) return null;
+  const news = (await feedItems(8, 6).catch(() => ({ items: [] as FeedItem[] }))).items.filter((i) => i.summary.length >= 120 && !earlier.includes(i.link));
+  if (summaries.length + news.length < 6) return null;
   const picked = await chatJson<{ pmids: string[] }>(
     env,
     'discoveries_pick',
     pickSchema,
     [
-      'From these new papers in leading medical and science journals, pick the eight that an ordinary curious adult would most want to hear about: a real advance in treating or preventing a common condition, a first in humans, a surprising finding about sleep, food, exercise, ageing or the brain, a new technology that worked in a trial.',
-      'Skip health-policy, economics, medical education, case reports, methods papers and anything too narrow to matter outside a specialty. Spread the picks over different fields.',
+      'From this week\'s new papers and announcements, pick the ten that an ordinary curious adult would most want to hear about: a real advance in treating or preventing a common condition, a first in humans, a surprising finding about sleep, food, exercise, ageing or the brain, a new technology that worked in a trial, an important safety decision.',
+      'Skip health-policy, economics, medical education, case reports, methods papers, product recalls of single batches, staff news and anything too narrow to matter outside a specialty. Spread the picks over different fields and over different sources. Return each ID exactly as given (a number for a paper, or a code like F3-2 for an announcement).',
       '',
-      ...summaries.map((s) => `PMID ${s.uid} | ${s.source ?? s.fulljournalname ?? ''} | ${s.title}`),
+      ...summaries.map((s) => `ID ${s.uid} | ${s.source ?? s.fulljournalname ?? ''} | ${s.title}`),
+      ...news.map((n) => `ID ${n.id} | ${n.source} | ${n.title}`),
     ].join('\n'),
-    { tier: 'screen', maxTokens: 800 },
+    { tier: 'screen', maxTokens: 900 },
   );
-  const known = new Map(summaries.map((s) => [s.uid, s]));
-  const short = [...new Set((picked.pmids ?? []).map((p) => String(p).trim()))].filter((p) => known.has(p)).slice(0, 8);
-  const papers: { pmid: string; journal: string; title: string; abstract: string }[] = [];
-  for (const pmid of short) {
+  const paperById = new Map(summaries.map((s) => [s.uid, s]));
+  const newsById = new Map(news.map((n) => [n.id, n]));
+  const short = [...new Set((picked.pmids ?? []).map((p) => String(p).replace(/^ID\s+/i, '').trim()))].filter((p) => paperById.has(p) || newsById.has(p)).slice(0, 10);
+  const material: { id: string; source: string; title: string; text: string; link: string }[] = [];
+  for (const id of short) {
+    const n = newsById.get(id);
+    if (n) { material.push({ id, source: n.source, title: n.title, text: n.summary, link: n.link }); continue; }
     try {
-      const abstract = await pubmedAbstract(env, pmid);
-      const s = known.get(pmid)!;
-      if (abstract.length > 300) papers.push({ pmid, journal: s.source ?? s.fulljournalname ?? '', title: s.title, abstract: abstract.slice(0, 1800) });
+      const abstract = await pubmedAbstract(env, id);
+      const s = paperById.get(id)!;
+      if (abstract.length > 300) material.push({ id, source: s.source ?? s.fulljournalname ?? '', title: s.title, text: abstract.slice(0, 1800), link: pubmedUrl(id) });
     } catch (err) {
-      console.warn(`discoveries: abstract ${pmid} failed: ${String(err)}`);
+      console.warn(`discoveries: abstract ${id} failed: ${String(err)}`);
     }
   }
-  if (papers.length < 3) return null;
+  if (material.length < 3) return null;
   const draft = await chatJson<{ intro: string; items: { pmid: string; text: string }[] }>(
     env,
     'discoveries_digest',
     weeklySchema,
     [
       `Write this week's thread for X from Wellness Whizz about discoveries in medicine and health. ${VOICE}`,
-      'Choose the four or five most striking papers below. For each, one post: what was found and why it is remarkable, in plain words a friend would repeat.',
-      'Wonder is welcome; exaggeration is not. State the stage honestly in every post (in cells, in mice, a first small trial in people, a large trial). Never say cure, breakthrough or miracle, never predict when it reaches patients, never give advice. Use only what the abstract reports, with its own numbers.',
+      'Choose the five most striking items below, from at least three different sources. For each, one post: what was found or decided and why it is remarkable, in plain words a friend would repeat. Put the ID of the item, exactly as given, in the pmid field.',
+      'Wonder is welcome; exaggeration is not. State the stage honestly in every post (in cells, in mice, a first small trial in people, a large trial, a regulator\'s decision). When the item is an announcement by an agency, name the agency. Never say cure, breakthrough or miracle, never predict when something reaches patients, never give advice. Use only what the text reports, with its own numbers.',
       'The intro post names the thread ("Discoveries this week") and leads with the single most surprising finding.',
       '',
-      ...papers.map((p) => `PMID ${p.pmid} | ${p.journal} | ${p.title}\nAbstract: ${p.abstract}`),
+      ...material.map((m) => `ID ${m.id} | ${m.source} | ${m.title}\nText: ${m.text}`),
     ].join('\n'),
     { tier: 'fast', maxTokens: 3000 },
   );
-  const byPmid = new Map(papers.map((p) => [p.pmid, p]));
+  const byId = new Map(material.map((m) => [m.id, m]));
   const seen = new Set<string>();
-  const items = (draft.items ?? []).filter((i) => byPmid.has(String(i.pmid).trim()) && !seen.has(String(i.pmid).trim()) && seen.add(String(i.pmid).trim()) && String(i.text ?? '').trim()).slice(0, 5);
+  const norm = (v: unknown) => String(v).replace(/^ID\s+/i, '').trim();
+  const items = (draft.items ?? []).filter((i) => byId.has(norm(i.pmid)) && !seen.has(norm(i.pmid)) && seen.add(norm(i.pmid)) && String(i.text ?? '').trim()).slice(0, 5);
   if (items.length < 3) throw new Error('discoveries digest: fewer than three usable items came back');
   const clip = (t: string, max: number) => (t.length > max ? `${t.slice(0, max - 1).replace(/\s+\S*$/, '')}\u2026` : t);
   const tweets = [
-    clip(String(draft.intro ?? '').trim() || 'Discoveries this week, from the leading medical journals.', 270),
-    ...items.map((i) => `${clip(i.text.trim(), 240)} ${pubmedUrl(String(i.pmid).trim())}`),
-    `Each link goes to the study itself. For what the evidence says about supplements: ${siteOrigin(env)}/research`,
+    clip(String(draft.intro ?? '').trim() || 'Discoveries this week, from the leading journals and health agencies.', 270),
+    ...items.map((i) => `${clip(i.text.trim(), 240)} ${byId.get(norm(i.pmid))!.link}`),
+    `Each link goes to the source itself. For what the evidence says about supplements: ${siteOrigin(env)}/research`,
   ];
-  return { week, candidates: summaries.length, tweets };
+  return { week, candidates: summaries.length + news.length, sources: [...new Set(items.map((i) => byId.get(norm(i.pmid))!.source))], tweets };
 }
 
 /**

@@ -20,15 +20,16 @@ export const FEEDS: { name: string; url: string }[] = [
   { name: 'WHO (news)', url: 'https://www.who.int/rss-feeds/news-english.xml' },
   { name: 'CDC (newsroom)', url: 'https://tools.cdc.gov/api/v2/resources/media/132608.rss' },
   { name: 'European Medicines Agency (news)', url: 'https://www.ema.europa.eu/en/news.xml' },
+  { name: 'MHRA (UK medicines regulator)', url: 'https://www.gov.uk/government/organisations/medicines-and-healthcare-products-regulatory-agency.atom' },
   { name: 'EFSA (European Food Safety Authority)', url: 'https://www.efsa.europa.eu/en/all/rss' },
-  { name: 'Cochrane (news and new reviews)', url: 'https://www.cochrane.org/news/feed' },
+  { name: 'Cochrane (news and new reviews)', url: 'https://www.cochrane.org/rss.xml' },
   { name: 'Nature (news)', url: 'https://www.nature.com/nature.rss' },
+  { name: 'Nature Medicine (new papers)', url: 'https://www.nature.com/nm.rss' },
   { name: 'Science (news)', url: 'https://www.science.org/rss/news_current.xml' },
+  { name: 'Cell (new papers)', url: 'https://www.cell.com/cell/inpress.rss' },
   { name: 'The BMJ (latest)', url: 'https://www.bmj.com/rss/recent.xml' },
   { name: 'NEJM (current articles)', url: 'https://www.nejm.org/action/showFeed?jc=nejm&type=etoc&feed=rss' },
-  { name: 'The Lancet (online first)', url: 'https://www.thelancet.com/rssfeed/lancet_online.xml' },
-  { name: 'National Institute on Aging (news)', url: 'https://www.nia.nih.gov/news/rss.xml' },
-  { name: 'Harvard Health (blog)', url: 'https://www.health.harvard.edu/blog/feed' },
+  { name: 'JAMA (current issue)', url: 'https://jamanetwork.com/rss/site_3/67.xml' },
 ];
 
 /** The site names itself to the feeds it reads, as it does to PubMed. */
