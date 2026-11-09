@@ -60,7 +60,7 @@ import {
 } from './db';
 import { runQuizPipeline } from './pipeline';
 import { dashboardToken, snapshotTrials, trialDashboard } from './trialboard';
-import { listTrials, markTrialReady, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
+import { autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
 import { analyticsStep, gscSummary, inspectStep, type InspectOptions } from './gsc';
 import { exportToken, sheetCounts, sheetLastSync, sheetRows, sheetUrl, syncSheet } from './sheet';
@@ -89,6 +89,9 @@ export interface Bindings {
   /** The Reddit digest (src/reddit.ts). */
   DIGEST_TO?: string;
   REDDIT_DIGEST?: string;
+  /** Trial reels (src/trials.ts): "true" runs the daily loop; TRIALS_SKIP lists video slugs it leaves alone. */
+  TRIALS_AUTO?: string;
+  TRIALS_SKIP?: string;
   REDDIT_MAX_THREADS?: string;
   REDDIT_MAX_REPLIES?: string;
   /** The article pipeline (src/articles.ts): topics queued on its own per week ("0" = off) and the first draft's thinking depth. */
@@ -1475,6 +1478,27 @@ app.get('/api/admin/trials', async (c) => {
   const slug = (c.req.query('slug') ?? '').trim();
   if (c.req.query('jobs') === '1') return slug ? c.json({ jobs: await trialJobs(c.env, slug) }) : c.json({ error: 'slug is required' }, 400);
   return c.json({ trials: await listTrials(c.env.DB, slug || undefined) });
+});
+
+/** The morning workflow asks what to render: yesterday's video with a fresh batch of trials (TRIALS_AUTO=true). */
+app.get('/api/admin/trials/next', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  try {
+    return c.json(await nextTrialBatch(c.env));
+  } catch (err) {
+    return c.json({ slug: null, reason: String(err instanceof Error ? err.message : err), jobs: [] }, 502);
+  }
+});
+
+/** The morning workflow, after rendering: schedule that video's rendered trials for today (TRIALS_AUTO=true). */
+app.post('/api/admin/trials/:slug/autopost', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const r = await autoPostTrials(c.env, c.req.param('slug') ?? '');
+  return c.json(r, r.ok ? 200 : 502);
 });
 
 /** Owner-only: the numbers of every posted trial, read from Zernio (?slug= for one video). */

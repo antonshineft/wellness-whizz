@@ -8,12 +8,14 @@
  *     footage is paid for) and reports the file here.
  *  3. postTrial schedules a file as a trial reel through Zernio, only when the owner said yes. Trials are never deleted.
  *  4. trialStats reads each trial's numbers back from Zernio (skip rate, watch time, shares, saves).
+ *  5. The daily loop (nextTrialBatch, autoPostTrials; TRIALS_AUTO=true): every morning the workflow asks for
+ *     yesterday's video, renders three variations and schedules them for the same day, on the owner's standing yes.
  *
  * The hook formats and the four ways an opening fails follow the open "hook-master" skill by Liam Johnston.
  */
 import { claudeJson } from './claude';
 import { MAX_SCENE_WORDS, getVideo, parseScript, type VideoEnv, type VideoScript } from './videos';
-import { createPost, deletePost, getPost, listAccounts, postAnalytics, uploadVideo, type ZernioEnv } from './zernio';
+import { createPost, deletePost, getPost, listAccounts, postAnalytics, recentPublished, uploadVideo, type ZernioEnv } from './zernio';
 
 export type TrialKind = 'hook' | 'ending';
 
@@ -249,4 +251,60 @@ export async function resetTrial(env: VideoEnv, slug: string, n: number): Promis
   if (!gone.ok && !/404/.test(gone.message)) return gone;
   await env.DB.prepare("UPDATE video_trials SET status = 'ready', publish_id = '', scheduled_for = '', updated_at = datetime('now') WHERE id = ?").bind(row.id).run();
   return { ok: true };
+}
+
+// ---- The daily loop ----
+
+const madridDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+const madridClock = (d: Date) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
+/** Batches rotate through these hours (Madrid), so the time of day is tested between batches while a batch shares one hour. */
+const TRIAL_HOURS = ['13:00', '18:00', '21:00'];
+
+type TrialAutoEnv = VideoEnv & { TRIALS_AUTO?: string; TRIALS_SKIP?: string };
+
+/**
+ * What the morning workflow should render: the video that was published yesterday (Madrid time), with a fresh batch
+ * of two openings and one ending written by the Claude API unless that video already has trials.
+ */
+export async function nextTrialBatch(env: TrialAutoEnv): Promise<{ slug: string | null; reason: string; jobs: { n: number; job: ReturnType<typeof trialJob> }[] }> {
+  if (env.TRIALS_AUTO !== 'true') return { slug: null, reason: 'TRIALS_AUTO is not "true"', jobs: [] };
+  const yesterday = madridDay(new Date(Date.now() - 24 * 3600_000));
+  const published = (await recentPublished(env as ZernioEnv, 20)).filter((p) => p.video && p.at && madridDay(new Date(p.at)) === yesterday);
+  let slug = '';
+  for (const p of published) {
+    const row = await env.DB.prepare('SELECT slug FROM videos WHERE publish_id = ?').bind(`zernio:${p.id}`).first<{ slug: string }>();
+    if (row) { slug = row.slug; break; }
+  }
+  if (!slug) return { slug: null, reason: `no video of ours was published on ${yesterday}`, jobs: [] };
+  if ((env.TRIALS_SKIP ?? '').split(',').map((s) => s.trim()).includes(slug)) return { slug, reason: 'this video is on the skip list (its raw clips are not clean)', jobs: [] };
+  const existing = await listTrials(env.DB, slug);
+  if (!existing.length) {
+    const written = await writeTrials(env, slug, 2, 1);
+    if (!written.ok) return { slug, reason: `writing failed: ${written.message}`, jobs: [] };
+  }
+  const jobs = await trialJobs(env, slug);
+  return { slug, reason: jobs.length ? 'render these' : 'this video already has its trials', jobs };
+}
+
+/** Schedule every rendered ("ready") trial of a video for today, two minutes apart, in this batch's hour. */
+export async function autoPostTrials(env: TrialAutoEnv, slug: string): Promise<{ ok: boolean; posted: { n: number; when: string }[]; errors: string[] }> {
+  if (env.TRIALS_AUTO !== 'true') return { ok: false, posted: [], errors: ['TRIALS_AUTO is not "true"'] };
+  const ready = (await listTrials(env.DB, slug)).filter((r) => r.status === 'ready');
+  if (!ready.length) return { ok: false, posted: [], errors: ['nothing rendered is waiting'] };
+  const batches = (await env.DB.prepare("SELECT COUNT(DISTINCT slug || substr(scheduled_for, 1, 10)) AS c FROM video_trials WHERE status = 'posted'").first<{ c: number }>())?.c ?? 0;
+  const now = new Date();
+  const soon = madridClock(new Date(now.getTime() + 15 * 60_000));
+  const wanted = TRIAL_HOURS[batches % TRIAL_HOURS.length];
+  // An hour that has already passed today falls back to a quarter of an hour from now.
+  const [h, m] = (wanted > soon ? wanted : soon).split(':').map(Number);
+  const posted: { n: number; when: string }[] = [];
+  const errors: string[] = [];
+  for (const [i, r] of ready.entries()) {
+    const minutes = h * 60 + m + i * 2;
+    const when = `${madridDay(now)}T${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:00`;
+    const res = await postTrial(env, slug, r.n, when, 'reels_tab');
+    if (res.ok) posted.push({ n: r.n, when });
+    else errors.push(`trial ${r.n}: ${res.message}`);
+  }
+  return { ok: !errors.length, posted, errors };
 }

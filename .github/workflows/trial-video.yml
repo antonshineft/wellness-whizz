@@ -1,13 +1,18 @@
 # Renders the waiting trial reels of one video (src/trials.ts, video/trials.py): the kept clips with one narration line
-# changed. No footage is generated, so a run costs only the narration. Nothing is posted from here.
+# changed. No footage is generated, so a run costs only the narration. A manual run with a slug posts nothing; the
+# scheduled run schedules its three reels through the site (TRIALS_AUTO in wrangler.jsonc switches that off).
 name: Trial video
 
 on:
+  # The daily loop, 08:40 in Madrid in winter: yesterday's video gets three variations, scheduled for the same day.
+  schedule:
+    - cron: '40 7 * * *'
   workflow_dispatch:
     inputs:
       slug:
-        description: 'Video slug whose waiting trials to render'
-        required: true
+        description: 'Video slug whose waiting trials to render (nothing is posted). Empty: run the daily loop now.'
+        required: false
+        default: ''
 
 permissions:
   contents: write

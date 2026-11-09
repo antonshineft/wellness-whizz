@@ -56,6 +56,10 @@
     // A rendered video is posted through Zernio as soon as it is ready (src/videos.ts); "false" waits for the posting page.
     "VIDEO_AUTOPOST": "false",
     "VIDEO_MONTHLY_LIMIT": "30",
+    // Trial reels (src/trials.ts): "true" lets the morning workflow post three variations of yesterday's video (one line
+    // changed each) as reels kept out of the feed; "false" stops it. TRIALS_SKIP: videos whose raw clips are not clean.
+    "TRIALS_AUTO": "true",
+    "TRIALS_SKIP": "glycine-three-am-clock,saffron-price-tag",
     "VIDEO_APPROVAL": "true",
     "VIDEO_POST_TIME": "09:00",
     "VIDEO_TIMEZONE": "Europe/Madrid",
