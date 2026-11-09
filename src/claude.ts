@@ -83,7 +83,7 @@ export async function claudeJson<T>(env: ClaudeEnv, system: string, user: string
     .filter((block): block is Anthropic.TextBlock => block.type === 'text')
     .map((block) => block.text)
     .join('');
-  if (!text.trim()) throw new ClaudeAnswerError('Claude returned an empty answer', response.stop_reason);
+  if (!text.trim()) throw new ClaudeAnswerError(`Claude returned an empty answer (stop reason: ${response.stop_reason ?? 'none'}${response.stop_reason === 'max_tokens' ? '; the token allowance ran out before the answer began' : ''})`, response.stop_reason);
   if (response.stop_reason === 'max_tokens') throw new ClaudeAnswerError('Claude ran out of output tokens before finishing the JSON', response.stop_reason);
   try {
     return JSON.parse(text) as T;

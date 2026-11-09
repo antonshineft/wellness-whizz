@@ -93,6 +93,8 @@ export const MAX_SCENE_WORDS = 28;
 /** Spoken words per video. The render job refuses scripts far above this. */
 const MAX_SCRIPT_WORDS = SCENES * MAX_SCENE_WORDS;
 const MAX_ATTEMPTS = 2;
+/** Three nine-scene scripts under the variety rules take the model a lot of working-out before the answer starts; 16,000 tokens ran out and left an empty answer. */
+const SCRIPT_TOKENS = 40000;
 /** Each render costs real money (Google video model, narrator), so the job hands out at most this many a month. */
 export const DEFAULT_MONTHLY_LIMIT = 8;
 
@@ -318,7 +320,7 @@ ${faq ? `FAQ:\n${faq}` : ''}
 
 Write ${VARIANTS} complete ${SCENES}-scene scripts from three different connected angles (narration and visual for each scene, angle, title, caption, hashtags, product_slug).${await learnedNote(env.DB)}`;
   const longest = (sc: VideoScript) => Math.max(...sc.scenes.map((x) => words(x.narration)));
-  let scripts = (await claudeJson<{ variants: VideoScript[] }>(env, SCRIPT_SYSTEM, user, variantsSchema, { tier: 'fast', maxTokens: 16000, timeoutMs: 120_000 })).variants
+  let scripts = (await claudeJson<{ variants: VideoScript[] }>(env, SCRIPT_SYSTEM, user, variantsSchema, { tier: 'fast', maxTokens: SCRIPT_TOKENS, timeoutMs: 280_000 })).variants
     .slice(0, VARIANTS).map((sc) => tidyScript(sc, sup?.slug ?? hero));
   if (!scripts.length) throw new Error('no scripts came back');
   // The model tends to overshoot; one shortening pass keeps every scene inside its ten seconds.
@@ -326,7 +328,7 @@ Write ${VARIANTS} complete ${SCENES}-scene scripts from three different connecte
   if (over.length) {
     const shorter = (await claudeJson<{ variants: VideoScript[] }>(env, SCRIPT_SYSTEM,
       `${user}\n\nYour previous scripts have scenes too long for the narrator (${over.map((x) => `script ${x.k + 1}: a scene has ${x.n} words`).join('; ')}). Here they are:\n${JSON.stringify({ variants: scripts })}\n\nReturn the same ${scripts.length} scripts with between 23 and ${MAX_SCENE_WORDS - 1} spoken words in every scene's narration (stage directions in brackets do not count), same angles, facts and visuals; cut the least important clause of each long scene.`,
-      variantsSchema, { tier: 'fast', maxTokens: 16000, timeoutMs: 120_000 })).variants.slice(0, VARIANTS).map((sc) => tidyScript(sc, sup?.slug ?? hero));
+      variantsSchema, { tier: 'fast', maxTokens: SCRIPT_TOKENS, timeoutMs: 280_000 })).variants.slice(0, VARIANTS).map((sc) => tidyScript(sc, sup?.slug ?? hero));
     if (shorter.length === scripts.length && Math.max(...shorter.map(longest)) <= Math.max(...scripts.map(longest))) scripts = shorter;
   }
   const worst = Math.max(...scripts.map(longest));
