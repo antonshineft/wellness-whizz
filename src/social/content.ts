@@ -190,6 +190,11 @@ export async function weeklyDigest(env: SocialEnv): Promise<{ week: string; note
        JOIN supplements s ON s.id = n.supplement_id WHERE n.created_at >= datetime('now', '-7 days') AND n.summary != '' ORDER BY n.created_at DESC LIMIT 30`,
     )
     .all<ResearchNote>();
+  // A study that already went out in an earlier digest is not offered again.
+  const earlier = (await env.DB.prepare("SELECT thread_json FROM social_posts WHERE kind = 'weekly' ORDER BY id DESC LIMIT 6").all<{ thread_json: string }>()).results.map((r) => r.thread_json).join(' ');
+  const fresh = notes.filter((n) => !earlier.includes(`/research/${n.pmid}`));
+  notes.length = 0;
+  notes.push(...fresh);
   if (notes.length < 3) return null;
   const origin = siteOrigin(env);
   const week = weekKey(new Date());
@@ -218,6 +223,30 @@ export async function weeklyDigest(env: SocialEnv): Promise<{ week: string; note
     `Every note from this week, in plain language with the source: ${origin}/research`,
   ];
   return { week, notes: notes.length, tweets };
+}
+
+/**
+ * Send a digest thread right now, outside the posting schedule (the owner asked for it). `tweets` posts exactly the
+ * thread that was previewed; without it a fresh one is written. Recorded like any sent post.
+ */
+export async function sendWeeklyNow(env: SocialEnv, tweets?: string[]): Promise<{ ok: true; id: string; tweets: string[] } | { ok: false; message: string }> {
+  if (!xEnabled(env)) return { ok: false, message: 'X keys are not configured' };
+  let thread = (tweets ?? []).map((t) => String(t).trim()).filter(Boolean).slice(0, 8);
+  let week = weekKey(new Date());
+  if (thread.length < 3) {
+    const digest = await weeklyDigest(env);
+    if (!digest) return { ok: false, message: 'fewer than three new research notes this week' };
+    thread = digest.tweets;
+    week = digest.week;
+  }
+  const tooLong = thread.find((t) => tweetLength(t) > 280);
+  if (tooLong) return { ok: false, message: `a post is over 280 characters: ${tooLong.slice(0, 60)}` };
+  const id = await postThread(env, thread);
+  await env.DB
+    .prepare("INSERT INTO social_posts (channel, kind, ref, thread_json, scheduled_at, status, posted_at, external_id) VALUES ('x', 'weekly', ?, ?, datetime('now'), 'posted', datetime('now'), ?)")
+    .bind(`${week}:now`, JSON.stringify(thread), id)
+    .run();
+  return { ok: true, id, tweets: thread };
 }
 
 // ---------- queue builders (idempotent, run hourly) ----------
