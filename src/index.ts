@@ -61,6 +61,7 @@ import {
 import { runQuizPipeline } from './pipeline';
 import { dashboardToken, snapshotTrials, trialDashboard } from './trialboard';
 import { getLearned, learnFromTrials } from './triallearn';
+import { feedItems } from './social/feeds';
 import { autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
 import { analyticsStep, gscSummary, inspectStep, type InspectOptions } from './gsc';
@@ -601,6 +602,14 @@ app.get('/api/admin/social/weekly', async (c) => {
   } catch (err) {
     return c.json({ error: String(err instanceof Error ? err.message : err) }, 502);
   }
+});
+
+/** Owner-only: which news feeds behind the Discoveries thread answer right now, and how many items each has this week. */
+app.get('/api/admin/social/feeds', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  const r = await feedItems();
+  return c.json({ report: r.report, sample: r.items.slice(0, 5).map((i) => ({ source: i.source, title: i.title, date: i.date })) });
 });
 
 /** Owner-only: this week's "Discoveries" thread as it would be written now (GET, a preview), or post one now (POST; body {tweets} sends a previewed thread). */
