@@ -1,0 +1,42 @@
+# Renders the waiting trial reels of one video (src/trials.ts, video/trials.py): the kept clips with one narration line
+# changed. No footage is generated, so a run costs only the narration. Nothing is posted from here.
+name: Trial video
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: 'Video slug whose waiting trials to render'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trial-video
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: video/requirements.txt
+      - name: Install
+        run: timeout 180 pip install -q -r video/requirements.txt
+      - name: Render the trials
+        env:
+          WW_ORIGIN: https://aiww.io
+          WW_STATS_KEY: ${{ secrets.WW_STATS_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE: ${{ vars.ELEVENLABS_VOICE }}
+          VIDEO_RESOLUTION: ${{ vars.VIDEO_RESOLUTION }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TRIAL_SLUG: ${{ github.event.inputs.slug }}
+        run: python video/trials.py "$TRIAL_SLUG"

@@ -67,6 +67,19 @@ jobs:
           JOB_SLUG: ${{ github.event.inputs.slug }}
           RENDER_REVIEW: ${{ github.event.inputs.review == 'true' && '1' || '' }}
         run: python video/render.py
+      - name: Keep the raw clips for trial reels and recuts
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cd video/work 2> /dev/null || exit 0
+          [ -f clip1.mp4 ] || exit 0
+          slug=$(ls ./*-cover.jpg 2> /dev/null | head -1 | sed 's|^\./||; s/-cover\.jpg$//')
+          [ -n "$slug" ] || exit 0
+          zip -q -0 "/tmp/$slug-clips.zip" clip*.mp4
+          gh release view clips > /dev/null 2>&1 || gh release create clips --title "Raw clips" --notes "The generated scene clips of each video, kept so new cuts can be made without paying for footage again."
+          gh release upload clips "/tmp/$slug-clips.zip" --clobber || echo "clips not kept (the render itself is fine)"
       - name: Keep the work files for a week
         if: always()
         uses: actions/upload-artifact@v4

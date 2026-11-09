@@ -38,7 +38,7 @@
     // The Reddit digest (src/reddit.ts, 06:52 UTC daily): where it goes, "false" to pause it, how many threads to read
     // and how many replies to draft.
     "DIGEST_TO": "shineft@gmail.com",
-    "REDDIT_DIGEST": "true",
+    "REDDIT_DIGEST": "false",
     "REDDIT_MAX_THREADS": "20",
     "REDDIT_MAX_REPLIES": "6",
     // Pause between Reddit feed reads in the digest (default 12000); 6 s keeps 20 threads inside a few minutes.

@@ -99,6 +99,8 @@ export interface ZernioPostOptions {
   /** When set, the post is scheduled for this local time ("2026-11-06T09:00:00" in `timezone`) instead of published now. */
   scheduledFor?: string;
   timezone?: string;
+  /** Instagram: publish as a trial reel (non-followers only, not on the profile). MANUAL: it graduates only when the owner says so. */
+  trial?: 'MANUAL' | 'SS_PERFORMANCE';
 }
 
 export async function createPost(env: ZernioEnv, o: ZernioPostOptions): Promise<{ ok: true; id: string; status: string } | { ok: false; message: string }> {
@@ -107,9 +109,10 @@ export async function createPost(env: ZernioEnv, o: ZernioPostOptions): Promise<
   const body: Record<string, unknown> = {
     content: o.content,
     ...(o.scheduledFor ? { publishNow: false, scheduledFor: o.scheduledFor, timezone: o.timezone ?? 'Europe/Madrid' } : { publishNow: true }),
-    platforms: o.targets.map((t) => (t.platform === 'instagram' && o.coverUrl
-      ? { platform: t.platform, accountId: t.accountId, platformSpecificData: { instagramThumbnail: o.coverUrl } }
-      : { platform: t.platform, accountId: t.accountId })),
+    platforms: o.targets.map((t) => {
+      const ig = t.platform === 'instagram' ? { ...(o.coverUrl ? { instagramThumbnail: o.coverUrl } : {}), ...(o.trial ? { trialParams: { graduationStrategy: o.trial } } : {}) } : {};
+      return Object.keys(ig).length ? { platform: t.platform, accountId: t.accountId, platformSpecificData: ig } : { platform: t.platform, accountId: t.accountId };
+    }),
     mediaItems: o.mediaItems ?? (o.mediaUrl ? [{ type: 'video', url: o.mediaUrl }] : []),
     title: (o.title ?? o.content).slice(0, 100),
     visibility: 'public',
@@ -149,4 +152,16 @@ export async function scheduledDays(env: ZernioEnv, timezone: string): Promise<S
 export async function getPost(env: ZernioEnv, id: string): Promise<{ ok: true; post: unknown } | { ok: false; message: string }> {
   const r = await call<unknown>(env, 'GET', `/posts/${encodeURIComponent(id)}`);
   return r.ok ? { ok: true, post: r.data } : r;
+}
+
+/** One post's numbers from Zernio's analytics (Instagram: views, reach, reelsSkipRate, igReelsAvgWatchTime in ms, likes, shares, saves ...). */
+export async function postAnalytics(env: ZernioEnv, id: string): Promise<{ ok: true; metrics: Record<string, unknown> } | { ok: false; message: string }> {
+  const r = await call<Record<string, unknown>>(env, 'GET', `/analytics?postId=${encodeURIComponent(id)}`);
+  if (!r.ok) return r;
+  const d = r.data ?? {};
+  const first = <T>(v: unknown): T | undefined => (Array.isArray(v) ? (v[0] as T) : undefined);
+  const post = (d.post as Record<string, unknown> | undefined) ?? first<Record<string, unknown>>(d.posts) ?? d;
+  const perPlatform = first<Record<string, unknown>>(post.platformAnalytics) ?? first<Record<string, unknown>>(post.platforms);
+  const metrics = (post.analytics as Record<string, unknown> | undefined) ?? (perPlatform?.analytics as Record<string, unknown> | undefined);
+  return metrics ? { ok: true, metrics } : { ok: false, message: 'no numbers yet' };
 }

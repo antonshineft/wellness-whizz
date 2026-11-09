@@ -59,6 +59,7 @@ import {
   countSupplementsNeedingFaqs, supplementsNeedingFaqs, updateSupplementFaqs, CATEGORIES, asFormType, insertSupplement, getSupplementByNameKey, normalizeNameKey,
 } from './db';
 import { runQuizPipeline } from './pipeline';
+import { listTrials, markTrialReady, postTrial, trialJobs, trialStats, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
 import { analyticsStep, gscSummary, inspectStep, type InspectOptions } from './gsc';
 import { exportToken, sheetCounts, sheetLastSync, sheetRows, sheetUrl, syncSheet } from './sheet';
@@ -1462,6 +1463,62 @@ app.post('/api/admin/videos/:slug/schedule', async (c) => {
   if (when && !/^\d{4}-\d{2}-\d{2}$/.test(when)) return c.json({ error: 'when must be YYYY-MM-DD' }, 400);
   const r = await autoPost(c.env, row, cover, when || undefined);
   return r.ok ? c.json({ ok: true, where: r.where, when: r.when }) : c.json({ ok: false, error: r.message }, 502);
+});
+
+// ---- Trial reels (src/trials.ts): the same footage with one line changed, tested on non-followers ----
+/** Owner-only. GET: every trial (or ?slug=). ?jobs=1&slug= returns the render jobs still waiting, for the "Trial video" workflow. */
+app.get('/api/admin/trials', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const slug = (c.req.query('slug') ?? '').trim();
+  if (c.req.query('jobs') === '1') return slug ? c.json({ jobs: await trialJobs(c.env, slug) }) : c.json({ error: 'slug is required' }, 400);
+  return c.json({ trials: await listTrials(c.env.DB, slug || undefined) });
+});
+
+/** Owner-only: the numbers of every posted trial, read from Zernio (?slug= for one video). */
+app.get('/api/admin/trials/stats', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  return c.json({ stats: await trialStats(c.env, (c.req.query('slug') ?? '').trim() || undefined) });
+});
+
+/** Owner-only: have the Claude API write a batch of one-line trials for a rendered video (?hooks=2&endings=1). */
+app.post('/api/admin/trials/:slug/write', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const count = (v: string | undefined, d: number) => (v === undefined || v === '' || Number.isNaN(Number(v)) ? d : Math.floor(Number(v)));
+  try {
+    const r = await writeTrials(c.env, c.req.param('slug') ?? '', count(c.req.query('hooks'), 2), count(c.req.query('endings'), 1));
+    return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 400);
+  } catch (err) {
+    return c.json({ ok: false, error: String(err instanceof Error ? err.message : err) }, 502);
+  }
+});
+
+/** The render workflow reports a trial's file. */
+app.post('/api/admin/trials/:slug/:n/ready', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const body = (await c.req.json().catch(() => ({}))) as { video_url?: string };
+  const url = String(body.video_url ?? '').trim();
+  if (!/^https:\/\/github\.com\/.+\.mp4$/.test(url)) return c.json({ error: 'video_url must be the release asset' }, 400);
+  const ok = await markTrialReady(c.env.DB, c.req.param('slug') ?? '', Number(c.req.param('n')), url);
+  return ok ? c.json({ ok: true }) : c.json({ error: 'no such trial waiting' }, 404);
+});
+
+/** Owner-only, after the owner's yes: schedule a rendered trial as an Instagram trial reel (?when=YYYY-MM-DDTHH:MM, Madrid time). */
+app.post('/api/admin/trials/:slug/:n/post', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const when = (c.req.query('when') ?? '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(when)) return c.json({ error: 'when must be YYYY-MM-DDTHH:MM (Madrid time)' }, 400);
+  const r = await postTrial(c.env, c.req.param('slug') ?? '', Number(c.req.param('n')), `${when}:00`);
+  return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 502);
 });
 
 // ---- Instagram research carousels (src/carousels.ts) ----

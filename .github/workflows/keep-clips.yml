@@ -1,0 +1,38 @@
+# Copies the raw scene clips of recent renders from their one-week "render-work" artifacts into the "clips" release,
+# where they stay. Trial reels and recuts are made from these clips, so no footage has to be paid for twice.
+# The render workflow does this itself after every new video; this one catches up on renders made before that.
+name: Keep clips
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  keep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Copy clips from the artifacts that still exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view clips > /dev/null 2>&1 || gh release create clips --title "Raw clips" --notes "The generated scene clips of each video, kept so new cuts can be made without paying for footage again."
+          have=$(gh release view clips --json assets -q '.assets[].name')
+          gh api "repos/$GH_REPO/actions/artifacts?per_page=100&name=render-work" -q '.artifacts[] | select(.expired == false) | .id' | while read -r id; do
+            rm -rf a && mkdir a
+            gh api "repos/$GH_REPO/actions/artifacts/$id/zip" > a.zip || continue
+            unzip -q -o a.zip -d a || continue
+            [ -f a/clip1.mp4 ] || { echo "artifact $id: no clips"; continue; }
+            slug=$(cd a && ls ./*-cover.jpg 2> /dev/null | head -1 | sed 's|^\./||; s/-cover\.jpg$//')
+            [ -n "$slug" ] || { echo "artifact $id: no finished video"; continue; }
+            if echo "$have" | grep -qx "$slug-clips.zip"; then echo "artifact $id: $slug already kept"; continue; fi
+            (cd a && zip -q -0 "../$slug-clips.zip" clip*.mp4)
+            gh release upload clips "$slug-clips.zip" --clobber
+            have="$have"$'\n'"$slug-clips.zip"
+            echo "artifact $id: kept $slug"
+            rm -f "$slug-clips.zip"
+          done
