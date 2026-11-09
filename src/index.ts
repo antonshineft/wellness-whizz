@@ -48,7 +48,7 @@ import { fileNote, getResearchNote, listResearchNotes, notePath, notesForSupplem
 import { feedXml, indexSync, renderSitemap, sitemapEntries } from './indexing';
 import { renderResearchNote, renderResearchPage } from './render/research';
 import { renderSupplementsIndex } from './render/supplements-index';
-import { buildQueue, enqueue, listSocialPosts, postDue, postingPlan, sendState, sendWeeklyNow, setSocialStatus, siteOrigin, weeklyDigest } from './social/content';
+import { buildQueue, discoveriesDigest, enqueue, listSocialPosts, postDue, postingPlan, sendState, sendWeeklyNow, setSocialStatus, siteOrigin, weeklyDigest } from './social/content';
 import { xEnabled } from './social/x';
 import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
@@ -600,6 +600,30 @@ app.get('/api/admin/social/weekly', async (c) => {
     return c.json({ digest: await weeklyDigest(c.env) });
   } catch (err) {
     return c.json({ error: String(err instanceof Error ? err.message : err) }, 502);
+  }
+});
+
+/** Owner-only: this week's "Discoveries" thread as it would be written now (GET, a preview), or post one now (POST; body {tweets} sends a previewed thread). */
+app.get('/api/admin/social/discoveries', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  try {
+    return c.json({ digest: await discoveriesDigest(c.env) });
+  } catch (err) {
+    return c.json({ error: String(err instanceof Error ? err.message : err) }, 502);
+  }
+});
+app.post('/api/admin/social/discoveries', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const body = (await c.req.json().catch(() => ({}))) as { tweets?: string[] };
+  try {
+    const r = await sendWeeklyNow(c.env, Array.isArray(body.tweets) ? body.tweets : undefined, 'discoveries');
+    return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 400);
+  } catch (err) {
+    return c.json({ ok: false, error: String(err instanceof Error ? err.message : err) }, 502);
   }
 });
 

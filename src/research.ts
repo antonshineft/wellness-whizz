@@ -32,7 +32,7 @@ export interface ResearchNote {
   supplement_category?: string;
 }
 
-interface PubmedSummary {
+export interface PubmedSummary {
   uid: string;
   title: string;
   fulljournalname?: string;
@@ -78,6 +78,15 @@ export async function searchPubmed(env: ResearchEnv, name: string, days = 90, ma
     'AND (randomized controlled trial[pt] OR meta-analysis[pt] OR systematic review[pt]) AND humans[mh] ' +
     'NOT (intravenous[Title] OR infusion[Title] OR anesthesia[Title] OR anaesthesia[Title] OR surgery[Title] OR surgical[Title] OR preterm[Title] OR intensive care[Title])';
   const url = withKey(env, `${EUTILS}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(term)}&reldate=${days}&datetype=pdat&retmode=json&retmax=${max}`);
+  const res = await ncbiFetch(env, url);
+  if (!res.ok) throw new Error(`PubMed esearch ${res.status}`);
+  const data = (await res.json()) as { esearchresult?: { idlist?: string[] } };
+  return data.esearchresult?.idlist ?? [];
+}
+
+/** PubMed ids for any search term, newest first, limited to the last `days` days. */
+export async function searchPubmedTerm(env: ResearchEnv, term: string, days: number, max: number): Promise<string[]> {
+  const url = withKey(env, `${EUTILS}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(term)}&reldate=${days}&datetype=edat&sort=date&retmode=json&retmax=${max}`);
   const res = await ncbiFetch(env, url);
   if (!res.ok) throw new Error(`PubMed esearch ${res.status}`);
   const data = (await res.json()) as { esearchresult?: { idlist?: string[] } };

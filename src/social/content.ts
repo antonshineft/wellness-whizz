@@ -4,6 +4,8 @@
  *   fact     - a fact from a supplement page, rotating through the catalogue
  *   research - a post per new research note
  *   weekly   - "This week in supplement research": one thread every Sunday with the week's most useful new studies
+ *   discoveries - "Discoveries this week": one thread every Wednesday with striking new findings from the leading
+ *                 medical and science journals, each stated at its true stage (cells, animals, an early trial)
  * Posts wait in social_posts and go out from the hourly cron on a fixed schedule: X_POSTS_PER_WEEK posts a week (7 in
  * wrangler.jsonc: one a day), each at X_POST_HOUR_UTC on a posting day (see postingPlan). Each kind has its own lane
  * so a backlog of article threads never stops facts or research notes from being drafted, and the sender takes the
@@ -16,7 +18,7 @@ import { getMeta, listSupplements, setMeta, type Supplement } from '../db';
 import { alertRecipient, sendEmail, type EmailEnv } from '../email';
 import { escapeHtml } from '../html';
 import { chatJson, useFakeAi, type AiEnv } from '../openai';
-import { notePath, pubmedUrl, unqueuedNotes, type ResearchNote } from '../research';
+import { notePath, pubmedAbstract, pubmedSummaries, pubmedUrl, searchPubmedTerm, unqueuedNotes, type ResearchNote } from '../research';
 import { postThread, tweetLength, xEnabled, type XEnv } from './x';
 
 export interface SocialEnv extends AiEnv, XEnv, EmailEnv {
@@ -225,17 +227,94 @@ export async function weeklyDigest(env: SocialEnv): Promise<{ week: string; note
   return { week, notes: notes.length, tweets };
 }
 
+/** Where the Wednesday thread looks: the leading general medical and science journals, studies with an abstract. */
+const DISCOVERY_TERM =
+  '("N Engl J Med"[jour] OR "Lancet"[jour] OR "JAMA"[jour] OR "BMJ"[jour] OR "Nat Med"[jour] OR "Nature"[jour] OR "Science"[jour] OR "Cell"[jour] ' +
+  'OR "Ann Intern Med"[jour] OR "JAMA Intern Med"[jour] OR "Lancet Neurol"[jour] OR "Sci Transl Med"[jour] OR "Cell Metab"[jour] OR "Nat Aging"[jour] OR "JAMA Netw Open"[jour]) ' +
+  'AND hasabstract AND (Journal Article[pt]) NOT (Editorial[pt] OR Comment[pt] OR Letter[pt] OR News[pt] OR Review[pt])';
+
+const pickSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: { pmids: { type: 'array', items: { type: 'string' }, description: 'Up to eight PMIDs, most striking first, exactly as given.' } },
+  required: ['pmids'],
+} as const;
+
+/**
+ * "Discoveries this week": striking new findings from the leading journals. Titles are screened first, then the
+ * abstracts of the short list are read, so every post rests on what the paper itself reports. Null when PubMed
+ * returns too little.
+ */
+export async function discoveriesDigest(env: SocialEnv): Promise<{ week: string; candidates: number; tweets: string[] } | null> {
+  const week = weekKey(new Date());
+  if (useFakeAi(env)) return { week, candidates: 0, tweets: ['[Dev mode] Discoveries this week.', '[Dev mode] One finding.', '[Dev mode] Another finding.'] };
+  const earlier = (await env.DB.prepare("SELECT thread_json FROM social_posts WHERE kind = 'discoveries' ORDER BY id DESC LIMIT 6").all<{ thread_json: string }>()).results.map((r) => r.thread_json).join(' ');
+  const ids = (await searchPubmedTerm(env, DISCOVERY_TERM, 8, 60)).filter((id) => !earlier.includes(`/${id}/`));
+  const summaries = await pubmedSummaries(env, ids);
+  if (summaries.length < 6) return null;
+  const picked = await chatJson<{ pmids: string[] }>(
+    env,
+    'discoveries_pick',
+    pickSchema,
+    [
+      'From these new papers in leading medical and science journals, pick the eight that an ordinary curious adult would most want to hear about: a real advance in treating or preventing a common condition, a first in humans, a surprising finding about sleep, food, exercise, ageing or the brain, a new technology that worked in a trial.',
+      'Skip health-policy, economics, medical education, case reports, methods papers and anything too narrow to matter outside a specialty. Spread the picks over different fields.',
+      '',
+      ...summaries.map((s) => `PMID ${s.uid} | ${s.source ?? s.fulljournalname ?? ''} | ${s.title}`),
+    ].join('\n'),
+    { tier: 'screen', maxTokens: 800 },
+  );
+  const known = new Map(summaries.map((s) => [s.uid, s]));
+  const short = [...new Set((picked.pmids ?? []).map((p) => String(p).trim()))].filter((p) => known.has(p)).slice(0, 8);
+  const papers: { pmid: string; journal: string; title: string; abstract: string }[] = [];
+  for (const pmid of short) {
+    try {
+      const abstract = await pubmedAbstract(env, pmid);
+      const s = known.get(pmid)!;
+      if (abstract.length > 300) papers.push({ pmid, journal: s.source ?? s.fulljournalname ?? '', title: s.title, abstract: abstract.slice(0, 1800) });
+    } catch (err) {
+      console.warn(`discoveries: abstract ${pmid} failed: ${String(err)}`);
+    }
+  }
+  if (papers.length < 3) return null;
+  const draft = await chatJson<{ intro: string; items: { pmid: string; text: string }[] }>(
+    env,
+    'discoveries_digest',
+    weeklySchema,
+    [
+      `Write this week's thread for X from Wellness Whizz about discoveries in medicine and health. ${VOICE}`,
+      'Choose the four or five most striking papers below. For each, one post: what was found and why it is remarkable, in plain words a friend would repeat.',
+      'Wonder is welcome; exaggeration is not. State the stage honestly in every post (in cells, in mice, a first small trial in people, a large trial). Never say cure, breakthrough or miracle, never predict when it reaches patients, never give advice. Use only what the abstract reports, with its own numbers.',
+      'The intro post names the thread ("Discoveries this week") and leads with the single most surprising finding.',
+      '',
+      ...papers.map((p) => `PMID ${p.pmid} | ${p.journal} | ${p.title}\nAbstract: ${p.abstract}`),
+    ].join('\n'),
+    { tier: 'fast', maxTokens: 3000 },
+  );
+  const byPmid = new Map(papers.map((p) => [p.pmid, p]));
+  const seen = new Set<string>();
+  const items = (draft.items ?? []).filter((i) => byPmid.has(String(i.pmid).trim()) && !seen.has(String(i.pmid).trim()) && seen.add(String(i.pmid).trim()) && String(i.text ?? '').trim()).slice(0, 5);
+  if (items.length < 3) throw new Error('discoveries digest: fewer than three usable items came back');
+  const clip = (t: string, max: number) => (t.length > max ? `${t.slice(0, max - 1).replace(/\s+\S*$/, '')}\u2026` : t);
+  const tweets = [
+    clip(String(draft.intro ?? '').trim() || 'Discoveries this week, from the leading medical journals.', 270),
+    ...items.map((i) => `${clip(i.text.trim(), 240)} ${pubmedUrl(String(i.pmid).trim())}`),
+    `Each link goes to the study itself. For what the evidence says about supplements: ${siteOrigin(env)}/research`,
+  ];
+  return { week, candidates: summaries.length, tweets };
+}
+
 /**
  * Send a digest thread right now, outside the posting schedule (the owner asked for it). `tweets` posts exactly the
  * thread that was previewed; without it a fresh one is written. Recorded like any sent post.
  */
-export async function sendWeeklyNow(env: SocialEnv, tweets?: string[]): Promise<{ ok: true; id: string; tweets: string[] } | { ok: false; message: string }> {
+export async function sendWeeklyNow(env: SocialEnv, tweets?: string[], kind: 'weekly' | 'discoveries' = 'weekly'): Promise<{ ok: true; id: string; tweets: string[] } | { ok: false; message: string }> {
   if (!xEnabled(env)) return { ok: false, message: 'X keys are not configured' };
   let thread = (tweets ?? []).map((t) => String(t).trim()).filter(Boolean).slice(0, 8);
   let week = weekKey(new Date());
   if (thread.length < 3) {
-    const digest = await weeklyDigest(env);
-    if (!digest) return { ok: false, message: 'fewer than three new research notes this week' };
+    const digest = kind === 'weekly' ? await weeklyDigest(env) : await discoveriesDigest(env);
+    if (!digest) return { ok: false, message: 'too little new material this week' };
     thread = digest.tweets;
     week = digest.week;
   }
@@ -243,8 +322,8 @@ export async function sendWeeklyNow(env: SocialEnv, tweets?: string[]): Promise<
   if (tooLong) return { ok: false, message: `a post is over 280 characters: ${tooLong.slice(0, 60)}` };
   const id = await postThread(env, thread);
   await env.DB
-    .prepare("INSERT INTO social_posts (channel, kind, ref, thread_json, scheduled_at, status, posted_at, external_id) VALUES ('x', 'weekly', ?, ?, datetime('now'), 'posted', datetime('now'), ?)")
-    .bind(`${week}:now`, JSON.stringify(thread), id)
+    .prepare("INSERT INTO social_posts (channel, kind, ref, thread_json, scheduled_at, status, posted_at, external_id) VALUES ('x', ?, ?, ?, datetime('now'), 'posted', datetime('now'), ?)")
+    .bind(kind, `${week}:now`, JSON.stringify(thread), id)
     .run();
   return { ok: true, id, tweets: thread };
 }
@@ -322,6 +401,23 @@ export async function buildQueue(env: SocialEnv): Promise<{ queued: string[] }> 
         }
       } catch (err) {
         console.error(`weekly digest failed: ${String(err)}`);
+      }
+    }
+  }
+
+  // 5. Wednesday afternoon (UTC): the discoveries thread, once per week (meta flag).
+  if (now.getUTCDay() === 3 && now.getUTCHours() >= 12) {
+    const flag = `x:discoveries:${weekKey(now)}`;
+    if (!(await getMeta(env.DB, flag))) {
+      try {
+        const digest = await discoveriesDigest(env);
+        await setMeta(env.DB, flag, now.toISOString());
+        if (digest) {
+          await enqueue(env.DB, 'discoveries', digest.week, digest.tweets, now);
+          queued.push(`discoveries:${digest.week}`);
+        }
+      } catch (err) {
+        console.error(`discoveries digest failed: ${String(err)}`);
       }
     }
   }
