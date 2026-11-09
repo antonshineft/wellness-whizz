@@ -101,6 +101,8 @@ export interface ZernioPostOptions {
   timezone?: string;
   /** Instagram: publish as a trial reel (non-followers only, not on the profile). MANUAL: it graduates only when the owner says so. */
   trial?: 'MANUAL' | 'SS_PERFORMANCE';
+  /** Instagram reels: false keeps the reel out of the feed and the main profile grid (it shows in the Reels tab only). */
+  shareToFeed?: boolean;
 }
 
 export async function createPost(env: ZernioEnv, o: ZernioPostOptions): Promise<{ ok: true; id: string; status: string } | { ok: false; message: string }> {
@@ -110,7 +112,7 @@ export async function createPost(env: ZernioEnv, o: ZernioPostOptions): Promise<
     content: o.content,
     ...(o.scheduledFor ? { publishNow: false, scheduledFor: o.scheduledFor, timezone: o.timezone ?? 'Europe/Madrid' } : { publishNow: true }),
     platforms: o.targets.map((t) => {
-      const ig = t.platform === 'instagram' ? { ...(o.coverUrl ? { instagramThumbnail: o.coverUrl } : {}), ...(o.trial ? { trialParams: { graduationStrategy: o.trial } } : {}) } : {};
+      const ig = t.platform === 'instagram' ? { ...(o.coverUrl ? { instagramThumbnail: o.coverUrl } : {}), ...(o.trial ? { trialParams: { graduationStrategy: o.trial } } : {}), ...(o.shareToFeed === false ? { shareToFeed: false } : {}) } : {};
       return Object.keys(ig).length ? { platform: t.platform, accountId: t.accountId, platformSpecificData: ig } : { platform: t.platform, accountId: t.accountId };
     }),
     mediaItems: o.mediaItems ?? (o.mediaUrl ? [{ type: 'video', url: o.mediaUrl }] : []),
@@ -170,4 +172,10 @@ export async function postAnalytics(env: ZernioEnv, id: string): Promise<{ ok: t
 export async function postAnalyticsRaw(env: ZernioEnv, id: string): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; message: string }> {
   const r = await call<Record<string, unknown>>(env, 'GET', `/analytics?postId=${encodeURIComponent(id)}`);
   return r.ok ? { ok: true, data: r.data ?? {} } : r;
+}
+
+/** Remove a post that has not been published yet (a scheduled or failed one). */
+export async function deletePost(env: ZernioEnv, id: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  const r = await call<unknown>(env, 'DELETE', `/posts/${encodeURIComponent(id)}`);
+  return r.ok ? { ok: true } : r;
 }

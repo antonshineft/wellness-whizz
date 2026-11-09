@@ -60,7 +60,7 @@ import {
 } from './db';
 import { runQuizPipeline } from './pipeline';
 import { dashboardToken, snapshotTrials, trialDashboard } from './trialboard';
-import { listTrials, markTrialReady, postTrial, trialJobs, trialStats, writeTrials } from './trials';
+import { listTrials, markTrialReady, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
 import { analyticsStep, gscSummary, inspectStep, type InspectOptions } from './gsc';
 import { exportToken, sheetCounts, sheetLastSync, sheetRows, sheetUrl, syncSheet } from './sheet';
@@ -1511,15 +1511,24 @@ app.post('/api/admin/trials/:slug/:n/ready', async (c) => {
   return ok ? c.json({ ok: true }) : c.json({ error: 'no such trial waiting' }, 404);
 });
 
-/** Owner-only, after the owner's yes: schedule a rendered trial as an Instagram trial reel (?when=YYYY-MM-DDTHH:MM, Madrid time). */
+/** Owner-only, after the owner's yes: schedule a rendered trial on Instagram (?when=YYYY-MM-DDTHH:MM, Madrid time; &mode=reels_tab for an ordinary reel kept out of the feed). */
 app.post('/api/admin/trials/:slug/:n/post', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
   const when = (c.req.query('when') ?? '').trim();
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(when)) return c.json({ error: 'when must be YYYY-MM-DDTHH:MM (Madrid time)' }, 400);
-  const r = await postTrial(c.env, c.req.param('slug') ?? '', Number(c.req.param('n')), `${when}:00`);
+  const r = await postTrial(c.env, c.req.param('slug') ?? '', Number(c.req.param('n')), `${when}:00`, c.req.query('mode') === 'reels_tab' ? 'reels_tab' : 'trial');
   return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 502);
+});
+
+/** Owner-only: take back a trial whose post never went out (still scheduled, or refused by Instagram); it becomes "ready" again. */
+app.post('/api/admin/trials/:slug/:n/reset', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const r = await resetTrial(c.env, c.req.param('slug') ?? '', Number(c.req.param('n')));
+  return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 409);
 });
 
 /** Owner-only: the dashboard's link (its own token, so the admin key never sits in a URL) and a fresh snapshot of the numbers. */

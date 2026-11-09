@@ -13,7 +13,7 @@
  */
 import { claudeJson } from './claude';
 import { MAX_SCENE_WORDS, getVideo, parseScript, type VideoEnv, type VideoScript } from './videos';
-import { createPost, listAccounts, postAnalytics, uploadVideo, type ZernioEnv } from './zernio';
+import { createPost, deletePost, getPost, listAccounts, postAnalytics, uploadVideo, type ZernioEnv } from './zernio';
 
 export type TrialKind = 'hook' | 'ending';
 
@@ -169,8 +169,12 @@ export async function markTrialReady(db: D1Database, slug: string, n: number, vi
   return (r.meta.changes ?? 0) > 0;
 }
 
-/** Schedule one rendered trial as an Instagram trial reel (non-followers only; it graduates to the profile only by hand). */
-export async function postTrial(env: VideoEnv, slug: string, n: number, when: string): Promise<{ ok: true; id: string; when: string } | { ok: false; message: string }> {
+/**
+ * Schedule one rendered trial on Instagram. mode "trial": a real trial reel (non-followers only, graduates only by
+ * hand), which Instagram allows from 1,000 followers. mode "reels_tab": an ordinary reel kept out of the feed and the
+ * main grid (it shows under the profile's Reels tab), the nearest thing below that follower count.
+ */
+export async function postTrial(env: VideoEnv, slug: string, n: number, when: string, mode: 'trial' | 'reels_tab' = 'trial'): Promise<{ ok: true; id: string; when: string } | { ok: false; message: string }> {
   const row = await getTrial(env.DB, slug, n);
   if (!row || !row.video_url) return { ok: false, message: 'no rendered trial with that number' };
   if (row.status === 'posted') return { ok: false, message: `already scheduled (${row.publish_id})` };
@@ -185,7 +189,7 @@ export async function postTrial(env: VideoEnv, slug: string, n: number, when: st
   if (!res.ok) return { ok: false, message: `fetching the rendered file failed: HTTP ${res.status}` };
   const up = await uploadVideo(z, await res.arrayBuffer(), `${slug}-t${n}-${Date.now()}.mp4`);
   if (!up.ok) return up;
-  const post = await createPost(z, { content: video.caption, mediaUrl: up.url, targets, madeWithAi: true, title: parseScript(video.script_json)?.title, scheduledFor: when, timezone: 'Europe/Madrid', trial: 'MANUAL' });
+  const post = await createPost(z, { content: video.caption, mediaUrl: up.url, targets, madeWithAi: true, title: parseScript(video.script_json)?.title, scheduledFor: when, timezone: 'Europe/Madrid', ...(mode === 'trial' ? { trial: 'MANUAL' as const } : { shareToFeed: false }) });
   if (!post.ok) return post;
   await env.DB.prepare("UPDATE video_trials SET status = 'posted', publish_id = ?, scheduled_for = ?, updated_at = datetime('now') WHERE id = ?").bind(post.id, when, row.id).run();
   return { ok: true, id: post.id, when };
@@ -227,4 +231,22 @@ export async function trialStats(env: VideoEnv, slug?: string): Promise<TrialSta
     });
   }
   return out.sort((x, y) => (x.slug === y.slug ? x.n - y.n : x.slug < y.slug ? -1 : 1));
+}
+
+/**
+ * Put a trial back to "ready" when its post never went out (still scheduled, or refused by Instagram), removing the
+ * unpublished post from Zernio. A trial that was published is never touched: published trials are kept.
+ */
+export async function resetTrial(env: VideoEnv, slug: string, n: number): Promise<{ ok: true } | { ok: false; message: string }> {
+  const row = await getTrial(env.DB, slug, n);
+  if (!row || row.status !== 'posted') return { ok: false, message: 'no scheduled trial with that number' };
+  const z = env as ZernioEnv;
+  const post = await getPost(z, row.publish_id);
+  const p = post.ok ? (((post.post as { post?: unknown }).post ?? post.post) as { status?: string; platforms?: { status?: string }[] }) : null;
+  if (!p) return { ok: false, message: post.ok ? 'could not read the post' : post.message };
+  if (p.status === 'published' || (p.platforms ?? []).some((x) => x.status === 'published')) return { ok: false, message: 'this trial was published; published trials are kept' };
+  const gone = await deletePost(z, row.publish_id);
+  if (!gone.ok && !/404/.test(gone.message)) return gone;
+  await env.DB.prepare("UPDATE video_trials SET status = 'ready', publish_id = '', scheduled_for = '', updated_at = datetime('now') WHERE id = ?").bind(row.id).run();
+  return { ok: true };
 }
