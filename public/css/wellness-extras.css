@@ -689,6 +689,7 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-dose-bar i { display: block; height: 12px; }
 .ww-dose-bar i:first-child { border-radius: 6px 0 0 6px; }
 .ww-dose-bar i:last-of-type { border-radius: 0 6px 6px 0; }
+.ww-dose-z0 { background: #aab5ba; }
 .ww-dose-z1 { background: #0ca30c; }
 .ww-dose-z2 { background: #fab219; }
 .ww-dose-z3 { background: #d03b3b; }

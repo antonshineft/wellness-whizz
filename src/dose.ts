@@ -273,7 +273,7 @@ const fmt = (n: number) => n.toLocaleString('en-GB', { maximumFractionDigits: n 
 
 const WORDS: Record<DoseState, { mark: string; cls: string; text: string }> = {
   within: { mark: '✓', cls: 'ok', text: 'Within the daily need' },
-  above: { mark: '✓', cls: 'ok', text: 'Above the daily need, under the safe ceiling' },
+  above: { mark: 'i', cls: 'info', text: 'Above the daily need, under the safe ceiling' },
   more: { mark: '!', cls: 'more', text: 'More than your body absorbs' },
   over: { mark: '✕', cls: 'over', text: 'Above the safe ceiling' },
   under: { mark: 'i', cls: 'info', text: 'Below the doses used in studies' },
@@ -315,7 +315,7 @@ export function doseSection(c: DoseCheck | null): string {
       <div class="ww-dose ww-dose-${w.cls}">
         <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">${w.mark}</span><span>${esc(w.text)}</span></div>
         <div class="ww-dose-name">${esc(p.name)} <span>· ${dayLine}</span></div>
-        <div class="ww-dose-bar" style="${cols}">${zones.map((_, i) => `<i class="ww-dose-z${zones.length === 2 && i === 1 ? 2 : i + 1}"></i>`).join('')}<span class="ww-dose-pin" style="left:${at}%">${fmt(p.daily as number)} ${esc(c.unit)} a day</span></div>
+        <div class="ww-dose-bar" style="${cols}">${zones.map((_, i) => `<i class="ww-dose-z${official ? i + 1 : i}"></i>`).join('')}<span class="ww-dose-pin" style="left:${at}%">${fmt(p.daily as number)} ${esc(c.unit)} a day</span></div>
         <div class="ww-dose-edges"><span style="left:${(100 / zones.length).toFixed(1)}%">${fmt(edge)} ${esc(c.unit)}</span>${zones.length === 3 && c.high !== null ? `<span style="left:${(200 / zones.length).toFixed(1)}%">${fmt(official ? c.high : c.high)} ${esc(c.unit)}</span>` : ''}</div>${also}
       </div>`;
   }).join('');
