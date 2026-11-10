@@ -24,7 +24,7 @@ import { queueQuizDataArticle, quizDataSummary } from './quizdata';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
 import { carouselJob, getCarousel, listCarousels, markCarouselFailed, markCarouselReady, queueCarousel, scheduleCarousel, setCarouselStatus } from './carousels';
-import { approveVideo, keepVideo, autoPost, getVideo, listVideos, markFailed, markPosted, markReady, monthlyLimit, nextJob, parseScript, queueVideo, rendersThisMonth, rewriteVideo, scriptNext } from './videos';
+import { approveVideo, keepVideo, autoPost, getVideo, listVideos, markFailed, markPosted, markReady, monthlyLimit, nextJob, parseScript, queueVideo, rendersThisMonth, rewriteVideo, scriptNext, writeStory } from './videos';
 import { actOnProspect, addProspect, checkWins, counts as prospectCounts, dailyOutreach, discoverProspects, draftPending, findContacts, listProspects, noteReply, outreachDigest, outreachStep, recentEvents, sendApproved, type ProspectKind } from './backlinks';
 import { badgeWallHtml, withBadgeWall } from './badges';
 import { serviceAccountEmail, submitiumDigestLine, submitiumReportLine, submitiumState, submitiumStep } from './submitium';
@@ -1580,6 +1580,19 @@ app.post('/api/admin/videos/:slug/script', async (c) => {
     await c.env.DB.prepare("INSERT INTO videos (slug, status, script_json, caption, created_at, updated_at) VALUES (?, 'approved', ?, ?, datetime('now'), datetime('now'))").bind(slug, JSON.stringify(script), caption).run();
   }
   return c.json({ ok: true, video: await getVideo(c.env.DB, slug) });
+});
+
+/**
+ * Owner-only: write three scripts for a story that has no article (an investigation, an experiment, a discovery) from
+ * a brief of checked facts: {slug, title, brief}. They wait as "scripted" for the owner's choice.
+ */
+app.post('/api/admin/videos/story', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const body = (await c.req.json().catch(() => ({}))) as { slug?: string; title?: string; brief?: string };
+  const r = await writeStory(c.env, String(body.slug ?? '').trim(), String(body.title ?? ''), String(body.brief ?? ''));
+  return r.ok ? c.json({ ok: true, slug: body.slug, scripts: r.scripts }) : c.json({ ok: false, error: r.message }, 400);
 });
 
 /** The owner has watched a rendered video: schedule it for the next free morning slot (src/videos.ts autoPost). */

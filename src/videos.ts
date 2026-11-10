@@ -84,6 +84,8 @@ export interface VideoScript {
   caption: string;
   hashtags: string[];
   product_slug: string;
+  /** True for a story with no article behind it (writeStory): its caption carries no "Full guide" link. */
+  story?: boolean;
 }
 
 const RENDER_STALE_MINUTES = 150;
@@ -321,16 +323,21 @@ ${body}
 ${faq ? `FAQ:\n${faq}` : ''}
 
 Write ${VARIANTS} complete ${SCENES}-scene scripts from three different connected angles (narration and visual for each scene, angle, title, caption, hashtags, product_slug).${await learnedNote(env.DB)}`;
+  return scriptsFrom(env, user, sup?.slug ?? hero);
+}
+
+/** The model's three scripts for a brief, tidied, with one shortening pass when a scene is too long for the narrator. */
+async function scriptsFrom(env: VideoEnv, user: string, fallbackSlug: string): Promise<VideoScript[]> {
   const longest = (sc: VideoScript) => Math.max(...sc.scenes.map((x) => words(x.narration)));
   let scripts = (await claudeJson<{ variants: VideoScript[] }>(env, SCRIPT_SYSTEM, user, variantsSchema, { tier: 'fast', maxTokens: SCRIPT_TOKENS, timeoutMs: 280_000 })).variants
-    .slice(0, VARIANTS).map((sc) => tidyScript(sc, sup?.slug ?? hero));
+    .slice(0, VARIANTS).map((sc) => tidyScript(sc, fallbackSlug));
   if (!scripts.length) throw new Error('no scripts came back');
   // The model tends to overshoot; one shortening pass keeps every scene inside its ten seconds.
   const over = scripts.map((sc, k) => ({ k, n: longest(sc) })).filter((x) => x.n > MAX_SCENE_WORDS);
   if (over.length) {
     const shorter = (await claudeJson<{ variants: VideoScript[] }>(env, SCRIPT_SYSTEM,
       `${user}\n\nYour previous scripts have scenes too long for the narrator (${over.map((x) => `script ${x.k + 1}: a scene has ${x.n} words`).join('; ')}). Here they are:\n${JSON.stringify({ variants: scripts })}\n\nReturn the same ${scripts.length} scripts with between 23 and ${MAX_SCENE_WORDS - 1} spoken words in every scene's narration (stage directions in brackets do not count), same angles, facts and visuals; cut the least important clause of each long scene.`,
-      variantsSchema, { tier: 'fast', maxTokens: SCRIPT_TOKENS, timeoutMs: 280_000 })).variants.slice(0, VARIANTS).map((sc) => tidyScript(sc, sup?.slug ?? hero));
+      variantsSchema, { tier: 'fast', maxTokens: SCRIPT_TOKENS, timeoutMs: 280_000 })).variants.slice(0, VARIANTS).map((sc) => tidyScript(sc, fallbackSlug));
     if (shorter.length === scripts.length && Math.max(...shorter.map(longest)) <= Math.max(...scripts.map(longest))) scripts = shorter;
   }
   const worst = Math.max(...scripts.map(longest));
@@ -365,7 +372,39 @@ function tidyScript(s: VideoScript, fallbackSlug: string): VideoScript {
 
 export function captionFor(script: VideoScript, slug: string): string {
   const tags = script.hashtags.map((h) => `#${h}`).join(' ');
-  return `${script.caption} Full guide: aiww.io/blog/${slug} ${tags}`.trim();
+  // A story has no article behind it, so there is nothing to link to.
+  return (script.story ? `${script.caption} ${tags}` : `${script.caption} Full guide: aiww.io/blog/${slug} ${tags}`).trim();
+}
+
+/**
+ * Three scripts for a story that has no article and no single supplement behind it: an investigation, an experiment
+ * or a discovery, written from a short brief of checked facts. Stored as "scripted" for the owner to choose from
+ * (no approval email: these are reviewed in the scripts sheet).
+ */
+export async function writeStory(env: VideoEnv, slug: string, title: string, brief: string): Promise<{ ok: true; scripts: VideoScript[] } | { ok: false; message: string }> {
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) || slug.length > 60) return { ok: false, message: 'slug must be lowercase words joined by hyphens' };
+  if (title.trim().length < 5 || brief.trim().length < 80) return { ok: false, message: 'a title and a brief of facts are required' };
+  const existing = await getVideo(env.DB, slug);
+  if (existing) return { ok: false, message: `"${slug}" already exists (${existing.status})` };
+  const user = `There is no article this time, and no single supplement. The subject is an investigation, an experiment or a discovery that changed what everybody believed about food, vitamins or health. Tell it as a story about the people and the process.
+
+Subject: ${title.trim()}
+
+Facts you may rely on (checked). Use them at their true size. You may add only well-documented general knowledge that a good reference book would confirm, and never a number, a study, a date or a name of your own:
+${brief.trim().slice(0, 4000)}
+
+Wherever the rules say "the supplement", read "the subject". Each script still opens from an everyday MOMENT the viewer has lived that this story hides inside. Set product_slug to an empty string.
+
+Write ${VARIANTS} complete ${SCENES}-scene scripts from three different connected angles (narration and visual for each scene, angle, title, caption, hashtags, product_slug).${await learnedNote(env.DB)}`;
+  let scripts: VideoScript[];
+  try {
+    scripts = (await scriptsFrom(env, user, '')).map((sc) => ({ ...sc, product_slug: '', story: true }));
+  } catch (err) {
+    return { ok: false, message: String(err instanceof Error ? err.message : err).slice(0, 300) };
+  }
+  await env.DB.prepare("INSERT INTO videos (slug, status, script_json, caption, created_at, updated_at) VALUES (?, 'scripted', ?, ?, datetime('now'), datetime('now'))")
+    .bind(slug, JSON.stringify({ variants: scripts }), captionFor(scripts[0], slug)).run();
+  return { ok: true, scripts };
 }
 
 /** Cron step: write the script for the oldest queued video. Returns true when it did something. */
