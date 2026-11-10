@@ -1,7 +1,7 @@
 /** Reusable fragments that mirror the exported Webflow markup (same classes, so the exported CSS applies). */
 import type { FdaStatus, FormType, Product, SafetyStatus, Supplement } from '../db';
 import { structureAlt } from '../structures';
-import { doseBlank, doseFor, doseScale, type DoseCheck } from '../dose';
+import { doseBlank, doseFor, doseLimits, doseScale, type DoseCheck } from '../dose';
 import { escapeHtml } from '../html';
 import { primaryProduct, shopUrl, type LinkEnv } from '../links';
 
@@ -352,7 +352,7 @@ export function homeCard(sup: Supplement, dose?: DoseCheck | null): string {
   <div class="imagecard">${image}
     <div class="frame-256">
       <div class="text-75">${escapeHtml(sup.name)}</div>
-      <div class="frame-257">${headerBadges(sup)}</div>${dose === undefined || !product ? '' : `\n      ${pick && dose ? doseScale(dose, pick, true) : doseBlank(dose, true)}`}
+      <div class="frame-257">${headerBadges(sup)}</div>${dose === undefined || !product ? '' : `\n      ${pick && dose ? doseScale(dose, pick, true) : doseLimits(dose, product.url, true) ?? doseBlank(dose, true)}`}
     </div>
   </div>
 </div>`;

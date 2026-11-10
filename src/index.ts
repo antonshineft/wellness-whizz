@@ -44,7 +44,7 @@ import { generateSupplementImage, imageGenerationEnabled, loadImage, storeImage,
 import { attachIherbProducts, supplementsWithoutPhotos } from './products';
 import { alertRecipient, emailEnabled, emailStatus, resultsEmail, sendEmail } from './email';
 import { weeklyReportEmail } from './report';
-import { fileNote, getResearchNote, listResearchNotes, notePath, notesForSupplement, pruneAbstractlessNotes, pubmedUrl, repairNotes, researchBatch, type NoteOverrides } from './research';
+import { fileKnownNotes, searchPubmedRelevant, fileNote, getResearchNote, listResearchNotes, notePath, notesForSupplement, pruneAbstractlessNotes, pubmedUrl, repairNotes, researchBatch, type NoteOverrides } from './research';
 import { feedXml, indexSync, renderSitemap, sitemapEntries } from './indexing';
 import { renderResearchNote, renderResearchPage } from './render/research';
 import { renderSupplementsIndex } from './render/supplements-index';
@@ -63,7 +63,7 @@ import { dashboardToken, snapshotTrials, trialDashboard } from './trialboard';
 import { getLearned, learnFromTrials } from './triallearn';
 import { backfillBrands, brandFor, brandPicks, doseRecord, getBrand, listBrands } from './brands';
 import { brandStrip, renderBrandPage, renderBrandsIndex } from './render/brand';
-import { listDoseRefs, researchReference, setRefStatus } from './doseref';
+import { getDoseRef, listDoseRefs, researchReference, setManualRef, setRefStatus } from './doseref';
 import { MAX_PICKS, checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels, visibleCheck } from './dose';
 import { attachExtraProduct, setProduct } from './products';
 import { feedItems } from './social/feeds';
@@ -547,7 +547,7 @@ pageRoute('/research', async (c, lang) => {
   // ?q= narrows the notes to one supplement: every word of the search must be in the supplement's name or the paper's title.
   const q = (c.req.query('q') ?? '').trim().slice(0, 60);
   const words = q.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 1);
-  const all = await listResearchNotes(c.env.DB, words.length ? 500 : 100);
+  const all = await listResearchNotes(c.env.DB, words.length ? 2000 : 100);
   const notes = words.length ? all.filter((n) => { const hay = `${n.supplement_name ?? ''} ${n.title}`.toLowerCase(); return words.every((w) => hay.includes(w)); }) : all;
   track(c, { type: 'page_view', page: '/research' });
   return sendPage(c, renderResearchPage(notes, new URL(c.req.url).origin, words.length ? q : ''), lang, '/research', 'public, max-age=600');
@@ -1742,6 +1742,40 @@ app.post('/api/admin/dose/research', async (c) => {
     }
   }
   return c.json({ results, remaining: sups.filter((s) => !have.has(s.slug) && !results.some((r) => r.slug === s.slug && r.status !== 'failed')).length });
+});
+
+/** Owner-only: set a range by hand from quoted papers ({slug, marker, unit, labelRule, evidence: [{pmid, quote, dose}]}); the quotes are checked against PubMed. */
+app.post('/api/admin/dose/refs/set', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const body = (await c.req.json().catch(() => ({}))) as { slug?: string; marker?: string; unit?: string; labelRule?: string; evidence?: { pmid: string; quote: string; dose: number }[] };
+  const sup = await getSupplementBySlug(c.env.DB, String(body.slug ?? ''));
+  if (!sup) return c.json({ ok: false, error: 'no such supplement' }, 404);
+  const r = await setManualRef(c.env, sup, { marker: String(body.marker ?? ''), unit: String(body.unit ?? ''), labelRule: String(body.labelRule ?? ''), evidence: Array.isArray(body.evidence) ? body.evidence : [] });
+  return 'error' in r ? c.json({ ok: false, error: r.error }, 400) : c.json({ ok: true, ref: r });
+});
+
+/**
+ * Owner-only: fill one supplement's collection in the research section (?slug=): notes on the papers its dose range
+ * was read from, or, where it has none, on the most relevant reviews PubMed lists for it.
+ */
+app.post('/api/admin/research/backfill', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const sup = await getSupplementBySlug(c.env.DB, (c.req.query('slug') ?? '').trim());
+  if (!sup) return c.json({ ok: false, error: 'no such supplement' }, 404);
+  const ref = await getDoseRef(c.env.DB, sup.slug);
+  let pmids = [...new Set((ref?.evidence ?? []).map((e) => e.pmid))].slice(0, 5);
+  let from = 'dose range';
+  if (!pmids.length) {
+    const name = sup.name.replace(/\([^)]*\)/g, ' ').replace(/\b(supplements?|extracts?|powders?)\b/gi, ' ').replace(/\s+/g, ' ').trim();
+    pmids = await searchPubmedRelevant(c.env, `"${name}"[Title] AND (supplement*[Title/Abstract] OR supplementation[Title/Abstract] OR oral[Title/Abstract] OR dietary[Title/Abstract]) AND (meta-analysis[pt] OR systematic review[pt]) AND humans[mh]`, 3);
+    from = 'search';
+  }
+  const r = await fileKnownNotes(c.env, sup, pmids);
+  return c.json({ ok: true, slug: sup.slug, from, ...r });
 });
 
 /** Owner-only: the researched ranges with the sentences they rest on, to read before any is used. */

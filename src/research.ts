@@ -207,6 +207,45 @@ export async function insertNote(db: D1Database, sup: Supplement, s: PubmedSumma
 }
 
 /** Text the owner supplies for a note instead of the model's draft (the admin endpoint); any field left out is drafted. */
+/** "2024 Mar 15", "2019 Spring" or "2003" as an SQLite datetime; the first of the month or year where the day is not given. */
+function publishedAt(pubdate: string): string | null {
+  const m = /^(\d{4})(?:\s+([A-Za-z]{3}))?(?:\s+(\d{1,2}))?/.exec(pubdate.trim());
+  if (!m) return null;
+  const month = m[2] ? ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].indexOf(m[2].toLowerCase()) + 1 : 1;
+  return `${m[1]}-${String(month || 1).padStart(2, '0')}-${String(m[3] ?? 1).padStart(2, '0')} 00:00:00`;
+}
+
+/**
+ * File notes on papers already known to matter for a supplement (the ones its dose range was read from), so its
+ * collection in the research section is not empty. These are not news: each note is dated by its paper's publication,
+ * which keeps it below the weekly finds and out of the feed, and it is never queued for posting.
+ */
+export async function fileKnownNotes(env: ResearchEnv, sup: Supplement, pmids: string[]): Promise<{ added: string[]; skipped: string[] }> {
+  const added: string[] = [];
+  const skipped: string[] = [];
+  const ids = [...new Set(pmids.map((x) => x.replace(/\D/g, '')).filter(Boolean))];
+  const have = new Set(ids.length ? (await env.DB.prepare(`SELECT pmid FROM research_notes WHERE pmid IN (${ids.map(() => '?').join(',')})`).bind(...ids).all<{ pmid: string }>()).results.map((r) => r.pmid) : []);
+  const todo = ids.filter((id) => !have.has(id));
+  const summaries = new Map((await pubmedSummaries(env, todo)).map((x) => [x.uid, x]));
+  for (const id of todo) {
+    const meta = summaries.get(id);
+    try {
+      if (!meta) throw new Error('no PubMed record');
+      const article = await pubmedArticle(env, id);
+      if (article.abstract.length < 200) throw new Error('no abstract');
+      if (!meta.pubtype?.length && article.pubTypes.length) meta.pubtype = article.pubTypes;
+      const draft = await draftNote(env, sup, meta, article.abstract);
+      if (!draft.relevant || !draft.summary.trim()) throw new Error('not about taking the supplement');
+      if (!(await insertNote(env.DB, sup, meta, draft))) throw new Error('already filed');
+      await env.DB.prepare('UPDATE research_notes SET queued = 1, created_at = COALESCE(?, created_at) WHERE pmid = ?').bind(publishedAt(meta.pubdate ?? ''), id).run();
+      added.push(id);
+    } catch (err) {
+      skipped.push(`${id}: ${String(err instanceof Error ? err.message : err).slice(0, 60)}`);
+    }
+  }
+  return { added, skipped };
+}
+
 export interface NoteOverrides {
   summary?: string;
   takeaway?: string;

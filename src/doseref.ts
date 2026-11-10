@@ -60,7 +60,7 @@ const refSchema = {
     found: { type: 'boolean', description: 'true only when at least two of the papers state daily oral doses of the same quantity.' },
     reason: { type: 'string', description: 'When found is false: why (one sentence). Empty otherwise.' },
     marker: { type: 'string', description: 'What the doses measure, named as a product label would: "EPA plus DHA", "curcuminoids", "standardised root extract", "silymarin", "the powder itself". At most six words.' },
-    unit: { type: 'string', description: 'mg, g, mcg, IU or "billion CFU". One unit for every dose.' },
+    unit: { type: 'string', description: 'mg, g, mcg, IU, mL, FU (fibrinolytic units) or "billion CFU". One unit for every dose.' },
     label_rule: { type: 'string', description: 'One sentence telling a reader of a Supplement Facts label which line(s) give this quantity, and when a product must be left out (for example a plain herb powder when the doses are of a standardised extract).' },
     evidence: {
       type: 'array',
@@ -89,7 +89,8 @@ Rules:
 - Choose one quantity that product labels state, and report every dose as that quantity. If the papers dose a standardised extract, the quantity is the extract (or its marker compound when the abstracts give that), not the whole plant.
 - Every dose needs the sentence it comes from, copied character for character from the abstract of the paper you name. A dose you cannot quote is not reported.
 - Report daily doses in ordinary use by adults. Convert a divided dose to its daily total and say nothing you cannot show.
-- If fewer than two papers state a dose of the same quantity, answer found: false.`;
+- A range stated in one sentence of a review or meta-analysis ("doses ranged from 500 to 2000 mg/day") counts as two doses: report its lower and its upper end, each with that sentence.
+- If the abstracts give fewer than two doses of the same quantity, answer found: false.`;
 
 const norm = (s: string) => s.toLowerCase().replace(/[‐-―−]/g, '-').replace(/[   ]/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -110,6 +111,8 @@ const round = (v: number) => (v >= 100 ? Math.round(v) : v >= 10 ? Math.round(v 
 export async function researchReference(env: ResearchEnv, sup: Supplement): Promise<DoseRef> {
   const base: DoseRef = { slug: sup.slug, name: sup.name, status: 'none', reason: '', marker: '', unit: '', low: null, high: null, labelRule: '', evidence: [], term: '', at: new Date().toISOString() };
   const save = async (ref: DoseRef) => {
+    const before = await getDoseRef(env.DB, ref.slug);
+    if (before?.status === 'approved') return before; // an approved range is replaced only by hand
     await env.DB.prepare("INSERT INTO dose_refs (slug, json, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT (slug) DO UPDATE SET json = excluded.json, updated_at = excluded.updated_at").bind(ref.slug, JSON.stringify(ref)).run();
     return ref;
   };
@@ -117,8 +120,18 @@ export async function researchReference(env: ResearchEnv, sup: Supplement): Prom
   const plan = await claudeJson<{ researchable: boolean; reason: string; names: string }>(env, PLAN_SYSTEM, `Supplement page: ${sup.name} (category: ${sup.category})`, planSchema, { tier: 'fast', maxTokens: 400 });
   if (!plan.researchable || !plan.names.trim()) return save({ ...base, reason: plan.reason.trim() || 'not a single supplement with its own dosing studies' });
 
-  const term = `(${plan.names.trim()})[Title] AND (dose[Title/Abstract] OR dosage[Title/Abstract] OR doses[Title/Abstract] OR "mg/day"[Title/Abstract] OR "mg daily"[Title/Abstract] OR "g/day"[Title/Abstract] OR supplementation[Title/Abstract]) AND (meta-analysis[pt] OR systematic review[pt] OR randomized controlled trial[pt]) AND humans[mh]`;
-  const pmids = await searchPubmedRelevant(env, term, 12);
+  // Each name gets its own field tag: "(a OR b)[Title]" would tag only the last one and let the others match anything.
+  const names = plan.names.split(/\s+OR\s+/i).map((n) => n.trim().replace(/^\(+|\)+$/g, '')).filter(Boolean);
+  const tagged = (field: string) => `(${names.map((n) => `${n}[${field}]`).join(' OR ')})`;
+  const about = '(dose[Title/Abstract] OR dosage[Title/Abstract] OR doses[Title/Abstract] OR "mg/day"[Title/Abstract] OR "mg daily"[Title/Abstract] OR "g/day"[Title/Abstract] OR supplementation[Title/Abstract])';
+  const kinds = '(meta-analysis[pt] OR systematic review[pt] OR randomized controlled trial[pt]) AND humans[mh]';
+  let term = `${tagged('Title')} AND ${about} AND ${kinds}`;
+  let pmids = await searchPubmedRelevant(env, term, 16);
+  if (pmids.length < 6) {
+    // Few papers name it in the title: look in the abstracts too, and keep whatever the title search found first.
+    term = `${tagged('Title/Abstract')} AND ${about} AND ${kinds}`;
+    pmids = [...new Set([...pmids, ...(await searchPubmedRelevant(env, term, 16))])].slice(0, 16);
+  }
   if (pmids.length < 2) return save({ ...base, term, reason: `PubMed lists ${pmids.length} matching ${pmids.length === 1 ? 'paper' : 'papers'}` });
   const [abstracts, summaries] = await Promise.all([pubmedAbstracts(env, pmids), pubmedSummaries(env, pmids)]);
   const titles = new Map(summaries.map((s) => [s.uid, s.title]));
@@ -137,7 +150,10 @@ export async function researchReference(env: ResearchEnv, sup: Supplement): Prom
     evidence.push({ pmid: id, title: (titles.get(id) ?? '').replace(/\.$/, ''), quote: e.quote.trim().slice(0, 260), dose: round(e.dose) });
   }
   const sources = new Set(evidence.map((e) => e.pmid));
-  if (evidence.length < 2 || sources.size < 2) return save({ ...base, term, reason: `only ${evidence.length} of ${out.evidence?.length ?? 0} reported doses could be matched to a sentence of their paper` });
+  // Two papers, or one review or meta-analysis that itself states the range of the trials it pooled.
+  const kindOf = new Map(summaries.map((x) => [x.uid, (x.pubtype ?? []).join(' ').toLowerCase()]));
+  const pooled = [...sources].some((id) => /meta-analysis|systematic review|review/.test(kindOf.get(id) ?? ''));
+  if (evidence.length < 2 || (sources.size < 2 && !pooled)) return save({ ...base, term, reason: `only ${evidence.length} of ${out.evidence?.length ?? 0} reported doses could be matched to a sentence of their paper` });
   const doses = evidence.map((e) => e.dose);
   const low = Math.min(...doses);
   const high = Math.max(...doses);
@@ -169,4 +185,28 @@ export async function setRefStatus(db: D1Database, slugs: string[], status: 'app
     changed.push(slug);
   }
   return changed;
+}
+
+/**
+ * A range set by hand from named papers: for a figure a position stand states that the search does not surface. The
+ * quotes go through the same test as the automatic ones (the sentence must be in the abstract of the paper named and
+ * contain the number), and the range is still a draft until approved.
+ */
+export async function setManualRef(env: ResearchEnv, sup: Supplement, input: { marker: string; unit: string; labelRule: string; evidence: { pmid: string; quote: string; dose: number }[] }): Promise<DoseRef | { error: string }> {
+  const ids = [...new Set(input.evidence.map((e) => String(e.pmid).replace(/\D/g, '')))].filter(Boolean);
+  if (!ids.length || !input.marker.trim() || !input.unit.trim()) return { error: 'marker, unit and at least one quoted dose are needed' };
+  const [abstracts, summaries] = await Promise.all([pubmedAbstracts(env, ids), pubmedSummaries(env, ids)]);
+  const titles = new Map(summaries.map((x) => [x.uid, x.title]));
+  const evidence: RefEvidence[] = [];
+  for (const e of input.evidence) {
+    const id = String(e.pmid).replace(/\D/g, '');
+    const abstract = abstracts.get(id);
+    if (!abstract || !supported(abstract, e.quote, e.dose)) return { error: `the quote for ${e.dose} is not in the abstract of PMID ${id}, or does not contain that number` };
+    evidence.push({ pmid: id, title: (titles.get(id) ?? '').replace(/\.$/, ''), quote: e.quote.trim().slice(0, 260), dose: round(e.dose) });
+  }
+  const doses = evidence.map((e) => e.dose);
+  if (doses.length < 2) return { error: 'two quoted doses are needed: the low and the high end' };
+  const ref: DoseRef = { slug: sup.slug, name: sup.name, status: 'draft', reason: '', marker: input.marker.trim().slice(0, 60), unit: input.unit.trim(), low: Math.min(...doses), high: Math.max(...doses), labelRule: input.labelRule.trim().slice(0, 300), evidence, term: 'set by hand', at: new Date().toISOString() };
+  await env.DB.prepare("INSERT INTO dose_refs (slug, json, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT (slug) DO UPDATE SET json = excluded.json, updated_at = excluded.updated_at").bind(ref.slug, JSON.stringify(ref)).run();
+  return ref;
 }

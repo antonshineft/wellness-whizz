@@ -1,6 +1,6 @@
 /** /supplement/:slug — the "Supplements" CMS template page. */
 import type { Supplement } from '../db';
-import { MAX_PICKS, STATE_RANK, doseBlank, doseFor, doseLine, doseScale, type DoseCheck } from '../dose';
+import { MAX_PICKS, STATE_RANK, doseBlank, doseFor, doseLimits, doseLine, doseScale, type DoseCheck } from '../dose';
 import { escapeHtml } from '../html';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
@@ -163,7 +163,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandP
               <div class="ww-top-photo">${image}</div>
               <div class="ww-top-name">${escapeHtml(p.name)}</div>
               <div class="ww-top-meta">${brandLabel(p.brand, brandPath)}${r.d && dose ? `${p.brand ? ' · ' : ''}${escapeHtml(doseLine(dose, r.d))}` : ''}</div>
-              ${r.d && dose ? doseScale(dose, r.d) : doseBlank(dose, false, sup.name)}
+              ${r.d && dose ? doseScale(dose, r.d) : doseLimits(dose, p.url) ?? doseBlank(dose, false, sup.name)}
               <a href="${escapeHtml(shopUrl(env, sup, p))}" target="_blank" rel="noopener nofollow sponsored" class="outbutton w-button" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}" data-product="${escapeHtml(p.name)}">Buy on iHerb</a>
             </article>`;
     })
