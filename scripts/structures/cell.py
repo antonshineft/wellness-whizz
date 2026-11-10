@@ -77,15 +77,16 @@ def block(symbol: str, x: float, y: float, s: float, tag: str) -> tuple[str, str
 
 
 def svg_for(symbols: str) -> str:
-    """The picture for "Mg", or for two elements "Zn+Mg", side by side."""
+    """The picture for "Mg", or for two elements "Zn+Mg": the first on top, the second stacked behind it."""
     names = symbols.split('+')
     if len(names) == 1:
         cells = [(names[0], 172, 152, 590)]
     else:
-        cells = [(names[0], 70, 130, 410), (names[1], 520, 470, 410)]
+        cells = [(names[1], 420, 396, 430), (names[0], 96, 110, 430)]  # stacked: the second behind, the first on top
     defs, sides, faces = zip(*(block(sym, x, y, s, f'c{i}') for i, (sym, x, y, s) in enumerate(cells)))
-    # Every fading side lies under every face, so one cell never dims the figures of another.
-    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {S} {S}" width="{S}" height="{S}">\n<defs>{"".join(defs)}</defs>\n' + '\n'.join(sides + faces) + '\n</svg>'
+    # Drawn back to front, each cell whole: the front cell and its fading side lie over the one behind.
+    body = [part for pair in zip(sides, faces) for part in pair]
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {S} {S}" width="{S}" height="{S}">\n<defs>{"".join(defs)}</defs>\n' + '\n'.join(body) + '\n</svg>'
 
 
 def describe(symbols: str) -> str:
