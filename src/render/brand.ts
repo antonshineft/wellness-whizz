@@ -103,7 +103,8 @@ export interface BrandPageData {
 
 export function renderBrandPage(env: LinkEnv, d: BrandPageData): string {
   const b = d.brand;
-  const cap = (v: string | number) => String(v).replace(/^[a-z]/, (ch) => ch.toUpperCase());
+  // A name that starts with a small letter on purpose (iHerb, eSupplements) keeps it.
+  const cap = (v: string | number) => (/^[a-z][A-Z]/.test(String(v)) ? String(v) : String(v).replace(/^[a-z]/, (ch) => ch.toUpperCase()));
   const fact = (label: string, value: string | number | null) => (value ? `<div><dt>${label}</dt><dd>${escapeHtml(cap(value))}</dd></div>` : '');
   const body = `
       <dl class="ww-brand-facts">

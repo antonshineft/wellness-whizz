@@ -134,7 +134,7 @@ M = {
     'calcium-31e0e': ('Ca', 'element', ''),
     'chromium-d5cc7': ('Cr', 'element', ''),
     'copper-4fd77': ('Cu', 'element', ''),
-    'electrolyte-drinks-4cb22': ('sodium citrate', 'part', 'a salt used in electrolyte drinks'),
+    'electrolyte-drinks-4cb22': ('Na+K+Mg', 'element', ''),
     'iodine-8c905': ('I', 'element', ''),
     'iron-f14ff': ('Fe', 'element', ''),
     'magnesium-32aa0': ('Mg', 'element', ''),

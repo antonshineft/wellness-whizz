@@ -879,3 +879,10 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-brand-rec li.ww-brand-sign-over svg, .ww-brand-chip.ww-brand-sign-over svg { color: #ff3e50; }
 .ww-brand-rec b { min-width: 28px; }
 @media (max-width: 767px) { .ww-brand-frame { padding: 22px 18px 4px; border-radius: 22px; } .ww-brand-hero-logo { padding: 22px; border-radius: 22px; } }
+
+/* The buy button sits at the foot of its card whatever the length of the product's name: on the picks grid the
+   scale and the button go down together, so the bars of a row line up too. */
+.ww-top-card .ww-dose { margin-top: auto; padding-top: 12px; }
+.ww-top-card .ww-dose + .outbutton { margin-top: 12px; }
+.ww-pick { display: flex; flex-direction: column; }
+.ww-pick .outbutton { margin-top: auto; }

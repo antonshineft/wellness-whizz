@@ -56,7 +56,7 @@ export const STRUCTURES: Record<string, Structure> = {
   "echinacea-49575": { compound: "chicoric acid", kind: "active", note: "a main studied compound in echinacea", cid: 5281764 },
   "egg-white-protein-3e17a": { compound: "L-cysteine", kind: "part", note: "a sulfur amino acid egg white is rich in", cid: 5862 },
   "elderberry": { compound: "cyanidin 3-sambubioside", kind: "active", note: "a main anthocyanin pigment of elderberries", cid: 3084569 },
-  "electrolyte-drinks-4cb22": { compound: "sodium citrate", kind: "part", note: "a salt used in electrolyte drinks", cid: 6224 },
+  "electrolyte-drinks-4cb22": { compound: "Na+K+Mg", kind: "element", note: "sodium (Na), atomic number 11 and potassium (K), atomic number 19 and magnesium (Mg), atomic number 12", cid: 0 },
   "energy-bars-77893": { compound: "D-glucose", kind: "part", note: "the sugar the body runs on", cid: 5793 },
   "evening-primrose-oil": { compound: "gamma-linolenic acid", kind: "active", note: "the fatty acid evening primrose oil is taken for", cid: 5280933 },
   "fenugreek": { compound: "4-hydroxyisoleucine", kind: "active", note: "an amino acid found almost only in fenugreek", cid: 2773624 },

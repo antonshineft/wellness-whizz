@@ -5,7 +5,7 @@ symbol (its letters drawn in grey outline) and standard atomic weight (IUPAC, ab
 as outlines, so it looks the same wherever the picture is shown.
 
     pip install fonttools
-    python3 cell.py Mg out.svg        # or "Zn+Mg" for a page about two minerals
+    python3 cell.py Mg out.svg        # or "Zn+Mg", "Na+K+Mg" for a page about several minerals
 """
 import sys
 from pathlib import Path
@@ -19,7 +19,7 @@ S = 1024
 FONTS = Path(__file__).resolve().parent.parent.parent / 'public' / 'fonts'
 # symbol: (name, atomic number, standard atomic weight)
 ELEMENTS = {
-    'B': ('boron', 5, '10.81'), 'Mg': ('magnesium', 12, '24.305'), 'K': ('potassium', 19, '39.098'), 'Ca': ('calcium', 20, '40.078'),
+    'B': ('boron', 5, '10.81'), 'Na': ('sodium', 11, '22.990'), 'Mg': ('magnesium', 12, '24.305'), 'K': ('potassium', 19, '39.098'), 'Ca': ('calcium', 20, '40.078'),
     'Cr': ('chromium', 24, '51.996'), 'Mn': ('manganese', 25, '54.938'), 'Fe': ('iron', 26, '55.845'), 'Cu': ('copper', 29, '63.546'),
     'Zn': ('zinc', 30, '65.38'), 'Se': ('selenium', 34, '78.971'), 'I': ('iodine', 53, '126.90'),
 }
@@ -77,12 +77,14 @@ def block(symbol: str, x: float, y: float, s: float, tag: str) -> tuple[str, str
 
 
 def svg_for(symbols: str) -> str:
-    """The picture for "Mg", or for two elements "Zn+Mg": the first on top, the second stacked behind it."""
+    """The picture for "Mg", or for two or three elements ("Zn+Mg", "Na+K+Mg"): the first on top, the others stacked behind it."""
     names = symbols.split('+')
     if len(names) == 1:
         cells = [(names[0], 172, 152, 590)]
-    else:
+    elif len(names) == 2:
         cells = [(names[1], 420, 396, 430), (names[0], 96, 110, 430)]  # stacked: the second behind, the first on top
+    else:
+        cells = [(names[2], 560, 520, 360), (names[1], 330, 310, 360), (names[0], 100, 100, 360)]  # three, stepping down to the right
     defs, sides, faces = zip(*(block(sym, x, y, s, f'c{i}') for i, (sym, x, y, s) in enumerate(cells)))
     # Drawn back to front, each cell whole: the front cell and its fading side lie over the one behind.
     body = [part for pair in zip(sides, faces) for part in pair]

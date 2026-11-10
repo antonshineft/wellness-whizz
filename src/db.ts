@@ -137,6 +137,16 @@ export function asSafetyStatus(v: unknown): SafetyStatus {
   return (SAFETY_STATUSES as readonly string[]).includes(String(v)) ? (v as SafetyStatus) : 'safe';
 }
 
+/**
+ * The safety tag has to agree with the safety score shown next to it: "Not safe" only at 2 of 5 or lower, "Safe" only
+ * from 4 of 5. A tag that contradicts the score gives way to the score. "Prescription" says something else and stays.
+ */
+export function safetyStatusFor(status: SafetyStatus, score: number): SafetyStatus {
+  if (status === 'not_safe' && score >= 3) return score >= 4 ? 'safe' : 'ok';
+  if (status === 'safe' && score <= 3) return 'ok';
+  return status;
+}
+
 export function parseProducts(json: string | null | undefined): Product[] {
   try {
     const parsed = JSON.parse(json || '[]');
@@ -175,7 +185,7 @@ function rowToSupplement(row: SupplementRow): Supplement {
     faqs: parseFaqs(faq_json),
     form_type: asFormType(rest.form_type),
     fda_status: asFdaStatus(rest.fda_status),
-    safety_status: asSafetyStatus(rest.safety_status),
+    safety_status: safetyStatusFor(asSafetyStatus(rest.safety_status), clampRating(rest.safety)),
     effectivity: clampRating(rest.effectivity),
     safety: clampRating(rest.safety),
     products: parseProducts(products_json),

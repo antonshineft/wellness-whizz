@@ -5,7 +5,7 @@
  * Both use Structured Outputs (JSON schema, strict) so the result always matches our database fields.
  */
 import {
-  CATEGORIES, FDA_STATUSES, FORM_TYPES, SAFETY_STATUSES, asFdaStatus, asFormType, asSafetyStatus, clampRating,
+  CATEGORIES, FDA_STATUSES, FORM_TYPES, SAFETY_STATUSES, asFdaStatus, asFormType, asSafetyStatus, clampRating, safetyStatusFor,
   type FormType, type Product, type QuizProfile, type SupplementInput,
 } from './db';
 import { claudeEnabled, claudeJson, claudeRetryableElsewhere, type ClaudeEnv, type ClaudeOptions } from './claude';
@@ -245,7 +245,7 @@ function draftToInput(env: AiEnv, draft: ProfileDraft, rec: Recommendation): Sup
     category: CATEGORIES.includes(draft.category) ? draft.category : rec.category,
     form_type: asFormType(draft.form_type || rec.form_type),
     fda_status: asFdaStatus(draft.fda_status),
-    safety_status: asSafetyStatus(draft.safety_status),
+    safety_status: safetyStatusFor(asSafetyStatus(draft.safety_status), clampRating(draft.safety)),
     effectivity: clampRating(draft.effectivity),
     safety: clampRating(draft.safety),
     summary: String(draft.summary ?? '').trim(),
