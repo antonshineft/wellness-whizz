@@ -143,6 +143,16 @@ STYLE_BLOCK = ('Style: digital hand-drawn 2D illustration with a digital gouache
                'animated explainer mood. Clean, uncluttered composition on a plain cream paper background with plenty of breathing room.')
 
 
+# One character design for the whole video. Without this each clip invented its own: a rounded blob in one scene, a
+# realistic person or a silhouette in the next (the owner likes the blob).
+CHARACTER_BLOCK = ('Characters: every person in every scene is the same kind of figure: a rounded, soft-bodied cartoon blob person with a '
+                   'smooth plain body in one flat colour (the main character soft teal), two small dot eyes and a small curved smile, short '
+                   'stubby arms and legs, no hair, no nose, no ears, no fingers, no clothes. Other people are the same blob shape in another '
+                   'pastel colour, told apart only by one simple prop (a hat, round glasses, a scarf, a coat collar). Never a realistic or '
+                   'anatomical human, never a human silhouette, never a detailed face, and never a different character design from one '
+                   'moment to the next.')
+
+
 def scene_prompt(index: int, count: int, topic: str, visual: str) -> str:
     refs = ' '.join(f'<IMAGE_REF_{i}>' for i in range(len(STYLE)))
     # No scene numbers in the prompt: given "scene 6 of 9" the model draws a numbered title card ("6. ...") on the footage.
@@ -152,6 +162,7 @@ def scene_prompt(index: int, count: int, topic: str, visual: str) -> str:
             'Strictly no titles, headings, captions, scene numbers, labels or lettering of any kind anywhere in the frame, at any moment: '
             'the picture carries the story alone.\n\n'
             f'{STYLE_BLOCK}\n\n'
+            f'{CHARACTER_BLOCK}\n\n'
             f'Sequence ({SCENE_SECONDS} seconds, one continuous shot, always in motion, no static holds, soft easing, gentle sparkles, '
             f'continuous slow camera drift):\n{visual}\n\n'
             'Use the given images only as style references for the rendering look. Do not use them as initial frames and do not '
