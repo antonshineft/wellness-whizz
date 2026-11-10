@@ -886,3 +886,17 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-top-card .ww-dose + .outbutton { margin-top: 12px; }
 .ww-pick { display: flex; flex-direction: column; }
 .ww-pick .outbutton { margin-top: auto; }
+
+/* Supplement hero on desktop: the card grows with a name that takes two lines, so the second line is never cut off,
+   and a name too long for one line is set smaller. */
+@media screen and (min-width: 992px) {
+  .frame-49 { height: auto; min-height: 402px; }
+  .frame-49 .mask-container { flex: 0 0 auto; }
+  .heading.heading--m { font-size: 11ch; }
+  .heading.heading--s { font-size: 8ch; }
+}
+@media screen and (min-width: 992px) and (max-width: 1199px) {
+  .heading { font-size: 12ch; }
+  .heading.heading--m { font-size: 9ch; }
+  .heading.heading--s, .heading.heading--long { font-size: 7ch; }
+}

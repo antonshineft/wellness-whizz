@@ -213,6 +213,15 @@ export async function supplementsWithoutPhotos(db: D1Database, limit: number): P
   return results;
 }
 
+/** Takes the pick at place `n` off the page; the picks after it move up. A page keeps at least three. */
+export async function removeProduct(env: { DB: D1Database }, sup: Supplement, n: number): Promise<{ ok: true; left: number } | { ok: false; message: string }> {
+  if (!Number.isInteger(n) || n < 1 || n > sup.products.length) return { ok: false, message: `place must be 1 to ${sup.products.length}` };
+  if (sup.products.length <= 3) return { ok: false, message: 'a page keeps at least three picks' };
+  const products = sup.products.filter((_, i) => i !== n - 1);
+  await env.DB.prepare("UPDATE supplements SET products_json = ?, updated_at = datetime('now') WHERE id = ?").bind(JSON.stringify(products), sup.id).run();
+  return { ok: true, left: products.length };
+}
+
 /** Search link for a product without a URL of its own (kept for callers that build products by hand). */
 export function fallbackProductUrl(env: LinkEnv, p: { name: string; brand?: string }): string {
   return searchUrl(env, `${p.brand ?? ''} ${p.name}`.trim());

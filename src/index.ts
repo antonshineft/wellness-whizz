@@ -65,7 +65,7 @@ import { backfillBrands, brandFor, brandPicks, doseRecord, getBrand, listBrands 
 import { brandStrip, renderBrandPage, renderBrandsIndex } from './render/brand';
 import { getDoseRef, listDoseRefs, researchReference, setManualRef, setRefStatus } from './doseref';
 import { MAX_PICKS, checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels, visibleCheck } from './dose';
-import { attachExtraProduct, setProduct, setProductCutout } from './products';
+import { attachExtraProduct, removeProduct, setProduct, setProductCutout } from './products';
 import { feedItems } from './social/feeds';
 import { autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
@@ -1629,14 +1629,18 @@ app.post('/api/admin/dose/extra', async (c) => {
   return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 400);
 });
 
-/** Replace the pick at place `n` ({slug, n, name, brand, url, photo (base64), type}), or only rename it ({slug, n, name, brand}). */
+/** Replace the pick at place `n` ({slug, n, name, brand, url, photo (base64), type}), only rename it ({slug, n, name, brand}), or take it off the page ({slug, n, remove: true}). */
 app.post('/api/admin/dose/pick', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
-  const body = (await c.req.json().catch(() => ({}))) as { slug?: string; n?: number; name?: string; brand?: string; url?: string; photo?: string; type?: string };
+  const body = (await c.req.json().catch(() => ({}))) as { slug?: string; n?: number; name?: string; brand?: string; url?: string; photo?: string; type?: string; remove?: boolean };
   const sup = await getSupplementBySlug(c.env.DB, String(body.slug ?? ''));
   if (!sup) return c.json({ ok: false, error: 'no such supplement' }, 404);
+  if (body.remove === true) {
+    const gone = await removeProduct(c.env, sup, Number(body.n));
+    return gone.ok ? c.json(gone) : c.json({ ok: false, error: gone.message }, 400);
+  }
   let photo: { bytes: Uint8Array; type: string } | null = null;
   if (body.url) {
     try {
@@ -1785,15 +1789,49 @@ app.post('/api/admin/research/backfill', async (c) => {
   const sup = await getSupplementBySlug(c.env.DB, (c.req.query('slug') ?? '').trim());
   if (!sup) return c.json({ ok: false, error: 'no such supplement' }, 404);
   const ref = await getDoseRef(c.env.DB, sup.slug);
-  let pmids = [...new Set((ref?.evidence ?? []).map((e) => e.pmid))].slice(0, 5);
+  const want = Math.min(6, Math.max(1, Number(c.req.query('n')) || 3));
+  const own = (c.req.query('q') ?? '').trim().slice(0, 400);
+  const added: string[] = [];
+  const skipped: string[] = [];
+  const tried = new Set<string>();
+  const file = async (pmids: string[]) => {
+    const fresh = pmids.filter((id) => !tried.has(id));
+    fresh.forEach((id) => tried.add(id));
+    const r = await fileKnownNotes(c.env, sup, fresh);
+    added.push(...r.added);
+    skipped.push(...r.skipped);
+  };
   let from = 'dose range';
-  if (!pmids.length) {
+  if (!own) await file([...new Set((ref?.evidence ?? []).map((e) => e.pmid))].slice(0, 5));
+  if (!added.length) {
+    // From the narrowest search to the widest: stop as soon as the page has the notes asked for.
     const name = sup.name.replace(/\([^)]*\)/g, ' ').replace(/\b(supplements?|extracts?|powders?)\b/gi, ' ').replace(/\s+/g, ' ').trim();
-    pmids = await searchPubmedRelevant(c.env, `"${name}"[Title] AND (supplement*[Title/Abstract] OR supplementation[Title/Abstract] OR oral[Title/Abstract] OR dietary[Title/Abstract]) AND (meta-analysis[pt] OR systematic review[pt]) AND humans[mh]`, 3);
-    from = 'search';
+    const terms = own
+      ? [own]
+      : [
+          `"${name}"[Title] AND (supplement*[Title/Abstract] OR supplementation[Title/Abstract] OR oral[Title/Abstract] OR dietary[Title/Abstract]) AND (meta-analysis[pt] OR systematic review[pt]) AND humans[mh]`,
+          `"${name}"[Title] AND (meta-analysis[pt] OR systematic review[pt] OR review[pt]) AND humans[mh]`,
+          `"${name}"[Title/Abstract] AND (supplement*[Title/Abstract] OR supplementation[Title/Abstract] OR intake[Title/Abstract]) AND (randomized controlled trial[pt] OR review[pt]) AND humans[mh]`,
+        ];
+    from = own ? 'given search' : 'search';
+    for (const term of terms) {
+      if (added.length >= want) break;
+      await file((await searchPubmedRelevant(c.env, term, want + 3)).slice(0, want + 3 - Math.min(added.length, 2)));
+    }
   }
-  const r = await fileKnownNotes(c.env, sup, pmids);
-  return c.json({ ok: true, slug: sup.slug, from, ...r });
+  return c.json({ ok: true, slug: sup.slug, from, added, skipped });
+});
+
+/** Owner-only: how many research notes each supplement has, fewest first. */
+app.get('/api/admin/research/coverage', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const { results } = await c.env.DB
+    .prepare("SELECT s.slug, s.name, s.category, (SELECT COUNT(*) FROM research_notes n WHERE n.supplement_id = s.id AND n.summary != '') AS notes FROM supplements s ORDER BY notes, s.name")
+    .all<{ slug: string; name: string; category: string; notes: number }>();
+  c.header('cache-control', 'no-store');
+  return c.json({ supplements: results });
 });
 
 /** Owner-only: the researched ranges with the sentences they rest on, to read before any is used. */
