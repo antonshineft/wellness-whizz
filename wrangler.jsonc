@@ -58,6 +58,9 @@
     "VIDEO_MONTHLY_LIMIT": "30",
     // Trial reels (src/trials.ts): "true" lets the morning workflow post three variations of yesterday's video (one line
     // changed each) as reels kept out of the feed; "false" stops it. TRIALS_SKIP: videos whose raw clips are not clean.
+    // The dose check on supplement pages and the home slider (src/dose.ts): "true" shows it to everyone, "preview"
+    // only with ?dose=preview, "false" hides it. Only official ranges are shown; other picks are greyed out.
+    "DOSE_CHECK": "true",
     "TRIALS_AUTO": "true",
     "TRIALS_SKIP": "glycine-three-am-clock,saffron-price-tag",
     "VIDEO_APPROVAL": "true",
