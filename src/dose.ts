@@ -325,8 +325,8 @@ function wordsFor(c: DoseCheck, state: DoseState): { mark: string; cls: string; 
 }
 
 /**
- * The scale of one product: verdict, bar and the figures between the zones. `teaser` is the bare form for the home
- * page slider: a small mark, a dot on the bar, and the reference figures only.
+ * The scale of one product: verdict, a bar with a dot where the pick sits, and the reference figures under it.
+ * `teaser` is the smaller form for the home page slider.
  */
 export function doseScale(c: DoseCheck, p: DoseProduct, teaser = false): string {
   const { zones, edges } = scaleOf(c);
@@ -335,7 +335,9 @@ export function doseScale(c: DoseCheck, p: DoseProduct, teaser = false): string 
   const cols = `grid-template-columns:repeat(${zones.length},1fr)`;
   const bar = zones.map((z) => `<i class="ww-dose-${z.cls}"></i>`).join('');
   const marks = edges.map((e, i) => `<span style="left:${(((i + 1) * 100) / zones.length).toFixed(1)}%">${fmt(e)} ${esc(c.unit)}</span>`).join('');
-  const mark = teaser ? `<span class="ww-dose-dot" style="left:${at}%"></span>` : `<span class="ww-dose-pin" style="left:${at}%">${fmt(p.daily as number)} ${esc(c.unit)} a day</span>`;
+  // The pick's place is a dot on the bar; its amount is stated in the card's own line, and only the reference
+  // figures sit under the ruler.
+  const mark = `<span class="ww-dose-dot" style="left:${at}%" title="${fmt(p.daily as number)} ${esc(c.unit)} a day"></span>`;
   return `<div class="ww-dose ww-dose-${w.cls}${teaser ? ' ww-dose-teaser' : ''}">
           <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">${w.mark}</span><span>${esc(w.text)}</span></div>
           <div class="ww-dose-bar" style="${cols}">${bar}${mark}</div>

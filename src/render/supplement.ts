@@ -143,7 +143,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null): strin
     .sort((a, b) => (a.d ? STATE_RANK[a.d.state] : STATE_RANK.unknown) - (b.d ? STATE_RANK[b.d.state] : STATE_RANK.unknown) || a.i - b.i);
   const anyScale = ranked.some((r) => r.d);
   const list = ranked
-    .map((r, n) => `<li><a href="#pick-${n + 1}"><span class="ww-top-n">${n + 1}</span><span class="ww-top-brand">${escapeHtml(r.p.brand || r.p.name)}${r.p.brand ? `<small>${escapeHtml(r.p.name)}</small>` : ''}</span></a></li>`)
+    .map((r, n) => `<li><a href="#pick-${n + 1}"><span class="ww-top-n">${n + 1}</span><span class="ww-top-brand">${escapeHtml(r.p.brand || r.p.name)}</span></a></li>`)
     .join('\n            ');
   const cards = ranked
     .map((r, n) => {
@@ -169,9 +169,10 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null): strin
         <ol class="ww-top-list">
             ${list}
         </ol>
-        ${anyScale && dose ? doseLegend(dose) : ''}
       </div>
-      <div class="ww-top-grid">${cards}
+      <div class="ww-top-main">
+        <div class="ww-top-grid">${cards}
+        </div>${anyScale && dose ? `\n        <div class="ww-top-foot">${doseLegend(dose)}</div>` : ''}
       </div>
     </section>`;
 }
