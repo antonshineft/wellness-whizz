@@ -14,7 +14,7 @@
  */
 import { getMeta, setMeta } from './db';
 import type { Lang } from './i18n';
-import { sitemapEntries } from './indexing';
+import { sitemapEntries, type SitemapEntry } from './indexing';
 
 export interface GscEnv {
   DB: D1Database;
@@ -36,6 +36,8 @@ export interface InspectOptions {
   max?: number;
   /** Retry pages whose last inspection failed, however recent (the tick waits an hour). */
   retryErrors?: boolean;
+  /** Sitemap entries that do not come from the database (the brand profiles). */
+  extra?: SitemapEntry[];
 }
 
 export const GSC_SQL = [
@@ -200,13 +202,19 @@ export interface InspectResult {
 export async function inspectStep(env: GscEnv, opts: InspectOptions): Promise<InspectResult | null> {
   if (!gscEnabled(env)) return null;
   const max = Math.max(1, Math.min(40, opts.max ?? 20));
-  const entries = await sitemapEntries(env.DB, opts.curatedOnly, opts.langs);
+  const entries = await sitemapEntries(env.DB, opts.curatedOnly, opts.langs, opts.extra ?? []);
   const urls = entries.map((e) => `${opts.origin}${e.loc}`);
   // Rows for pages new to the sitemap (one query for the known ones; each D1 call counts as a subrequest).
   const known = new Set((await env.DB.prepare('SELECT url FROM gsc_pages').all<{ url: string }>()).results.map((r) => r.url));
   const missing = urls.filter((u) => !known.has(u));
   for (let i = 0; i < missing.length; i += 50) {
     await env.DB.batch(missing.slice(i, i + 50).map((u) => env.DB.prepare('INSERT OR IGNORE INTO gsc_pages (url) VALUES (?)').bind(u)));
+  }
+  // Pages that left the sitemap are no longer tracked.
+  const listed = new Set(urls);
+  const gone = [...known].filter((u) => !listed.has(u));
+  for (let i = 0; i < gone.length; i += 50) {
+    await env.DB.batch(gone.slice(i, i + 50).map((u) => env.DB.prepare('DELETE FROM gsc_pages WHERE url = ?').bind(u)));
   }
   // Pages gone from the sitemap stop being refreshed; drop them once they are two intervals stale.
   await env.DB.prepare("DELETE FROM gsc_pages WHERE checked_at IS NOT NULL AND checked_at < datetime('now', ?)").bind(`-${Math.max(1, Math.min(60, Number(env.GSC_RECHECK_DAYS) || 7)) * 2} days`).run();

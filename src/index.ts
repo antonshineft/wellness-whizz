@@ -200,8 +200,11 @@ const contentLangs = (env: Bindings): Lang[] => (env.SITE_LANGS ?? 'en,es').spli
 /** The languages the sitemap lists besides English: SITEMAP_LANGS when set (empty = English only), else SITE_LANGS. */
 const sitemapLangs = (env: Bindings): Lang[] =>
   env.SITEMAP_LANGS === undefined ? contentLangs(env) : env.SITEMAP_LANGS.split(',').map((v) => v.trim()).filter((v): v is Lang => CONTENT_LANGS.includes(v as Lang));
+/** Brand profiles in the sitemap, once they are public (BRAND_PAGES "true"); listed in every language the sitemap carries. */
+const brandEntries = (env: Bindings): { loc: string; lastmod?: string; priority: string }[] =>
+  (env.BRAND_PAGES ?? 'preview').toLowerCase() === 'true' ? [{ loc: '/brands', priority: '0.5' }, ...listBrands().map((b) => ({ loc: `/brand/${b.slug}`, lastmod: b.reviewed, priority: '0.5' }))] : [];
 /** What the Search Console inspection walks: the sitemap as the public sees it (src/gsc.ts). */
-const gscOptions = (env: Bindings, max?: number, retryErrors = false): InspectOptions => ({ origin: siteOrigin(env), curatedOnly: curatedOnly(env), langs: sitemapLangs(env), max, retryErrors });
+const gscOptions = (env: Bindings, max?: number, retryErrors = false): InspectOptions => ({ origin: siteOrigin(env), curatedOnly: curatedOnly(env), langs: sitemapLangs(env), max, retryErrors, extra: brandEntries(env) });
 /** DEV_FAKE_AI (canned answers instead of OpenAI) is honoured on localhost only, never on a deployed site. */
 const isLocalRequest = (url: string) => /^(localhost|127\.0\.0\.1|\[::1\])$/.test(new URL(url).hostname);
 /** Turnstile is on only when both the public site key and the secret are configured. */
@@ -734,11 +737,7 @@ app.get('/api/admin/social', async (c) => {
 });
 
 app.get('/sitemap.xml', async (c) => {
-  const entries = await sitemapEntries(c.env.DB, curatedOnly(c.env), sitemapLangs(c.env));
-  // Brand profiles, once they are public (BRAND_PAGES "true").
-  if ((c.env.BRAND_PAGES ?? 'preview').toLowerCase() === 'true') {
-    entries.push({ loc: '/brands', priority: '0.5' }, ...listBrands().map((b) => ({ loc: `/brand/${b.slug}`, lastmod: b.reviewed, priority: '0.5' })));
-  }
+  const entries = await sitemapEntries(c.env.DB, curatedOnly(c.env), sitemapLangs(c.env), brandEntries(c.env));
   const xml = renderSitemap(new URL(c.req.url).origin, entries);
   return c.body(xml, 200, { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' });
 });

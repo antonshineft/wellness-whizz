@@ -113,9 +113,10 @@ async function latestNoteAt(db: D1Database): Promise<string | undefined> {
  * ignores priority; a lastmod that moves without the page changing teaches it to ignore ours, so static pages
  * carry none, supplement pages carry their last content change and the lists carry their newest item.
  */
-export async function sitemapEntries(db: D1Database, curatedOnly: boolean, langs: readonly Lang[] = []): Promise<SitemapEntry[]> {
-  const [supplements, noteAt, posts, notes] = await Promise.all([supplementStamps(db, curatedOnly), latestNoteAt(db), allPosts(db), listResearchNotes(db, 500)]);
-  const noteEntries = notes.map((n) => ({ loc: notePath(n), lastmod: day(n.created_at), priority: '0.5' }));
+export async function sitemapEntries(db: D1Database, curatedOnly: boolean, langs: readonly Lang[] = [], extra: SitemapEntry[] = []): Promise<SitemapEntry[]> {
+  // The single research notes are left out on purpose: there are hundreds of them, and a young site gets a small
+  // crawl allowance that the supplement pages and articles need first. They stay reachable from /research.
+  const [supplements, noteAt, posts] = await Promise.all([supplementStamps(db, curatedOnly), latestNoteAt(db), allPosts(db)]);
   const supplementEntries = supplements.map((s) => ({
     loc: `/supplement/${s.slug}`,
     lastmod: day(s.updated_at || s.created_at),
@@ -134,7 +135,7 @@ export async function sitemapEntries(db: D1Database, curatedOnly: boolean, langs
     { loc: '/about', priority: '0.5' },
     { loc: '/terms', priority: '0.2' },
   ];
-  const entries = [...statics, ...postEntries, ...noteEntries, ...supplementEntries];
+  const entries = [...statics, ...postEntries, ...supplementEntries, ...extra];
   // The translated site: its static pages, and the supplement pages and articles whose translation exists.
   for (const lang of langs) {
     if (lang === 'en') continue;
