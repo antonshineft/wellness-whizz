@@ -163,7 +163,7 @@ export const BRAND_PROFILES: BrandProfile[] = [
     "founded": 2012,
     "founder": "Min Kim",
     "headquarters": "Vineyard, Utah",
-    "owner": "eSupplements, LLC, privately held",
+    "owner": "a private company, eSupplements, LLC",
     "history": "Nutricost is a supplement brand based in Vineyard, Utah. A company press release says it launched in 2012, while chief executive Min Kim has said it grew out of an affiliate internet-marketing business he started with a school friend and became Nutricost in 2013. Court and regulatory records name the seller as eSupplements, LLC, doing business as Nutricost, and the manufacturer as Nutricost Manufacturing, LLC in Vineyard. In 2021 it signed a five-year deal as official supplement supplier to Brigham Young University athletics. A 2024 business-magazine profile reported more than 650 employees and fulfilment centres in Utah, North Carolina and California.",
     "positives": [
       {
@@ -739,7 +739,7 @@ export const BRAND_PROFILES: BrandProfile[] = [
     "founded": 2009,
     "founder": "Daniel Wallace and a co-founder",
     "headquarters": "Boston, Massachusetts",
-    "owner": "Force Factor, LLC, privately held",
+    "owner": "a private company, Force Factor, LLC",
     "history": "Force Factor was founded in 2009 by Harvard graduates; co-founder and chief executive Daniel Wallace rowed on Harvard's heavyweight crew, and trade sources describe the founders as two Harvard rowers. The Boston company won an early award from the retailer GNC. Its parent later traded as NutraClick, which sold Force Factor and other brands online through free-sample offers tied to paid monthly memberships. The US Federal Trade Commission took action against NutraClick over those offers in 2016 and again in 2020. The company now operates as Force Factor, LLC, remains based in Boston and sells through major US retailers.",
     "positives": [
       {
