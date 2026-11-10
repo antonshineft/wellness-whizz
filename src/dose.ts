@@ -42,7 +42,9 @@ export const NUTRIENTS: Nutrient[] = [
   { key: 'pantothenic acid', match: /pantothen|vitamin b5\b/i, unit: 'mg', need: 5, needKind: 'AI', ceiling: null, note: 'No ceiling has been set for pantothenic acid.' },
   { key: 'vitamin B6', match: /vitamin b6\b|pyridox/i, unit: 'mg', need: 1.7, needKind: 'RDA', ceiling: 100, note: 'Long-term intake above the ceiling can damage nerves.' },
   { key: 'biotin', match: /biotin|vitamin b7\b/i, unit: 'mcg', need: 30, needKind: 'AI', ceiling: null, note: 'No ceiling has been set for biotin. High doses can distort some blood tests.' },
-  { key: 'folate', match: /folate|folic|methylfolate|vitamin b9\b/i, unit: 'mcg', need: 400, needKind: 'RDA', ceiling: 1000, note: 'The ceiling applies to folic acid from supplements and fortified food.' },
+  // Labels state folate twice: in mcg DFE and, in brackets, as mcg of folic acid itself (1 mcg folic acid = 1.7 mcg DFE).
+  // The ceiling is set in mcg of folic acid, so that is the unit here; the daily need of 400 mcg DFE is 240 mcg of it.
+  { key: 'folate', match: /folate|folic|methylfolate|vitamin b9\b/i, unit: 'mcg', need: 240, needKind: 'RDA', ceiling: 1000, note: 'Amounts are micrograms of folic acid itself, the figure labels give in brackets. 240 mcg of folic acid covers the daily need of 400 mcg DFE; the ceiling of 1,000 mcg applies to folic acid from supplements and fortified food.' },
   { key: 'vitamin B12', match: /vitamin b12\b|cobalamin/i, unit: 'mcg', need: 2.4, needKind: 'RDA', ceiling: null, note: 'No ceiling has been set. Only a small share of a large dose is absorbed, which is why tablets carry far more than the daily need.' },
   { key: 'calcium', match: /calcium/i, unit: 'mg', need: 1000, needKind: 'RDA', ceiling: 2500, absorb: { above: 500, note: 'Calcium is absorbed best in single doses of 500 mg or less.' }, note: 'The daily need includes calcium from food.' },
   { key: 'magnesium', match: /magnesium/i, unit: 'mg', need: 420, needKind: 'RDA', ceiling: 350, note: 'The ceiling of 350 mg counts magnesium from supplements only; above it loose stools are common. Food magnesium does not count.' },
@@ -130,7 +132,7 @@ const answerSchema = {
           n: { type: 'integer', description: 'The product number as given.' },
           amount: { type: ['number', 'null'], description: 'Amount of THIS page\'s supplement in ONE serving, in the reference unit. Null when neither the label nor the product title states it.' },
           per: { type: 'string', description: 'What one serving is, e.g. "tablet", "2 capsules", "scoop".' },
-          servings_per_day: { type: ['number', 'null'], description: 'Servings a day at the label\'s directions (the upper figure when a range is given); null when the directions do not say.' },
+          servings_per_day: { type: ['number', 'null'], description: 'Servings a day at the label\'s directions (the lower figure when a range is given); null when the directions do not say.' },
           line: { type: 'string', description: 'The label line (or title fragment) the amount was read from, word for word; empty when amount is null.' },
           others: {
             type: 'array',
@@ -149,8 +151,8 @@ const DOSE_SYSTEM = `You read supplement labels for a consumer site. You are giv
 
 Report facts only:
 - For each product, the amount of THIS supplement in one serving, read from the label. If the label lists several forms of it, add them. If the label is missing, use the amount stated in the product title; if neither states it, answer null. Never estimate, never use what you remember about a product.
-- Convert the amount into the reference unit you are told to use. Vitamin D: 40 IU = 1 mcg. Vitamin A: 1 mcg RAE = 3.33 IU retinol. Vitamin E: 1 mg = 1.49 IU natural (d-alpha) or 2.22 IU synthetic (dl-alpha). For minerals use the elemental amount the label states, not the weight of the compound. For botanical extracts use the extract weight.
-- Servings a day come from the directions only.
+- Convert the amount into the reference unit you are told to use. Folate and folic acid: report the micrograms of folic acid (or methylfolate) itself, the figure the label gives in brackets, never the mcg DFE figure. Vitamin D: 40 IU = 1 mcg. Vitamin A: 1 mcg RAE = 3.33 IU retinol. Vitamin E: 1 mg = 1.49 IU natural (d-alpha) or 2.22 IU synthetic (dl-alpha). For minerals use the elemental amount the label states, not the weight of the compound. For botanical extracts use the extract weight.
+- Servings a day come from the directions only. When the directions give a range ("1 to 3 times daily"), report the LOWER figure: the check is about ordinary use, not the maximum.
 - For a supplement without an official daily need, also report the range of daily doses used in human studies, taken ONLY from the page text given. If the page does not state doses, answer null for both.`;
 
 function plain(html: string): string {
