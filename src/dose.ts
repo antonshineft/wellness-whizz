@@ -376,7 +376,7 @@ export function doseBlank(c: DoseCheck | null | undefined, teaser = false, name 
   const who = c?.name || name;
   const tip = hasRange(c) && c
     ? `<span class="ww-dose-tip-src">The label of this product does not state how much ${esc(who)} one serving holds, so it has no place on the scale.</span>${tipFor(c)}`
-    : `<span class="ww-dose-tip-src">No official daily need or safe ceiling has been set for ${esc(who)}, so these picks are not rated by dose. See the ${researchLink(who)} of ${esc(who)}.</span>`;
+    : `<span class="ww-dose-tip-src">No official daily need or safe ceiling has been set for ${esc(who)}, so these picks are not rated by dose. Research on ${esc(who)}: ${researchLink(who)}.</span>`;
   // On the home slider a card shows the bar alone: no verdict in words, so the card stays a teaser.
   if (teaser) {
     return `<div class="ww-dose ww-dose-none ww-dose-teaser" role="img" aria-label="${text}">
@@ -434,10 +434,12 @@ function bubbleRow(cls: string, at: number, html: string, tip: string): string {
 function tipFor(c: DoseCheck): string {
   const { zones } = scaleOf(c);
   const papers = (c.papers ?? []).map((p) => `<a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.pmid)}/" target="_blank" rel="noopener nofollow" title="${esc(p.title)}">PMID ${esc(p.pmid)}</a>`).join(', ');
+  // The supplement's name closes its own piece of text and the link word follows it, so the Spanish dictionary can
+  // look each piece up whole.
   const source = c.basis === 'studied'
-    ? `Figures: doses${c.marker ? ` of ${esc(c.marker)}` : ''} used in published ${researchLink(c.name)} of ${esc(c.name)}${papers ? ` (${papers})` : ''}. No official daily need or safe ceiling has been set for it; the range is what trials tested, not a recommendation.`
-    : `Figures: ${esc(c.source)}. See the ${researchLink(c.name)} of ${esc(c.name)}.`;
-  return `${zones.map((z) => `<span class="ww-dose-tip-zone"><b>${z.label}</b> ${z.sub}</span>`).join('')}${c.note ? `<span class="ww-dose-tip-note">${esc(c.note)}</span>` : ''}<span class="ww-dose-tip-src">The scale shows each pick's daily amount at the label's directions. ${source} Zones are not drawn to scale.</span>`;
+    ? `Figures: doses${c.marker ? ` of ${esc(c.marker)}` : ''} used in published research on ${esc(c.name)}: ${researchLink(c.name)}${papers ? ` (${papers})` : ''}. No official daily need or safe ceiling has been set for it; the range is what trials tested, not a recommendation. Zones are not drawn to scale.`
+    : `Figures: ${esc(c.source)}. Research on ${esc(c.name)}: ${researchLink(c.name)}. Zones are not drawn to scale.`;
+  return `${zones.map((z) => `<span class="ww-dose-tip-zone"><b>${z.label}</b> ${z.sub}</span>`).join('')}${c.note ? `<span class="ww-dose-tip-note">${esc(c.note)}</span>` : ''}<span class="ww-dose-tip-src">The scale shows each pick's daily amount at the label's directions. ${source}</span>`;
 }
 
 /**
@@ -453,7 +455,7 @@ export function doseLimits(c: DoseCheck | null | undefined, url: string, teaser 
   const tip = teaser ? '' : (
     `<span class="ww-dose-tip-zone"><b>Within limits</b> every vitamin and mineral checked is under its ceiling</span><span class="ww-dose-tip-zone"><b>Above a limit</b> at least one is over</span>` +
     `<span class="ww-dose-tip-note">Checked on this label: ${esc(p.checked.join(', '))}.${over ? ` Above its ceiling: ${esc(p.also.join('; '))}.` : ''}</span>` +
-    `<span class="ww-dose-tip-src">This product has several ingredients, so there is no single dose to judge. The check covers the vitamins and minerals that have an official safe ceiling, at the label's directions; herbs and other ingredients are not rated. Figures: NIH Office of Dietary Supplements, figures for adults. See the ${researchLink(c.name)} of ${esc(c.name)}.</span>`);
+    `<span class="ww-dose-tip-src">This product has several ingredients, so there is no single dose to judge. The check covers the vitamins and minerals that have an official safe ceiling, at the label's directions; herbs and other ingredients are not rated. Figures: NIH Office of Dietary Supplements, figures for adults. Research on ${esc(c.name)}: ${researchLink(c.name)}.</span>`);
   if (teaser) {
     return `<div class="ww-dose ww-dose-${over ? 'over' : 'ok'} ww-dose-teaser" role="img" aria-label="${esc(text)}">
           <div class="ww-dose-bar" style="grid-template-columns:repeat(2,1fr)"><i class="ww-dose-z1"></i><i class="ww-dose-z3"></i><span class="ww-dose-pin" style="left:${over ? 75 : 25}%" aria-hidden="true">${icon(over ? 'pinX' : 'pinCheck', 3)}</span></div>
