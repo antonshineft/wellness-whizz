@@ -61,6 +61,8 @@ import {
 import { runQuizPipeline } from './pipeline';
 import { dashboardToken, snapshotTrials, trialDashboard } from './trialboard';
 import { getLearned, learnFromTrials } from './triallearn';
+import { backfillBrands, brandFor, brandPicks, doseRecord, getBrand, listBrands } from './brands';
+import { brandStrip, renderBrandPage, renderBrandsIndex } from './render/brand';
 import { MAX_PICKS, checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels, visibleCheck } from './dose';
 import { attachExtraProduct, setProduct } from './products';
 import { feedItems } from './social/feeds';
@@ -97,6 +99,8 @@ export interface Bindings {
   DOSE_CHECK?: string;
   /** Ranges read from studies, for single-substance supplements: "true", "preview" (only with ?dose=studied) or "false". */
   DOSE_STUDIED?: string;
+  /** Brand profile pages, the links to them and the logo strip (src/brands.ts): "true", "preview" (only with ?brands=preview) or "false". */
+  BRAND_PAGES?: string;
   /** Trial reels (src/trials.ts): "true" runs the daily loop; TRIALS_SKIP lists video slugs it leaves alone. */
   TRIALS_AUTO?: string;
   TRIALS_SKIP?: string;
@@ -281,7 +285,7 @@ async function localizeResultItems(db: D1Database, lang: Lang, items: ResultItem
 
 pageRoute('/', async (c, lang) => {
   track(c, { type: 'home_view', page: '/' });
-  return sendPage(c, await renderHome(c.env, c.req.raw, curatedOnly(c.env), lang, lang === 'en' && doseVisible(c), studiedVisible(c)), lang, '/', 'public, max-age=60');
+  return sendPage(c, await renderHome(c.env, c.req.raw, curatedOnly(c.env), lang, lang === 'en' && doseVisible(c), studiedVisible(c), lang === 'en' && brandsVisible(c) ? brandStrip(listBrands()) : ''), lang, '/', 'public, max-age=60');
 });
 
 pageRoute('/wellness-quiz', async (c, lang) => {
@@ -392,7 +396,7 @@ pageRoute('/supplement/:slug', async (c, lang) => {
   // The dose check (src/dose.ts) is English only. DOSE_CHECK "true" shows it to everyone; "preview" (the default)
   // only with ?dose=preview, so the owner can review it before readers see it; "false" hides it.
   const dose = lang === 'en' && doseVisible(c) ? visibleCheck(await getDoseCheck(c.env.DB, supplement.slug), studiedVisible(c)) : undefined;
-  const html = renderSupplementPage(localizeSupplement(supplement, translation), explore, c.env, { related, origin: new URL(c.req.url).origin, notes, dose });
+  const html = renderSupplementPage(localizeSupplement(supplement, translation), explore, c.env, { related, origin: new URL(c.req.url).origin, notes, dose, ...(lang === 'en' && brandsVisible(c) ? { brandStrip: brandStrip(listBrands()), brandPath: (name: string) => { const b = brandFor(name); return b ? `/brand/${b.slug}` : null; } } : {}) });
   const body = pending ? new Response(html, { status: 200, headers: { ...htmlHeaders('public, max-age=60'), 'x-robots-tag': 'noindex' } }) : html;
   return sendPage(c, body, lang, `/supplement/${supplement.slug}`, 'public, max-age=300', alternates);
 });
@@ -403,6 +407,24 @@ pageRoute('/how-it-works', async (c, lang) => {
   const n = await countSupplements(c.env.DB);
   track(c, { type: 'page_view', page: '/how-it-works' });
   return sendPage(c, renderHowItWorks(n, new URL(c.req.url).origin), lang, '/how-it-works', 'public, max-age=600');
+});
+
+// Brand profiles (src/brands.ts), English only.
+app.get('/brands', async (c) => {
+  if (!brandsVisible(c)) return c.notFound();
+  const sups = await listSupplements(c.env.DB, 500, curatedOnly(c.env));
+  const count = new Map<string, number>();
+  for (const s of sups) for (const p of s.products.slice(0, MAX_PICKS)) { const b = brandFor(p.brand); if (b) count.set(b.slug, (count.get(b.slug) ?? 0) + 1); }
+  track(c, { type: 'page_view', page: '/brands' });
+  return sendPage(c, renderBrandsIndex(listBrands().map((b) => ({ ...b, picks: count.get(b.slug) ?? 0 })), new URL(c.req.url).origin), 'en', '/brands', 'public, max-age=600', false);
+});
+app.get('/brand/:slug', async (c) => {
+  const brand = brandsVisible(c) ? getBrand(c.req.param('slug') ?? '') : null;
+  if (!brand) return c.notFound();
+  const picks = await brandPicks(c.env.DB, brand, curatedOnly(c.env), studiedVisible(c), MAX_PICKS);
+  track(c, { type: 'page_view', page: `/brand/${brand.slug}` });
+  const html = renderBrandPage(c.env, { brand, picks, record: doseRecord(picks), others: listBrands().filter((b) => b.slug !== brand.slug), origin: new URL(c.req.url).origin });
+  return sendPage(c, html, 'en', `/brand/${brand.slug}`, 'public, max-age=600', false);
 });
 
 pageRoute('/about', (c, lang) => {
@@ -865,6 +887,12 @@ app.get('/api/admin/subscribers', async (c) => {
 function doseVisible(c: { env: Bindings; req: { query: (k: string) => string | undefined } }): boolean {
   const mode = c.env.DOSE_CHECK ?? 'preview';
   return mode === 'true' || (mode === 'preview' && c.req.query('dose') === 'preview');
+}
+
+/** Brand pages, the links to them and the logo strip: BRAND_PAGES "true", "preview" (the default; only with ?brands=preview) or "false". */
+function brandsVisible(c: { env: Bindings; req: { query: (k: string) => string | undefined } }): boolean {
+  const mode = (c.env.BRAND_PAGES ?? 'preview').toLowerCase();
+  return mode === 'true' || (mode === 'preview' && c.req.query('brands') === 'preview');
 }
 
 /**
@@ -1672,6 +1700,14 @@ app.get('/api/admin/brands', async (c) => {
   }
   const list = [...brands.entries()].map(([name, b]) => ({ name, picks: b.picks, pages: b.pages.size, stored: b.stored })).sort((x, y) => y.picks - x.picks);
   return c.json({ brands: list, unknown });
+});
+
+/** Owner-only: give every pick stored without a brand the brand its shop title starts with. */
+app.post('/api/admin/brands/backfill', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  return c.json({ filled: await backfillBrands(c.env.DB) });
 });
 
 /** Owner-only: the stored checks in full (?basis=studied or official narrows them), to review before a range is shown. */

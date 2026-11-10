@@ -12,7 +12,7 @@
     "not_found_handling": "404-page",
     // Only these paths run the Worker; everything else is served straight from the static assets.
     // "/__scheduled" lets `wrangler dev --test-scheduled` reach the cron handler locally.
-    "run_worker_first": ["/", "/es", "/es/*", "/wellness-quiz", "/shelf", "/shelf/*", "/api/*", "/result/*", "/supplement/*", "/images/generated/*", "/how-it-works", "/about", "/terms", "/privacy", "/blog", "/blog/*", "/sitemap.xml", "/robots.txt", "/llms.txt", "/research", "/research/*", "/supplements", "/feed.xml", "/__scheduled"]
+    "run_worker_first": ["/", "/es", "/es/*", "/wellness-quiz", "/shelf", "/shelf/*", "/api/*", "/result/*", "/supplement/*", "/images/generated/*", "/how-it-works", "/about", "/terms", "/privacy", "/blog", "/blog/*", "/sitemap.xml", "/robots.txt", "/llms.txt", "/research", "/research/*", "/supplements", "/brands", "/brand/*", "/feed.xml", "/__scheduled"]
   },
   // No database_id on purpose: `wrangler deploy` and the "Deploy to Cloudflare" button create the database
   // automatically and fill it in. Tables and content are created by the Worker itself on first start.
@@ -64,6 +64,9 @@
     // Ranges read from studies ("Dose used in studies"), shown for single-substance supplements only (visibleCheck in
     // src/dose.ts): "true", "preview" (only with ?dose=studied) or "false".
     "DOSE_STUDIED": "true",
+    // Brand profile pages, the links to them and the running logo strip (src/brands.ts): "true", "preview" (only
+    // with ?brands=preview) or "false".
+    "BRAND_PAGES": "preview",
     "TRIALS_AUTO": "true",
     "TRIALS_SKIP": "glycine-three-am-clock,saffron-price-tag",
     "VIDEO_APPROVAL": "true",

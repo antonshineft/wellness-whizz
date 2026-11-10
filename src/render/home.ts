@@ -20,6 +20,8 @@ export async function renderHome(
   doseOn = false,
   /** Also show ranges read from studies, for single-substance supplements (visibleCheck in src/dose.ts). */
   studiedOn = false,
+  /** The strip of running brand logos, set just above the footer (src/render/brand.ts); empty leaves it out. */
+  brandStrip = '',
 ): Promise<Response> {
   const posts = await localizePosts(env.DB, lang, (await allPosts(env.DB)).slice(0, 3));
   const [assetResponse, candidatesEn, exploreEn, postSupplements] = await Promise.all([
@@ -43,6 +45,11 @@ export async function renderHome(
     .on('head', {
       element(el) {
         el.append(`<link rel="canonical" href="${blogCtx.origin}/">` + '<link href="/feed.xml" rel="alternate" type="application/rss+xml" title="Wellness Whizz: articles and research notes">', { html: true });
+      },
+    })
+    .on('section.footer', {
+      element(el) {
+        if (brandStrip) el.before(brandStrip.replace('class="ww-brandstrip"', 'class="ww-brandstrip is-wide"'), { html: true });
       },
     })
     .on('.ww-carousel-track', {

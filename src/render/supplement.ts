@@ -131,11 +131,18 @@ function productCards(env: LinkEnv, sup: Supplement): string {
     </section>`;
 }
 
+/** A pick's brand: a link to the brand's profile where it has one. */
+function brandLabel(brand: string | undefined, brandPath?: (brand: string) => string | null): string {
+  if (!brand) return '';
+  const path = brandPath?.(brand);
+  return path ? `<a href="${escapeHtml(path)}" class="ww-brand-link">${escapeHtml(brand)}</a>` : escapeHtml(brand);
+}
+
 /**
  * The picks section with dose scales: a numbered list of brands on the left and a two-column grid of cards on the
  * right (three rows for six picks). Picks are ordered by their verdict, best-dosed first.
  */
-function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null): string {
+function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandPath?: (brand: string) => string | null): string {
   const products = sup.products.slice(0, MAX_PICKS);
   if (!products.length) return '';
   const ranked = products
@@ -156,7 +163,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null): strin
               <span class="ww-top-n" aria-hidden="true">${n + 1}</span>
               <div class="ww-top-photo">${image}</div>
               <div class="ww-top-name">${escapeHtml(p.name)}</div>
-              <div class="ww-top-meta">${escapeHtml(p.brand)}${r.d && dose ? `${p.brand ? ' · ' : ''}${escapeHtml(doseLine(dose, r.d))}` : ''}</div>
+              <div class="ww-top-meta">${brandLabel(p.brand, brandPath)}${r.d && dose ? `${p.brand ? ' · ' : ''}${escapeHtml(doseLine(dose, r.d))}` : ''}</div>
               ${r.d && dose ? doseScale(dose, r.d) : doseBlank(dose)}
               <a href="${escapeHtml(shopUrl(env, sup, p))}" target="_blank" rel="noopener nofollow sponsored" class="outbutton w-button" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}" data-product="${escapeHtml(p.name)}">Buy on iHerb</a>
             </article>`;
@@ -267,6 +274,10 @@ export interface SupplementPageExtras {
    * null when the page has none yet, shows the new one: brands on the left, a grid of cards with scales on the right.
    */
   dose?: DoseCheck | null;
+  /** The strip of running brand logos, shown above the footer (src/render/brand.ts); empty or absent leaves it out. */
+  brandStrip?: string;
+  /** The path of a brand's profile page for a pick's brand name, or null when it has none: brand names then become links. */
+  brandPath?: (brand: string) => string | null;
 }
 
 /** "Latest Research": the newest notes about this supplement, each linking its own page under /research/. */
@@ -461,10 +472,10 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
         rating: ratingBlock('SAFETY', SAFETY_LABELS, sup.safety, true),
         html: sup.contraindications_html,
       })}
-    </div>${extras.dose === undefined ? productCards(env, sup) : picksGrid(env, sup, extras.dose)}
+    </div>${extras.dose === undefined ? productCards(env, sup) : picksGrid(env, sup, extras.dose, extras.brandPath)}
   </div>
   <section class="info">${synergySection(sup)}${insightsSection(sup)}${studiesSection(sup)}${researchSection(extras.notes ?? [])}${faqSection(sup)}
-  </section>${relatedSection(extras.related ?? [])}${exploreSection(explore)}${footer()}${stickyBuyBar(env, sup)}`;
+  </section>${relatedSection(extras.related ?? [])}${exploreSection(explore)}${extras.brandStrip ?? ''}${footer()}${stickyBuyBar(env, sup)}`;
 
   return page({
     title: seoTitle(sup),
