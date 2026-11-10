@@ -846,10 +846,10 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-dose-teaser { background: none; border-radius: 0; padding: 0 2px; margin-top: 16px; }
 .ww-dose-teaser .ww-dose-bar, .ww-dose-teaser .ww-dose-bar i { height: 8px; }
 .ww-dose-teaser .ww-dose-edges { margin-top: 8px; font-size: 10.5px; height: 14px; }
-.ww-dose-pin { position: absolute; top: 50%; width: 20px; height: 20px; box-sizing: border-box; transform: translate(-50%, -50%); border-radius: 50%; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; line-height: 1; font-family: Aeonik, sans-serif; background: #1d272d; color: #fff; box-shadow: 0 1px 4px #1d272d40; }
-.ww-dose-ok .ww-dose-pin { background: #87d581; color: #1d272d; }
-.ww-dose-more .ww-dose-pin { background: #f2cd4a; color: #1d272d; }
-.ww-dose-over .ww-dose-pin { background: #ff3e50; }
+.ww-dose-pin { position: absolute; top: 50%; width: 20px; height: 20px; box-sizing: border-box; transform: translate(-50%, -50%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; line-height: 1; font-family: Aeonik, sans-serif; background: #1d272d; color: #fff; }
+.ww-dose-ok .ww-dose-pin { background: #6cc365; color: #1d272d; }
+.ww-dose-more .ww-dose-pin { background: #e2b72c; color: #1d272d; }
+.ww-dose-over .ww-dose-pin { background: #e62a3d; }
 
 /* ---------- a pick's verdict: a light bubble pointing at its place on the bar ---------- */
 .ww-dose-bubblerow { position: relative; display: flex; margin: 0 0 10px; }
