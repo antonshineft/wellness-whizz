@@ -1,7 +1,7 @@
 """The picture of a mineral page: the element's cell of the periodic table, as a raised block whose mint side fades out.
 
 A mineral is a single atom, so it has no molecule to draw. The cell carries the standard figures: atomic number,
-symbol and standard atomic weight (IUPAC, abridged). Text is set in the site's typeface and written into the picture
+symbol (its letters drawn in grey outline) and standard atomic weight (IUPAC, abridged). Text is set in the site's typeface and written into the picture
 as outlines, so it looks the same wherever the picture is shown.
 
     pip install fonttools
@@ -26,9 +26,10 @@ ELEMENTS = {
 _fonts: dict[str, TTFont] = {}
 
 
-def text(s: str, x: float, y: float, size: float, weight: str, fill: str, anchor: str = 'start', spacing: float = 0.0, fit: float = 0.0) -> str:
+def text(s: str, x: float, y: float, size: float, weight: str, fill: str, anchor: str = 'start', spacing: float = 0.0, fit: float = 0.0, outline: float = 0.0) -> str:
     """`s` as outlines of the site's typeface: baseline at y, starting at x (or ending / centred there).
-    With `fit`, the text is set smaller when it would be wider than that."""
+    With `fit`, the text is set smaller when it would be wider than that. With `outline`, the letters are drawn as
+    a line of that width in the colour given, with no fill."""
     font = _fonts.setdefault(weight, TTFont(str(FONTS / f'Aeonik-{weight}.otf')))
     glyphs, cmap, hmtx = font.getGlyphSet(), font.getBestCmap(), font['hmtx']
     names = [cmap[ord(ch)] for ch in s]
@@ -43,6 +44,8 @@ def text(s: str, x: float, y: float, size: float, weight: str, fill: str, anchor
         glyphs[n].draw(TransformPen(pen, (k, 0, 0, -k, cx, y)))
         out.append(pen.getCommands())
         cx += hmtx[n][0] * k + spacing
+    if outline:  # the letters as a line only, nothing inside
+        return f'<path d="{" ".join(out)}" fill="none" stroke="{fill}" stroke-width="{outline:.1f}" stroke-linejoin="round"/>'
     return f'<path d="{" ".join(out)}" fill="{fill}"/>'
 
 
@@ -68,7 +71,7 @@ def block(symbol: str, x: float, y: float, s: float, tag: str) -> tuple[str, str
         f'<path d="{face}" fill="none" stroke="{INK}" stroke-width="{12.6 * u:.1f}" stroke-linejoin="round"/><path d="{face}" fill="none" stroke="{WHITE}" stroke-width="{9 * u:.1f}" stroke-linejoin="round"/>',
         text(str(number), x + 60 * u, y + 124 * u, 80 * u, 'Medium', TEXT),
         text(weight, x + s - 60 * u, y + 116 * u, 50 * u, 'Regular', SOFT, 'end'),
-        text(symbol, x + s / 2, y + 452 * u, 330 * u, 'Bold', TEXT, 'middle', -6 * u, fit=s - 150 * u),
+        text(symbol, x + s / 2, y + 452 * u, 330 * u, 'Bold', INK, 'middle', 2 * u, fit=s - 150 * u, outline=5.5 * u),
     ]
     return defs, side, ''.join(parts)
 
