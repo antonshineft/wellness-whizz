@@ -2090,6 +2090,18 @@ app.post('/api/admin/videos/:slug/status', async (c) => {
   return c.json({ ok: true, video: await getVideo(c.env.DB, c.req.param('slug') ?? '') });
 });
 
+/** Owner-only: take a video the owner does not want out of the queue for good. Only one that was never rendered can go. */
+app.post('/api/admin/videos/:slug/remove', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const row = await getVideo(c.env.DB, c.req.param('slug') ?? '');
+  if (!row) return c.json({ ok: false, error: 'no such video' }, 404);
+  if (!['queued', 'scripted', 'kept', 'approved', 'failed'].includes(row.status) || row.video_url) return c.json({ ok: false, error: `"${row.slug}" is ${row.status}; only a video that was never rendered can be removed` }, 409);
+  await c.env.DB.prepare('DELETE FROM videos WHERE id = ?').bind(row.id).run();
+  return c.json({ ok: true, removed: row.slug });
+});
+
 /** Owner-only: record the follow ending a video's file was given after it was rendered (?ending=card|drawn|pointer, or empty for none). */
 app.post('/api/admin/videos/:slug/ending', async (c) => {
   const denied = authorized(c);
