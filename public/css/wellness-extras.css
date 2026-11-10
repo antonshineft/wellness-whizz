@@ -874,8 +874,8 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-brand-rec li svg, .ww-brand-chip svg { width: 15px; height: 15px; flex: none; color: #5c6164; }
 .ww-brand-chip { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; border: 1px solid #e3ebe1; }
 .ww-brand-chip svg { width: 12px; height: 12px; }
-.ww-brand-sign-ok svg { color: #4fae48; }
-.ww-brand-sign-more svg { color: #c99a00; }
-.ww-brand-sign-over svg { color: #ff3e50; }
+.ww-brand-rec li.ww-brand-sign-ok svg, .ww-brand-chip.ww-brand-sign-ok svg { color: #4fae48; }
+.ww-brand-rec li.ww-brand-sign-more svg, .ww-brand-chip.ww-brand-sign-more svg { color: #c99a00; }
+.ww-brand-rec li.ww-brand-sign-over svg, .ww-brand-chip.ww-brand-sign-over svg { color: #ff3e50; }
 .ww-brand-rec b { min-width: 28px; }
 @media (max-width: 767px) { .ww-brand-frame { padding: 22px 18px 4px; border-radius: 22px; } .ww-brand-hero-logo { padding: 22px; border-radius: 22px; } }
