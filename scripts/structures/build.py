@@ -1,12 +1,12 @@
 """Build the molecule pictures of the supplement pages.
 
-    pip install rdkit requests
+    pip install rdkit requests fonttools
     python3 scripts/structures/build.py            # every page in structures_map.py
     python3 scripts/structures/build.py <slug> ... # only these pages
 
 For each page in structures_map.py this looks the compound up in PubChem (the structure is taken from there, never
 drawn by hand or by an image model), draws it with depth_mol.py (ball and stick with depth; outline_mol.py, the flat
-drawing, for what cannot be built in 3D; capsule.py for mineral pages) into public/images/structures/<slug>.svg, and
+drawing, for what cannot be built in 3D; cell.py, the periodic-table cell, for mineral pages) into public/images/structures/<slug>.svg, and
 rewrites src/structures.ts, the list the site reads. A compound PubChem does not know stops the build.
 """
 import json
@@ -20,7 +20,7 @@ import requests
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 sys.path.insert(0, str(HERE))
-from capsule import svg as capsule_svg  # noqa: E402
+from cell import describe as cell_text, svg_for as cell_svg  # noqa: E402
 from depth_mol import svg_for as depth_svg  # noqa: E402
 from outline_mol import svg_for  # noqa: E402
 from structures_map import M  # noqa: E402
@@ -34,14 +34,14 @@ HEAD = '''/**
  * database; `cid` is its record there), never by an image model. `kind` says how the compound relates to the page:
  *   self   - the supplement is this substance
  *   form   - a common supplement form of a mineral (a mineral alone is a single atom)
- *   capsule - a mineral page: no molecule, the shared capsule picture
+ *   element - a mineral page: no molecule; the element's cell of the periodic table (compound is its symbol)
  *   active - the main studied compound of a plant or extract
  *   part   - a characteristic component of a food, protein, blend or category page
  * Pages without an entry (an enzyme, for example, has no small-molecule structure) keep their earlier picture.
  */
 export interface Structure {
   compound: string;
-  kind: 'self' | 'form' | 'active' | 'part' | 'capsule';
+  kind: 'self' | 'form' | 'active' | 'part' | 'element';
   note: string;
   cid: number;
 }
@@ -54,7 +54,7 @@ TAIL = '''};
 export function structureAlt(slug: string, supplementName: string): string | null {
   const s = STRUCTURES[slug];
   if (!s) return null;
-  if (s.kind === 'capsule') return `Illustration of a supplement capsule: ${supplementName} is a mineral`;
+  if (s.kind === 'element') return `Periodic table cell: ${s.note}`;
   const base = `Molecular structure of ${s.compound}`;
   if (s.kind === 'form') return `${base}, a common supplement form of ${supplementName.toLowerCase()}`;
   return s.note ? `${base}, ${s.note}` : base;
@@ -82,10 +82,10 @@ def main() -> int:
     lines = []
     flat = []
     for slug, (name, kind, note) in sorted(M.items()):
-        if kind == 'capsule':  # a mineral page: the shared capsule, no compound to look up
+        if kind == 'element':  # a mineral page: the element's periodic-table cell, no compound to look up
             if not only or slug in only:
-                (out / f'{slug}.svg').write_text(capsule_svg())
-            lines.append(f'  {json.dumps(slug)}: {{ compound: "", kind: "capsule", note: "", cid: 0 }},')
+                (out / f'{slug}.svg').write_text(cell_svg(name))
+            lines.append(f'  {json.dumps(slug)}: {{ compound: {json.dumps(name)}, kind: "element", note: {json.dumps(cell_text(name))}, cid: 0 }},')
             continue
         rec = lookup(name, cache)
         if not only or slug in only:
