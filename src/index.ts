@@ -63,6 +63,7 @@ import { dashboardToken, snapshotTrials, trialDashboard } from './trialboard';
 import { getLearned, learnFromTrials } from './triallearn';
 import { backfillBrands, brandFor, brandPicks, doseRecord, getBrand, listBrands } from './brands';
 import { brandStrip, renderBrandPage, renderBrandsIndex } from './render/brand';
+import { listDoseRefs, researchReference, setRefStatus } from './doseref';
 import { MAX_PICKS, checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels, visibleCheck } from './dose';
 import { attachExtraProduct, setProduct } from './products';
 import { feedItems } from './social/feeds';
@@ -1716,6 +1717,49 @@ app.post('/api/admin/brands/backfill', async (c) => {
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
   return c.json({ filled: await backfillBrands(c.env.DB) });
+});
+
+/**
+ * Owner-only: look one supplement's studied doses up in PubMed and store the range as a draft (?slug=), or the next
+ * few supplements that have no official range and no lookup yet (?n=2). src/doseref.ts.
+ */
+app.post('/api/admin/dose/research', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const sups = (await listSupplements(c.env.DB, 500, false)).filter((s) => s.products.length && !nutrientFor(s));
+  const have = new Set((await listDoseRefs(c.env.DB)).map((r) => r.slug));
+  const slug = (c.req.query('slug') ?? '').trim();
+  const n = Math.min(3, Math.max(1, Number(c.req.query('n') ?? '1') || 1));
+  const todo = slug ? sups.filter((s) => s.slug === slug) : sups.filter((s) => !have.has(s.slug)).slice(0, n);
+  const results: { slug: string; status: string; note: string }[] = [];
+  for (const s of todo) {
+    try {
+      const r = await researchReference(c.env, s);
+      results.push({ slug: s.slug, status: r.status, note: r.status === 'none' ? r.reason : `${r.low} to ${r.high} ${r.unit} of ${r.marker} (${r.evidence.length} quotes)` });
+    } catch (err) {
+      results.push({ slug: s.slug, status: 'failed', note: String(err instanceof Error ? err.message : err).slice(0, 160) });
+    }
+  }
+  return c.json({ results, remaining: sups.filter((s) => !have.has(s.slug) && !results.some((r) => r.slug === s.slug && r.status !== 'failed')).length });
+});
+
+/** Owner-only: the researched ranges with the sentences they rest on, to read before any is used. */
+app.get('/api/admin/dose/refs', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  return c.json({ refs: await listDoseRefs(c.env.DB) });
+});
+
+/** Owner-only: approve researched ranges ({slugs: [...]}), or take an approval back ({slugs, status: "draft"}). */
+app.post('/api/admin/dose/refs/approve', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const body = (await c.req.json().catch(() => ({}))) as { slugs?: string[]; status?: string };
+  const changed = await setRefStatus(c.env.DB, Array.isArray(body.slugs) ? body.slugs.map(String) : [], body.status === 'draft' ? 'draft' : 'approved');
+  return c.json({ changed });
 });
 
 /** Owner-only: the stored checks in full (?basis=studied or official narrows them), to review before a range is shown. */

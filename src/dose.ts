@@ -14,6 +14,7 @@
  */
 import { claudeJson } from './claude';
 import type { Supplement } from './db';
+import { getDoseRef } from './doseref';
 import { STRUCTURES } from './structures';
 import type { VideoEnv } from './videos';
 
@@ -104,6 +105,12 @@ export interface DoseCheck {
   highLabel: string;
   note: string;
   source: string;
+  /** Set when the range comes from published research looked up in PubMed and approved (src/doseref.ts). */
+  researched?: boolean;
+  /** What the range measures, as a label states it ("EPA plus DHA"); only with `researched`. */
+  marker?: string;
+  /** The papers the range was read from; only with `researched`. */
+  papers?: { pmid: string; title: string }[];
   products: DoseProduct[];
   at: string;
 }
@@ -197,13 +204,18 @@ export async function checkSupplement(env: VideoEnv, sup: Supplement): Promise<D
     if (row) labels.set(p.url, row);
   }
   const page = plain(`${sup.holistic_html} ${sup.studies_html} ${sup.enhancing_html}`).slice(0, 6000);
+  // A range looked up in published research and approved takes the place of the one read from the page text.
+  const found = nutrient ? null : await getDoseRef(env.DB, sup.slug);
+  const ref = found?.status === 'approved' && found.low !== null && found.high !== null ? found : null;
   const user = [
     `Supplement: ${sup.name} (${sup.category})`,
     nutrient
       ? `This is a nutrient with an official daily need. Reference unit: ${nutrient.unit}. Leave the reference range null.`
-      : 'This supplement has no official daily need. Choose one reference unit and report the range of daily doses used in the studies described in the page text.',
+      : ref
+        ? `This supplement has no official daily need. The reference quantity is ${ref.marker}, in ${ref.unit}. ${ref.labelRule} Report each product's amount of THAT quantity in one serving, and answer null for a product whose label does not state it. Leave the reference range null.`
+        : 'This supplement has no official daily need. Choose one reference unit and report the range of daily doses used in the studies described in the page text.',
     '',
-    `Page text:\n${nutrient ? '(not needed)' : page}`,
+    `Page text:\n${nutrient || ref ? '(not needed)' : page}`,
     '',
     ...products.map((p, i) => {
       const l = labels.get(p.url);
@@ -215,10 +227,10 @@ export async function checkSupplement(env: VideoEnv, sup: Supplement): Promise<D
     : { reference: { low: null, high: null, unit: '', quote: '' }, products: [] };
 
   const basis: 'official' | 'studied' = nutrient ? 'official' : 'studied';
-  const unit = nutrient ? nutrient.unit : String(out.reference?.unit ?? '').trim();
-  const refLow = nutrient ? nutrient.need : out.reference?.low ?? null;
-  const refHigh = nutrient ? nutrient.ceiling : out.reference?.high ?? null;
-  const usable = basis === 'official' || (refLow !== null && refHigh !== null && refLow > 0 && refHigh >= refLow && !!unit && !!String(out.reference?.quote ?? '').trim());
+  const unit = nutrient ? nutrient.unit : ref ? ref.unit : String(out.reference?.unit ?? '').trim();
+  const refLow = nutrient ? nutrient.need : ref ? ref.low : out.reference?.low ?? null;
+  const refHigh = nutrient ? nutrient.ceiling : ref ? ref.high : out.reference?.high ?? null;
+  const usable = basis === 'official' || !!ref || (refLow !== null && refHigh !== null && refLow > 0 && refHigh >= refLow && !!unit && !!String(out.reference?.quote ?? '').trim());
   const check: DoseCheck = {
     slug: sup.slug,
     name: sup.name,
@@ -228,8 +240,9 @@ export async function checkSupplement(env: VideoEnv, sup: Supplement): Promise<D
     high: usable ? refHigh : null,
     lowLabel: nutrient ? `Daily need (${nutrient.needKind})` : 'Lowest daily dose in studies',
     highLabel: nutrient ? 'Safe ceiling (UL)' : 'Highest daily dose in studies',
-    note: nutrient ? nutrient.note : String(out.reference?.quote ?? '').trim().slice(0, 240),
-    source: nutrient ? 'NIH Office of Dietary Supplements, figures for adults' : 'Doses used in the studies described on this page',
+    note: nutrient ? nutrient.note : ref ? `Published trials and reviews gave ${fmt(ref.low as number)} to ${fmt(ref.high as number)} ${ref.unit} of ${ref.marker} a day.` : String(out.reference?.quote ?? '').trim().slice(0, 240),
+    source: nutrient ? 'NIH Office of Dietary Supplements, figures for adults' : ref ? 'Doses used in published trials and reviews' : 'Doses used in the studies described on this page',
+    ...(ref ? { researched: true, marker: ref.marker, papers: [...new Map(ref.evidence.map((e) => [e.pmid, { pmid: e.pmid, title: e.title }])).values()].slice(0, 5) } : {}),
     products: products.map((p, i) => {
       const r = (out.products ?? []).find((x) => x.n === i + 1);
       const amount = r && typeof r.amount === 'number' && r.amount > 0 && String(r.line ?? '').trim() ? round(r.amount) : null;
@@ -335,13 +348,14 @@ export function hasRange(c: DoseCheck | null | undefined): boolean {
 
 /**
  * The check as a page may show it. Official figures are always shown. A range read from studies is shown only when
- * `studied` is on and the supplement is a single substance (kind "self" in src/structures.ts: creatine, melatonin,
- * coenzyme Q10 ...), where the studies and the products measure the same thing. For plants, proteins and blends a
- * study's extract and a product's whole powder are not comparable, so their range is withheld and the picks grey out.
+ * `studied` is on and either the range was looked up in published research and approved (src/doseref.ts), which
+ * names the quantity a label must state, or the supplement is a single substance (kind "self" in src/structures.ts:
+ * creatine, melatonin ...), where the studies and the products measure the same thing. For other plants, proteins
+ * and blends a study's extract and a product's whole powder are not comparable, so the picks grey out.
  */
 export function visibleCheck(c: DoseCheck | null, studied: boolean): DoseCheck | null {
   if (!c || c.basis === 'official') return c;
-  if (!(studied && c.low !== null && STRUCTURES[c.slug]?.kind === 'self')) return { ...c, low: null, high: null };
+  if (!(studied && c.low !== null && (c.researched || STRUCTURES[c.slug]?.kind === 'self'))) return { ...c, low: null, high: null };
   // The verdict is arithmetic on stored figures, so it is taken afresh here: a change of the margin needs no new reading.
   return { ...c, products: c.products.map((p) => ({ ...p, state: verdict('studied', c.low, c.high, p.amount, p.daily, null) })) };
 }
@@ -379,8 +393,9 @@ function helpTip(inner: string): string {
 /** The explanation of a scale: what its zones mean, the note behind the figures and where they come from. */
 function tipFor(c: DoseCheck): string {
   const { zones } = scaleOf(c);
+  const papers = (c.papers ?? []).map((p) => `<a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.pmid)}/" target="_blank" rel="noopener nofollow" title="${esc(p.title)}">PMID ${esc(p.pmid)}</a>`).join(', ');
   const source = c.basis === 'studied'
-    ? `Figures: doses used in published ${researchLink(c.name)} on ${esc(c.name)}. No official daily need or safe ceiling has been set for it; the range is what trials tested, not a recommendation.`
+    ? `Figures: doses${c.marker ? ` of ${esc(c.marker)}` : ''} used in published ${researchLink(c.name)} on ${esc(c.name)}${papers ? ` (${papers})` : ''}. No official daily need or safe ceiling has been set for it; the range is what trials tested, not a recommendation.`
     : `Figures: ${esc(c.source)}. See the ${researchLink(c.name)} on ${esc(c.name)}.`;
   return `${zones.map((z) => `<span class="ww-dose-tip-zone"><b>${z.label}</b> ${z.sub}</span>`).join('')}${c.note ? `<span class="ww-dose-tip-note">${esc(c.note)}</span>` : ''}<span class="ww-dose-tip-src">The scale shows each pick's daily amount at the label's directions. ${source} Zones are not drawn to scale.</span>`;
 }

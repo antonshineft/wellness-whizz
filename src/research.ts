@@ -93,6 +93,34 @@ export async function searchPubmedTerm(env: ResearchEnv, term: string, days: num
   return data.esearchresult?.idlist ?? [];
 }
 
+/** PubMed ids for any search term, the most relevant first, with no limit on age. */
+export async function searchPubmedRelevant(env: ResearchEnv, term: string, max: number): Promise<string[]> {
+  const url = withKey(env, `${EUTILS}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(term)}&sort=relevance&retmode=json&retmax=${max}`);
+  const res = await ncbiFetch(env, url);
+  if (!res.ok) throw new Error(`PubMed esearch ${res.status}`);
+  const data = (await res.json()) as { esearchresult?: { idlist?: string[] } };
+  return data.esearchresult?.idlist ?? [];
+}
+
+/** The abstracts of several papers in one request, by PubMed id (up to ~4,000 characters each; papers without one are left out). */
+export async function pubmedAbstracts(env: ResearchEnv, pmids: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (!pmids.length) return out;
+  const url = withKey(env, `${EUTILS}/efetch.fcgi?db=pubmed&id=${pmids.join(',')}&retmode=xml`);
+  const res = await ncbiFetch(env, url);
+  if (!res.ok) throw new Error(`PubMed efetch ${res.status}`);
+  const xml = await res.text();
+  const entity = (t: string) => t.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16))).replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d))).replace(/&amp;/g, '&');
+  for (const m of xml.matchAll(/<PubmedArticle[\s>][\s\S]*?<\/PubmedArticle>/g)) {
+    const block = m[0];
+    const id = /<PMID[^>]*>(\d+)<\/PMID>/.exec(block)?.[1];
+    const parts = [...block.matchAll(/<AbstractText[^>]*>([\s\S]*?)<\/AbstractText>/g)].map((x) => entity(x[1].replace(/<[^>]+>/g, '')));
+    const text = parts.join(' ').replace(/\s+/g, ' ').trim().slice(0, 4000);
+    if (id && text) out.set(id, text);
+  }
+  return out;
+}
+
 export async function pubmedSummaries(env: ResearchEnv, pmids: string[]): Promise<PubmedSummary[]> {
   if (!pmids.length) return [];
   const url = withKey(env, `${EUTILS}/esummary.fcgi?db=pubmed&id=${pmids.join(',')}&retmode=json`);
