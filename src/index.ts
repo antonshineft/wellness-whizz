@@ -730,6 +730,10 @@ app.get('/api/admin/social', async (c) => {
 
 app.get('/sitemap.xml', async (c) => {
   const entries = await sitemapEntries(c.env.DB, curatedOnly(c.env), sitemapLangs(c.env));
+  // Brand profiles, once they are public (BRAND_PAGES "true").
+  if ((c.env.BRAND_PAGES ?? 'preview').toLowerCase() === 'true') {
+    entries.push({ loc: '/brands', priority: '0.5' }, ...listBrands().map((b) => ({ loc: `/brand/${b.slug}`, lastmod: b.reviewed, priority: '0.5' })));
+  }
   const xml = renderSitemap(new URL(c.req.url).origin, entries);
   return c.body(xml, 200, { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' });
 });

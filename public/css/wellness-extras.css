@@ -805,7 +805,8 @@ a.ww-brand-link { color: inherit; text-decoration: underline; text-decoration-co
 /* The track holds the list twice, with a gap after each copy: sliding by half its width (plus half a gap) lands on the same picture. */
 @keyframes ww-brandstrip { from { transform: translateX(0); } to { transform: translateX(calc(-50% - 28px)); } }
 @media (prefers-reduced-motion: reduce) { .ww-brandstrip-track { animation: none; flex-wrap: wrap; justify-content: center; width: auto; row-gap: 20px; } .ww-brandstrip-item[aria-hidden] { display: none; } }
-.ww-page-wrap ~ .ww-brandstrip, .ww-brandstrip.is-wide { padding: 0 10px; }
+/* Straight above the dark footer (home and supplement pages) the strip needs air below it, not above. */
+.ww-brandstrip:has(+ section.footer) { margin: 28px 0 56px; padding: 0 10px; }
 @media (max-width: 767px) {
   .ww-brand-facts { grid-template-columns: 1fr 1fr; }
   .ww-brand-sides { grid-template-columns: 1fr; }
@@ -813,6 +814,7 @@ a.ww-brand-link { color: inherit; text-decoration: underline; text-decoration-co
   .ww-brand-pick-sup { grid-column: 1 / -1; }
   .ww-brand-grid { grid-template-columns: 1fr 1fr; }
   .ww-brandstrip-track { gap: 40px; }
+  .ww-brandstrip:has(+ section.footer) { margin: 8px 0 44px; }
   .ww-brandstrip-item, .ww-brandstrip-item .ww-brand-logo { height: 34px; }
   .ww-brandstrip-item .ww-brand-logo { width: 116px; }
   @keyframes ww-brandstrip { from { transform: translateX(0); } to { transform: translateX(calc(-50% - 20px)); } }

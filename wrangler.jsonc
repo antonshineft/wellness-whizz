@@ -66,7 +66,7 @@
     "DOSE_STUDIED": "true",
     // Brand profile pages, the links to them and the running logo strip (src/brands.ts): "true", "preview" (only
     // with ?brands=preview) or "false".
-    "BRAND_PAGES": "preview",
+    "BRAND_PAGES": "true",
     "TRIALS_AUTO": "true",
     "TRIALS_SKIP": "glycine-three-am-clock,saffron-price-tag",
     "VIDEO_APPROVAL": "true",

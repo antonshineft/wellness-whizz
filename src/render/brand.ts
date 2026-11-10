@@ -104,7 +104,6 @@ export function renderBrandPage(env: LinkEnv, d: BrandPageData): string {
   const b = d.brand;
   const cap = (v: string | number) => String(v).replace(/^[a-z]/, (ch) => ch.toUpperCase());
   const fact = (label: string, value: string | number | null) => (value ? `<div><dt>${label}</dt><dd>${escapeHtml(cap(value))}</dd></div>` : '');
-  const sources = [...b.positives, ...b.negatives];
   const body = `
       <dl class="ww-brand-facts">
         ${fact('Founded', b.founded)}${fact('Founder', b.founder)}${fact('Headquarters', b.headquarters)}${fact('Owner', b.owner)}
@@ -122,13 +121,7 @@ export function renderBrandPage(env: LinkEnv, d: BrandPageData): string {
           <h2>What to know</h2>
           ${points(b.negatives, 'Our search found no FDA warning letter, recall or settled lawsuit against the brand. That is not proof there has never been one.')}
         </section>
-      </div>${recordBlock(b, d.record)}${picksBlock(env, b, d.picks)}
-      <section class="ww-brand-block ww-brand-method">
-        <h2>How this page was written</h2>
-        <p>Every point above rests on the source linked beside it: the company's own pages for its history, and regulators, court records and the trade press for the rest. Last checked on ${longDate(b.reviewed)}. Nobody at ${escapeHtml(b.name)} paid for this page, saw it before it was published or can change it, and iHerb pays us the same commission whichever brand you buy.</p>
-        <p>Found something wrong or out of date? Write to <a href="mailto:hello@aiww.io">hello@aiww.io</a> with a link and it will be corrected.</p>${sources.length ? `
-        <ol class="ww-brand-sources">${sources.map((p) => `<li><a href="${escapeHtml(p.source)}" target="_blank" rel="noopener nofollow">${escapeHtml(p.sourceName)}</a>: ${escapeHtml(p.source.replace(/^https?:\/\/(www\.)?/, '').split(/[?#]/)[0].slice(0, 80))}</li>`).join('')}</ol>` : ''}
-      </section>`;
+      </div>${recordBlock(b, d.record)}${picksBlock(env, b, d.picks)}`;
   const lead = [b.founded ? `Founded in ${b.founded}` : '', b.headquarters ?? '', b.owner ? `owned by ${b.owner}` : ''].filter(Boolean).join(' · ');
   const shell = pageShell({
     eyebrow: 'Brand profile',
