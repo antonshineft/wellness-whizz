@@ -67,7 +67,7 @@ import { getDoseRef, listDoseRefs, researchReference, setManualRef, setRefStatus
 import { MAX_PICKS, checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels, visibleCheck } from './dose';
 import { attachExtraProduct, removeProduct, setProduct, setProductCutout } from './products';
 import { feedItems } from './social/feeds';
-import { autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
+import { FOLLOW_ENDINGS, autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
 import { analyticsStep, gscSummary, inspectStep, type InspectOptions } from './gsc';
 import { exportToken, sheetCounts, sheetLastSync, sheetRows, sheetUrl, syncSheet } from './sheet';
@@ -2088,6 +2088,17 @@ app.post('/api/admin/videos/:slug/status', async (c) => {
   if (!['queued', 'scripted', 'kept', 'approved', 'ready', 'posted', 'failed'].includes(status)) return c.json({ error: 'bad status' }, 400);
   await c.env.DB.prepare("UPDATE videos SET status = ?, updated_at = datetime('now') WHERE slug = ?").bind(status, c.req.param('slug') ?? '').run();
   return c.json({ ok: true, video: await getVideo(c.env.DB, c.req.param('slug') ?? '') });
+});
+
+/** Owner-only: record the follow ending a video's file was given after it was rendered (?ending=card|drawn|pointer, or empty for none). */
+app.post('/api/admin/videos/:slug/ending', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const ending = (c.req.query('ending') ?? '').trim();
+  if (ending && !(FOLLOW_ENDINGS as readonly string[]).includes(ending)) return c.json({ error: 'bad ending' }, 400);
+  const r = await c.env.DB.prepare("UPDATE videos SET ending = ?, updated_at = datetime('now') WHERE slug = ?").bind(ending, c.req.param('slug') ?? '').run();
+  return c.json({ ok: r.meta.changes > 0, slug: c.req.param('slug'), ending });
 });
 
 /** Zernio (src/zernio.ts): connected accounts, and posting a video through them. */
