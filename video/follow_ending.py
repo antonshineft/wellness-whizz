@@ -14,6 +14,8 @@ that moment, rising as the other falls, so it carries on unbroken into the endin
 """
 import json
 import math
+import re
+import subprocess
 from pathlib import Path
 from typing import Callable, Iterator
 
@@ -215,17 +217,29 @@ def _pointer(base: Image.Image) -> Iterator[Image.Image]:
         yield im
 
 
-def append(src: Path, kind: str, out: Path, work: Path, *, run: Callable[..., None], duration: Callable[[Path], float], bed: Path, bed_volume: float) -> float:
+def _picture_length(src: Path, ffmpeg_bin: str, fallback: float) -> float:
+    """How long the picture of a file runs. It can end a little before the sound does (a held last scene), and the
+    ending has to start where the picture stops, so the container's length is not enough. Counted from ffmpeg's own
+    progress line, because the renderer's machine has no ffprobe."""
+    err = subprocess.run([ffmpeg_bin, '-hide_banner', '-i', str(src), '-map', '0:v:0', '-c', 'copy', '-f', 'null', '-'], capture_output=True, text=True).stderr
+    frames = re.findall(r'frame=\s*(\d+)', err)  # the renderer always writes FPS pictures a second
+    return min(fallback, int(frames[-1]) / FPS) if frames and int(frames[-1]) > 0 else fallback
+
+
+def append(src: Path, kind: str, out: Path, work: Path, *, run: Callable[..., None], duration: Callable[[Path], float], bed: Path, bed_volume: float, ffmpeg_bin: str = 'ffmpeg') -> float:
     """Write `out`: the finished video `src` followed by the follow ending `kind`. Returns the new length in seconds.
-    `run` runs ffmpeg with the given arguments, `duration` measures a media file; `bed` and `bed_volume` are the music
-    and the level compose() mixed it at (0: the video has no music)."""
+    `run` runs ffmpeg with the given arguments, `duration` measures a media file, `ffmpeg_bin` is the ffmpeg to ask
+    about the picture; `bed` and `bed_volume` are the music and the level compose() mixed it at (0: no music)."""
     if kind not in KINDS:
         raise ValueError(f'unknown ending {kind!r}')
     _use(kind)
     work.mkdir(parents=True, exist_ok=True)
-    total = duration(src)
+    sound = duration(src)  # where the story's sound ends: its closing music fade runs up to here
+    total = _picture_length(src, ffmpeg_bin, sound)  # where its picture ends: the ending starts here
     last = work / 'follow-last.png'
-    run('-ss', f'{max(0.0, total - 0.25):.2f}', '-i', str(src), '-frames:v', '1', str(last))
+    last.unlink(missing_ok=True)
+    # every picture of the last two seconds is written over the same file, so what stays is the very last one
+    run('-sseof', '-2', '-i', str(src), '-update', '1', '-q:v', '1', str(last))
     base = Image.open(last).convert('RGB').resize((W, H))
     fd = work / 'follow-frames'
     fd.mkdir(exist_ok=True)
@@ -235,18 +249,27 @@ def append(src: Path, kind: str, out: Path, work: Path, *, run: Callable[..., No
     for i, im in enumerate(frames):
         im.convert('RGB').save(fd / f'{i:03d}.jpg', quality=93)
     inputs = ['-i', str(src), '-framerate', str(FPS), '-i', str(fd / '%03d.jpg'), '-i', str(VOICE)]
+    whole = total + LENGTH
+    # Written for the renderer's ffmpeg (4.2): a delay is given per channel, and the mixer averages its inputs, so every
+    # input is padded to the full length (none ever drops out and shifts the balance) and the sum is scaled back up.
+    def late(seconds: float) -> str:
+        ms = int(max(0.0, seconds) * 1000)
+        return f'adelay={ms}|{ms},apad=whole_dur={whole:.3f}'
+    stereo = 'aformat=sample_rates=48000:channel_layouts=stereo'
     graph = (f'[0:v]fps={FPS},format=yuv420p,setsar=1[v0];[1:v]fps={FPS},format=yuv420p,setsar=1[v1];[v0][v1]concat=n=2:v=1:a=0[v];'
-             f'[0:a]aformat=sample_rates=48000:channel_layouts=stereo,apad=whole_dur={total + LENGTH:.3f}[s];'
-             f'[2:a]aformat=sample_rates=48000:channel_layouts=stereo,volume={VOICE_GAIN},adelay={int((total + LEAD) * 1000)}:all=1[n];')
+             f'[0:a]{stereo},apad=whole_dur={whole:.3f}[s];'
+             f'[2:a]{stereo},volume={VOICE_GAIN},{late(total + LEAD)}[n];')
     mix = '[s][n]'
     if bed_volume > 0 and bed.exists():
-        bed_len = STORY_FADE + TAP + 0.1
-        fade_from = STORY_FADE + 0.35  # the music starts to go just after the ending begins
-        inputs += ['-ss', f'{(total - STORY_FADE) % duration(bed):.3f}', '-t', f'{bed_len:.3f}', '-i', str(bed)]
-        graph += (f'[3:a]aformat=sample_rates=48000:channel_layouts=stereo,volume={bed_volume * VOICE_GAIN:.4f},afade=t=in:st=0:d={STORY_FADE}:curve=tri,'
-                  f'afade=t=out:st={fade_from:.2f}:d={bed_len - fade_from - 0.1:.2f}:curve=qsin,adelay={int((total - STORY_FADE) * 1000)}:all=1[b];')
+        start = sound - STORY_FADE  # the laid-in music rises exactly as the story's own music falls
+        bed_len = total + TAP + 0.1 - start
+        fade_from = max(0.0, total + 0.35 - start)  # it starts to go just after the ending begins
+        inputs += ['-ss', f'{start % duration(bed):.3f}', '-t', f'{bed_len:.3f}', '-i', str(bed)]
+        graph += (f'[3:a]{stereo},volume={bed_volume * VOICE_GAIN:.4f},afade=t=in:st=0:d={STORY_FADE}:curve=tri,'
+                  f'afade=t=out:st={fade_from:.2f}:d={max(0.3, bed_len - fade_from - 0.1):.2f}:curve=qsin,{late(start)}[b];')
         mix += '[b]'
-    graph += f'{mix}amix=inputs={mix.count("[")}:duration=first:normalize=0,alimiter=limit=0.95[a]'
-    run(*inputs, '-filter_complex', graph, '-map', '[v]', '-map', '[a]', '-t', f'{total + LENGTH:.3f}', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
+    n = mix.count('[')
+    graph += f'{mix}amix=inputs={n}:duration=first:dropout_transition=0,volume={n},alimiter=limit=0.95[a]'
+    run(*inputs, '-filter_complex', graph, '-map', '[v]', '-map', '[a]', '-t', f'{whole:.3f}', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
         '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-movflags', '+faststart', str(out))
-    return total + LENGTH
+    return whole

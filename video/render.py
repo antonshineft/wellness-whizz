@@ -699,7 +699,7 @@ def render(job: dict) -> Path:
         try:
             import follow_ending
             with_ending = WORK / f'{slug}-with-ending.mp4'
-            length = follow_ending.append(out, ending, with_ending, WORK, run=ffmpeg, duration=ffprobe_duration, bed=BED, bed_volume=BED_VOLUME)
+            length = follow_ending.append(out, ending, with_ending, WORK, run=ffmpeg, duration=ffprobe_duration, bed=BED, bed_volume=BED_VOLUME, ffmpeg_bin=FFMPEG)
             with_ending.replace(out)
             log(f'follow ending "{ending}" added: {length:.1f} s in all')
         except Exception as e:  # noqa: BLE001
