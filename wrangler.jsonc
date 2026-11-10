@@ -70,6 +70,9 @@
     "TRIALS_AUTO": "true",
     "TRIALS_SKIP": "glycine-three-am-clock,saffron-price-tag",
     "VIDEO_APPROVAL": "true",
+    // "false": a newly published article no longer gets video scripts written for it (the owner found them repetitive;
+    // videos now come from stories chosen in the scripts sheet).
+    "VIDEO_AUTOQUEUE": "false",
     "VIDEO_POST_TIME": "09:00",
     "VIDEO_TIMEZONE": "Europe/Madrid",
     "SITE_LANGS": "en,es",
