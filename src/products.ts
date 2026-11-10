@@ -120,37 +120,28 @@ export async function attachIherbProducts(env: LinkEnv & { DB: D1Database }, sup
 }
 
 /**
- * Add one more iHerb product to a supplement that has fewer than `total`: the first search result from a brand the
- * page does not show yet, with its photo copied into D1. The referral code is added when the link is rendered
- * (src/links.ts withReferral). Returns the product, or null when iHerb had nothing new.
+ * Add one more iHerb product to a supplement that has fewer than `total`. The product and its photo are found by
+ * the pick collector outside the Worker (iHerb refuses searches from here); this stores the photo in D1 and appends
+ * the pick. The referral code is added when the link is rendered (src/links.ts withReferral).
  */
-export async function addExtraProduct(env: LinkEnv & { DB: D1Database }, sup: Supplement, total = 6): Promise<Product | null> {
-  if (!sup.products.length || sup.products.length >= total) return null;
-  const res = await fetch(`https://www.iherb.com/search?kw=${encodeURIComponent(sup.name)}`, {
-    headers: { 'user-agent': UA, accept: 'text/html,application/xhtml+xml', 'accept-language': 'en-US,en;q=0.9' },
-    signal: AbortSignal.timeout(20_000),
-  });
-  if (!res.ok) throw new Error(`iHerb search ${res.status}`);
-  const found = parseIherbSearch(await res.text(), sup.name, 24, 1);
-  const brands = new Set(sup.products.map((p) => p.brand.trim().toLowerCase()).filter(Boolean));
-  const ids = new Set(sup.products.map((p) => (p.url.match(/\/(\d+)(?:[/?#]|$)/) || [])[1]).filter(Boolean));
-  const names = new Set(sup.products.map((p) => p.name.trim().toLowerCase()));
-  const pick = found.find((p) => !brands.has(p.brand.trim().toLowerCase()) && !ids.has((p.url.match(/\/(\d+)(?:[/?#]|$)/) || [])[1] ?? '') && !names.has(p.name.trim().toLowerCase()));
-  if (!pick) return null;
-  let product: Product = { name: pick.name, brand: pick.brand, url: pick.url };
-  try {
-    const img = await fetch(pick.image, { headers: { 'user-agent': UA, accept: 'image/*' }, signal: AbortSignal.timeout(20_000) });
-    if (!img.ok) throw new Error(`image ${img.status}`);
-    const type = img.headers.get('content-type')?.split(';')[0] || 'image/jpeg';
-    const key = `product-${sup.slug}-${sup.products.length + 1}`;
-    await storeImage(env.DB, key, type, new Uint8Array(await img.arrayBuffer()));
-    product = { ...product, image: `/images/generated/${key}.${type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg'}`, opaque: true };
-  } catch (err) {
-    console.error(`photo for ${sup.slug} (${pick.name}) failed: ${String(err)}`);
-    return null; // a pick without a photo would break the grid; try again on a later run
-  }
+export async function attachExtraProduct(
+  env: { DB: D1Database },
+  sup: Supplement,
+  pick: { name: string; brand: string; url: string },
+  photo: { bytes: Uint8Array; type: string },
+  total = 6,
+): Promise<{ ok: true; product: Product } | { ok: false; message: string }> {
+  if (!sup.products.length) return { ok: false, message: 'the page has no picks to add to' };
+  if (sup.products.length >= total) return { ok: false, message: `the page already has ${sup.products.length} picks` };
+  if (!/^https:\/\/www\.iherb\.com\/pr\/[a-z0-9-]+\/\d+$/i.test(pick.url)) return { ok: false, message: 'url must be an iHerb product page' };
+  const idOf = (u: string) => (u.match(/\/(\d+)(?:[/?#]|$)/) || [])[1] ?? '';
+  if (sup.products.some((p) => idOf(p.url) === idOf(pick.url) || p.name.trim().toLowerCase() === pick.name.trim().toLowerCase())) return { ok: false, message: 'that product is already a pick' };
+  if (!/^image\/(jpeg|png|webp)$/.test(photo.type) || photo.bytes.length < 2000 || photo.bytes.length > 900_000) return { ok: false, message: 'the photo is missing or not a usable image' };
+  const key = `product-${sup.slug}-${sup.products.length + 1}`;
+  await storeImage(env.DB, key, photo.type, photo.bytes);
+  const product: Product = { name: pick.name.trim().slice(0, 60), brand: pick.brand.trim().slice(0, 60), url: pick.url, image: `/images/generated/${key}.${photo.type.includes('png') ? 'png' : photo.type.includes('webp') ? 'webp' : 'jpg'}`, opaque: true };
   await env.DB.prepare("UPDATE supplements SET products_json = ?, updated_at = datetime('now') WHERE id = ?").bind(JSON.stringify([...sup.products, product]), sup.id).run();
-  return product;
+  return { ok: true, product };
 }
 
 /** Supplements without a single product photo, AI-created ones first. */

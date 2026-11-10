@@ -62,7 +62,7 @@ import { runQuizPipeline } from './pipeline';
 import { dashboardToken, snapshotTrials, trialDashboard } from './trialboard';
 import { getLearned, learnFromTrials } from './triallearn';
 import { MAX_PICKS, checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels } from './dose';
-import { addExtraProduct } from './products';
+import { attachExtraProduct } from './products';
 import { feedItems } from './social/feeds';
 import { autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
@@ -1563,26 +1563,22 @@ app.get('/api/admin/dose/products', async (c) => {
   return c.json({ supplements: sups.map((s) => ({ slug: s.slug, name: s.name, category: s.category, official: !!nutrientFor(s), checked: !!covered.get(s.slug) && s.products.slice(0, MAX_PICKS).every((p) => covered.get(s.slug)!.has(p.url)), products: s.products.slice(0, MAX_PICKS).map((p) => ({ name: p.name, brand: p.brand, url: p.url, label: have.has(p.url) })) })) });
 });
 
-/** Owner-only: give the next supplements one more pick from iHerb, up to six each (?n=3, or ?slug= for one). */
+/** The pick collector adds one more pick to a page: {slug, name, brand, url, photo (base64), type}. Up to six picks a page. */
 app.post('/api/admin/dose/extra', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
-  const sups = (await listSupplements(c.env.DB, 500, false)).filter((s) => s.products.length > 0 && s.products.length < MAX_PICKS);
-  const slug = (c.req.query('slug') ?? '').trim();
-  const skip = new Set((c.req.query('skip') ?? '').split(',').filter(Boolean));
-  const n = Math.min(4, Math.max(1, Number(c.req.query('n') ?? '2') || 2));
-  const todo = (slug ? sups.filter((s) => s.slug === slug) : sups.filter((s) => !skip.has(s.slug))).slice(0, slug ? 1 : n);
-  const results: { slug: string; added: string | null; note: string }[] = [];
-  for (const s of todo) {
-    try {
-      const p = await addExtraProduct(c.env, s, MAX_PICKS);
-      results.push({ slug: s.slug, added: p ? `${p.brand}: ${p.name}` : null, note: p ? p.url : 'nothing new found' });
-    } catch (err) {
-      results.push({ slug: s.slug, added: null, note: String(err instanceof Error ? err.message : err).slice(0, 120) });
-    }
+  const body = (await c.req.json().catch(() => ({}))) as { slug?: string; name?: string; brand?: string; url?: string; photo?: string; type?: string };
+  const sup = await getSupplementBySlug(c.env.DB, String(body.slug ?? ''));
+  if (!sup) return c.json({ ok: false, error: 'no such supplement' }, 404);
+  let bytes: Uint8Array;
+  try {
+    bytes = Uint8Array.from(atob(String(body.photo ?? '')), (ch) => ch.charCodeAt(0));
+  } catch {
+    return c.json({ ok: false, error: 'photo must be base64' }, 400);
   }
-  return c.json({ results, remaining: sups.length - results.filter((r) => r.added).length });
+  const r = await attachExtraProduct(c.env, sup, { name: String(body.name ?? ''), brand: String(body.brand ?? ''), url: String(body.url ?? '') }, { bytes, type: String(body.type ?? '') }, MAX_PICKS);
+  return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 400);
 });
 
 /** The label collector stores what it read from the shop: {items: [{url, title, label, directions}]}. */
