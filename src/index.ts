@@ -1646,6 +1646,34 @@ app.post('/api/admin/dose/run', async (c) => {
   return c.json({ results, remaining, total: sups.length });
 });
 
+/**
+ * Owner-only: the brands behind the picks. A pick stored without a brand takes it from the title the shop gives the
+ * product ("NOW Foods, Zinc, 50 mg, 250 Tablets"), kept with its label.
+ */
+app.get('/api/admin/brands', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const sups = await listSupplements(c.env.DB, 500, false);
+  const titles = new Map((await c.env.DB.prepare('SELECT url, title FROM dose_labels').all<{ url: string; title: string }>()).results.map((r) => [r.url, r.title]));
+  const brands = new Map<string, { picks: number; pages: Set<string>; stored: number }>();
+  let unknown = 0;
+  for (const s of sups) {
+    for (const p of s.products.slice(0, MAX_PICKS)) {
+      const fromTitle = (titles.get(p.url) ?? '').split(',')[0].trim();
+      const name = (p.brand || fromTitle).trim();
+      if (!name) { unknown += 1; continue; }
+      const b = brands.get(name) ?? { picks: 0, pages: new Set<string>(), stored: 0 };
+      b.picks += 1;
+      b.pages.add(s.slug);
+      if (p.brand) b.stored += 1;
+      brands.set(name, b);
+    }
+  }
+  const list = [...brands.entries()].map(([name, b]) => ({ name, picks: b.picks, pages: b.pages.size, stored: b.stored })).sort((x, y) => y.picks - x.picks);
+  return c.json({ brands: list, unknown });
+});
+
 /** Owner-only: the stored checks in full (?basis=studied or official narrows them), to review before a range is shown. */
 app.get('/api/admin/dose/checks', async (c) => {
   const denied = authorized(c);
