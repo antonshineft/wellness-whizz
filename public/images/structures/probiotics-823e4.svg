@@ -1,15 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-<defs><linearGradient id="b2" gradientUnits="userSpaceOnUse" x1="399.5" y1="512.0" x2="287.0" y2="317.1"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b3" gradientUnits="userSpaceOnUse" x1="415.6" y1="492.3" x2="312.1" y2="313.0"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b4" gradientUnits="userSpaceOnUse" x1="399.5" y1="512.0" x2="287.0" y2="706.9"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b5" gradientUnits="userSpaceOnUse" x1="624.5" y1="512.0" x2="737.0" y2="706.9"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient></defs>
-<line x1="737.0" y1="317.1" x2="624.5" y2="512.0" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
-<line x1="624.5" y1="512.0" x2="399.5" y2="512.0" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
-<line x1="399.5" y1="512.0" x2="287.0" y2="317.1" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
-<line x1="415.6" y1="492.3" x2="312.1" y2="313.0" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
-<line x1="399.5" y1="512.0" x2="287.0" y2="706.9" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
-<line x1="624.5" y1="512.0" x2="737.0" y2="706.9" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
-<line x1="737.0" y1="317.1" x2="624.5" y2="512.0" stroke="#ffffff" stroke-width="13.6" stroke-linecap="round"/>
-<line x1="624.5" y1="512.0" x2="399.5" y2="512.0" stroke="#ffffff" stroke-width="13.6" stroke-linecap="round"/>
-<line x1="399.5" y1="512.0" x2="287.0" y2="317.1" stroke="url(#b2)" stroke-width="13.6" stroke-linecap="round"/>
-<line x1="415.6" y1="492.3" x2="312.1" y2="313.0" stroke="url(#b3)" stroke-width="13.6" stroke-linecap="round"/>
-<line x1="399.5" y1="512.0" x2="287.0" y2="706.9" stroke="url(#b4)" stroke-width="13.6" stroke-linecap="round"/>
-<line x1="624.5" y1="512.0" x2="737.0" y2="706.9" stroke="url(#b5)" stroke-width="13.6" stroke-linecap="round"/>
+<defs><linearGradient id="g2" gradientUnits="userSpaceOnUse" x1="586.5" y1="520.5" x2="690.8" y2="380.0"><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/></linearGradient><linearGradient id="g3" gradientUnits="userSpaceOnUse" x1="586.5" y1="520.5" x2="659.4" y2="696.7"><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/></linearGradient><linearGradient id="g4" gradientUnits="userSpaceOnUse" x1="387.8" y1="507.3" x2="333.2" y2="327.3"><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/></linearGradient></defs>
+<circle cx="383.6" cy="579.9" r="37.1" fill="#8d979c"/><circle cx="383.6" cy="579.9" r="35.4" fill="#ffffff"/>
+<line x1="383.6" y1="579.9" x2="385.5" y2="546.5" stroke="#8d979c" stroke-width="23.5" stroke-linecap="butt"/><line x1="383.6" y1="579.9" x2="385.6" y2="544.9" stroke="#ffffff" stroke-width="20.1" stroke-linecap="butt"/>
+<line x1="387.8" y1="507.3" x2="385.5" y2="546.5" stroke="#8d979c" stroke-width="25.2" stroke-linecap="butt"/><line x1="387.8" y1="507.3" x2="385.4" y2="548.1" stroke="#ffffff" stroke-width="21.8" stroke-linecap="butt"/>
+<circle cx="333.2" cy="327.3" r="54.6" fill="#8d979c"/><circle cx="333.2" cy="327.3" r="52.9" fill="#8fdc88"/>
+<line x1="333.2" y1="327.3" x2="360.3" y2="416.8" stroke="#8d979c" stroke-width="25.9" stroke-linecap="butt"/><line x1="333.2" y1="327.3" x2="360.8" y2="418.3" stroke="url(#g4)" stroke-width="22.5" stroke-linecap="butt"/>
+<line x1="387.8" y1="507.3" x2="360.3" y2="416.8" stroke="#8d979c" stroke-width="26.1" stroke-linecap="butt"/><line x1="387.8" y1="507.3" x2="359.8" y2="415.2" stroke="url(#g4)" stroke-width="22.7" stroke-linecap="butt"/>
+<circle cx="387.8" cy="507.3" r="43.2" fill="#8d979c"/><circle cx="387.8" cy="507.3" r="41.5" fill="#ffffff"/>
+<line x1="387.8" y1="507.3" x2="484.0" y2="513.7" stroke="#8d979c" stroke-width="26.5" stroke-linecap="butt"/><line x1="387.8" y1="507.3" x2="485.6" y2="513.8" stroke="#ffffff" stroke-width="23.1" stroke-linecap="butt"/>
+<line x1="586.5" y1="520.5" x2="484.0" y2="513.7" stroke="#8d979c" stroke-width="27.2" stroke-linecap="butt"/><line x1="586.5" y1="520.5" x2="482.4" y2="513.6" stroke="#ffffff" stroke-width="23.8" stroke-linecap="butt"/>
+<circle cx="659.4" cy="696.7" r="58.5" fill="#8d979c"/><circle cx="659.4" cy="696.7" r="56.8" fill="#8fdc88"/>
+<line x1="659.4" y1="696.7" x2="623.0" y2="608.8" stroke="#8d979c" stroke-width="27.6" stroke-linecap="butt"/><line x1="659.4" y1="696.7" x2="622.4" y2="607.3" stroke="url(#g3)" stroke-width="24.2" stroke-linecap="butt"/>
+<line x1="586.5" y1="520.5" x2="623.0" y2="608.8" stroke="#8d979c" stroke-width="27.6" stroke-linecap="butt"/><line x1="586.5" y1="520.5" x2="623.7" y2="610.3" stroke="url(#g3)" stroke-width="24.2" stroke-linecap="butt"/>
+<circle cx="586.5" cy="520.5" r="45.9" fill="#8d979c"/><circle cx="586.5" cy="520.5" r="44.2" fill="#ffffff"/>
+<line x1="586.5" y1="520.5" x2="637.0" y2="452.4" stroke="#8d979c" stroke-width="28.0" stroke-linecap="butt"/><line x1="586.5" y1="520.5" x2="638.0" y2="451.2" stroke="url(#g2)" stroke-width="24.6" stroke-linecap="butt"/>
+<line x1="639.1" y1="537.8" x2="722.6" y2="425.4" stroke="#8d979c" stroke-width="23.4" stroke-linecap="round"/><line x1="639.1" y1="537.8" x2="722.6" y2="425.4" stroke="url(#g2)" stroke-width="20.0" stroke-linecap="round"/>
+<line x1="690.8" y1="380.0" x2="637.0" y2="452.4" stroke="#8d979c" stroke-width="28.8" stroke-linecap="butt"/><line x1="690.8" y1="380.0" x2="636.1" y2="453.7" stroke="url(#g2)" stroke-width="25.4" stroke-linecap="butt"/>
+<circle cx="690.8" cy="380.0" r="62.4" fill="#8d979c"/><circle cx="690.8" cy="380.0" r="60.7" fill="#8fdc88"/>
 </svg>

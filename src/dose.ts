@@ -332,9 +332,9 @@ export function hasOfficialRange(c: DoseCheck | null | undefined): boolean {
  * The scale of a pick that has no verdict, greyed out: either the supplement has no official daily need or ceiling,
  * or it has one and this product's label did not state its amount.
  */
-export function doseBlank(c: DoseCheck | null | undefined): string {
+export function doseBlank(c: DoseCheck | null | undefined, teaser = false): string {
   const text = hasOfficialRange(c) ? 'Dose not confirmed from the label' : 'No official range';
-  return `<div class="ww-dose ww-dose-none">
+  return `<div class="ww-dose ww-dose-none${teaser ? ' ww-dose-teaser' : ''}">
           <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">–</span><span>${text}</span></div>
           <div class="ww-dose-bar" style="grid-template-columns:repeat(3,1fr)"><i></i><i></i><i></i></div>
           <div class="ww-dose-edges"></div>

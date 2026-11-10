@@ -1,11 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-<defs><linearGradient id="b1" gradientUnits="userSpaceOnUse" x1="512.0" y1="568.2" x2="512.0" y2="343.2"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b2" gradientUnits="userSpaceOnUse" x1="535.8" y1="559.2" x2="535.8" y2="352.2"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b3" gradientUnits="userSpaceOnUse" x1="512.0" y1="568.2" x2="706.9" y2="680.8"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient></defs>
-<line x1="317.1" y1="680.8" x2="512.0" y2="568.2" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
-<line x1="512.0" y1="568.2" x2="512.0" y2="343.2" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
-<line x1="535.8" y1="559.2" x2="535.8" y2="352.2" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
-<line x1="512.0" y1="568.2" x2="706.9" y2="680.8" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
-<line x1="317.1" y1="680.8" x2="512.0" y2="568.2" stroke="#ffffff" stroke-width="13.6" stroke-linecap="round"/>
-<line x1="512.0" y1="568.2" x2="512.0" y2="343.2" stroke="url(#b1)" stroke-width="13.6" stroke-linecap="round"/>
-<line x1="535.8" y1="559.2" x2="535.8" y2="352.2" stroke="url(#b2)" stroke-width="13.6" stroke-linecap="round"/>
-<line x1="512.0" y1="568.2" x2="706.9" y2="680.8" stroke="url(#b3)" stroke-width="13.6" stroke-linecap="round"/>
+<defs><linearGradient id="g1" gradientUnits="userSpaceOnUse" x1="541.1" y1="526.6" x2="636.2" y2="662.2"><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/></linearGradient><linearGradient id="g2" gradientUnits="userSpaceOnUse" x1="541.1" y1="526.6" x2="590.6" y2="361.8"><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/></linearGradient></defs>
+<circle cx="387.8" cy="504.4" r="39.2" fill="#8d979c"/><circle cx="387.8" cy="504.4" r="37.5" fill="#ffffff"/>
+<line x1="387.8" y1="504.4" x2="460.2" y2="514.9" stroke="#8d979c" stroke-width="24.5" stroke-linecap="butt"/><line x1="387.8" y1="504.4" x2="461.8" y2="515.1" stroke="#ffffff" stroke-width="21.1" stroke-linecap="butt"/>
+<line x1="541.1" y1="526.6" x2="460.2" y2="514.9" stroke="#8d979c" stroke-width="25.7" stroke-linecap="butt"/><line x1="541.1" y1="526.6" x2="458.6" y2="514.7" stroke="#ffffff" stroke-width="22.3" stroke-linecap="butt"/>
+<line x1="511.0" y1="568.0" x2="587.1" y2="676.5" stroke="#8d979c" stroke-width="21.8" stroke-linecap="round"/><line x1="511.0" y1="568.0" x2="587.1" y2="676.5" stroke="url(#g1)" stroke-width="18.4" stroke-linecap="round"/>
+<circle cx="541.1" cy="526.6" r="43.6" fill="#8d979c"/><circle cx="541.1" cy="526.6" r="41.9" fill="#ffffff"/>
+<line x1="541.1" y1="526.6" x2="588.5" y2="594.3" stroke="#8d979c" stroke-width="26.4" stroke-linecap="butt"/><line x1="541.1" y1="526.6" x2="589.4" y2="595.6" stroke="url(#g1)" stroke-width="23.0" stroke-linecap="butt"/>
+<line x1="636.2" y1="662.2" x2="588.5" y2="594.3" stroke="#8d979c" stroke-width="26.5" stroke-linecap="butt"/><line x1="636.2" y1="662.2" x2="587.6" y2="592.9" stroke="url(#g1)" stroke-width="23.1" stroke-linecap="butt"/>
+<circle cx="636.2" cy="662.2" r="56.1" fill="#8d979c"/><circle cx="636.2" cy="662.2" r="54.4" fill="#8fdc88"/>
+<line x1="541.1" y1="526.6" x2="564.4" y2="448.8" stroke="#8d979c" stroke-width="27.0" stroke-linecap="butt"/><line x1="541.1" y1="526.6" x2="564.9" y2="447.3" stroke="url(#g2)" stroke-width="23.6" stroke-linecap="butt"/>
+<line x1="590.6" y1="361.8" x2="564.4" y2="448.8" stroke="#8d979c" stroke-width="28.4" stroke-linecap="butt"/><line x1="590.6" y1="361.8" x2="564.0" y2="450.3" stroke="url(#g2)" stroke-width="25.0" stroke-linecap="butt"/>
+<circle cx="590.6" cy="361.8" r="62.2" fill="#8d979c"/><circle cx="590.6" cy="361.8" r="60.5" fill="#8fdc88"/>
 </svg>

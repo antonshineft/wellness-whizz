@@ -1,7 +1,7 @@
 /** Reusable fragments that mirror the exported Webflow markup (same classes, so the exported CSS applies). */
 import type { FdaStatus, FormType, Product, SafetyStatus, Supplement } from '../db';
 import { structureAlt } from '../structures';
-import { doseFor, doseScale, type DoseCheck } from '../dose';
+import { doseBlank, doseFor, doseScale, type DoseCheck } from '../dose';
 import { escapeHtml } from '../html';
 import { primaryProduct, shopUrl, type LinkEnv } from '../links';
 
@@ -276,7 +276,10 @@ export function productThumbs(env: LinkEnv, sup: Supplement, max = 3): string {
     .join('')}</div>`;
 }
 
-/** "Top picks on iHerb" strip under the supplement page header. */
+/**
+ * "Top picks on iHerb" strip under the supplement page header. The affiliate note is not repeated here: the page
+ * carries it once, in the disclaimer block under the main picture (AFFILIATE_NOTE).
+ */
 export function productPicks(env: LinkEnv, sup: Supplement): string {
   const products = sup.products.slice(0, 5);
   const picks = products.length
@@ -299,7 +302,6 @@ export function productPicks(env: LinkEnv, sup: Supplement): string {
       <div class="ww-strip-title">Top picks on iHerb</div>
       <div class="ww-strip">${picks}
       </div>
-      ${disclosure()}
     </section>`;
 }
 
@@ -310,8 +312,10 @@ export function stickyBuyBar(env: LinkEnv, sup: Supplement): string {
   <div class="ww-sticky"><span>Buy <strong>${escapeHtml(sup.name)}</strong> on iHerb</span><a href="${escapeHtml(shopUrl(env, sup, product))}" ${OUTBOUND_ATTRS} class="outbutton w-button" ${trackAttrs(sup, product)}>Buy now</a></div>`;
 }
 
+export const AFFILIATE_NOTE = 'As an iHerb affiliate, Wellness Whizz earns from qualifying purchases at no extra cost to you. Prices and availability are shown on iHerb.';
+
 export function disclosure(onDark = false): string {
-  return `<p class="ww-disclosure${onDark ? ' on-dark' : ''}">As an iHerb affiliate, Wellness Whizz earns from qualifying purchases at no extra cost to you. Prices and availability are shown on iHerb.</p>`;
+  return `<p class="ww-disclosure${onDark ? ' on-dark' : ''}">${AFFILIATE_NOTE}</p>`;
 }
 
 /** One entry of the "Explore manually" list; data-img is the product photo (or the illustration) that public/js/site.js shows on hover. */
@@ -332,7 +336,10 @@ export function exploreSection(supplements: Supplement[]): string {
   </div>`;
 }
 
-/** One card of the home-page slider: the real product photo on the cream square, illustration as fallback. */
+/**
+ * One card of the home-page slider: the real product photo on the cream square, illustration as fallback.
+ * `dose` undefined leaves the dose teaser out; null (no check, or no official range) shows it greyed out.
+ */
 export function homeCard(sup: Supplement, dose?: DoseCheck | null): string {
   const product = sup.products.find((p) => p.image);
   // The teaser: the scale of the pictured pick only, in its barest form.
@@ -345,7 +352,7 @@ export function homeCard(sup: Supplement, dose?: DoseCheck | null): string {
   <div class="imagecard">${image}
     <div class="frame-256">
       <div class="text-75">${escapeHtml(sup.name)}</div>
-      <div class="frame-257">${headerBadges(sup)}</div>${pick && dose ? `\n      ${doseScale(dose, pick, true)}` : ''}
+      <div class="frame-257">${headerBadges(sup)}</div>${dose === undefined || !product ? '' : `\n      ${pick && dose ? doseScale(dose, pick, true) : doseBlank(dose, true)}`}
     </div>
   </div>
 </div>`;

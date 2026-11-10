@@ -45,7 +45,7 @@ export async function renderHome(
     })
     .on('.ww-carousel-track', {
       element(el) {
-        if (cards.length) el.setInnerContent(cards.map((s) => homeCard(s, doses.get(s.slug))).join(''), { html: true });
+        if (cards.length) el.setInnerContent(cards.map((s) => homeCard(s, doseOn ? (doses.get(s.slug) ?? null) : undefined)).join(''), { html: true });
       },
     })
     .on('.ww-teaser-posts', {

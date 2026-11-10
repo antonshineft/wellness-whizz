@@ -8,7 +8,7 @@ import { noteLabel, notePath, type ResearchNote } from '../research';
 import { reviewedLine } from './pages';
 import {
   EFFECTIVITY_LABELS, SAFETY_LABELS, WF_PAGE_IDS, blendAttr, cardImage, detailImage, exploreSection, footer, headerTags, navbar,
-  productPicks, ratingImage, relatedSection, stickyBuyBar,
+  AFFILIATE_NOTE, productPicks, ratingImage, relatedSection, stickyBuyBar,
 } from './partials';
 
 const PRODUCT_CARD_IDS = [
@@ -443,7 +443,7 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
         <div class="frame-227">
           <div class="frame-228">
             <div class="text-61">DISCLAIMER</div>
-            <div class="text-62">This content is for informational purposes and not medical advice. Results may vary.  Consult a healthcare professional before use. <a href="/about#disclaimer" class="ww-disclaimer-link">Read the full medical disclaimer</a></div>
+            <div class="text-62">This content is for informational purposes and not medical advice. Results may vary.  Consult a healthcare professional before use. ${AFFILIATE_NOTE} <a href="/about#disclaimer" class="ww-disclaimer-link">Read the full medical disclaimer</a></div>
           </div>
         </div>
       </div>${infoColumn({
