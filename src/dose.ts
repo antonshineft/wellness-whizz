@@ -14,6 +14,7 @@
  */
 import { claudeJson } from './claude';
 import type { Supplement } from './db';
+import { STRUCTURES } from './structures';
 import type { VideoEnv } from './videos';
 
 export interface Nutrient {
@@ -307,11 +308,14 @@ function scaleOf(c: DoseCheck): { zones: Zone[]; edges: number[] } {
 }
 
 /** Where a daily amount sits, in percent of the bar: zones are equally wide and the mark moves within its zone. */
-function positionOf(c: DoseCheck, daily: number): number {
+function positionOf(c: DoseCheck, daily: number, state?: DoseState): number {
   const { zones, edges } = scaleOf(c);
   const w = 100 / zones.length;
   let k = edges.findIndex((e) => daily <= e);
   if (k < 0) k = zones.length - 1;
+  // Studied ranges are judged with a margin (a 450 mg capsule against a 500 mg study dose is in range), so the
+  // mark follows the verdict, never the other way round.
+  if (c.basis === 'studied' && state) k = state === 'under' ? 0 : state === 'beyond' ? 2 : 1;
   const lower = k === 0 ? 0 : edges[k - 1];
   const upper = k < edges.length ? edges[k] : null;
   const frac = upper === null ? Math.min(1, (daily - lower) / (lower || 1)) * 0.8 : (daily - lower) / (upper - lower || 1);
@@ -320,12 +324,23 @@ function positionOf(c: DoseCheck, daily: number): number {
 
 export function doseFor(c: DoseCheck | null | undefined, url: string): DoseProduct | null {
   const p = c?.products.find((x) => x.url === url) ?? null;
-  return c && c.basis === 'official' && c.low !== null && p && p.state !== 'unknown' && p.daily !== null ? p : null;
+  return c && c.low !== null && p && p.state !== 'unknown' && p.daily !== null ? p : null;
 }
 
-/** Whether a page is judged against official figures. Ranges read from studies are kept in the data but not shown. */
-export function hasOfficialRange(c: DoseCheck | null | undefined): boolean {
-  return !!c && c.basis === 'official' && c.low !== null;
+/** Whether a check carries a range to judge picks against (see visibleCheck for which ranges reach a page). */
+export function hasRange(c: DoseCheck | null | undefined): boolean {
+  return !!c && c.low !== null;
+}
+
+/**
+ * The check as a page may show it. Official figures are always shown. A range read from studies is shown only when
+ * `studied` is on and the supplement is a single substance (kind "self" in src/structures.ts: creatine, melatonin,
+ * coenzyme Q10 ...), where the studies and the products measure the same thing. For plants, proteins and blends a
+ * study's extract and a product's whole powder are not comparable, so their range is withheld and the picks grey out.
+ */
+export function visibleCheck(c: DoseCheck | null, studied: boolean): DoseCheck | null {
+  if (!c || c.basis === 'official') return c;
+  return studied && c.low !== null && STRUCTURES[c.slug]?.kind === 'self' ? c : { ...c, low: null, high: null };
 }
 
 /**
@@ -333,7 +348,7 @@ export function hasOfficialRange(c: DoseCheck | null | undefined): boolean {
  * or it has one and this product's label did not state its amount.
  */
 export function doseBlank(c: DoseCheck | null | undefined, teaser = false): string {
-  const text = hasOfficialRange(c) ? 'Dose not confirmed from the label' : 'No official range';
+  const text = hasRange(c) ? 'Dose not confirmed from the label' : 'No official range';
   return `<div class="ww-dose ww-dose-none${teaser ? ' ww-dose-teaser' : ''}">
           <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">–</span><span>${text}</span></div>
           <div class="ww-dose-bar" style="grid-template-columns:repeat(3,1fr)"><i></i><i></i><i></i></div>
@@ -358,7 +373,7 @@ function wordsFor(c: DoseCheck, state: DoseState): { mark: string; cls: string; 
 export function doseScale(c: DoseCheck, p: DoseProduct, teaser = false): string {
   const { zones, edges } = scaleOf(c);
   const w = wordsFor(c, p.state);
-  const at = positionOf(c, p.daily as number).toFixed(1);
+  const at = positionOf(c, p.daily as number, p.state).toFixed(1);
   const cols = `grid-template-columns:repeat(${zones.length},1fr)`;
   const bar = zones.map((z) => `<i class="ww-dose-${z.cls}"></i>`).join('');
   const marks = edges.map((e, i) => `<span style="left:${(((i + 1) * 100) / zones.length).toFixed(1)}%">${fmt(e)} ${esc(c.unit)}</span>`).join('');
@@ -377,7 +392,7 @@ export function doseLegend(c: DoseCheck): string {
   const { zones } = scaleOf(c);
   return `<div class="ww-dose-zones" style="grid-template-columns:repeat(${zones.length},1fr)">${zones.map((z) => `<div><b>${z.label}</b>${z.sub}</div>`).join('')}</div>
           ${c.note ? `<p class="ww-dose-note">${esc(c.note)}</p>` : ''}
-          <p class="ww-dose-src">The scale shows each pick's daily amount at the label's directions. Figures: ${esc(c.source)}. Zones are not drawn to scale.</p>`;
+          <p class="ww-dose-src">The scale shows each pick's daily amount at the label's directions. Figures: ${esc(c.source)}.${c.basis === 'studied' ? ' No official daily need or safe ceiling has been set for this supplement; the range is what trials tested, not a recommendation.' : ''} Zones are not drawn to scale.</p>`;
 }
 
 /** "100 mg per capsule" or "500 mg per tablet, 2 a day". */

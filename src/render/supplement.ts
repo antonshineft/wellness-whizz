@@ -1,6 +1,6 @@
 /** /supplement/:slug — the "Supplements" CMS template page. */
 import type { Supplement } from '../db';
-import { MAX_PICKS, STATE_RANK, doseBlank, doseBlankNote, doseFor, doseLegend, doseLine, doseScale, hasOfficialRange, type DoseCheck } from '../dose';
+import { MAX_PICKS, STATE_RANK, doseBlank, doseBlankNote, doseFor, doseLegend, doseLine, doseScale, hasRange, type DoseCheck } from '../dose';
 import { escapeHtml } from '../html';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
@@ -172,7 +172,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null): strin
       </div>
       <div class="ww-top-main">
         <div class="ww-top-grid">${cards}
-        </div>${anyScale && dose ? `\n        <div class="ww-top-foot">${doseLegend(dose)}</div>` : hasOfficialRange(dose) ? '' : `\n        <div class="ww-top-foot">${doseBlankNote(sup.name)}</div>`}
+        </div>${anyScale && dose ? `\n        <div class="ww-top-foot">${doseLegend(dose)}</div>` : hasRange(dose) ? '' : `\n        <div class="ww-top-foot">${doseBlankNote(sup.name)}</div>`}
       </div>
     </section>`;
 }

@@ -61,7 +61,7 @@ import {
 import { runQuizPipeline } from './pipeline';
 import { dashboardToken, snapshotTrials, trialDashboard } from './trialboard';
 import { getLearned, learnFromTrials } from './triallearn';
-import { MAX_PICKS, checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels } from './dose';
+import { MAX_PICKS, checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels, visibleCheck } from './dose';
 import { attachExtraProduct, setProduct } from './products';
 import { feedItems } from './social/feeds';
 import { autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
@@ -95,6 +95,8 @@ export interface Bindings {
   REDDIT_DIGEST?: string;
   /** The dose check on supplement pages (src/dose.ts): "true", "preview" (only with ?dose=preview) or "false". */
   DOSE_CHECK?: string;
+  /** Ranges read from studies, for single-substance supplements: "true", "preview" (only with ?dose=studied) or "false". */
+  DOSE_STUDIED?: string;
   /** Trial reels (src/trials.ts): "true" runs the daily loop; TRIALS_SKIP lists video slugs it leaves alone. */
   TRIALS_AUTO?: string;
   TRIALS_SKIP?: string;
@@ -279,7 +281,7 @@ async function localizeResultItems(db: D1Database, lang: Lang, items: ResultItem
 
 pageRoute('/', async (c, lang) => {
   track(c, { type: 'home_view', page: '/' });
-  return sendPage(c, await renderHome(c.env, c.req.raw, curatedOnly(c.env), lang, lang === 'en' && doseVisible(c)), lang, '/', 'public, max-age=60');
+  return sendPage(c, await renderHome(c.env, c.req.raw, curatedOnly(c.env), lang, lang === 'en' && doseVisible(c), studiedVisible(c)), lang, '/', 'public, max-age=60');
 });
 
 pageRoute('/wellness-quiz', async (c, lang) => {
@@ -389,7 +391,7 @@ pageRoute('/supplement/:slug', async (c, lang) => {
   track(c, { type: 'supplement_view', page: `/supplement/${supplement.slug}`, slug: supplement.slug });
   // The dose check (src/dose.ts) is English only. DOSE_CHECK "true" shows it to everyone; "preview" (the default)
   // only with ?dose=preview, so the owner can review it before readers see it; "false" hides it.
-  const dose = lang === 'en' && doseVisible(c) ? await getDoseCheck(c.env.DB, supplement.slug) : undefined;
+  const dose = lang === 'en' && doseVisible(c) ? visibleCheck(await getDoseCheck(c.env.DB, supplement.slug), studiedVisible(c)) : undefined;
   const html = renderSupplementPage(localizeSupplement(supplement, translation), explore, c.env, { related, origin: new URL(c.req.url).origin, notes, dose });
   const body = pending ? new Response(html, { status: 200, headers: { ...htmlHeaders('public, max-age=60'), 'x-robots-tag': 'noindex' } }) : html;
   return sendPage(c, body, lang, `/supplement/${supplement.slug}`, 'public, max-age=300', alternates);
@@ -863,6 +865,15 @@ app.get('/api/admin/subscribers', async (c) => {
 function doseVisible(c: { env: Bindings; req: { query: (k: string) => string | undefined } }): boolean {
   const mode = c.env.DOSE_CHECK ?? 'preview';
   return mode === 'true' || (mode === 'preview' && c.req.query('dose') === 'preview');
+}
+
+/**
+ * Ranges read from studies ("Dose used in studies"), shown for single-substance supplements only: DOSE_STUDIED "true"
+ * shows them to everyone, "preview" (the default) only with ?dose=studied, "false" never.
+ */
+function studiedVisible(c: { env: Bindings; req: { query: (k: string) => string | undefined } }): boolean {
+  const mode = (c.env.DOSE_STUDIED ?? 'preview').toLowerCase();
+  return mode === 'true' || (mode === 'preview' && c.req.query('dose') === 'studied');
 }
 
 function authorized(c: { env: Bindings; req: { query: (k: string) => string | undefined; header: (k: string) => string | undefined } }): Response | null {
@@ -1633,6 +1644,16 @@ app.post('/api/admin/dose/run', async (c) => {
   }
   const remaining = sups.filter((s) => !done.has(s.slug) && !results.some((r) => r.slug === s.slug && r.ok)).length;
   return c.json({ results, remaining, total: sups.length });
+});
+
+/** Owner-only: the stored checks in full (?basis=studied or official narrows them), to review before a range is shown. */
+app.get('/api/admin/dose/checks', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const basis = c.req.query('basis');
+  const checks = await listDoseChecks(c.env.DB);
+  return c.json({ checks: checks.filter((d) => !basis || d.basis === basis).map((d) => ({ ...d, shown: !!visibleCheck(d, true)?.low })) });
 });
 
 /** Owner-only: which pages have a pick outside the comfortable range. */
