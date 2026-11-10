@@ -181,8 +181,9 @@ function verdict(basis: 'official' | 'studied', low: number | null, high: number
     return nutrient?.absorb && amount > nutrient.absorb.above ? 'more' : 'above';
   }
   if (low === null || high === null) return 'unknown';
-  if (daily < low * 0.8) return 'under';
-  if (daily > high * 1.25) return 'beyond';
+  // A tenth of margin either side: a 450 mg capsule against a 500 mg study dose is the same dose in practice.
+  if (daily < low * 0.9) return 'under';
+  if (daily > high * 1.1) return 'beyond';
   return 'in';
 }
 
@@ -340,7 +341,9 @@ export function hasRange(c: DoseCheck | null | undefined): boolean {
  */
 export function visibleCheck(c: DoseCheck | null, studied: boolean): DoseCheck | null {
   if (!c || c.basis === 'official') return c;
-  return studied && c.low !== null && STRUCTURES[c.slug]?.kind === 'self' ? c : { ...c, low: null, high: null };
+  if (!(studied && c.low !== null && STRUCTURES[c.slug]?.kind === 'self')) return { ...c, low: null, high: null };
+  // The verdict is arithmetic on stored figures, so it is taken afresh here: a change of the margin needs no new reading.
+  return { ...c, products: c.products.map((p) => ({ ...p, state: verdict('studied', c.low, c.high, p.amount, p.daily, null) })) };
 }
 
 /**

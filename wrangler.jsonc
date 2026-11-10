@@ -61,6 +61,9 @@
     // The dose check on supplement pages and the home slider (src/dose.ts): "true" shows it to everyone, "preview"
     // only with ?dose=preview, "false" hides it. Only official ranges are shown; other picks are greyed out.
     "DOSE_CHECK": "true",
+    // Ranges read from studies ("Dose used in studies"), shown for single-substance supplements only (visibleCheck in
+    // src/dose.ts): "true", "preview" (only with ?dose=studied) or "false".
+    "DOSE_STUDIED": "true",
     "TRIALS_AUTO": "true",
     "TRIALS_SKIP": "glycine-three-am-clock,saffron-price-tag",
     "VIDEO_APPROVAL": "true",
