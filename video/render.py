@@ -245,11 +245,20 @@ def _download_file(uri: str, out: Path) -> None:
     raise RuntimeError(f'could not download the generated video from {uri[:200]}')
 
 
-def _request(prompt: str, refs: bool, fmt: dict) -> dict:
+def _request(prompt: str, refs: bool, fmt: dict, anchor: Path | None = None) -> dict:
     content: list[dict] = []
     if refs:
         content = [{'type': 'image', 'data': base64.b64encode(p.read_bytes()).decode(), 'mime_type': 'image/jpeg'} for p in STYLE]
-    content.append({'type': 'text', 'text': prompt if refs else re.sub(r'in the style of (<IMAGE_REF_\d+>\s*)+', 'in a hand-drawn illustration style', prompt)})
+    text = prompt if refs else re.sub(r'in the style of (<IMAGE_REF_\d+>\s*)+', 'in a hand-drawn illustration style', prompt)
+    if anchor is not None:
+        # The owner asked for "the same seed" for people and objects: a picture from the opening clip of this very video
+        # is handed to every later clip, so the figure and the main object keep one look from scene to scene.
+        ref = f'<IMAGE_REF_{len(content)}>'
+        content.append({'type': 'image', 'data': base64.b64encode(anchor.read_bytes()).decode(), 'mime_type': 'image/jpeg'})
+        text += (f'\n\n{ref} is a picture from the opening scene of this same video. Draw the characters and the main object exactly as they '
+                 'look there: the same shapes, colours, faces and proportions. Use it for their look only: do not copy its composition, '
+                 'background or camera angle, and do not start the shot from it.')
+    content.append({'type': 'text', 'text': text})
     if VERTEX:
         # Vertex AI: response_format is a list, the length is explicit, and a uri delivery needs a Cloud Storage bucket
         out = {'type': 'video', 'aspect_ratio': '9:16', 'duration': f'{SCENE_SECONDS}s', **fmt}
@@ -273,10 +282,11 @@ CONFIGS: list[tuple[str, bool, dict]] = [
 _config: dict = {'index': 0}
 
 
-def generate_clip(prompt: str, out: Path, label: str, config: int | None = None) -> Path:
-    """One clip from Gemini Omni Flash, run in the background and polled."""
+def generate_clip(prompt: str, out: Path, label: str, config: int | None = None, anchor: Path | None = None) -> Path:
+    """One clip from Gemini Omni Flash, run in the background and polled. `anchor`: a picture whose characters and
+    objects the clip must match."""
     name, refs, fmt = CONFIGS[_config['index'] if config is None else config]
-    r = google('POST', INTERACTIONS, json=_request(prompt, refs, fmt), timeout=300)
+    r = google('POST', INTERACTIONS, json=_request(prompt, refs, fmt, anchor), timeout=300)
     if not r.ok:
         raise RuntimeError(f'Omni {label} ({name}): HTTP {r.status_code} {r.text[:400]}')
     interaction = r.json()
@@ -332,13 +342,23 @@ def generate_clips(job: dict, out_dir: Path) -> list[Path]:
     clips = [out_dir / f'clip{i + 1}.mp4' for i in range(len(scenes))]
     prompts = [scene_prompt(i, len(scenes), topic, scenes[i]['visual']) for i in range(len(scenes))]
     generate_first(prompts[0], clips[0])
+    # A picture from the opening clip, two seconds in, is the look every later clip has to keep.
+    anchor: Path | None = out_dir / 'anchor.jpg'
+    try:
+        ffmpeg('-ss', '2', '-i', str(clips[0]), '-frames:v', '1', '-vf', 'scale=720:-2', '-q:v', '3', str(anchor))
+        if not anchor.exists():
+            raise RuntimeError('no picture written')
+    except Exception as e:  # noqa: BLE001
+        log(f'no reference picture from clip 1 ({e}); the other clips are drawn without one')
+        anchor = None
 
     def one(i: int) -> Path:
         try:
-            return generate_clip(prompts[i], clips[i], f'clip {i + 1}')
+            return generate_clip(prompts[i], clips[i], f'clip {i + 1}', anchor=anchor)
         except RuntimeError as e:
-            # The safety filter sometimes trips on an innocent description; one retry with a gentler framing.
-            log(f'clip {i + 1} failed ({str(e)[:200]}); retrying once with a gentler framing')
+            # The safety filter sometimes trips on an innocent description, and the reference picture is one more thing
+            # the request can be refused for; one retry without it and with a gentler framing.
+            log(f'clip {i + 1} failed ({str(e)[:200]}); retrying once without the reference picture and with a gentler framing')
             gentle = prompts[i].replace('Sequence (', 'A wholesome, family-friendly educational cartoon. Sequence (')
             return generate_clip(gentle, clips[i], f'clip {i + 1} (retry)')
 
@@ -352,6 +372,12 @@ def generate_clips(job: dict, out_dir: Path) -> list[Path]:
 
 ELEVEN_MODEL = os.environ.get('ELEVENLABS_MODEL') or 'eleven_v3'
 ELEVEN_SPEED = float(os.environ.get('ELEVENLABS_SPEED') or '1.2')
+# The owner found the narrator "wavy, too many intonations": he is set steadier (stability up from 0.35, style down from
+# 0.5) and the script's direction tags ([curious], [amused] ...) and *stress* marks are no longer sent to him, since each
+# one changed his tone from scene to scene. Not all the way to flat: 1.0 and 0 would be.
+ELEVEN_STABILITY = float(os.environ.get('ELEVENLABS_STABILITY') or '0.75')
+ELEVEN_STYLE = float(os.environ.get('ELEVENLABS_STYLE') or '0.25')
+ELEVEN_TAGS = os.environ.get('ELEVENLABS_TAGS') == 'true'
 TAG_RE = re.compile(r'\[[^\]]*\]')
 
 
@@ -361,7 +387,9 @@ def spoken_words(text: str) -> list[str]:
 
 
 def narrate(text: str, mp3: Path) -> list[dict]:
-    settings = {'stability': 0.35, 'similarity_boost': 0.75, 'style': 0.5, 'use_speaker_boost': True, 'speed': ELEVEN_SPEED}
+    settings = {'stability': ELEVEN_STABILITY, 'similarity_boost': 0.75, 'style': ELEVEN_STYLE, 'use_speaker_boost': True, 'speed': ELEVEN_SPEED}
+    if not ELEVEN_TAGS:
+        text = re.sub(r'\s+', ' ', TAG_RE.sub(' ', text).replace('*', '')).strip()
     r = requests.post(f'https://api.elevenlabs.io/v1/text-to-speech/{VOICE}/with-timestamps', params={'output_format': 'mp3_44100_128'},
                       headers={'xi-api-key': ELEVEN, 'content-type': 'application/json'}, timeout=180,
                       json={'text': text, 'model_id': ELEVEN_MODEL, 'voice_settings': settings})
