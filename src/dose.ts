@@ -65,7 +65,9 @@ export function nutrientFor(sup: Pick<Supplement, 'name' | 'category'>): Nutrien
   if (!['Vitamin', 'Mineral'].includes(sup.category) && !/choline$/i.test(sup.name.trim())) return null;
   // "Alpha-GPC" or "citicoline" are choline donors, not choline itself; "Vitamin D3 and K2" is two nutrients.
   if (/\band\b|\+|&|complex|multi/i.test(sup.name)) return null;
-  return NUTRIENTS.find((n) => n.match.test(sup.name)) ?? null;
+  // A name that carries two nutrients ("Zinc Magnesium Aspartate") has no single official figure either.
+  const hits = NUTRIENTS.filter((n) => n.match.test(sup.name));
+  return hits.length === 1 ? hits[0] : null;
 }
 
 /** Picks per supplement page: a two by three grid. */
@@ -318,7 +320,30 @@ function positionOf(c: DoseCheck, daily: number): number {
 
 export function doseFor(c: DoseCheck | null | undefined, url: string): DoseProduct | null {
   const p = c?.products.find((x) => x.url === url) ?? null;
-  return c && c.low !== null && p && p.state !== 'unknown' && p.daily !== null ? p : null;
+  return c && c.basis === 'official' && c.low !== null && p && p.state !== 'unknown' && p.daily !== null ? p : null;
+}
+
+/** Whether a page is judged against official figures. Ranges read from studies are kept in the data but not shown. */
+export function hasOfficialRange(c: DoseCheck | null | undefined): boolean {
+  return !!c && c.basis === 'official' && c.low !== null;
+}
+
+/**
+ * The scale of a pick that has no verdict, greyed out: either the supplement has no official daily need or ceiling,
+ * or it has one and this product's label did not state its amount.
+ */
+export function doseBlank(c: DoseCheck | null | undefined): string {
+  const text = hasOfficialRange(c) ? 'Dose not confirmed from the label' : 'No official range';
+  return `<div class="ww-dose ww-dose-none">
+          <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">–</span><span>${text}</span></div>
+          <div class="ww-dose-bar" style="grid-template-columns:repeat(3,1fr)"><i></i><i></i><i></i></div>
+          <div class="ww-dose-edges"></div>
+        </div>`;
+}
+
+/** One line under a section whose picks are not rated, saying why. */
+export function doseBlankNote(name: string): string {
+  return `<p class="ww-dose-src">No official daily need or safe ceiling has been set for ${esc(name)}, so these picks are not rated by dose.</p>`;
 }
 
 function wordsFor(c: DoseCheck, state: DoseState): { mark: string; cls: string; text: string } {

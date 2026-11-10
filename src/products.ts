@@ -144,6 +144,43 @@ export async function attachExtraProduct(
   return { ok: true, product };
 }
 
+/**
+ * Put another iHerb product in place `n` of a page's picks (or append it when `n` is one past the last), or, without
+ * a url, only correct the name and brand of the pick that is there. Used when a product is gone from the shop, is
+ * listed twice, or carries a dose the owner does not want to recommend.
+ */
+export async function setProduct(
+  env: { DB: D1Database },
+  sup: Supplement,
+  n: number,
+  pick: { name: string; brand: string; url?: string },
+  photo: { bytes: Uint8Array; type: string } | null,
+  total = 6,
+): Promise<{ ok: true; product: Product } | { ok: false; message: string }> {
+  if (!Number.isInteger(n) || n < 1 || n > Math.min(total, sup.products.length + 1)) return { ok: false, message: `place must be 1 to ${Math.min(total, sup.products.length + 1)}` };
+  const name = pick.name.trim().slice(0, 60);
+  if (!name) return { ok: false, message: 'a name is required' };
+  const products = [...sup.products];
+  let product: Product;
+  if (!pick.url) {
+    if (!products[n - 1]) return { ok: false, message: 'there is no pick at that place to rename' };
+    product = { ...products[n - 1], name, brand: pick.brand.trim().slice(0, 60) };
+  } else {
+    if (!/^https:\/\/www\.iherb\.com\/pr\/[a-z0-9-]+\/\d+$/i.test(pick.url)) return { ok: false, message: 'url must be an iHerb product page' };
+    const url = pick.url;
+    const idOf = (u: string) => (u.match(/\/(\d+)(?:[/?#]|$)/) || [])[1] ?? '';
+    if (products.some((p, i) => i !== n - 1 && (idOf(p.url) === idOf(url) || p.name.trim().toLowerCase() === name.toLowerCase()))) return { ok: false, message: 'that product is already a pick' };
+    if (!photo || !/^image\/(jpeg|png|webp)$/.test(photo.type) || photo.bytes.length < 2000 || photo.bytes.length > 900_000) return { ok: false, message: 'the photo is missing or not a usable image' };
+    // The shop's product number is part of the key, so a browser never shows the photo of the pick that was there before.
+    const key = `product-${sup.slug}-${n}-${idOf(pick.url)}`;
+    await storeImage(env.DB, key, photo.type, photo.bytes);
+    product = { name, brand: pick.brand.trim().slice(0, 60), url: pick.url, image: `/images/generated/${key}.${photo.type.includes('png') ? 'png' : photo.type.includes('webp') ? 'webp' : 'jpg'}`, opaque: true };
+  }
+  products[n - 1] = product;
+  await env.DB.prepare("UPDATE supplements SET products_json = ?, updated_at = datetime('now') WHERE id = ?").bind(JSON.stringify(products), sup.id).run();
+  return { ok: true, product };
+}
+
 /** Supplements without a single product photo, AI-created ones first. */
 export async function supplementsWithoutPhotos(db: D1Database, limit: number): Promise<{ id: number; slug: string }[]> {
   const { results } = await db

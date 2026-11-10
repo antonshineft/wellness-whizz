@@ -680,6 +680,9 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-dose-more .ww-dose-mark { background: #fab219; color: #0b0b0b; }
 .ww-dose-over .ww-dose-mark { background: #d03b3b; color: #fff; }
 .ww-dose-info .ww-dose-mark { background: #1d272d; color: #fff; }
+.ww-dose-none .ww-dose-head { color: #898781; font-weight: 500; }
+.ww-dose-none .ww-dose-mark { background: #d9dcdd; color: #6f7477; }
+.ww-dose-none .ww-dose-bar i { background: #e3e5e6; }
 .ww-dose-bar { position: relative; display: grid; gap: 2px; height: 12px; }
 .ww-dose-bar i { display: block; height: 12px; }
 .ww-dose-bar i:first-child { border-radius: 6px 0 0 6px; }

@@ -1,6 +1,6 @@
 /** /supplement/:slug — the "Supplements" CMS template page. */
 import type { Supplement } from '../db';
-import { MAX_PICKS, STATE_RANK, doseFor, doseLegend, doseLine, doseScale, type DoseCheck } from '../dose';
+import { MAX_PICKS, STATE_RANK, doseBlank, doseBlankNote, doseFor, doseLegend, doseLine, doseScale, hasOfficialRange, type DoseCheck } from '../dose';
 import { escapeHtml } from '../html';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
@@ -157,7 +157,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null): strin
               <div class="ww-top-photo">${image}</div>
               <div class="ww-top-name">${escapeHtml(p.name)}</div>
               <div class="ww-top-meta">${escapeHtml(p.brand)}${r.d && dose ? `${p.brand ? ' · ' : ''}${escapeHtml(doseLine(dose, r.d))}` : ''}</div>
-              ${r.d && dose ? doseScale(dose, r.d) : ''}
+              ${r.d && dose ? doseScale(dose, r.d) : doseBlank(dose)}
               <a href="${escapeHtml(shopUrl(env, sup, p))}" target="_blank" rel="noopener nofollow sponsored" class="outbutton w-button" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}" data-product="${escapeHtml(p.name)}">Buy on iHerb</a>
             </article>`;
     })
@@ -172,7 +172,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null): strin
       </div>
       <div class="ww-top-main">
         <div class="ww-top-grid">${cards}
-        </div>${anyScale && dose ? `\n        <div class="ww-top-foot">${doseLegend(dose)}</div>` : ''}
+        </div>${anyScale && dose ? `\n        <div class="ww-top-foot">${doseLegend(dose)}</div>` : hasOfficialRange(dose) ? '' : `\n        <div class="ww-top-foot">${doseBlankNote(sup.name)}</div>`}
       </div>
     </section>`;
 }

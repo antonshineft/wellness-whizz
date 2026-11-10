@@ -62,7 +62,7 @@ import { runQuizPipeline } from './pipeline';
 import { dashboardToken, snapshotTrials, trialDashboard } from './trialboard';
 import { getLearned, learnFromTrials } from './triallearn';
 import { MAX_PICKS, checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels } from './dose';
-import { attachExtraProduct } from './products';
+import { attachExtraProduct, setProduct } from './products';
 import { feedItems } from './social/feeds';
 import { autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
@@ -1578,6 +1578,26 @@ app.post('/api/admin/dose/extra', async (c) => {
     return c.json({ ok: false, error: 'photo must be base64' }, 400);
   }
   const r = await attachExtraProduct(c.env, sup, { name: String(body.name ?? ''), brand: String(body.brand ?? ''), url: String(body.url ?? '') }, { bytes, type: String(body.type ?? '') }, MAX_PICKS);
+  return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 400);
+});
+
+/** Replace the pick at place `n` ({slug, n, name, brand, url, photo (base64), type}), or only rename it ({slug, n, name, brand}). */
+app.post('/api/admin/dose/pick', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const body = (await c.req.json().catch(() => ({}))) as { slug?: string; n?: number; name?: string; brand?: string; url?: string; photo?: string; type?: string };
+  const sup = await getSupplementBySlug(c.env.DB, String(body.slug ?? ''));
+  if (!sup) return c.json({ ok: false, error: 'no such supplement' }, 404);
+  let photo: { bytes: Uint8Array; type: string } | null = null;
+  if (body.url) {
+    try {
+      photo = { bytes: Uint8Array.from(atob(String(body.photo ?? '')), (ch) => ch.charCodeAt(0)), type: String(body.type ?? '') };
+    } catch {
+      return c.json({ ok: false, error: 'photo must be base64' }, 400);
+    }
+  }
+  const r = await setProduct(c.env, sup, Number(body.n), { name: String(body.name ?? ''), brand: String(body.brand ?? ''), url: body.url ? String(body.url) : undefined }, photo, MAX_PICKS);
   return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 400);
 });
 
