@@ -377,33 +377,84 @@ export function captionFor(script: VideoScript, slug: string): string {
 }
 
 /**
- * Three scripts for a story that has no article and no single supplement behind it: an investigation, an experiment
- * or a discovery, written from a short brief of checked facts. Stored as "scripted" for the owner to choose from
- * (no approval email: these are reviewed in the scripts sheet).
+ * The brief for a story with no article behind it (an investigation, an experiment, a discovery). The owner found the
+ * playbook scripts hard to follow here ("it does not reveal any fact"), so these are told plainly and in order: every
+ * scene a concrete fact, nothing the viewer has to decode. The narration, safety and picture rules are the playbook's.
  */
-export async function writeStory(env: VideoEnv, slug: string, title: string, brief: string): Promise<{ ok: true; scripts: VideoScript[] } | { ok: false; message: string }> {
+const STORY_SYSTEM = `You write ninety-second story videos for TikTok and Instagram Reels for Wellness Whizz, an AI supplement guide. The video is a hand-drawn animated infographic (a soft-teal cartoon figure, pastel objects, cream paper background) with one narrator. It is built from ${SCENES} scenes of ten seconds; for each scene you write what the narrator says and what the viewer sees.
+
+The video tells ONE true story: an investigation, an experiment or a discovery. The viewer has never heard of it. After one watch they must be able to retell it to a friend: who, where, when, what was done, what was found, and why it mattered. Clarity beats cleverness, and facts carry the video.
+
+The ${SCENES} scenes, in order:
+- Scene 1: the single most surprising fact of the story, said outright with its number, year or place ("Between 1500 and 1800, about 2 million sailors died of one disease."). A statement the viewer understands at once, never a riddle. The subject is named in this scene or the next.
+- Scene 2: the situation before: what everybody believed, or the problem nobody could solve, in plain words.
+- Scenes 3 and 4: who did what, where and when, step by step, as it happened.
+- Scene 5: what they found, with its numbers.
+- Scene 6: what happened next: who doubted it, how long it took, how it spread.
+- Scene 7: one human or funny detail of the story that is itself a true fact from the brief.
+- Scene 8: the biggest consequence, a fact larger than everything before it.
+- Scene ${SCENES}: where it stands today, tied to something the viewer has at home or does every day, in one plain closing thought. It may end on a short question, but only one the story has equipped the viewer to answer.
+
+Rules for clarity:
+- Every scene states at least one concrete fact: a name, a year, a number, a place, or a thing that physically happened. A scene that only comments, jokes or asks is not allowed.
+- After the opening fact, tell it in the order it happened, in the past tense. Introduce people with what they were ("the Brazilian pharmacologist Sergio Ferreira").
+- Explain any technical word the moment it appears, in a few plain words ("bradykinin, a substance that widens blood vessels").
+- No detective framing (no suspects, cases, alibis, culprits, clues, verdicts). No objects that think, feel or speak. No metaphor standing where a fact should be. No lines that guess what the viewer thinks ("You assume...", "You call it..."). Speak to the viewer directly at most twice: once in scene 1 or 2, once in the last scene.
+- Never use: "is not just", "You think", "Watch the", "Look at", "Here is", "Back to", "Remember", "Most people think", "Nobody tells you", "turns out", "the truth is", "plot twist", "little did". No two scenes open with the same two words.
+
+${SCRIPT_SYSTEM.slice(SCRIPT_SYSTEM.indexOf('This is a story, not advice'))}`;
+
+const storySchema = {
+  ...scriptSchema,
+  properties: {
+    ...scriptSchema.properties,
+    angle: { type: 'string', description: 'The thread of the story this script follows, in a few words (for the owner).' },
+    scenes: {
+      ...scriptSchema.properties.scenes,
+      description: `Exactly ${SCENES} scenes in the order given: the most surprising fact, the situation before, who did what (two scenes), what they found, what happened next, a human detail, the biggest consequence, where it stands today. Every scene states a concrete fact; no advice, doses or warnings anywhere.`,
+    },
+  },
+};
+
+/**
+ * One script for a story that has no article and no single supplement behind it, written from a short brief of
+ * checked facts and stored as "scripted" for the owner to judge (no approval email: these are reviewed in the scripts
+ * sheet). With `rewrite`, a story that is still only scripted gets a fresh script in place of the old ones.
+ */
+export async function writeStory(env: VideoEnv, slug: string, title: string, brief: string, rewrite = false): Promise<{ ok: true; scripts: VideoScript[] } | { ok: false; message: string }> {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) || slug.length > 60) return { ok: false, message: 'slug must be lowercase words joined by hyphens' };
   if (title.trim().length < 5 || brief.trim().length < 80) return { ok: false, message: 'a title and a brief of facts are required' };
   const existing = await getVideo(env.DB, slug);
-  if (existing) return { ok: false, message: `"${slug}" already exists (${existing.status})` };
-  const user = `There is no article this time, and no single supplement. The subject is an investigation, an experiment or a discovery that changed what everybody believed about food, vitamins or health. Tell it as a story about the people and the process.
-
-Subject: ${title.trim()}
+  if (existing && !(rewrite && existing.status === 'scripted')) return { ok: false, message: `"${slug}" already exists (${existing.status})` };
+  const user = `Subject: ${title.trim()}
 
 Facts you may rely on (checked). Use them at their true size. You may add only well-documented general knowledge that a good reference book would confirm, and never a number, a study, a date or a name of your own:
 ${brief.trim().slice(0, 4000)}
 
-Wherever the rules say "the supplement", read "the subject". Each script still opens from an everyday MOMENT the viewer has lived that this story hides inside. Set product_slug to an empty string.
+There is no article and no product: wherever the rules say "the supplement" or "the article", read "the subject" and "the brief". Set product_slug to an empty string; the first hashtag names the subject.
 
-Write ${VARIANTS} complete ${SCENES}-scene scripts from three different connected angles (narration and visual for each scene, angle, title, caption, hashtags, product_slug).${await learnedNote(env.DB)}`;
-  let scripts: VideoScript[];
+Write one complete ${SCENES}-scene script (narration and visual for each scene, angle, title, caption, hashtags, product_slug).`;
+  const longest = (sc: VideoScript) => Math.max(...sc.scenes.map((x) => words(x.narration)));
+  let script: VideoScript;
   try {
-    scripts = (await scriptsFrom(env, user, '')).map((sc) => ({ ...sc, product_slug: '', story: true }));
+    script = tidyScript(await claudeJson<VideoScript>(env, STORY_SYSTEM, user, storySchema, { tier: 'fast', maxTokens: 20000, timeoutMs: 280_000 }), '');
+    if (longest(script) > MAX_SCENE_WORDS) {
+      const shorter = tidyScript(await claudeJson<VideoScript>(env, STORY_SYSTEM,
+        `${user}\n\nYour previous script has a scene of ${longest(script)} words, too long for the narrator. Here it is:\n${JSON.stringify(script)}\n\nReturn the same script with every scene at most ${MAX_SCENE_WORDS} spoken words. Cut a clause rather than a fact.`,
+        storySchema, { tier: 'fast', maxTokens: 20000, timeoutMs: 280_000 }), '');
+      if (longest(shorter) <= longest(script)) script = shorter;
+    }
+    if (longest(script) > MAX_SCENE_WORDS + 6) throw new Error(`a scene still has ${longest(script)} words after shortening`);
   } catch (err) {
     return { ok: false, message: String(err instanceof Error ? err.message : err).slice(0, 300) };
   }
-  await env.DB.prepare("INSERT INTO videos (slug, status, script_json, caption, created_at, updated_at) VALUES (?, 'scripted', ?, ?, datetime('now'), datetime('now'))")
-    .bind(slug, JSON.stringify({ variants: scripts }), captionFor(scripts[0], slug)).run();
+  const scripts = [{ ...script, product_slug: '', story: true }];
+  if (existing) {
+    await env.DB.prepare("UPDATE videos SET script_json = ?, caption = ?, error = '', updated_at = datetime('now') WHERE id = ?").bind(JSON.stringify({ variants: scripts }), captionFor(scripts[0], slug), existing.id).run();
+  } else {
+    await env.DB.prepare("INSERT INTO videos (slug, status, script_json, caption, created_at, updated_at) VALUES (?, 'scripted', ?, ?, datetime('now'), datetime('now'))")
+      .bind(slug, JSON.stringify({ variants: scripts }), captionFor(scripts[0], slug)).run();
+  }
   return { ok: true, scripts };
 }
 

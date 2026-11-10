@@ -1583,15 +1583,15 @@ app.post('/api/admin/videos/:slug/script', async (c) => {
 });
 
 /**
- * Owner-only: write three scripts for a story that has no article (an investigation, an experiment, a discovery) from
- * a brief of checked facts: {slug, title, brief}. They wait as "scripted" for the owner's choice.
+ * Owner-only: write a script for a story that has no article (an investigation, an experiment, a discovery) from a
+ * brief of checked facts: {slug, title, brief, rewrite?}. It waits as "scripted" for the owner's say.
  */
 app.post('/api/admin/videos/story', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
-  const body = (await c.req.json().catch(() => ({}))) as { slug?: string; title?: string; brief?: string };
-  const r = await writeStory(c.env, String(body.slug ?? '').trim(), String(body.title ?? ''), String(body.brief ?? ''));
+  const body = (await c.req.json().catch(() => ({}))) as { slug?: string; title?: string; brief?: string; rewrite?: boolean };
+  const r = await writeStory(c.env, String(body.slug ?? '').trim(), String(body.title ?? ''), String(body.brief ?? ''), body.rewrite === true);
   return r.ok ? c.json({ ok: true, slug: body.slug, scripts: r.scripts }) : c.json({ ok: false, error: r.message }, 400);
 });
 
