@@ -699,13 +699,7 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-dose-note { font-size: 13px; line-height: 1.4; color: #44484a; margin: 10px 0 0; font-family: Aeonik, sans-serif; }
 .ww-dose-src { font-size: 11px; line-height: 1.35; color: #898781; margin: 6px 0 0; font-family: Aeonik, sans-serif; }
 /* The teaser on the home slider: a small mark, a dot centred on the bar, and the reference figures only. */
-.ww-dose-teaser { background: #fff; border-radius: 12px; padding: 9px 10px 6px; box-sizing: border-box; margin-top: 10px; }
-.ww-dose-teaser .ww-dose-head { font-size: 12.5px; gap: 6px; margin: 0 0 9px; }
-.ww-dose-teaser .ww-dose-mark { width: 14px; height: 14px; font-size: 9px; }
-.ww-dose-teaser .ww-dose-bar, .ww-dose-teaser .ww-dose-bar i { height: 10px; }
 .ww-dose-dot { position: absolute; top: 50%; width: 16px; height: 16px; box-sizing: border-box; transform: translate(-50%, -50%); border-radius: 50%; background: #1d272d; border: 3px solid #fff; box-shadow: 0 0 0 1px #1d272d40; }
-.ww-dose-teaser .ww-dose-edges { margin-top: 5px; font-size: 10.5px; }
-.ww-dose-teaser .ww-dose-dot { width: 14px; height: 14px; }
 
 /* The picks section with scales (src/render/supplement.ts picksGrid): brands on the left, a two-column grid on the right. */
 .ww-top { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 36px; align-items: start; width: 100%; max-width: 1240px; margin: 40px auto 0; padding: 32px; box-sizing: border-box; background: #f7faf6; border: 1px solid #e3ebe1; border-radius: 28px; font-family: Aeonik, sans-serif; color: #1d272d; }
@@ -850,3 +844,12 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 /* The picks section keeps its distance from the dark block that follows it. */
 .ww-top { margin-bottom: 56px; }
 @media (max-width: 767px) { .ww-top { margin-bottom: 36px; } }
+
+/* ---------- the home slider's dose teaser: the bar alone, the verdict's sign in place of the dot ---------- */
+.ww-dose-teaser { background: none; border-radius: 0; padding: 0 2px; margin-top: 16px; }
+.ww-dose-teaser .ww-dose-bar, .ww-dose-teaser .ww-dose-bar i { height: 8px; }
+.ww-dose-teaser .ww-dose-edges { margin-top: 8px; font-size: 10.5px; height: 14px; }
+.ww-dose-pin { position: absolute; top: 50%; width: 20px; height: 20px; box-sizing: border-box; transform: translate(-50%, -50%); border-radius: 50%; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; line-height: 1; font-family: Aeonik, sans-serif; background: #1d272d; color: #fff; box-shadow: 0 1px 4px #1d272d40; }
+.ww-dose-ok .ww-dose-pin { background: #0ca30c; }
+.ww-dose-more .ww-dose-pin { background: #fab219; color: #0b0b0b; }
+.ww-dose-over .ww-dose-pin { background: #d03b3b; }

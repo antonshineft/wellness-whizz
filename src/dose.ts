@@ -379,7 +379,14 @@ export function doseBlank(c: DoseCheck | null | undefined, teaser = false, name 
     : helpTip(hasRange(c) && c
       ? `<span class="ww-dose-tip-src">The label of this product does not state how much ${esc(who)} one serving holds, so it has no place on the scale.</span>${tipFor(c)}`
       : `<span class="ww-dose-tip-src">No official daily need or safe ceiling has been set for ${esc(who)}, so these picks are not rated by dose. See the ${researchLink(who)} of ${esc(who)}.</span>`);
-  return `<div class="ww-dose ww-dose-none${teaser ? ' ww-dose-teaser' : ''}">
+  // On the home slider a card shows the bar alone: no verdict in words, so the card stays a teaser.
+  if (teaser) {
+    return `<div class="ww-dose ww-dose-none ww-dose-teaser" role="img" aria-label="${text}">
+          <div class="ww-dose-bar" style="grid-template-columns:repeat(3,1fr)"><i></i><i></i><i></i></div>
+          <div class="ww-dose-edges"></div>
+        </div>`;
+  }
+  return `<div class="ww-dose ww-dose-none">
           <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">–</span><span>${text}</span>${tip}</div>
           <div class="ww-dose-bar" style="grid-template-columns:repeat(3,1fr)"><i></i><i></i><i></i></div>
           <div class="ww-dose-edges"></div>
@@ -421,7 +428,13 @@ export function doseLimits(c: DoseCheck | null | undefined, url: string, teaser 
     `<span class="ww-dose-tip-zone"><b>Within limits</b> every vitamin and mineral checked is under its ceiling</span><span class="ww-dose-tip-zone"><b>Above a limit</b> at least one is over</span>` +
     `<span class="ww-dose-tip-note">Checked on this label: ${esc(p.checked.join(', '))}.${over ? ` Above its ceiling: ${esc(p.also.join('; '))}.` : ''}</span>` +
     `<span class="ww-dose-tip-src">This product has several ingredients, so there is no single dose to judge. The check covers the vitamins and minerals that have an official safe ceiling, at the label's directions; herbs and other ingredients are not rated. Figures: NIH Office of Dietary Supplements, figures for adults. See the ${researchLink(c.name)} of ${esc(c.name)}.</span>`);
-  return `<div class="ww-dose ww-dose-${over ? 'over' : 'ok'}${teaser ? ' ww-dose-teaser' : ''}">
+  if (teaser) {
+    return `<div class="ww-dose ww-dose-${over ? 'over' : 'ok'} ww-dose-teaser" role="img" aria-label="${esc(text)}">
+          <div class="ww-dose-bar" style="grid-template-columns:repeat(2,1fr)"><i class="ww-dose-z1"></i><i class="ww-dose-z3"></i><span class="ww-dose-pin" style="left:${over ? 75 : 25}%" aria-hidden="true">${over ? '✕' : '✓'}</span></div>
+          <div class="ww-dose-edges"><span style="left:50.0%">safe ceiling</span></div>
+        </div>`;
+  }
+  return `<div class="ww-dose ww-dose-${over ? 'over' : 'ok'}">
           <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">${over ? '✕' : '✓'}</span><span>${esc(text)}</span>${tip}</div>
           <div class="ww-dose-bar" style="grid-template-columns:repeat(2,1fr)"><i class="ww-dose-z1"></i><i class="ww-dose-z3"></i><span class="ww-dose-dot" style="left:${over ? 75 : 25}%"></span></div>
           <div class="ww-dose-edges"><span style="left:50.0%">safe ceiling</span></div>
@@ -447,7 +460,14 @@ export function doseScale(c: DoseCheck, p: DoseProduct, teaser = false): string 
   // The pick's place is a dot on the bar; its amount is stated in the card's own line, and only the reference
   // figures sit under the ruler.
   const mark = `<span class="ww-dose-dot" style="left:${at}%" title="${fmt(p.daily as number)} ${esc(c.unit)} a day"></span>`;
-  return `<div class="ww-dose ww-dose-${w.cls}${teaser ? ' ww-dose-teaser' : ''}">
+  // The home slider's teaser: the bar and its figures only, with the verdict's sign standing where the pick sits.
+  if (teaser) {
+    return `<div class="ww-dose ww-dose-${w.cls} ww-dose-teaser" role="img" aria-label="${esc(w.text)}: ${fmt(p.daily as number)} ${esc(c.unit)} a day">
+          <div class="ww-dose-bar" style="${cols}">${bar}<span class="ww-dose-pin" style="left:${at}%" aria-hidden="true">${w.mark}</span></div>
+          <div class="ww-dose-edges">${marks}</div>
+        </div>`;
+  }
+  return `<div class="ww-dose ww-dose-${w.cls}">
           <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">${w.mark}</span><span>${teaser ? esc(w.text) : esc(w.text).replace(/\bstudies\b/, researchLink(c.name))}</span>${teaser ? '' : helpTip(tipFor(c))}</div>
           <div class="ww-dose-bar" style="${cols}">${bar}${mark}</div>
           <div class="ww-dose-edges">${marks}</div>${!teaser && p.also.length ? `\n          <p class="ww-dose-also"><b>Also check:</b> ${esc(p.also.join('; '))}.</p>` : ''}
