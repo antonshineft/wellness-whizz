@@ -688,9 +688,9 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-dose-bar i:first-child { border-radius: 6px 0 0 6px; }
 .ww-dose-bar i:last-of-type { border-radius: 0 6px 6px 0; }
 .ww-dose-z0 { background: #aab5ba; }
-.ww-dose-z1 { background: #0ca30c; }
-.ww-dose-z2 { background: #fab219; }
-.ww-dose-z3 { background: #d03b3b; }
+.ww-dose-z1 { background: #87d581; }
+.ww-dose-z2 { background: #f2cd4a; }
+.ww-dose-z3 { background: #ff3e50; }
 .ww-dose-edges { position: relative; height: 16px; font-size: 11px; font-weight: 600; margin-top: 7px; }
 .ww-dose-edges span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
 .ww-dose-also { font-size: 12px; line-height: 1.35; margin: 6px 0 0; color: #44484a; }
@@ -763,18 +763,15 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-brand-rec { list-style: none; padding: 0; margin: 0 0 14px; display: grid; gap: 8px; }
 .ww-brand-rec li { display: flex; align-items: baseline; gap: 10px; padding: 10px 16px; border-radius: 14px; background: #ecf3f6; }
 .ww-brand-rec b { font-size: 22px; min-width: 34px; }
-.ww-brand-rec-ok { box-shadow: inset 4px 0 0 #0ca30c; }
-.ww-brand-rec-high { box-shadow: inset 4px 0 0 #d03b3b; }
-.ww-brand-rec-warn { box-shadow: inset 4px 0 0 #fab219; }
+.ww-brand-rec-ok { box-shadow: inset 4px 0 0 #87d581; }
+.ww-brand-rec-high { box-shadow: inset 4px 0 0 #ff3e50; }
+.ww-brand-rec-warn { box-shadow: inset 4px 0 0 #f2cd4a; }
 .ww-brand-rec-info { box-shadow: inset 4px 0 0 #aab5ba; }
 .ww-brand-picks { list-style: none; padding: 0; margin: 0 0 14px; font-size: 16px; line-height: 22px; }
 .ww-brand-picks li { display: grid; grid-template-columns: 220px 1fr auto; gap: 14px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid #1d272d1a; }
 .ww-brand-pick-sup { font-weight: 500; }
 .ww-brand-pick-buy { font-size: 14px; white-space: nowrap; }
 .ww-brand-chip { font-style: normal; font-size: 12px; line-height: 16px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; background: #ecf3f6; }
-.ww-brand-chip-ok { background: #d9f2d6; }
-.ww-brand-chip-high { background: #f6d5d5; }
-.ww-brand-chip-warn { background: #fde7b4; }
 .ww-brand-sources { font-size: 13px; line-height: 20px; color: #5c6164; padding-left: 20px; margin: 14px 0 0; word-break: break-word; }
 .ww-brand-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 0 0 28px; }
 .ww-brand-card { display: flex; flex-direction: column; gap: 6px; padding: 20px; border-radius: 24px; background: #ecf3f6; color: #1d272d; text-decoration: none; font-size: 14px; transition: background .15s; }
@@ -850,6 +847,35 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-dose-teaser .ww-dose-bar, .ww-dose-teaser .ww-dose-bar i { height: 8px; }
 .ww-dose-teaser .ww-dose-edges { margin-top: 8px; font-size: 10.5px; height: 14px; }
 .ww-dose-pin { position: absolute; top: 50%; width: 20px; height: 20px; box-sizing: border-box; transform: translate(-50%, -50%); border-radius: 50%; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; line-height: 1; font-family: Aeonik, sans-serif; background: #1d272d; color: #fff; box-shadow: 0 1px 4px #1d272d40; }
-.ww-dose-ok .ww-dose-pin { background: #0ca30c; }
-.ww-dose-more .ww-dose-pin { background: #fab219; color: #0b0b0b; }
-.ww-dose-over .ww-dose-pin { background: #d03b3b; }
+.ww-dose-ok .ww-dose-pin { background: #87d581; color: #1d272d; }
+.ww-dose-more .ww-dose-pin { background: #f2cd4a; color: #1d272d; }
+.ww-dose-over .ww-dose-pin { background: #ff3e50; }
+
+/* ---------- a pick's verdict: a light bubble pointing at its place on the bar ---------- */
+.ww-dose-bubblerow { position: relative; display: flex; margin: 0 0 10px; }
+.ww-dose-bubble { flex: none; width: max-content; max-width: 100%; box-sizing: border-box; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 8px; border: 1px solid #d5dbdd; border-radius: 10px; background: #fff; font-size: 12.5px; font-weight: 500; line-height: 1.25; color: #1d272d; cursor: help; -webkit-tap-highlight-color: transparent; }
+.ww-dose-bubble:focus-visible { outline: 2px solid #87d581; outline-offset: 1px; }
+.ww-dose-bubble svg { width: 14px; height: 14px; flex: none; color: #5c6164; }
+.ww-dose-ok .ww-dose-bubble svg { color: #4fae48; }
+.ww-dose-more .ww-dose-bubble svg { color: #c99a00; }
+.ww-dose-over .ww-dose-bubble svg { color: #ff3e50; }
+.ww-dose-none .ww-dose-bubble { color: #6f7477; }
+.ww-dose-tail { position: absolute; top: 100%; width: 8px; height: 8px; box-sizing: border-box; background: #fff; border-right: 1px solid #d5dbdd; border-bottom: 1px solid #d5dbdd; transform: translate(-50%, -56%) rotate(45deg); pointer-events: none; }
+.ww-dose-bubblerow > .ww-dose-tip { top: calc(100% + 8px); }
+.ww-dose-bubble:hover ~ .ww-dose-tip, .ww-dose-bubble:focus ~ .ww-dose-tip, .ww-dose-bubblerow:focus-within > .ww-dose-tip, .ww-dose-bubblerow > .ww-dose-tip:hover { display: block; }
+.ww-dose-pin svg { width: 11px; height: 11px; }
+
+/* ---------- brand pages: a rounded frame around the content and the logo; tiny colour-coded signs ---------- */
+.ww-brand-frame { background: #f7faf6; border: 1px solid #e3ebe1; border-radius: 28px; padding: 36px 36px 8px; box-sizing: border-box; }
+.ww-brand-frame .ww-brand-facts div, .ww-brand-frame .ww-brand-rec li { background: #fff; }
+.ww-brand-frame .ww-brand-chip { background: #fff; }
+.ww-brand-hero-logo { background: #fff; border: 1px solid #e3ebe1; border-radius: 28px; padding: 32px; }
+.ww-brand-rec li { box-shadow: none; align-items: center; }
+.ww-brand-rec li svg, .ww-brand-chip svg { width: 15px; height: 15px; flex: none; color: #5c6164; }
+.ww-brand-chip { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; border: 1px solid #e3ebe1; }
+.ww-brand-chip svg { width: 12px; height: 12px; }
+.ww-brand-sign-ok svg { color: #4fae48; }
+.ww-brand-sign-more svg { color: #c99a00; }
+.ww-brand-sign-over svg { color: #ff3e50; }
+.ww-brand-rec b { min-width: 28px; }
+@media (max-width: 767px) { .ww-brand-frame { padding: 22px 18px 4px; border-radius: 22px; } .ww-brand-hero-logo { padding: 22px; border-radius: 22px; } }

@@ -3,7 +3,7 @@
  * The facts come from src/brands-data.ts; this file only lays them out.
  */
 import type { BrandPick, BrandPoint, BrandProfile, DoseRecord } from '../brands';
-import type { DoseState } from '../dose';
+import { verdictIcon, type DoseState } from '../dose';
 import { escapeHtml } from '../html';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
@@ -36,13 +36,14 @@ export function brandStrip(brands: BrandProfile[]): string {
   </section>`;
 }
 
+/** The short verdict beside a pick; `cls` is the scale's own class, so signs and colours match the supplement pages. */
 const VERDICT: Partial<Record<DoseState, { text: string; cls: string }>> = {
   within: { text: 'Within the daily need', cls: 'ok' },
   above: { text: 'Under the safe ceiling', cls: 'ok' },
   in: { text: 'In the studied range', cls: 'ok' },
-  more: { text: 'More than the body absorbs', cls: 'warn' },
-  over: { text: 'Above the safe ceiling', cls: 'high' },
-  beyond: { text: 'Above studied doses', cls: 'warn' },
+  more: { text: 'More than the body absorbs', cls: 'more' },
+  over: { text: 'Above the safe ceiling', cls: 'over' },
+  beyond: { text: 'Above studied doses', cls: 'more' },
   under: { text: 'Below studied doses', cls: 'info' },
 };
 
@@ -53,15 +54,15 @@ function points(items: BrandPoint[], empty: string): string {
 
 function recordBlock(b: BrandProfile, r: DoseRecord): string {
   if (r.rated < 3) return '';
-  const row = (n: number, text: string, cls: string) => (n ? `<li class="ww-brand-rec-${cls}"><b>${n}</b> ${escapeHtml(text)}</li>` : '');
+  const row = (n: number, text: string, cls: string) => (n ? `<li class="ww-brand-sign-${cls}">${verdictIcon(cls)}<b>${n}</b> <span>${escapeHtml(text)}</span></li>` : '');
   return `
       <section class="ww-brand-block">
         <h2>How ${escapeHtml(b.name)} doses its products</h2>
         <p>We read the label of every pick and set its daily amount against the official range, or against the doses used in studies where a supplement has no official one. Of the ${r.rated} ${escapeHtml(b.name)} picks we could rate:</p>
         <ul class="ww-brand-rec">
           ${row(r.fine, r.fine === 1 ? 'sits inside the range' : 'sit inside the range', 'ok')}
-          ${row(r.high, r.high === 1 ? 'goes above the safe ceiling or the doses studied' : 'go above the safe ceiling or the doses studied', 'high')}
-          ${row(r.more, r.more === 1 ? 'carries more in one dose than the body absorbs' : 'carry more in one dose than the body absorbs', 'warn')}
+          ${row(r.high, r.high === 1 ? 'goes above the safe ceiling or the doses studied' : 'go above the safe ceiling or the doses studied', 'over')}
+          ${row(r.more, r.more === 1 ? 'carries more in one dose than the body absorbs' : 'carry more in one dose than the body absorbs', 'more')}
           ${row(r.low, r.low === 1 ? 'falls below the doses used in studies' : 'fall below the doses used in studies', 'info')}
         </ul>
         <p class="ww-brand-small">A high dose is a choice many brands make on purpose, and one a doctor may recommend. The count says how the label compares with the reference, not whether the product is good.</p>
@@ -75,7 +76,7 @@ function picksBlock(env: LinkEnv, b: BrandProfile, picks: BrandPick[]): string {
       const v = p.state ? VERDICT[p.state] : undefined;
       return `<li>
             <a href="/supplement/${escapeHtml(p.supplement.slug)}" class="ww-brand-pick-sup">${escapeHtml(p.supplement.name)}</a>
-            <span class="ww-brand-pick-name">${escapeHtml(p.product.name)}${v ? ` <em class="ww-brand-chip ww-brand-chip-${v.cls}">${escapeHtml(v.text)}</em>` : ''}</span>
+            <span class="ww-brand-pick-name">${escapeHtml(p.product.name)}${v ? ` <em class="ww-brand-chip ww-brand-sign-${v.cls}">${verdictIcon(v.cls)}${escapeHtml(v.text)}</em>` : ''}</span>
             <a href="${escapeHtml(shopUrl(env, p.supplement, p.product))}" target="_blank" rel="noopener nofollow sponsored" class="ww-brand-pick-buy" data-track="outbound_click" data-slug="${escapeHtml(p.supplement.slug)}" data-product="${escapeHtml(p.product.name)}">iHerb</a>
           </li>`;
     })
@@ -127,7 +128,9 @@ export function renderBrandPage(env: LinkEnv, d: BrandPageData): string {
     eyebrow: 'Brand profile',
     title: b.name,
     lead: lead || 'Who makes it, what speaks for the company and what to know before you buy.',
-    body: body + brandStrip(d.others),
+    body: `
+      <div class="ww-brand-frame">${body}
+      </div>` + brandStrip(d.others),
     heroAside: `<div class="ww-page-hero-media ww-brand-hero-logo">${logo(b, ' is-large')}</div>`,
   });
   const safe = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');

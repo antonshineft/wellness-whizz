@@ -374,11 +374,9 @@ export function visibleCheck(c: DoseCheck | null, studied: boolean): DoseCheck |
 export function doseBlank(c: DoseCheck | null | undefined, teaser = false, name = ''): string {
   const text = hasRange(c) ? 'Dose not confirmed from the label' : 'No official range';
   const who = c?.name || name;
-  const tip = teaser || !who
-    ? ''
-    : helpTip(hasRange(c) && c
-      ? `<span class="ww-dose-tip-src">The label of this product does not state how much ${esc(who)} one serving holds, so it has no place on the scale.</span>${tipFor(c)}`
-      : `<span class="ww-dose-tip-src">No official daily need or safe ceiling has been set for ${esc(who)}, so these picks are not rated by dose. See the ${researchLink(who)} of ${esc(who)}.</span>`);
+  const tip = hasRange(c) && c
+    ? `<span class="ww-dose-tip-src">The label of this product does not state how much ${esc(who)} one serving holds, so it has no place on the scale.</span>${tipFor(c)}`
+    : `<span class="ww-dose-tip-src">No official daily need or safe ceiling has been set for ${esc(who)}, so these picks are not rated by dose. See the ${researchLink(who)} of ${esc(who)}.</span>`;
   // On the home slider a card shows the bar alone: no verdict in words, so the card stays a teaser.
   if (teaser) {
     return `<div class="ww-dose ww-dose-none ww-dose-teaser" role="img" aria-label="${text}">
@@ -387,7 +385,7 @@ export function doseBlank(c: DoseCheck | null | undefined, teaser = false, name 
         </div>`;
   }
   return `<div class="ww-dose ww-dose-none">
-          <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">–</span><span>${text}</span>${tip}</div>
+          ${bubbleRow('none', 50, text, tip)}
           <div class="ww-dose-bar" style="grid-template-columns:repeat(3,1fr)"><i></i><i></i><i></i></div>
           <div class="ww-dose-edges"></div>
         </div>`;
@@ -396,12 +394,40 @@ export function doseBlank(c: DoseCheck | null | undefined, teaser = false, name 
 /** The underlined word "studies": the research section, opened on this supplement's collection of studies. */
 const researchLink = (name: string, word = 'studies') => `<a href="/research?q=${encodeURIComponent(name)}" class="ww-dose-studies">${word}</a>`;
 
+/** Icons from the Lucide set (lucide.dev, ISC licence), drawn as outlines in the colour of the text around them. */
+const ICON_PATHS = {
+  check: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  alert: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+  x: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+  help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+  // The same signs without the ring, for the round pin of the home slider.
+  pinCheck: '<path d="M20 6 9 17l-5-5"/>',
+  pinInfo: '<path d="M12 17v-6"/><path d="M12 7h.01"/>',
+  pinAlert: '<path d="M12 7v6"/><path d="M12 17h.01"/>',
+  pinX: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+} as const;
+type IconName = keyof typeof ICON_PATHS;
+const icon = (name: IconName, width = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name]}</svg>`;
+/** A verdict's sign for use outside the scale (brand pages): "ok", "info", "more", "over" or "none". */
+export function verdictIcon(cls: string): string {
+  return icon(SIGN[cls] ?? 'info');
+}
+const SIGN: Record<string, IconName> = { ok: 'check', info: 'info', more: 'alert', over: 'x', none: 'help' };
+const PIN: Record<string, IconName> = { ok: 'pinCheck', info: 'pinInfo', more: 'pinAlert', over: 'pinX' };
+
 /**
- * The "?" beside a verdict: what it stands on, shown on hover, on keyboard focus and on a tap. The explanation
- * sits inside the wrapper, so the pointer can move into it and follow its link.
+ * The verdict of a pick: a small bubble that points at the pick's place on the bar, with the explanation opening
+ * under it on hover, on keyboard focus and on a tap. `at` is the place on the bar in percent; the bubble is shifted
+ * by the same share of its own width, so it follows the point and still never leaves the card.
  */
-function helpTip(inner: string): string {
-  return `<span class="ww-dose-helpwrap"><span class="ww-dose-help" tabindex="0" role="button" aria-label="What this means">?</span><span class="ww-dose-tip" role="tooltip">${inner}</span></span>`;
+function bubbleRow(cls: string, at: number, html: string, tip: string): string {
+  const x = Math.min(100, Math.max(0, at)).toFixed(1);
+  return `<div class="ww-dose-bubblerow">
+            <span class="ww-dose-bubble" style="margin-left:${x}%;transform:translateX(-${x}%)" tabindex="0" role="button">${icon(SIGN[cls] ?? 'info')}<span>${html}</span></span>
+            <span class="ww-dose-tail" style="left:${x}%" aria-hidden="true"></span>
+            <span class="ww-dose-tip" role="tooltip">${tip}</span>
+          </div>`;
 }
 
 /** The explanation of a scale: what its zones mean, the note behind the figures and where they come from. */
@@ -424,18 +450,18 @@ export function doseLimits(c: DoseCheck | null | undefined, url: string, teaser 
   const over = p.also.length > 0;
   const first = over ? p.also[0].replace(/ \d[\d.,]* (mg|mcg) a day.*$/, '') : '';
   const text = over ? `${first.charAt(0).toUpperCase()}${first.slice(1)}${p.also.length > 1 ? ` and ${p.also.length - 1} more` : ''} above the safe ceiling` : 'Nothing above its safe ceiling';
-  const tip = teaser ? '' : helpTip(
+  const tip = teaser ? '' : (
     `<span class="ww-dose-tip-zone"><b>Within limits</b> every vitamin and mineral checked is under its ceiling</span><span class="ww-dose-tip-zone"><b>Above a limit</b> at least one is over</span>` +
     `<span class="ww-dose-tip-note">Checked on this label: ${esc(p.checked.join(', '))}.${over ? ` Above its ceiling: ${esc(p.also.join('; '))}.` : ''}</span>` +
     `<span class="ww-dose-tip-src">This product has several ingredients, so there is no single dose to judge. The check covers the vitamins and minerals that have an official safe ceiling, at the label's directions; herbs and other ingredients are not rated. Figures: NIH Office of Dietary Supplements, figures for adults. See the ${researchLink(c.name)} of ${esc(c.name)}.</span>`);
   if (teaser) {
     return `<div class="ww-dose ww-dose-${over ? 'over' : 'ok'} ww-dose-teaser" role="img" aria-label="${esc(text)}">
-          <div class="ww-dose-bar" style="grid-template-columns:repeat(2,1fr)"><i class="ww-dose-z1"></i><i class="ww-dose-z3"></i><span class="ww-dose-pin" style="left:${over ? 75 : 25}%" aria-hidden="true">${over ? '✕' : '✓'}</span></div>
+          <div class="ww-dose-bar" style="grid-template-columns:repeat(2,1fr)"><i class="ww-dose-z1"></i><i class="ww-dose-z3"></i><span class="ww-dose-pin" style="left:${over ? 75 : 25}%" aria-hidden="true">${icon(over ? 'pinX' : 'pinCheck', 3)}</span></div>
           <div class="ww-dose-edges"><span style="left:50.0%">safe ceiling</span></div>
         </div>`;
   }
   return `<div class="ww-dose ww-dose-${over ? 'over' : 'ok'}">
-          <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">${over ? '✕' : '✓'}</span><span>${esc(text)}</span>${tip}</div>
+          ${bubbleRow(over ? 'over' : 'ok', over ? 75 : 25, esc(text), tip)}
           <div class="ww-dose-bar" style="grid-template-columns:repeat(2,1fr)"><i class="ww-dose-z1"></i><i class="ww-dose-z3"></i><span class="ww-dose-dot" style="left:${over ? 75 : 25}%"></span></div>
           <div class="ww-dose-edges"><span style="left:50.0%">safe ceiling</span></div>
         </div>`;
@@ -463,12 +489,12 @@ export function doseScale(c: DoseCheck, p: DoseProduct, teaser = false): string 
   // The home slider's teaser: the bar and its figures only, with the verdict's sign standing where the pick sits.
   if (teaser) {
     return `<div class="ww-dose ww-dose-${w.cls} ww-dose-teaser" role="img" aria-label="${esc(w.text)}: ${fmt(p.daily as number)} ${esc(c.unit)} a day">
-          <div class="ww-dose-bar" style="${cols}">${bar}<span class="ww-dose-pin" style="left:${at}%" aria-hidden="true">${w.mark}</span></div>
+          <div class="ww-dose-bar" style="${cols}">${bar}<span class="ww-dose-pin" style="left:${at}%" aria-hidden="true">${icon(PIN[w.cls] ?? 'pinInfo', 3)}</span></div>
           <div class="ww-dose-edges">${marks}</div>
         </div>`;
   }
   return `<div class="ww-dose ww-dose-${w.cls}">
-          <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">${w.mark}</span><span>${teaser ? esc(w.text) : esc(w.text).replace(/\bstudies\b/, researchLink(c.name))}</span>${teaser ? '' : helpTip(tipFor(c))}</div>
+          ${bubbleRow(w.cls, Number(at), esc(w.text).replace(/\bstudies\b/, researchLink(c.name)), tipFor(c))}
           <div class="ww-dose-bar" style="${cols}">${bar}${mark}</div>
           <div class="ww-dose-edges">${marks}</div>${!teaser && p.also.length ? `\n          <p class="ww-dose-also"><b>Also check:</b> ${esc(p.also.join('; '))}.</p>` : ''}
         </div>`;
