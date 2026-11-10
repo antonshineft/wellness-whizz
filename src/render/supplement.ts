@@ -1,6 +1,6 @@
 /** /supplement/:slug — the "Supplements" CMS template page. */
 import type { Supplement } from '../db';
-import { MAX_PICKS, STATE_RANK, doseBlank, doseBlankNote, doseFor, doseLegend, doseLine, doseScale, hasRange, type DoseCheck } from '../dose';
+import { MAX_PICKS, STATE_RANK, doseBlank, doseFor, doseLine, doseScale, type DoseCheck } from '../dose';
 import { escapeHtml } from '../html';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
@@ -148,7 +148,6 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandP
   const ranked = products
     .map((p, i) => ({ p, i, d: doseFor(dose, p.url) }))
     .sort((a, b) => (a.d ? STATE_RANK[a.d.state] : STATE_RANK.unknown) - (b.d ? STATE_RANK[b.d.state] : STATE_RANK.unknown) || a.i - b.i);
-  const anyScale = ranked.some((r) => r.d);
   const list = ranked
     .map((r, n) => `<li><a href="#pick-${n + 1}"><span class="ww-top-n">${n + 1}</span><span class="ww-top-brand">${escapeHtml(r.p.brand || r.p.name)}</span></a></li>`)
     .join('\n            ');
@@ -164,7 +163,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandP
               <div class="ww-top-photo">${image}</div>
               <div class="ww-top-name">${escapeHtml(p.name)}</div>
               <div class="ww-top-meta">${brandLabel(p.brand, brandPath)}${r.d && dose ? `${p.brand ? ' · ' : ''}${escapeHtml(doseLine(dose, r.d))}` : ''}</div>
-              ${r.d && dose ? doseScale(dose, r.d) : doseBlank(dose)}
+              ${r.d && dose ? doseScale(dose, r.d) : doseBlank(dose, false, sup.name)}
               <a href="${escapeHtml(shopUrl(env, sup, p))}" target="_blank" rel="noopener nofollow sponsored" class="outbutton w-button" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}" data-product="${escapeHtml(p.name)}">Buy on iHerb</a>
             </article>`;
     })
@@ -179,7 +178,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandP
       </div>
       <div class="ww-top-main">
         <div class="ww-top-grid">${cards}
-        </div>${anyScale && dose ? `\n        <div class="ww-top-foot">${doseLegend(dose)}</div>` : hasRange(dose) ? '' : `\n        <div class="ww-top-foot">${doseBlankNote(sup.name)}</div>`}
+        </div>
       </div>
     </section>`;
 }

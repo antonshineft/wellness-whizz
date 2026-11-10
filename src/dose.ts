@@ -350,18 +350,39 @@ export function visibleCheck(c: DoseCheck | null, studied: boolean): DoseCheck |
  * The scale of a pick that has no verdict, greyed out: either the supplement has no official daily need or ceiling,
  * or it has one and this product's label did not state its amount.
  */
-export function doseBlank(c: DoseCheck | null | undefined, teaser = false): string {
+export function doseBlank(c: DoseCheck | null | undefined, teaser = false, name = ''): string {
   const text = hasRange(c) ? 'Dose not confirmed from the label' : 'No official range';
+  const who = c?.name || name;
+  const tip = teaser || !who
+    ? ''
+    : helpTip(hasRange(c) && c
+      ? `<span class="ww-dose-tip-src">The label of this product does not state how much ${esc(who)} one serving holds, so it has no place on the scale.</span>${tipFor(c)}`
+      : `<span class="ww-dose-tip-src">No official daily need or safe ceiling has been set for ${esc(who)}, so these picks are not rated by dose. See the ${researchLink(who)} on ${esc(who)}.</span>`);
   return `<div class="ww-dose ww-dose-none${teaser ? ' ww-dose-teaser' : ''}">
-          <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">–</span><span>${text}</span></div>
+          <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">–</span><span>${text}</span>${tip}</div>
           <div class="ww-dose-bar" style="grid-template-columns:repeat(3,1fr)"><i></i><i></i><i></i></div>
           <div class="ww-dose-edges"></div>
         </div>`;
 }
 
-/** One line under a section whose picks are not rated, saying why. */
-export function doseBlankNote(name: string): string {
-  return `<p class="ww-dose-src">No official daily need or safe ceiling has been set for ${esc(name)}, so these picks are not rated by dose.</p>`;
+/** Where the "research" link of a tooltip goes: the research section, searched for this supplement. */
+const researchLink = (name: string) => `<a href="/research?q=${encodeURIComponent(name)}">research</a>`;
+
+/**
+ * The "?" beside a verdict: what it stands on, shown on hover, on keyboard focus and on a tap. The explanation
+ * sits inside the wrapper, so the pointer can move into it and follow its link.
+ */
+function helpTip(inner: string): string {
+  return `<span class="ww-dose-helpwrap"><span class="ww-dose-help" tabindex="0" role="button" aria-label="What this means">?</span><span class="ww-dose-tip" role="tooltip">${inner}</span></span>`;
+}
+
+/** The explanation of a scale: what its zones mean, the note behind the figures and where they come from. */
+function tipFor(c: DoseCheck): string {
+  const { zones } = scaleOf(c);
+  const source = c.basis === 'studied'
+    ? `Figures: doses used in published ${researchLink(c.name)} on ${esc(c.name)}. No official daily need or safe ceiling has been set for it; the range is what trials tested, not a recommendation.`
+    : `Figures: ${esc(c.source)}. See the ${researchLink(c.name)} on ${esc(c.name)}.`;
+  return `${zones.map((z) => `<span class="ww-dose-tip-zone"><b>${z.label}</b> ${z.sub}</span>`).join('')}${c.note ? `<span class="ww-dose-tip-note">${esc(c.note)}</span>` : ''}<span class="ww-dose-tip-src">The scale shows each pick's daily amount at the label's directions. ${source} Zones are not drawn to scale.</span>`;
 }
 
 function wordsFor(c: DoseCheck, state: DoseState): { mark: string; cls: string; text: string } {
@@ -384,18 +405,10 @@ export function doseScale(c: DoseCheck, p: DoseProduct, teaser = false): string 
   // figures sit under the ruler.
   const mark = `<span class="ww-dose-dot" style="left:${at}%" title="${fmt(p.daily as number)} ${esc(c.unit)} a day"></span>`;
   return `<div class="ww-dose ww-dose-${w.cls}${teaser ? ' ww-dose-teaser' : ''}">
-          <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">${w.mark}</span><span>${esc(w.text)}</span></div>
+          <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">${w.mark}</span><span>${esc(w.text)}</span>${teaser ? '' : helpTip(tipFor(c))}</div>
           <div class="ww-dose-bar" style="${cols}">${bar}${mark}</div>
           <div class="ww-dose-edges">${marks}</div>${!teaser && p.also.length ? `\n          <p class="ww-dose-also"><b>Also check:</b> ${esc(p.also.join('; '))}.</p>` : ''}
         </div>`;
-}
-
-/** What the zones mean, the note behind the figures and where they come from; shown once per section. */
-export function doseLegend(c: DoseCheck): string {
-  const { zones } = scaleOf(c);
-  return `<div class="ww-dose-zones" style="grid-template-columns:repeat(${zones.length},1fr)">${zones.map((z) => `<div><b>${z.label}</b>${z.sub}</div>`).join('')}</div>
-          ${c.note ? `<p class="ww-dose-note">${esc(c.note)}</p>` : ''}
-          <p class="ww-dose-src">The scale shows each pick's daily amount at the label's directions. Figures: ${esc(c.source)}.${c.basis === 'studied' ? ' No official daily need or safe ceiling has been set for this supplement; the range is what trials tested, not a recommendation.' : ''} Zones are not drawn to scale.</p>`;
 }
 
 /** "100 mg per capsule" or "500 mg per tablet, 2 a day". */

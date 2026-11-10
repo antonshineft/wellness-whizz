@@ -819,3 +819,27 @@ a.ww-brand-link { color: inherit; text-decoration: underline; text-decoration-co
   .ww-brandstrip-item .ww-brand-logo { width: 116px; }
   @keyframes ww-brandstrip { from { transform: translateX(0); } to { transform: translateX(calc(-50% - 20px)); } }
 }
+
+/* ---------- the "?" beside a dose verdict and its explanation ---------- */
+.ww-dose { position: relative; }
+.ww-dose-helpwrap { margin-left: auto; flex: none; display: inline-flex; }
+.ww-dose-help { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; line-height: 1; color: #5c6164; background: #ecf3f6; cursor: help; user-select: none; -webkit-tap-highlight-color: transparent; }
+.ww-dose-help:hover, .ww-dose-help:focus-visible, .ww-dose-helpwrap:focus-within .ww-dose-help { background: #1d272d; color: #fff; outline: none; }
+.ww-dose-tip { display: none; position: absolute; left: 0; right: 0; top: 26px; z-index: 6; background: #1d272d; color: #fff; border-radius: 14px; padding: 14px 16px; font-size: 12px; font-weight: 400; line-height: 1.45; text-align: left; box-shadow: 0 10px 30px #1d272d33; cursor: auto; }
+.ww-dose-helpwrap:hover .ww-dose-tip, .ww-dose-helpwrap:focus-within .ww-dose-tip { display: block; }
+/* A bridge over the gap between the "?" and its explanation, so the pointer can cross without the explanation closing. */
+.ww-dose-tip::before { content: ""; position: absolute; left: 0; right: 0; top: -10px; height: 10px; }
+.ww-dose-tip-zone, .ww-dose-tip-note, .ww-dose-tip-src { display: block; }
+.ww-dose-tip-zone b { font-weight: 600; }
+.ww-dose-tip-note { margin-top: 8px; padding-top: 8px; border-top: 1px solid #ffffff2e; }
+.ww-dose-tip-src { margin-top: 8px; opacity: .78; }
+.ww-dose-tip-src + .ww-dose-tip-zone { margin-top: 8px; }
+.ww-dose-tip a { color: #fff; text-decoration: underline; text-decoration-color: #87d581; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+
+/* ---------- search box of the research section ---------- */
+.ww-rsearch { max-width: 620px; margin: 0 auto 18px; display: flex; gap: 10px; }
+.ww-rsearch input { flex: 1; min-width: 0; height: 52px; border: 1px solid #1d272d33; border-radius: 999px; padding: 0 22px; font: 16px/1 Aeonik, sans-serif; color: #1d272d; background: #fff; box-sizing: border-box; }
+.ww-rsearch input:focus { outline: 2px solid #87d581; outline-offset: 1px; }
+.ww-rsearch .w-button { height: 52px; padding: 0 26px; border-radius: 999px; flex: none; }
+.ww-rsearch-result { text-align: center; font-size: 16px; line-height: 24px; margin: 0 auto 22px; }
+.ww-rsearch-result a { color: #1d272d; text-decoration: underline; text-decoration-color: #87d581; text-decoration-thickness: 2px; text-underline-offset: 3px; }

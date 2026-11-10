@@ -543,9 +543,13 @@ pageRoute('/supplements', async (c, lang) => {
 
 /** Research notes stay in English for now; the Spanish page has the Spanish chrome around them. */
 pageRoute('/research', async (c, lang) => {
-  const notes = await listResearchNotes(c.env.DB, 100);
+  // ?q= narrows the notes to one supplement: every word of the search must be in the supplement's name or the paper's title.
+  const q = (c.req.query('q') ?? '').trim().slice(0, 60);
+  const words = q.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 1);
+  const all = await listResearchNotes(c.env.DB, words.length ? 500 : 100);
+  const notes = words.length ? all.filter((n) => { const hay = `${n.supplement_name ?? ''} ${n.title}`.toLowerCase(); return words.every((w) => hay.includes(w)); }) : all;
   track(c, { type: 'page_view', page: '/research' });
-  return sendPage(c, renderResearchPage(notes, new URL(c.req.url).origin), lang, '/research', 'public, max-age=600');
+  return sendPage(c, renderResearchPage(notes, new URL(c.req.url).origin, words.length ? q : ''), lang, '/research', 'public, max-age=600');
 });
 
 /** One research note on its own page (src/render/research.ts): /research/<pmid>-<title-slug>; a stale slug redirects. */

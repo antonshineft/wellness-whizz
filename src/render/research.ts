@@ -30,7 +30,8 @@ function chip(attr: string, value: string, label: string, count: number, active 
   return `<button type="button" class="ww-tag ww-rchip${active ? ' is-active' : ''}" ${attr}="${escapeHtml(value)}" aria-pressed="${active}">${escapeHtml(label)} <b>${count}</b></button>`;
 }
 
-export function renderResearchPage(notes: ResearchNote[], origin: string): string {
+/** `query` is what the reader searched for (a supplement's name, from a "research" link or the search box); empty shows the latest notes. */
+export function renderResearchPage(notes: ResearchNote[], origin: string, query = ''): string {
   const categories = new Map<string, { label: string; count: number }>();
   const typeCounts = new Map<string, number>();
   for (const n of notes) {
@@ -54,7 +55,7 @@ export function renderResearchPage(notes: ResearchNote[], origin: string): strin
         </article>`,
         )
         .join('')
-    : '<p class="ww-blog-intro">The first notes appear as soon as the weekly PubMed check finds new trials or reviews about the supplements in our catalogue.</p>';
+    : query ? '' : '<p class="ww-blog-intro">The first notes appear as soon as the weekly PubMed check finds new trials or reviews about the supplements in our catalogue.</p>';
 
   const filters = notes.length
     ? `
@@ -66,7 +67,13 @@ export function renderResearchPage(notes: ResearchNote[], origin: string): strin
     : '';
   const more = notes.length > RESEARCH_PAGE_SIZE ? `\n      <div class="ww-rmore"><button type="button" class="fakebutton ww-buy w-button" data-research-more hidden>Show more</button></div>` : '';
 
-  const body = `
+  const search = `
+      <form class="ww-rsearch" action="/research" method="get" role="search">
+        <input type="search" name="q" value="${escapeHtml(query)}" placeholder="Search a supplement, for example magnesium" aria-label="Search the research notes by supplement" maxlength="60">
+        <button type="submit" class="fakebutton ww-buy w-button">Search</button>
+      </form>${query ? `
+      <p class="ww-rsearch-result">${notes.length ? `${notes.length} ${notes.length === 1 ? 'note' : 'notes'} on “${escapeHtml(query)}”.` : `No notes on “${escapeHtml(query)}” yet. A note is added when a new trial or review about a supplement appears.`} <a href="/research">Show all research</a></p>` : ''}`;
+  const body = `${search}
       <p class="ww-research-intro">Every week we check PubMed for new randomised trials, meta-analyses and systematic reviews about the supplements in our catalogue and summarise them here in plain language. Summaries are written with AI from the published abstract and link to the original paper; they are information, not medical advice.</p>${filters}
       <div class="ww-notes" data-research-list>${items}
       </div>${more}${quizCta()}`;
