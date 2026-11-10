@@ -64,6 +64,8 @@ export interface VideoRow {
   created_at: string;
   updated_at: string;
   rendered_at: string | null;
+  /** The follow ending the video was rendered with (video/follow_ending.py), or '' for none. */
+  ending: string;
 }
 
 export interface VideoScene {
@@ -469,6 +471,20 @@ export interface RenderJob {
   product_image: string | null;
   product_name: string | null;
   article_url: string;
+  /** The follow ending to add after the story, or '' for none. */
+  ending: string;
+}
+
+/** The follow endings a video that goes to every network can carry ("pointer" aims at Instagram's own button). */
+export const VIDEO_ENDINGS = ['card', 'drawn'] as const;
+
+/** The ending for a video that has none yet: the two take turns, so both gather numbers. */
+export async function endingFor(db: D1Database, row: VideoRow): Promise<string> {
+  if (row.ending) return row.ending;
+  const given = (await db.prepare("SELECT COUNT(*) AS c FROM videos WHERE ending != ''").first<{ c: number }>())?.c ?? 0;
+  const ending = VIDEO_ENDINGS[given % VIDEO_ENDINGS.length];
+  await db.prepare("UPDATE videos SET ending = ?, updated_at = datetime('now') WHERE id = ?").bind(ending, row.id).run();
+  return ending;
 }
 
 /** Hand the oldest scripted video to the render job (and recover a render that never reported back). */
@@ -497,6 +513,7 @@ export async function nextJob(env: VideoEnv, onlySlug?: string): Promise<RenderJ
   await env.DB.prepare("UPDATE videos SET status = 'rendering', error = '', updated_at = datetime('now') WHERE id = ?").bind(row.id).run();
   await setMeta(env.DB, monthKey(), String(used + 1));
   return {
+    ending: await endingFor(env.DB, row),
     slug: row.slug,
     title: script.title,
     script,

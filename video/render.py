@@ -693,6 +693,17 @@ def render(job: dict) -> Path:
     # 3. compose, plus a cover for the Instagram grid
     out = WORK / f'{slug}.mp4'
     compose(clips, narrations, out)
+    ending = (job.get('ending') or '').strip()
+    if ending:
+        # the follow ending (video/follow_ending.py): the narrator asks for a follow and the picture shows the tap
+        try:
+            import follow_ending
+            with_ending = WORK / f'{slug}-with-ending.mp4'
+            length = follow_ending.append(out, ending, with_ending, WORK, run=ffmpeg, duration=ffprobe_duration, bed=BED, bed_volume=BED_VOLUME)
+            with_ending.replace(out)
+            log(f'follow ending "{ending}" added: {length:.1f} s in all')
+        except Exception as e:  # noqa: BLE001
+            log(f'follow ending "{ending}" failed ({e}); the video goes out without it')
     try:
         make_cover(clips[0], WORK / f'{slug}-cover.jpg')
     except Exception as e:  # noqa: BLE001

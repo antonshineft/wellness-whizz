@@ -2522,7 +2522,10 @@ export default {
             if (typeof step === 'string') { console.log(`outreach: ${step}`); return; }
             if (step !== null) return;
             // Google's view of a few sitemap pages (src/gsc.ts), every page about once a day; translations otherwise.
-            const g = await inspectStep(env, gscOptions(env)).catch((err) => { console.error(`gsc inspect failed: ${String(err)}`); return null; });
+            // Every third tick only: each look reads the whole sitemap and the page list from the database, and on the
+            // free plan those reads count against a daily allowance the public pages need more.
+            const quarter = new Date(event.scheduledTime).getUTCMinutes() % 15 === 0;
+            const g = quarter ? await inspectStep(env, gscOptions(env)).catch((err) => { console.error(`gsc inspect failed: ${String(err)}`); return null; }) : null;
             if (g?.inspected) { console.log(`gsc: ${JSON.stringify(g)}`); return; }
             return translateStep(env);
           });

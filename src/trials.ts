@@ -32,9 +32,17 @@ export interface TrialRow {
   video_url: string;
   publish_id: string;
   scheduled_for: string;
+  /** The follow ending this trial is rendered with (FOLLOW_ENDINGS), or '' for none. */
+  ending: string;
   created_at: string;
   updated_at: string;
 }
+
+/**
+ * The follow endings (video/follow_ending.py): a few seconds after the story in which the narrator asks for a follow
+ * and the picture shows the tap. "pointer" points at Instagram's own Follow button, so it only suits Instagram.
+ */
+export const FOLLOW_ENDINGS = ['card', 'drawn', 'pointer'] as const;
 
 const MIN_LINE_WORDS = 16;
 
@@ -152,10 +160,25 @@ export async function writeTrials(env: VideoEnv, slug: string, hooks = 2, ending
 }
 
 /** The render job for one trial: the original script with the one line swapped; the file is named <slug>-t<n>. */
-export function trialJob(script: VideoScript, caption: string, row: TrialRow): { slug: string; title: string; script: VideoScript; caption: string } {
+export function trialJob(script: VideoScript, caption: string, row: TrialRow): { slug: string; title: string; script: VideoScript; caption: string; ending: string } {
   const at = row.kind === 'hook' ? 0 : script.scenes.length - 1;
   const scenes = script.scenes.map((s, i) => (i === at ? { ...s, narration: row.line } : s));
-  return { slug: `${row.slug}-t${row.n}`, title: script.title, script: { ...script, scenes }, caption };
+  return { slug: `${row.slug}-t${row.n}`, title: script.title, script: { ...script, scenes }, caption, ending: row.ending ?? '' };
+}
+
+/**
+ * Give every waiting trial of a video its follow ending. The three trials of a batch get the three endings, and the
+ * order moves on by one with every batch, so over time each ending meets each trial slot equally often and neither
+ * comparison (the lines, the endings) leans on the other.
+ */
+async function assignEndings(db: D1Database, slug: string): Promise<void> {
+  const waiting = (await listTrials(db, slug)).filter((r) => r.status === 'written' && !r.ending);
+  if (!waiting.length) return;
+  const batches = (await db.prepare("SELECT COUNT(DISTINCT slug) AS c FROM video_trials WHERE ending != '' AND slug != ?").bind(slug).first<{ c: number }>())?.c ?? 0;
+  for (const r of waiting) {
+    const ending = FOLLOW_ENDINGS[(batches + r.n - 1) % FOLLOW_ENDINGS.length];
+    await db.prepare("UPDATE video_trials SET ending = ?, updated_at = datetime('now') WHERE id = ?").bind(ending, r.id).run();
+  }
 }
 
 /** What the workflow renders next for a slug: every trial still "written", as ready-made render jobs. */
@@ -163,6 +186,7 @@ export async function trialJobs(env: VideoEnv, slug: string): Promise<{ n: numbe
   const video = await getVideo(env.DB, slug);
   const script = video ? parseScript(video.script_json) : null;
   if (!video || !script) return [];
+  await assignEndings(env.DB, slug);
   return (await listTrials(env.DB, slug)).filter((r) => r.status === 'written').map((r) => ({ n: r.n, job: trialJob(script, video.caption, r) }));
 }
 
@@ -203,6 +227,8 @@ export interface TrialStat {
   kind: string;
   format: string;
   line: string;
+  /** The follow ending the trial carries, or '' for none. */
+  ending: string;
   scheduled_for: string;
   views: number | null;
   reach: number | null;
@@ -226,7 +252,7 @@ export async function trialStats(env: VideoEnv, slug?: string): Promise<TrialSta
     const num = (k: string) => (typeof m[k] === 'number' ? (m[k] as number) : null);
     const watch = num('igReelsAvgWatchTime');
     out.push({
-      slug: r.slug, n: r.n, kind: r.kind, format: r.format, line: r.line, scheduled_for: r.scheduled_for,
+      slug: r.slug, n: r.n, kind: r.kind, format: r.format, line: r.line, ending: r.ending ?? '', scheduled_for: r.scheduled_for,
       views: num('views'), reach: num('reach'), skip_rate: num('reelsSkipRate'), avg_watch_seconds: watch === null ? null : Math.round(watch / 100) / 10,
       likes: num('likes'), shares: num('shares'), saves: num('saves'), comments: num('comments'), follows: num('follows'),
       ...(a.ok ? {} : { note: a.message }),

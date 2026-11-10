@@ -74,6 +74,8 @@ const LATER_TABLES: string[] = [
   `CREATE INDEX IF NOT EXISTS blog_posts_status ON blog_posts(status)`,
   `CREATE TABLE IF NOT EXISTS shelf_scans (id TEXT PRIMARY KEY, created_at TEXT NOT NULL DEFAULT (datetime('now')), lang TEXT NOT NULL DEFAULT 'en', goal TEXT NOT NULL DEFAULT '', ip_hash TEXT, products INTEGER NOT NULL DEFAULT 0, analysis_json TEXT NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS shelf_scans_created ON shelf_scans(created_at)`,
+  // A supplement's notes are looked up on every view of its page and of a note; without this each look read every note.
+  `CREATE INDEX IF NOT EXISTS research_notes_supplement ON research_notes(supplement_id)`,
   `CREATE TABLE IF NOT EXISTS translations (lang TEXT NOT NULL, kind TEXT NOT NULL, ref TEXT NOT NULL, json TEXT NOT NULL, source_hash TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (lang, kind, ref))`,
 ];
 
@@ -84,6 +86,9 @@ const LATER_COLUMNS: [table: string, column: string, definition: string][] = [
   ['supplements', 'updated_at', "TEXT NOT NULL DEFAULT ''"],
   // The language the quiz was taken in (src/i18n.ts); the result page and the recommendation text follow it.
   ['sessions', 'lang', "TEXT NOT NULL DEFAULT 'en'"],
+  // Which follow ending a video or a trial reel was rendered with (video/follow_ending.py); empty: none.
+  ['videos', 'ending', "TEXT NOT NULL DEFAULT ''"],
+  ['video_trials', 'ending', "TEXT NOT NULL DEFAULT ''"],
 ];
 let ready: Promise<void> | null = null;
 

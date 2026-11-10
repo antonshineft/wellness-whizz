@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS research_notes (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_research_created ON research_notes(created_at);
+CREATE INDEX IF NOT EXISTS research_notes_supplement ON research_notes(supplement_id);
 
 -- Reddit digest (src/reddit.ts): every F5Bot mention received by the email handler, the threads already suggested,
 -- and the keywords F5Bot capped on a given day.
