@@ -1,0 +1,43 @@
+{
+  "name": "Natural Factors",
+  "founded": null,
+  "founder": "Jacob Gahler",
+  "headquarters": "Coquitlam, British Columbia",
+  "owner": "Factors Group, held by the Gahler family",
+  "history": "Natural Factors traces its origins to the 1950s in British Columbia, Canada; the exact founding year is not confirmed. According to WholeFoods Magazine, Swiss herbalist Jacob Gahler started the business and his son Roland Gahler has run it since 1972. The company is headquartered in Coquitlam, British Columbia, with a United States base in Monroe, Washington. It belongs to the family-owned Factors Group of Nutritional Companies, which also supplies Webber Naturals and several store-brand vitamins. Natural Factors grows some of its herbal ingredients on its own organic farmland in the Okanagan Valley and operates its own manufacturing plants and laboratories.",
+  "positives": [
+    {
+      "text": "NSF's official NSF/ANSI 455-2 GMP listing (checked November 2026) includes Factors Group plants in Coquitlam, Kelowna and Pitt Meadows and the Natural Factors plant in Monroe, Washington.",
+      "source": "https://info.nsf.org/Certified/455GMP/Listings.asp",
+      "source_name": "NSF"
+    },
+    {
+      "text": "The company states that it remains family-owned and operated after about 60 years in business.",
+      "source": "https://ca.naturalfactors.com/pages/our-nature",
+      "source_name": "Natural Factors"
+    },
+    {
+      "text": "It grows herbs on about 1,000 acres of its own certified organic farmland in British Columbia and owns its laboratories and manufacturing equipment, WholeFoods Magazine reported in 2015.",
+      "source": "https://wholefoodsmagazine.com/articles/3234-who-s-who-of-manufacturers-and-suppliers",
+      "source_name": "WholeFoods Magazine"
+    },
+    {
+      "text": "Products carry the ISURA seal; the company says ISURA certification screens for upwards of 800 contaminants, including pesticides, solvents and heavy metals.",
+      "source": "https://ca.naturalfactors.com/pages/purity",
+      "source_name": "Natural Factors"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "In July 2024 Health Canada announced that Factors Group of Nutritional Companies was recalling various multivitamins and supplements, including three Natural Factors products, because they might contain metal fibres.",
+      "source": "https://recalls-rappels.canada.ca/en/alert-recall/various-multivitamins-and-supplements-distributed-across-canada-are-being-recalled",
+      "source_name": "Health Canada"
+    },
+    {
+      "text": "A class action filed in February 2024 in California federal court (Gonzales v. Natural Factors Nutritional Products) alleged deceptive slack-filled packaging of Whey Factors protein; Truth in Advertising lists it as pending.",
+      "source": "https://truthinadvertising.org/class-action/natural-factors-whey-factors-grass-fed-whey-protein/",
+      "source_name": "Truth in Advertising"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

@@ -1,0 +1,52 @@
+{
+  "name": "21st Century",
+  "aliases": [
+    "21st Century HealthCare",
+    "21st Century Health Care"
+  ],
+  "founded": 1991,
+  "founder": "Steve Snyder",
+  "headquarters": "Tempe, Arizona",
+  "owner": "Grant Avenue Capital, a private equity firm",
+  "history": "21st Century HealthCare was founded in August 1991 by Steve Snyder in a 2,500-square-foot warehouse in Tempe, Arizona, where it is still based. It manufactures vitamins, minerals and supplements for people and pets under its own brands, including 21st Century, Alaska Wild, Arthri-Flex Advantage, Herbal Slimming Tea, VitaJoy and Zoo Friends, and also produces private-label products. By 2021 the company reported about 500 employees and 300,000 square feet of manufacturing and distribution space. In January 2026 the private equity firm Grant Avenue Capital acquired the company; terms were not disclosed and Kirk Neal continued as chief executive.",
+  "positives": [
+    {
+      "text": "NSF's official NSF/ANSI 455-2 GMP listing (checked November 2026) includes several 21st Century Healthcare manufacturing facilities in Tempe, Arizona.",
+      "source": "https://info.nsf.org/Certified/455GMP/Listings.asp",
+      "source_name": "NSF"
+    },
+    {
+      "text": "NSF's product listing shows 21st Century One Daily Men's Health tablets certified to NSF/ANSI 173, the dietary supplement standard (checked November 2026).",
+      "source": "https://listings-service.nsf.org/publiclistingservice/products/details/product/11",
+      "source_name": "NSF"
+    },
+    {
+      "text": "The company manufactures in an NSF-GMP registered facility in Tempe and tests all components and finished products for potency, identity and purity, Natural Products Insider reported in 2014.",
+      "source": "https://www.supplysidesj.com/manufacturing/video-facility-tour-21st-century-healthcare",
+      "source_name": "SupplySide Supplement Journal"
+    },
+    {
+      "text": "Its website lists an ISO/IEC 17025:2017 certified laboratory among its certifications.",
+      "source": "https://www.21stcenturyvitamins.com/pages/about-1",
+      "source_name": "21st Century"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "In November 2013 it recalled 6,483 bottles of Digestive Enzymes capsules because a raw material might contain trace amounts of the antibiotic chloramphenicol (FDA Class II recall).",
+      "source": "https://api.fda.gov/food/enforcement.json?search=recall_number:%22F-0165-2014%22",
+      "source_name": "FDA recall record"
+    },
+    {
+      "text": "In May 2021 it recalled Vitamin D3 5000 IU tablets because 2,425 bottles were identified as mislabelled as 1000 IU (FDA Class II recall).",
+      "source": "https://api.fda.gov/food/enforcement.json?search=recall_number:%22F-0543-2021%22",
+      "source_name": "FDA recall record"
+    },
+    {
+      "text": "Since January 2026 the company has been owned by the private equity firm Grant Avenue Capital.",
+      "source": "https://www.privateequityinternational.com/grant-avenue-scoops-up-vitamins-manufacturer-21st-century-healthcare",
+      "source_name": "PE Hub"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

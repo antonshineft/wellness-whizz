@@ -4,4 +4,778 @@
  */
 import type { BrandProfile } from './brands';
 
-export const BRAND_PROFILES: BrandProfile[] = [];
+export const BRAND_PROFILES: BrandProfile[] = [
+  {
+    "slug": "now-foods",
+    "name": "NOW Foods",
+    "aliases": [
+      "NOW",
+      "Now Foods"
+    ],
+    "founded": 1968,
+    "founder": "Elwood Richard",
+    "headquarters": "Bloomingdale, Illinois",
+    "owner": "the Richard family, with employees holding about 30%",
+    "history": "NOW Foods was started in 1968 by Elwood Richard, whose father had bought the soy-products maker Fearn Soya in 1948 and who had opened his first health food store near Chicago in 1962. The company, legally NOW Health Group, Inc., is based in Bloomingdale, Illinois, and has a second plant in Sparks, Nevada. It sells supplements, foods, sports nutrition and personal care products. Richard died in 2017. The business stayed in the Richard family until January 2026, when it announced the sale of about 30 percent of its shares to employees through a stock ownership plan.",
+    "positives": [
+      {
+        "text": "Has tested other brands' supplements bought on Amazon since 2017 and published the results; the 24th round (2026) used its own labs plus the independent Alkemist Labs.",
+        "source": "https://www.nutraingredients.com/Article/2026/08/20/nows-testing-of-vitamin-c-gummies-on-amazon-returns-deeply-disappointing-results/",
+        "sourceName": "NutraIngredients"
+      },
+      {
+        "text": "UL certified its Bloomingdale and Sparks facilities under its yearly GMP audit programme (reported 2016); NOW was among the first certified under the Natural Products Association GMP programme in 2000.",
+        "source": "https://www.nutritionaloutlook.com/view/now-foods-gets-underwriters-laboratory-certification-dietary-supplement-facilities",
+        "sourceName": "Nutritional Outlook"
+      },
+      {
+        "text": "ConsumerLab's public brand page lists 45 NOW products tested: 39 approved (20 of them Top Picks), 5 not approved and 1 with another status (page viewed November 2026).",
+        "source": "https://www.consumerlab.com/now-foods/",
+        "sourceName": "ConsumerLab"
+      },
+      {
+        "text": "Still controlled by the founding family after more than 50 years; in January 2026 it announced that employees would own about 30% through a stock ownership plan.",
+        "source": "https://www.wholefoodsmagazine.com/articles/17848-now-health-group-sells-family-shares-to-employees",
+        "sourceName": "WholeFoods Magazine"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "FDA warning letter in October 2004 about possible contamination of one lot of NOW American ginseng with the pesticide quintozene; NOW had recalled its American ginseng lots that August.",
+        "source": "https://www.supplysidesj.com/supplement-regulations/now-responds-to-fda-warning-letter",
+        "sourceName": "SupplySide Supplement Journal"
+      },
+      {
+        "text": "In June 2011 NOW recalled Calcium & Magnesium softgels found to contain 50 to 66 times the labelled vitamin D; the error was traced to a contract manufacturer's formulation.",
+        "source": "https://www.supplysidesj.com/legal-compliance/now-foods-recalls-softgels-for-excessive-vitamin-d",
+        "sourceName": "SupplySide Supplement Journal"
+      },
+      {
+        "text": "In January 2024 NOW recalled four lots of phosphatidylserine softgels (NOW and Protocol For Life Balance brands) after a ConsumerLab report; some softgels tested at 30 to 55 mg against a 300 mg claim.",
+        "source": "https://www.nutraingredients.com/Article/2024/01/11/NOW-recalls-low-potency-phosphatidylserine-products/",
+        "sourceName": "NutraIngredients"
+      }
+    ],
+    "logo": null,
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "california-gold-nutrition",
+    "name": "California Gold Nutrition",
+    "aliases": [
+      "CGN"
+    ],
+    "founded": 2013,
+    "founder": "iHerb",
+    "headquarters": "Irvine, California",
+    "owner": "iHerb, the retailer that sells it",
+    "history": "California Gold Nutrition is a house brand of the online retailer iHerb, which says it was founded in a California apartment in 1996. iHerb introduced its first owned brands in 2009 and launched California Gold Nutrition in 2013. The range covers vitamins, minerals, supplements, sports nutrition and grocery items, and a beauty line was added in 2025. The brand is not a separate company: a US regulator names the firm behind it as iHerb LLC, doing business as Madre Labs LLC, of Irvine, California. In 2018 iHerb started its iTested programme, under which own-brand products are tested by outside laboratories.",
+    "positives": [
+      {
+        "text": "Under iHerb's iTested programme, badged products are tested per batch by third-party laboratories accredited to ISO/IEC 17025 and the batch results are published; only badged products are covered.",
+        "source": "https://www.iherb.com/c/itested-products",
+        "sourceName": "iHerb"
+      },
+      {
+        "text": "NSF lists five iHerb distribution centres in the United States as certified to NSF/ANSI 455-2 (dietary supplement GMP); this covers storage and distribution, not manufacturing.",
+        "source": "https://info.nsf.org/Certified/455GMP/Listings.asp?Standard=455-2GMP",
+        "sourceName": "NSF"
+      },
+      {
+        "text": "ConsumerLab's public brand page lists 4 California Gold Nutrition products tested: 3 approved and 1 not approved (page viewed November 2026).",
+        "source": "https://www.consumerlab.com/california-gold-nutrition/",
+        "sourceName": "ConsumerLab"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "The brand belongs to the retailer that sells it: iHerb lists California Gold Nutrition, launched in 2013, among its own brands, so seller and brand owner are the same company.",
+        "source": "https://www.iherb.com/lp/iherb-brands-learn-more",
+        "sourceName": "iHerb"
+      },
+      {
+        "text": "In June 2025 iHerb recalled about 60,000 units of three California Gold Nutrition iron-containing multivitamins because the packaging was not child-resistant as US rules require; no incidents were reported.",
+        "source": "https://www.cpsc.gov/Recalls/2025/iHerb-Recalls-Bottles-and-Blister-Packs-of-California-Gold-Nutrition-Iron-Supplements-Due-to-Risk-of-Serious-Injury-or-Death-from-Child-Poisoning-Violation-of-Federal-Standard-for-Child-Resistant-Packaging",
+        "sourceName": "CPSC"
+      }
+    ],
+    "logo": "california-gold-nutrition.png",
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "swanson-vitamins",
+    "name": "Swanson Vitamins",
+    "aliases": [
+      "Swanson",
+      "Swanson Health Products",
+      "Swanson Health"
+    ],
+    "founded": 1969,
+    "founder": "Leland Swanson",
+    "headquarters": "Fargo, North Dakota",
+    "owner": "Swander Pace Capital, a private equity firm",
+    "history": "Swanson Health Products was founded in 1969 in Fargo, North Dakota, by Leland Swanson, who began ordering supplements in bulk and selling them by mail-order catalogue. His sons Jay and Lee later joined, and under Lee Swanson the business moved online in the 1990s. The company sells Swanson-branded supplements, which it manufactures in Fargo, alongside other brands, and trades online as Swanson Vitamins. In January 2016 it was sold to the San Francisco private equity firm Swander Pace Capital, which still lists it as a current investment; terms were not disclosed. Headquarters remain in Fargo.",
+    "positives": [
+      {
+        "text": "NSF lists Swanson's manufacturing facility in Fargo as certified to NSF/ANSI 455-2, the good manufacturing practice standard for dietary supplements (listing checked November 2026).",
+        "source": "https://info.nsf.org/Certified/455GMP/Listings.asp?Company=C0054895&Standard=455-2GMP",
+        "sourceName": "NSF"
+      },
+      {
+        "text": "In June 2025 the Fargo facility was reported to have earned an 'A' rating under NSF/ANSI 455-2; Swanson has held NSF GMP certification since 2010.",
+        "source": "https://www.nutraceuticalsworld.com/breaking-news/swanson-health-earns-a-rating-under-nsf-ansi-455-2-gmp-certification-for-dietary-supplements/",
+        "sourceName": "Nutraceuticals World"
+      },
+      {
+        "text": "ConsumerLab's public brand page lists 51 Swanson products tested: 38 approved (22 of them Top Picks), 8 not approved and 4 with another status (page viewed November 2026).",
+        "source": "https://www.consumerlab.com/swanson/",
+        "sourceName": "ConsumerLab"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "FDA warning letter in August 2007 stating that Swanson's Red Yeast Rice and Red Yeast Rice/Policosanol Complex contained significant levels of lovastatin and were being sold as unapproved new drugs.",
+        "source": "https://quackwatch.org/cases/fdawarning/prod/fda-warning-letters-about-products-2007/swanson/",
+        "sourceName": "FDA letter, via Quackwatch"
+      },
+      {
+        "text": "In 2009 Swanson settled a California Proposition 65 lawsuit brought by As You Sow over lead in herbal products, with payments totalling $682,500 plus required product testing and warnings.",
+        "source": "https://oag.ca.gov/prop65/60-day-notice-2007-00105",
+        "sourceName": "California Attorney General"
+      },
+      {
+        "text": "In April 2014 Swanson voluntarily recalled its Full Spectrum Cilantro (Coriander) capsules because of possible Salmonella contamination.",
+        "source": "https://www.consumerlab.com/recalls/10619/digestive-health-supplement-recalled-due-to-salmonella-risk/",
+        "sourceName": "ConsumerLab"
+      },
+      {
+        "text": "Owned by a private equity firm, Swander Pace Capital, since January 2016; the purchase terms were not disclosed.",
+        "source": "https://www.nutraingredients.com/Article/2016/01/26/Online-retailer-Swanson-acquired-by-private-equity-firm/",
+        "sourceName": "NutraIngredients"
+      }
+    ],
+    "logo": "swanson-vitamins.svg",
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "nutricost",
+    "name": "Nutricost",
+    "founded": 2012,
+    "founder": "Min Kim",
+    "headquarters": "Vineyard, Utah",
+    "owner": "eSupplements, LLC, privately held",
+    "history": "Nutricost is a supplement brand based in Vineyard, Utah. A company press release says it launched in 2012, while chief executive Min Kim has said it grew out of an affiliate internet-marketing business he started with a school friend and became Nutricost in 2013. Court and regulatory records name the seller as eSupplements, LLC, doing business as Nutricost, and the manufacturer as Nutricost Manufacturing, LLC in Vineyard. In 2021 it signed a five-year deal as official supplement supplier to Brigham Young University athletics. A 2024 business-magazine profile reported more than 650 employees and fulfilment centres in Utah, North Carolina and California.",
+    "positives": [
+      {
+        "text": "NSF lists Nutricost Manufacturing, LLC facilities in Vineyard, Utah, as certified to NSF/ANSI 455-2, the good manufacturing practice standard for dietary supplements (listing checked November 2026).",
+        "source": "https://info.nsf.org/Certified/455GMP/Listings.asp?Standard=455-2GMP",
+        "sourceName": "NSF"
+      },
+      {
+        "text": "ConsumerLab's public brand page lists 18 Nutricost products tested: 15 approved (6 of them Top Picks) and 3 not approved (page viewed November 2026).",
+        "source": "https://www.consumerlab.com/nutricost/",
+        "sourceName": "ConsumerLab"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "A 2023 class action (Cohen v. eSupplements) alleged Nutricost's magnesium glycinate supplements were not as labelled; a $1.835 million settlement, in which Nutricost denies wrongdoing, awaited final court approval after an October 2026 hearing.",
+        "source": "https://cohenmag.com/",
+        "sourceName": "Settlement website"
+      },
+      {
+        "text": "A proposed class action filed in November 2022 (Scheibe v. eSupplements, California) alleged that Nutricost EAA and pre-workout powders contained far more calories than labelled and undisclosed artificial flavouring; the allegations were not proven.",
+        "source": "https://www.classaction.org/news/class-action-claims-nutricost-powders-contain-more-calories-undisclosed-artificial-flavor-than-advertised",
+        "sourceName": "ClassAction.org"
+      }
+    ],
+    "logo": "nutricost.png",
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "life-extension",
+    "name": "Life Extension",
+    "founded": 1980,
+    "founder": "Saul Kent and William Faloon",
+    "headquarters": "Fort Lauderdale, Florida",
+    "owner": "private owners, not disclosed",
+    "history": "Life Extension was founded in 1980 in Florida by Saul Kent and William Faloon as the non-profit Life Extension Foundation. Supplements were sold through an affiliated for-profit company, the Life Extension Foundation Buyers Club, which paid royalties to the foundation. The FDA raided its warehouse in 1987 and both founders were indicted in 1991; the company says every charge was dismissed by 1996. The foundation now operates as the Biomedical Research & Longevity Society, while the privately owned supplement business trades as Life Extension from Fort Lauderdale. It sells nearly 400 supplements, offers mail-order laboratory tests and publishes Life Extension Magazine.",
+    "positives": [
+      {
+        "text": "NSF's official NSF/ANSI 455-2 GMP listing (checked November 2026) includes Life Extension's operating company for its distribution facilities in New Jersey and Nevada.",
+        "source": "https://info.nsf.org/Certified/455GMP/Listings.asp",
+        "sourceName": "NSF"
+      },
+      {
+        "text": "The company says it will provide, on request, a summary of the contract-manufacturer and independent-laboratory test reports for every supplement it sells.",
+        "source": "https://www.lifeextension.com/about/life-extension-research/safety",
+        "sourceName": "Life Extension"
+      },
+      {
+        "text": "ConsumerLab's 2026 survey of supplement users rated Life Extension the top catalog/internet merchant and brand for customer satisfaction; this is a consumer survey, not a product test.",
+        "source": "https://consumerlab.com/news/top-rated-vitamins-and-supplements-2026/02-25-2026",
+        "sourceName": "ConsumerLab"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "FDA warning letter in February 2017 said website and Facebook claims presented products as treatments for diseases such as breast cancer, and noted over 400 products with disease claims.",
+        "source": "https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/warning-letters/life-extension-foundation-buyers-club-inc-500619-02012017",
+        "sourceName": "FDA"
+      },
+      {
+        "text": "FDA agents raided its warehouse in 1987, and a federal indictment unsealed in 1991 accused the founders of importing unapproved drugs; the company reports all charges were dismissed by 1996.",
+        "source": "https://www.miaminewtimes.com/news/theyre-gonna-live-forever-6363863",
+        "sourceName": "Miami New Times"
+      },
+      {
+        "text": "In May 2013 the IRS revoked the Life Extension Foundation's tax-exempt status, retroactive to 2006, over its ties to the for-profit Buyers Club; the foundation challenged this in court.",
+        "source": "https://nonprofitquarterly.org/nonprofit-strays-over-the-irs-line-in-making-a-healthy-profit/",
+        "sourceName": "Nonprofit Quarterly"
+      }
+    ],
+    "logo": "life-extension.svg",
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "natural-factors",
+    "name": "Natural Factors",
+    "founded": null,
+    "founder": "Jacob Gahler",
+    "headquarters": "Coquitlam, British Columbia",
+    "owner": "Factors Group, held by the Gahler family",
+    "history": "Natural Factors traces its origins to the 1950s in British Columbia, Canada; the exact founding year is not confirmed. According to WholeFoods Magazine, Swiss herbalist Jacob Gahler started the business and his son Roland Gahler has run it since 1972. The company is headquartered in Coquitlam, British Columbia, with a United States base in Monroe, Washington. It belongs to the family-owned Factors Group of Nutritional Companies, which also supplies Webber Naturals and several store-brand vitamins. Natural Factors grows some of its herbal ingredients on its own organic farmland in the Okanagan Valley and operates its own manufacturing plants and laboratories.",
+    "positives": [
+      {
+        "text": "NSF's official NSF/ANSI 455-2 GMP listing (checked November 2026) includes Factors Group plants in Coquitlam, Kelowna and Pitt Meadows and the Natural Factors plant in Monroe, Washington.",
+        "source": "https://info.nsf.org/Certified/455GMP/Listings.asp",
+        "sourceName": "NSF"
+      },
+      {
+        "text": "The company states that it remains family-owned and operated after about 60 years in business.",
+        "source": "https://ca.naturalfactors.com/pages/our-nature",
+        "sourceName": "Natural Factors"
+      },
+      {
+        "text": "It grows herbs on about 1,000 acres of its own certified organic farmland in British Columbia and owns its laboratories and manufacturing equipment, WholeFoods Magazine reported in 2015.",
+        "source": "https://wholefoodsmagazine.com/articles/3234-who-s-who-of-manufacturers-and-suppliers",
+        "sourceName": "WholeFoods Magazine"
+      },
+      {
+        "text": "Products carry the ISURA seal; the company says ISURA certification screens for upwards of 800 contaminants, including pesticides, solvents and heavy metals.",
+        "source": "https://ca.naturalfactors.com/pages/purity",
+        "sourceName": "Natural Factors"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "In July 2024 Health Canada announced that Factors Group of Nutritional Companies was recalling various multivitamins and supplements, including three Natural Factors products, because they might contain metal fibres.",
+        "source": "https://recalls-rappels.canada.ca/en/alert-recall/various-multivitamins-and-supplements-distributed-across-canada-are-being-recalled",
+        "sourceName": "Health Canada"
+      },
+      {
+        "text": "A class action filed in February 2024 in California federal court (Gonzales v. Natural Factors Nutritional Products) alleged deceptive slack-filled packaging of Whey Factors protein; Truth in Advertising lists it as pending.",
+        "source": "https://truthinadvertising.org/class-action/natural-factors-whey-factors-grass-fed-whey-protein/",
+        "sourceName": "Truth in Advertising"
+      }
+    ],
+    "logo": "natural-factors.svg",
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "doctors-best",
+    "name": "Doctor's Best",
+    "aliases": [
+      "Doctors Best"
+    ],
+    "founded": 1990,
+    "founder": "Ken Halvorsrude and Dr. James Braly",
+    "headquarters": "Tustin, California",
+    "owner": "Xiamen Kingdomway Group of China",
+    "history": "Doctor's Best was founded in 1990 by Ken Halvorsrude and Dr. James Braly; the company describes itself as founded by a physician. The private equity firm North Castle Partners acquired it in 2014 and sold it in June 2016 to Xiamen Kingdomway Group, a Chinese ingredient manufacturer and major producer of coenzyme Q10. Terms were not disclosed. Doctor's Best is now a subsidiary of Kingdomway USA and is based in Tustin, California, where its sister manufacturing company Vit-Best Nutrition also operates. It sells more than 200 products and acquired the Viactiv calcium chew brand in 2024.",
+    "positives": [
+      {
+        "text": "Its sister manufacturing company Vit-Best Nutrition in Tustin, California, appears on NSF's official NSF/ANSI 455-2 GMP listing (checked November 2026).",
+        "source": "https://info.nsf.org/Certified/455GMP/Listings.asp",
+        "sourceName": "NSF"
+      },
+      {
+        "text": "The company says its products are manufactured and tested exclusively at cGMP-certified facilities in the United States, and it has its own manufacturing arm, Vit-Best.",
+        "source": "https://www.nutraceuticalsworld.com/top-company-profile/doctors-best-2025/",
+        "sourceName": "Nutraceuticals World"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "In June 2014 Doctor's Best recalled 7,379 bottles of its Red Yeast Rice supplement because it contained undeclared lovastatin, a prescription cholesterol drug; the company reported no adverse events.",
+        "source": "https://www.supplysidesj.com/labeling/doctors-best-recalls-cholesterol-supplement-due-to-presence-of-drug",
+        "sourceName": "SupplySide Supplement Journal"
+      },
+      {
+        "text": "A 2020 class action (Casey v. Doctor's Best) alleged glucosamine products contained no glucosamine sulfate as labelled; it was settled in 2022 with refunds and label changes, without admitting wrongdoing.",
+        "source": "https://topclassactions.com/lawsuit-settlements/open-lawsuit-settlements/doctors-best-glucosamine-false-advertising-class-action-settlement/",
+        "sourceName": "Top Class Actions"
+      },
+      {
+        "text": "Since June 2016 the brand has been owned by Xiamen Kingdomway Group, a Chinese ingredient manufacturer, which bought it from the private equity firm North Castle Partners.",
+        "source": "https://www.nutraingredients.com/Article/2016/06/16/Doctor-s-Best-sold-to-Chinese-company-extending-trend-in-industry/",
+        "sourceName": "NutraIngredients"
+      }
+    ],
+    "logo": "doctors-best.png",
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "21st-century",
+    "name": "21st Century",
+    "aliases": [
+      "21st Century HealthCare",
+      "21st Century Health Care"
+    ],
+    "founded": 1991,
+    "founder": "Steve Snyder",
+    "headquarters": "Tempe, Arizona",
+    "owner": "Grant Avenue Capital, a private equity firm",
+    "history": "21st Century HealthCare was founded in August 1991 by Steve Snyder in a 2,500-square-foot warehouse in Tempe, Arizona, where it is still based. It manufactures vitamins, minerals and supplements for people and pets under its own brands, including 21st Century, Alaska Wild, Arthri-Flex Advantage, Herbal Slimming Tea, VitaJoy and Zoo Friends, and also produces private-label products. By 2021 the company reported about 500 employees and 300,000 square feet of manufacturing and distribution space. In January 2026 the private equity firm Grant Avenue Capital acquired the company; terms were not disclosed and Kirk Neal continued as chief executive.",
+    "positives": [
+      {
+        "text": "NSF's official NSF/ANSI 455-2 GMP listing (checked November 2026) includes several 21st Century Healthcare manufacturing facilities in Tempe, Arizona.",
+        "source": "https://info.nsf.org/Certified/455GMP/Listings.asp",
+        "sourceName": "NSF"
+      },
+      {
+        "text": "NSF's product listing shows 21st Century One Daily Men's Health tablets certified to NSF/ANSI 173, the dietary supplement standard (checked November 2026).",
+        "source": "https://listings-service.nsf.org/publiclistingservice/products/details/product/11",
+        "sourceName": "NSF"
+      },
+      {
+        "text": "The company manufactures in an NSF-GMP registered facility in Tempe and tests all components and finished products for potency, identity and purity, Natural Products Insider reported in 2014.",
+        "source": "https://www.supplysidesj.com/manufacturing/video-facility-tour-21st-century-healthcare",
+        "sourceName": "SupplySide Supplement Journal"
+      },
+      {
+        "text": "Its website lists an ISO/IEC 17025:2017 certified laboratory among its certifications.",
+        "source": "https://www.21stcenturyvitamins.com/pages/about-1",
+        "sourceName": "21st Century"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "In November 2013 it recalled 6,483 bottles of Digestive Enzymes capsules because a raw material might contain trace amounts of the antibiotic chloramphenicol (FDA Class II recall).",
+        "source": "https://api.fda.gov/food/enforcement.json?search=recall_number:%22F-0165-2014%22",
+        "sourceName": "FDA recall record"
+      },
+      {
+        "text": "In May 2021 it recalled Vitamin D3 5000 IU tablets because 2,425 bottles were identified as mislabelled as 1000 IU (FDA Class II recall).",
+        "source": "https://api.fda.gov/food/enforcement.json?search=recall_number:%22F-0543-2021%22",
+        "sourceName": "FDA recall record"
+      },
+      {
+        "text": "Since January 2026 the company has been owned by the private equity firm Grant Avenue Capital.",
+        "source": "https://www.privateequityinternational.com/grant-avenue-scoops-up-vitamins-manufacturer-21st-century-healthcare",
+        "sourceName": "PE Hub"
+      }
+    ],
+    "logo": "21st-century.png",
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "solgar",
+    "name": "Solgar",
+    "founded": 1947,
+    "founder": null,
+    "headquarters": "Leonia, New Jersey",
+    "owner": "Nestlé Health Science",
+    "history": "Solgar has made branded vitamins and supplements since 1947 and is based in Leonia, New Jersey. By 2005 it belonged to the drug company Wyeth, which sold it that year to NBTY for about $115 million; Solgar then had sales of roughly $105 million and was stocked by more than 5,000 US health food and specialty stores and sold in 40 countries. NBTY later became The Bountiful Company, majority-owned by the investment firm KKR from 2017. In August 2021 Nestlé Health Science completed its purchase of Bountiful's core brands, including Solgar, under a $5.75 billion agreement.",
+    "positives": [
+      {
+        "text": "ConsumerLab's public brand page lists 14 Solgar products as voluntarily tested and approved in its Quality Certification Program; results for 4 products it selected itself are visible to members only.",
+        "source": "https://www.consumerlab.com/solgar/",
+        "sourceName": "ConsumerLab"
+      },
+      {
+        "text": "In a 2019 trade-magazine company profile, Solgar said most of its products are made in its own facilities and tested at multiple stages, from raw material to finished product.",
+        "source": "https://wholefoodsmagazine.com/articles/5485-company-profile-solgar",
+        "sourceName": "WholeFoods Magazine"
+      },
+      {
+        "text": "The brand dates from 1947 and its range includes halal, kosher, vegetarian and vegan supplements, according to the same company profile.",
+        "source": "https://wholefoodsmagazine.com/articles/5485-company-profile-solgar",
+        "sourceName": "WholeFoods Magazine"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "In November 2014 Solgar recalled three lots of ABC Dophilus Powder after the mould Rhizopus oryzae was found in it; a premature infant given the product in hospital had died in October 2014.",
+        "source": "https://www.nutraingredients.com/Article/2015/01/08/FDA-warning-over-infant-s-death-shouldn-t-call-safety-of-probiotics-into-question-experts-say",
+        "sourceName": "NutraIngredients"
+      },
+      {
+        "text": "A proposed class action filed in October 2026 (Higgins v. Nestlé Health Science, D.N.J.) alleged that Solgar VM-75's 75 mg vitamin B6 dose can cause nerve damage and that the label carries no warning.",
+        "source": "https://www.classaction.org/media/nestle-complaint.pdf",
+        "sourceName": "ClassAction.org"
+      },
+      {
+        "text": "In December 2023 Nestlé Health Science recalled 612 bottles of Solgar Glucosamine Chondroitin MSM (FDA Class III) because a B-complex product had been filled into bottles carrying that label.",
+        "source": "https://api.fda.gov/food/enforcement.json?search=recall_number:%22F-0803-2024%22",
+        "sourceName": "FDA recall record"
+      },
+      {
+        "text": "Solgar has belonged to the multinational food group Nestlé since August 2021, after earlier ownership by Wyeth, NBTY and the KKR-controlled Bountiful Company.",
+        "source": "https://www.supplysidesj.com/supplements/nestl-completes-bountiful-co-acquisition",
+        "sourceName": "SupplySide Supplement Journal"
+      }
+    ],
+    "logo": "solgar.png",
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "natures-way",
+    "name": "Nature's Way",
+    "aliases": [
+      "Natures Way"
+    ],
+    "founded": 1969,
+    "founder": "Tom Murdock",
+    "headquarters": "Green Bay, Wisconsin",
+    "owner": "the Schwabe Group of Germany",
+    "history": "Nature's Way began in 1969, when its founder Tom Murdock was looking for a way to improve his wife's health. The business started in Arizona with a single product, moved to Utah in the late 1970s and settled in Springville in 1984. The German herbal-medicine maker Schwabe bought a one-third stake in its holding company in 1992 and says it has been sole owner since 2001. Schwabe added Enzymatic Therapy of Green Bay, Wisconsin, in 2008, and from 2009 Nature's Way moved its headquarters from Springville to Green Bay, where it runs manufacturing, testing laboratories and distribution.",
+    "positives": [
+      {
+        "text": "The company states that its facilities are certified by NSF to the NSF/ANSI 455-2 good manufacturing practice standard for dietary supplements.",
+        "source": "https://naturesway.com/pages/quality",
+        "sourceName": "Nature's Way"
+      },
+      {
+        "text": "The company states that its laboratory is accredited to ISO/IEC 17025:2017 and that its liquid and tablet facility is certified organic by Quality Assurance International.",
+        "source": "https://naturesway.com/pages/quality",
+        "sourceName": "Nature's Way"
+      },
+      {
+        "text": "ConsumerLab's public brand page reports that of 12 Nature's Way products it selected for testing, 9 were approved for quality and 3 were not.",
+        "source": "https://www.consumerlab.com/natures-way/",
+        "sourceName": "ConsumerLab"
+      },
+      {
+        "text": "In 2015 Nature's Way began requiring suppliers to document each botanical ingredient's origin and identity back to the harvested plant, trade press reported.",
+        "source": "https://www.nutraingredients.com/Article/2015/05/22/Nature-s-Way-institutes-more-rigorous-plant-to-powder-supply-chain-management-scheme/",
+        "sourceName": "NutraIngredients"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "In October 2013 Schwabe North America recalled several Nature's Way Alive! multivitamins (FDA Class II) after a supplier said an enzyme blend might contain the antibiotic chloramphenicol.",
+        "source": "https://api.fda.gov/food/enforcement.json?search=recall_number:%22F-0838-2014%22",
+        "sourceName": "FDA recall record"
+      },
+      {
+        "text": "In September 2015 Nature's Way reached an accord with the New York Attorney General over its devil's claw supplements, agreeing to use only Harpagophytum procumbens, continue DNA barcode testing and issue refunds.",
+        "source": "https://www.supplysidesj.com/litigation/new-york-attorney-general-schneiderman-targets-devils-claw-supplements",
+        "sourceName": "SupplySide Supplement Journal"
+      },
+      {
+        "text": "A 2016 class action (Hunter v. Nature's Way, S.D. Cal.) alleged its coconut oil was falsely advertised as healthy; in 2019 the company agreed to a $1.8 million settlement and five years of label restrictions.",
+        "source": "https://topclassactions.com/lawsuit-settlements/consumer-products/food/natures-way-agrees-1-8m-coconut-oil-class-action-settlement",
+        "sourceName": "Top Class Actions"
+      },
+      {
+        "text": "A class action (Sonner v. Schwabe North America, C.D. Cal.) alleged Ginkgold memory claims lacked scientific support; a settlement of nearly $3.4 million with label changes was filed for court approval in August 2020.",
+        "source": "https://topclassactions.com/lawsuit-settlements/consumer-products/supplements/natures-way-supplements-class-action-settles-for-3-4m",
+        "sourceName": "Top Class Actions"
+      }
+    ],
+    "logo": "natures-way.png",
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "thorne",
+    "name": "Thorne",
+    "aliases": [
+      "Thorne Research"
+    ],
+    "founded": 1984,
+    "founder": "Al Czap",
+    "headquarters": "Summerville, South Carolina",
+    "owner": "L Catterton, a private equity firm; a sale to Procter & Gamble was agreed in August 2026",
+    "history": "Al Czap formed Thorne Research in 1984 in the Seattle area and moved it to northern Idaho in 1990, where it sold supplements mainly through health practitioners. In 2010 it merged with Diversified Natural Products, financed by outside investment firms, and Paul Jacobson took over leadership. The company later moved most operations to Summerville, South Carolina, a relocation completed in 2017. As Thorne HealthTech it listed on Nasdaq in September 2021 at $10 a share, then was taken private by L Catterton in October 2023 for about $680 million. In August 2026 Procter & Gamble agreed to buy Thorne for a reported $3.8 billion.",
+    "positives": [
+      {
+        "text": "NSF's GMP registry lists Thorne's manufacturing facilities in Summerville, South Carolina, as registered (listing checked 10 November 2026).",
+        "source": "https://info.nsf.org/Certified/GMP/Listings.asp",
+        "sourceName": "NSF"
+      },
+      {
+        "text": "Thorne stated in November 2026 that more than 60 of its products hold NSF Certified for Sport certification.",
+        "source": "https://www.thorne.com/press-releases/thorne-expands-nsf-certified-for-sport-portfolio-reinforcing-commitment-to-independent-third-party-testing",
+        "sourceName": "Thorne"
+      },
+      {
+        "text": "The company states that it makes its supplements at its own Summerville campus, with two in-house laboratories and four rounds of testing per product.",
+        "source": "https://www.thorne.com/quality",
+        "sourceName": "Thorne"
+      },
+      {
+        "text": "The company states that it holds an A rating from Australia's Therapeutic Goods Administration.",
+        "source": "https://www.thorne.com/quality",
+        "sourceName": "Thorne"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "In June 2014 the FDA warned consumers not to buy or use Thorne Research's Captomer and Captomer-250 chelation supplements; Thorne agreed to a voluntary recall and had received several adverse event reports.",
+        "source": "https://www.fda.gov/drugs/drug-safety-and-availability/fda-warns-consumers-about-potential-health-risks-using-thorne-researchs-captomer-products",
+        "sourceName": "FDA"
+      },
+      {
+        "text": "In September 2015 Thorne Research was one of 13 manufacturers sent cease-and-desist letters by the New York Attorney General over devil's claw supplements said to contain a cheaper related species.",
+        "source": "https://www.supplysidesj.com/litigation/new-york-attorney-general-schneiderman-targets-devils-claw-supplements",
+        "sourceName": "SupplySide Supplement Journal"
+      },
+      {
+        "text": "In November 2014 Thorne Research settled a California Proposition 65 lawsuit brought by the Environmental Research Center over lead in dietary supplements, with payments totalling $250,000 and warning-or-reformulation and testing terms.",
+        "source": "https://oag.ca.gov/prop65/60-day-notice-2013-01044",
+        "sourceName": "California Attorney General"
+      },
+      {
+        "text": "Thorne has been private-equity owned since L Catterton's $680 million buyout in October 2023, and in August 2026 it agreed to be sold to Procter & Gamble for a reported $3.8 billion.",
+        "source": "https://www.nutraingredients.com/Article/2026/08/04/pg-to-acquire-thorne-in-premium-wellness-play/",
+        "sourceName": "NutraIngredients"
+      }
+    ],
+    "logo": "thorne.svg",
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "jarrow-formulas",
+    "name": "Jarrow Formulas",
+    "aliases": [
+      "Jarrow"
+    ],
+    "founded": 1977,
+    "founder": "Jarrow Rogovin",
+    "headquarters": "Los Angeles, California",
+    "owner": "Vytalogy Wellness, held by the private equity firm New Mountain Capital",
+    "history": "Jarrow Rogovin founded Jarrow Formulas in Los Angeles in 1977, at first delivering supplement orders in person to local health food stores. The company launched its Jarro-Dophilus probiotic in 1986, and in 2000 a sister company opened a manufacturing, packaging and laboratory site in Santa Fe Springs, California. Rogovin also founded the International Probiotics Association in 2001. The private equity firm New Mountain Capital bought Jarrow Formulas effective 1 September 2020 and acquired Natrol that November. In January 2022 the two were combined under a new parent, Vytalogy Wellness, while keeping their own brand names.",
+    "positives": [
+      {
+        "text": "ConsumerLab's public brand page reports that of 8 Jarrow Formulas products it selected for testing, 7 were approved for quality and 1 was not.",
+        "source": "https://www.consumerlab.com/jarrow-formulas/",
+        "sourceName": "ConsumerLab"
+      },
+      {
+        "text": "The company states that raw materials are tested for identity, purity and potency before production and that finished products are tested again in its in-house analytical laboratories.",
+        "source": "https://jarrow.com/pages/science",
+        "sourceName": "Jarrow Formulas"
+      },
+      {
+        "text": "In 2006 NSF International awarded GMP registration to the Santa Fe Springs manufacturing facility of Jarrow Industries, which the brand describes as its sister company.",
+        "source": "https://www.supplysidesj.com/manufacturing/jarrow-industries-gains-nsf-gmp-registration",
+        "sourceName": "SupplySide Supplement Journal"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "In January 2018 Jarrow Formulas recalled 2,853 units of Liquid L-Carnitine nationwide (FDA Class II) after one lot showed a higher-than-normal microbial result at a six-month check.",
+        "source": "https://api.fda.gov/food/enforcement.json?search=recall_number:%22F-0682-2018%22",
+        "sourceName": "FDA recall record"
+      },
+      {
+        "text": "In December 2005 Jarrow Formulas recalled its Ginkgo biloba 50:1 products because raw material potency was below the label claim, according to ConsumerLab's recall record.",
+        "source": "https://www.consumerlab.com/jarrow-formulas/",
+        "sourceName": "ConsumerLab"
+      },
+      {
+        "text": "Jarrow Formulas has been private-equity owned since New Mountain Capital bought it in September 2020; founder Jarrow Rogovin stayed on as chairman at the time of the sale.",
+        "source": "https://wholefoodsmagazine.com/articles/5968-jarrow-formulas-sold-to-private-equity-firm",
+        "sourceName": "WholeFoods Magazine"
+      }
+    ],
+    "logo": "jarrow-formulas.svg",
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "optimum-nutrition",
+    "name": "Optimum Nutrition",
+    "founded": 1986,
+    "founder": "Tony and Mike Costello",
+    "headquarters": "Downers Grove, Illinois",
+    "owner": "Glanbia of Ireland",
+    "history": "Optimum Nutrition was founded in Illinois in 1986 by brothers Tony and Mike Costello. It became known for protein powders such as Gold Standard 100% Whey, and by 2008 had manufacturing sites in Illinois, South Carolina and Florida. In August 2008 the Irish dairy and nutrition group Glanbia plc bought the business, then based in Aurora, Illinois, for about $315 million. The brand is now part of Glanbia Performance Nutrition, whose US office is in Downers Grove, Illinois, with a manufacturing plant in Aurora. The company says its products are sold in more than 90 countries.",
+    "positives": [
+      {
+        "text": "NSF's public GMP registration listing includes Glanbia Performance Nutrition (Manufacturing), Inc., with a manufacturing facility in Aurora, Illinois (listing checked November 2026).",
+        "source": "https://info.nsf.org/Certified/GMP/Listings.asp",
+        "sourceName": "NSF"
+      },
+      {
+        "text": "LGC's Informed Choice banned-substance testing programme lists Optimum Nutrition products as certified, for example Gold Standard 100% Plant (EU), certified in September 2021.",
+        "source": "https://choice.wetestyoutrust.com/ja/node/258121",
+        "sourceName": "Informed Choice"
+      },
+      {
+        "text": "The company states it runs over 100,000 quality and food safety checks a year at production facilities it owns, with more than 300 in-house quality control staff.",
+        "source": "https://www.optimumnutrition.com/en-us/pages/our-quality",
+        "sourceName": "Optimum Nutrition"
+      },
+      {
+        "text": "Ownership has been stable: Glanbia plc has owned the brand since completing its purchase in August 2008.",
+        "source": "https://www.nutraceuticalsworld.com/?p=24369",
+        "sourceName": "Nutraceuticals World"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "In 2013 Optimum Nutrition agreed to a $1.4 million class action settlement (Attlesey v. Optimum Nutrition) over claims made for the enzyme Aminogen in its protein powders, while denying any wrongdoing.",
+        "source": "https://topclassactions.com/lawsuit-settlements/lawsuit-news/optimum-nutrition-protein-powder-class-action-settlement",
+        "sourceName": "Top Class Actions"
+      },
+      {
+        "text": "In August 2022 beverage maker Lyons Magnus recalled Optimum Nutrition-branded Gold Standard 100% Whey drink cartons (vanilla and chocolate) over potential microbial contamination; FDA has since terminated the recall.",
+        "source": "https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/lyons-magnus-expands-voluntary-recall-include-additional-nutritional-and-beverage-products-due",
+        "sourceName": "FDA"
+      }
+    ],
+    "logo": "optimum-nutrition.svg",
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "solaray",
+    "name": "Solaray",
+    "founded": 1973,
+    "founder": "Jim Beck",
+    "headquarters": "Salt Lake City, Utah",
+    "owner": "The Better Being Co., held by investors led by Snapdragon Capital",
+    "history": "Solaray began in Utah in 1973, when founder Jim Beck started selling herbal blends in capsules under the name Solar Products; the business was incorporated as Solaray in 1974 and was based in Ogden. In 1993 it became the first acquisition of Nutraceutical, a company set up by private equity firm Bain Capital and management, which later listed on NASDAQ. Private equity firm HGGC took Nutraceutical private in 2017, and the group has traded as The Better Being Co. since 2021. In December 2025 HGGC sold Better Being to investors led by Snapdragon Capital Partners. Solaray products are made in Ogden, Utah.",
+    "positives": [
+      {
+        "text": "The company states products are made and tested at its own Ogden, Utah facility, and every raw-ingredient batch is tested even when suppliers provide a certificate of analysis.",
+        "source": "https://solaray.com/pages/quality",
+        "sourceName": "Solaray"
+      },
+      {
+        "text": "The company states its Ogden facility is certified to the 455-2 cGMP standard after an audit by a third-party certification body; the body is not named.",
+        "source": "https://solaray.com/pages/quality",
+        "sourceName": "Solaray"
+      },
+      {
+        "text": "Independent tester Labdoor scored Solaray Zinc 95.1 out of 100: arsenic, lead and cadmium were below quantifiable limits, and zinc measured 45.1 mg against 50 mg claimed (test undated).",
+        "source": "https://labdoor.com/review/solaray-zinc",
+        "sourceName": "Labdoor"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "In September 2023 Nutraceutical Corporation recalled about 85,300 bottles of Solaray Liposomal Multivitamins because the iron-containing products lacked legally required child-resistant packaging; no injuries were reported.",
+        "source": "https://www.cpsc.gov/Recalls/2023/Nutraceutical-Recalls-Solaray-Liposomal-Multivitamins-Due-to-Failure-to-Meet-Child-Resistant-Packaging-Requirement-Risk-of-Poisoning",
+        "sourceName": "CPSC"
+      },
+      {
+        "text": "Nutraceutical and Solaray sued in 2004 to overturn the FDA's ban on ephedra supplements; a district court sided with them in 2005, but a federal appeals court upheld the ban in August 2006.",
+        "source": "https://www.newhope.com/regulatory/appeals-court-rules-for-fda-in-ephedra-ban-overturns-lower-court-finding-in-nutraceutical-v-von-eschenbach",
+        "sourceName": "New Hope Network"
+      },
+      {
+        "text": "The brand has been under investor ownership since 2017: private equity firm HGGC held parent Better Being for eight years, then sold it in December 2025 to a syndicate led by Snapdragon Capital Partners.",
+        "source": "https://vitaminretailer.com/better-being-co-sold-to-global-investors/",
+        "sourceName": "Vitamin Retailer"
+      }
+    ],
+    "logo": "solaray.png",
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "source-naturals",
+    "name": "Source Naturals",
+    "founded": 1982,
+    "founder": "Ira Goldberg",
+    "headquarters": "Scotts Valley, California",
+    "owner": "Threshold Enterprises, family-owned",
+    "history": "Source Naturals was started in 1982 by Ira Goldberg, who had also founded Threshold Enterprises, a Scotts Valley, California distributor of dietary supplements established in 1978. In 1983 the brand launched Wellness Formula, a combination of vitamins, minerals and herbs that remains its best-known product. Threshold is the parent company and manufacturer of Source Naturals and its sister brand Planetary Herbals, and says it does much of its manufacturing in Scotts Valley. The company describes itself as family-owned. In 2018 Tom Grillea was appointed chief executive of Threshold, with Goldberg as chairman, and in 2019 the company opened a new quality-control laboratory.",
+    "positives": [
+      {
+        "text": "In 2019 parent Threshold Enterprises opened a 5,700 sq ft Science and Innovation Center in Scotts Valley, investing about $1 million, with the stated aim of doing all testing in-house.",
+        "source": "https://vitaminretailer.com/threshold-enterprises-increases-capacity-and-capability-with-new-laboratory",
+        "sourceName": "Vitamin Retailer"
+      },
+      {
+        "text": "The company states that every ingredient is tested before manufacturing and that a third-party certifying body audits its GMP compliance; the body is not named.",
+        "source": "https://www.sourcenaturals.com/pages/faqs",
+        "sourceName": "Source Naturals"
+      },
+      {
+        "text": "Independent tester Labdoor scored Source Naturals Glutamine 100 out of 100, with arsenic, lead, cadmium and mercury below quantifiable limits (test undated).",
+        "source": "https://labdoor.com/review/source-naturals-glutamine",
+        "sourceName": "Labdoor"
+      },
+      {
+        "text": "Parent Threshold Enterprises, which manufactures Source Naturals, was still chaired by its founder Ira Goldberg in 2018, more than 40 years after it began.",
+        "source": "https://www.prnewswire.com/news-releases/tom-grillea-appointed-new-chief-executive-officer-of-threshold-enterprises-300652484.html",
+        "sourceName": "PR Newswire"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "FDA warning letter in October 2016 to Threshold Enterprises, maker of Source Naturals, after an inspection found products adulterated because they were made under conditions violating dietary supplement manufacturing rules (cGMP).",
+        "source": "https://www.consumerlab.com/recalls/14003/fda-warns-maker-of-sublingual-melatonin-and-progesterone-cream/",
+        "sourceName": "ConsumerLab"
+      },
+      {
+        "text": "FDA records list eight voluntary recalls by Threshold Enterprises between 2013 and 2019, six of Source Naturals products, including under-strength vitamin D-3 (2016) and a metal fragment found in a GABA tablet (2013).",
+        "source": "https://api.fda.gov/food/enforcement.json?search=recalling_firm:%22Threshold+Enterprises%22&limit=20",
+        "sourceName": "FDA recall record"
+      },
+      {
+        "text": "In 2005 Threshold Enterprises settled a California Proposition 65 case brought by As You Sow over lead in herbal products, paying $400,000 in total and agreeing to testing protocols and warnings.",
+        "source": "https://oag.ca.gov/prop65/60-Day-Notice-2003-00120",
+        "sourceName": "California Attorney General"
+      }
+    ],
+    "logo": "source-naturals.svg",
+    "reviewed": "2026-11-10"
+  },
+  {
+    "slug": "force-factor",
+    "name": "Force Factor",
+    "founded": 2009,
+    "founder": "Daniel Wallace and a co-founder",
+    "headquarters": "Boston, Massachusetts",
+    "owner": "Force Factor, LLC, privately held",
+    "history": "Force Factor was founded in 2009 by Harvard graduates; co-founder and chief executive Daniel Wallace rowed on Harvard's heavyweight crew, and trade sources describe the founders as two Harvard rowers. The Boston company won an early award from the retailer GNC. Its parent later traded as NutraClick, which sold Force Factor and other brands online through free-sample offers tied to paid monthly memberships. The US Federal Trade Commission took action against NutraClick over those offers in 2016 and again in 2020. The company now operates as Force Factor, LLC, remains based in Boston and sells through major US retailers.",
+    "positives": [
+      {
+        "text": "The company states its products are developed in GMP-certified manufacturing facilities and that ingredients and raw materials are checked for impurities; no certifying body is named.",
+        "source": "https://forcefactor.com/pages/science",
+        "sourceName": "Force Factor"
+      },
+      {
+        "text": "The company was still led in 2025 by co-founder and chief executive Daniel Wallace, who started it in 2009.",
+        "source": "https://massmarketretailers.com/people-who-made-a-difference-daniel-wallace-co-founder-and-ceo-force-factor/",
+        "sourceName": "Mass Market Retailers"
+      }
+    ],
+    "negatives": [
+      {
+        "text": "In 2016 the FTC alleged that NutraClick, seller of Force Factor, enrolled people who ordered free samples in paid monthly memberships without clear disclosure; a court order required changes and a $350,000 payment.",
+        "source": "https://www.ftc.gov/news-events/press-releases/2016/09/ftc-action-nutraclick-must-change-billing-practices",
+        "sourceName": "FTC"
+      },
+      {
+        "text": "In 2020 the FTC alleged NutraClick and its two officers had violated the 2016 order; they agreed to pay $1.04 million and accepted a permanent ban on negative-option (automatic rebilling) marketing.",
+        "source": "https://www.ftc.gov/news-events/news/press-releases/2020/09/nutraclick-llc-pay-104-million-agree-negative-option-marketing-ban-settle-ftc-allegations-it",
+        "sourceName": "FTC"
+      },
+      {
+        "text": "Force Factor was among the defendants in a class action alleging unsupported claims for testosterone supplements containing Testofen (Robbins v. Gencor Nutrients); a settlement requiring marketing changes received final approval in August 2018.",
+        "source": "https://www.truthinadvertising.org/class-action/supplements-containing-testofen/",
+        "sourceName": "Truth in Advertising"
+      },
+      {
+        "text": "A class action filed in October 2024 (Mendez v. Force Factor, C.D. Cal.) alleged that front labels overstate the dose per unit of several supplements, including melatonin products; the case was listed as pending.",
+        "source": "https://truthinadvertising.org/class-action/force-factor-supplements",
+        "sourceName": "Truth in Advertising"
+      }
+    ],
+    "logo": "force-factor.svg",
+    "reviewed": "2026-11-10"
+  }
+];

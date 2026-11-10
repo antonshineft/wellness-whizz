@@ -1,0 +1,43 @@
+{
+  "name": "Solaray",
+  "founded": 1973,
+  "founder": "Jim Beck",
+  "headquarters": "Salt Lake City, Utah",
+  "owner": "The Better Being Co., held by investors led by Snapdragon Capital",
+  "history": "Solaray began in Utah in 1973, when founder Jim Beck started selling herbal blends in capsules under the name Solar Products; the business was incorporated as Solaray in 1974 and was based in Ogden. In 1993 it became the first acquisition of Nutraceutical, a company set up by private equity firm Bain Capital and management, which later listed on NASDAQ. Private equity firm HGGC took Nutraceutical private in 2017, and the group has traded as The Better Being Co. since 2021. In December 2025 HGGC sold Better Being to investors led by Snapdragon Capital Partners. Solaray products are made in Ogden, Utah.",
+  "positives": [
+    {
+      "text": "The company states products are made and tested at its own Ogden, Utah facility, and every raw-ingredient batch is tested even when suppliers provide a certificate of analysis.",
+      "source": "https://solaray.com/pages/quality",
+      "source_name": "Solaray"
+    },
+    {
+      "text": "The company states its Ogden facility is certified to the 455-2 cGMP standard after an audit by a third-party certification body; the body is not named.",
+      "source": "https://solaray.com/pages/quality",
+      "source_name": "Solaray"
+    },
+    {
+      "text": "Independent tester Labdoor scored Solaray Zinc 95.1 out of 100: arsenic, lead and cadmium were below quantifiable limits, and zinc measured 45.1 mg against 50 mg claimed (test undated).",
+      "source": "https://labdoor.com/review/solaray-zinc",
+      "source_name": "Labdoor"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "In September 2023 Nutraceutical Corporation recalled about 85,300 bottles of Solaray Liposomal Multivitamins because the iron-containing products lacked legally required child-resistant packaging; no injuries were reported.",
+      "source": "https://www.cpsc.gov/Recalls/2023/Nutraceutical-Recalls-Solaray-Liposomal-Multivitamins-Due-to-Failure-to-Meet-Child-Resistant-Packaging-Requirement-Risk-of-Poisoning",
+      "source_name": "CPSC"
+    },
+    {
+      "text": "Nutraceutical and Solaray sued in 2004 to overturn the FDA's ban on ephedra supplements; a district court sided with them in 2005, but a federal appeals court upheld the ban in August 2006.",
+      "source": "https://www.newhope.com/regulatory/appeals-court-rules-for-fda-in-ephedra-ban-overturns-lower-court-finding-in-nutraceutical-v-von-eschenbach",
+      "source_name": "New Hope Network"
+    },
+    {
+      "text": "The brand has been under investor ownership since 2017: private equity firm HGGC held parent Better Being for eight years, then sold it in December 2025 to a syndicate led by Snapdragon Capital Partners.",
+      "source": "https://vitaminretailer.com/better-being-co-sold-to-global-investors/",
+      "source_name": "Vitamin Retailer"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

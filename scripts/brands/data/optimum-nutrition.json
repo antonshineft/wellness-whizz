@@ -1,0 +1,43 @@
+{
+  "name": "Optimum Nutrition",
+  "founded": 1986,
+  "founder": "Tony and Mike Costello",
+  "headquarters": "Downers Grove, Illinois",
+  "owner": "Glanbia of Ireland",
+  "history": "Optimum Nutrition was founded in Illinois in 1986 by brothers Tony and Mike Costello. It became known for protein powders such as Gold Standard 100% Whey, and by 2008 had manufacturing sites in Illinois, South Carolina and Florida. In August 2008 the Irish dairy and nutrition group Glanbia plc bought the business, then based in Aurora, Illinois, for about $315 million. The brand is now part of Glanbia Performance Nutrition, whose US office is in Downers Grove, Illinois, with a manufacturing plant in Aurora. The company says its products are sold in more than 90 countries.",
+  "positives": [
+    {
+      "text": "NSF's public GMP registration listing includes Glanbia Performance Nutrition (Manufacturing), Inc., with a manufacturing facility in Aurora, Illinois (listing checked November 2026).",
+      "source": "https://info.nsf.org/Certified/GMP/Listings.asp",
+      "source_name": "NSF"
+    },
+    {
+      "text": "LGC's Informed Choice banned-substance testing programme lists Optimum Nutrition products as certified, for example Gold Standard 100% Plant (EU), certified in September 2021.",
+      "source": "https://choice.wetestyoutrust.com/ja/node/258121",
+      "source_name": "Informed Choice"
+    },
+    {
+      "text": "The company states it runs over 100,000 quality and food safety checks a year at production facilities it owns, with more than 300 in-house quality control staff.",
+      "source": "https://www.optimumnutrition.com/en-us/pages/our-quality",
+      "source_name": "Optimum Nutrition"
+    },
+    {
+      "text": "Ownership has been stable: Glanbia plc has owned the brand since completing its purchase in August 2008.",
+      "source": "https://www.nutraceuticalsworld.com/?p=24369",
+      "source_name": "Nutraceuticals World"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "In 2013 Optimum Nutrition agreed to a $1.4 million class action settlement (Attlesey v. Optimum Nutrition) over claims made for the enzyme Aminogen in its protein powders, while denying any wrongdoing.",
+      "source": "https://topclassactions.com/lawsuit-settlements/lawsuit-news/optimum-nutrition-protein-powder-class-action-settlement",
+      "source_name": "Top Class Actions"
+    },
+    {
+      "text": "In August 2022 beverage maker Lyons Magnus recalled Optimum Nutrition-branded Gold Standard 100% Whey drink cartons (vanilla and chocolate) over potential microbial contamination; FDA has since terminated the recall.",
+      "source": "https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts/lyons-magnus-expands-voluntary-recall-include-additional-nutritional-and-beverage-products-due",
+      "source_name": "FDA"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

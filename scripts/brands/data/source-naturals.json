@@ -1,0 +1,48 @@
+{
+  "name": "Source Naturals",
+  "founded": 1982,
+  "founder": "Ira Goldberg",
+  "headquarters": "Scotts Valley, California",
+  "owner": "Threshold Enterprises, family-owned",
+  "history": "Source Naturals was started in 1982 by Ira Goldberg, who had also founded Threshold Enterprises, a Scotts Valley, California distributor of dietary supplements established in 1978. In 1983 the brand launched Wellness Formula, a combination of vitamins, minerals and herbs that remains its best-known product. Threshold is the parent company and manufacturer of Source Naturals and its sister brand Planetary Herbals, and says it does much of its manufacturing in Scotts Valley. The company describes itself as family-owned. In 2018 Tom Grillea was appointed chief executive of Threshold, with Goldberg as chairman, and in 2019 the company opened a new quality-control laboratory.",
+  "positives": [
+    {
+      "text": "In 2019 parent Threshold Enterprises opened a 5,700 sq ft Science and Innovation Center in Scotts Valley, investing about $1 million, with the stated aim of doing all testing in-house.",
+      "source": "https://vitaminretailer.com/threshold-enterprises-increases-capacity-and-capability-with-new-laboratory",
+      "source_name": "Vitamin Retailer"
+    },
+    {
+      "text": "The company states that every ingredient is tested before manufacturing and that a third-party certifying body audits its GMP compliance; the body is not named.",
+      "source": "https://www.sourcenaturals.com/pages/faqs",
+      "source_name": "Source Naturals"
+    },
+    {
+      "text": "Independent tester Labdoor scored Source Naturals Glutamine 100 out of 100, with arsenic, lead, cadmium and mercury below quantifiable limits (test undated).",
+      "source": "https://labdoor.com/review/source-naturals-glutamine",
+      "source_name": "Labdoor"
+    },
+    {
+      "text": "Parent Threshold Enterprises, which manufactures Source Naturals, was still chaired by its founder Ira Goldberg in 2018, more than 40 years after it began.",
+      "source": "https://www.prnewswire.com/news-releases/tom-grillea-appointed-new-chief-executive-officer-of-threshold-enterprises-300652484.html",
+      "source_name": "PR Newswire"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "FDA warning letter in October 2016 to Threshold Enterprises, maker of Source Naturals, after an inspection found products adulterated because they were made under conditions violating dietary supplement manufacturing rules (cGMP).",
+      "source": "https://www.consumerlab.com/recalls/14003/fda-warns-maker-of-sublingual-melatonin-and-progesterone-cream/",
+      "source_name": "ConsumerLab"
+    },
+    {
+      "text": "FDA records list eight voluntary recalls by Threshold Enterprises between 2013 and 2019, six of Source Naturals products, including under-strength vitamin D-3 (2016) and a metal fragment found in a GABA tablet (2013).",
+      "source": "https://api.fda.gov/food/enforcement.json?search=recalling_firm:%22Threshold+Enterprises%22&limit=20",
+      "source_name": "FDA recall record"
+    },
+    {
+      "text": "In 2005 Threshold Enterprises settled a California Proposition 65 case brought by As You Sow over lead in herbal products, paying $400,000 in total and agreeing to testing protocols and warnings.",
+      "source": "https://oag.ca.gov/prop65/60-Day-Notice-2003-00120",
+      "source_name": "California Attorney General"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

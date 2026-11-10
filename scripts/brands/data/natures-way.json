@@ -1,0 +1,56 @@
+{
+  "name": "Nature's Way",
+  "aliases": [
+    "Natures Way"
+  ],
+  "founded": 1969,
+  "founder": "Tom Murdock",
+  "headquarters": "Green Bay, Wisconsin",
+  "owner": "the Schwabe Group of Germany",
+  "history": "Nature's Way began in 1969, when its founder Tom Murdock was looking for a way to improve his wife's health. The business started in Arizona with a single product, moved to Utah in the late 1970s and settled in Springville in 1984. The German herbal-medicine maker Schwabe bought a one-third stake in its holding company in 1992 and says it has been sole owner since 2001. Schwabe added Enzymatic Therapy of Green Bay, Wisconsin, in 2008, and from 2009 Nature's Way moved its headquarters from Springville to Green Bay, where it runs manufacturing, testing laboratories and distribution.",
+  "positives": [
+    {
+      "text": "The company states that its facilities are certified by NSF to the NSF/ANSI 455-2 good manufacturing practice standard for dietary supplements.",
+      "source": "https://naturesway.com/pages/quality",
+      "source_name": "Nature's Way"
+    },
+    {
+      "text": "The company states that its laboratory is accredited to ISO/IEC 17025:2017 and that its liquid and tablet facility is certified organic by Quality Assurance International.",
+      "source": "https://naturesway.com/pages/quality",
+      "source_name": "Nature's Way"
+    },
+    {
+      "text": "ConsumerLab's public brand page reports that of 12 Nature's Way products it selected for testing, 9 were approved for quality and 3 were not.",
+      "source": "https://www.consumerlab.com/natures-way/",
+      "source_name": "ConsumerLab"
+    },
+    {
+      "text": "In 2015 Nature's Way began requiring suppliers to document each botanical ingredient's origin and identity back to the harvested plant, trade press reported.",
+      "source": "https://www.nutraingredients.com/Article/2015/05/22/Nature-s-Way-institutes-more-rigorous-plant-to-powder-supply-chain-management-scheme/",
+      "source_name": "NutraIngredients"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "In October 2013 Schwabe North America recalled several Nature's Way Alive! multivitamins (FDA Class II) after a supplier said an enzyme blend might contain the antibiotic chloramphenicol.",
+      "source": "https://api.fda.gov/food/enforcement.json?search=recall_number:%22F-0838-2014%22",
+      "source_name": "FDA recall record"
+    },
+    {
+      "text": "In September 2015 Nature's Way reached an accord with the New York Attorney General over its devil's claw supplements, agreeing to use only Harpagophytum procumbens, continue DNA barcode testing and issue refunds.",
+      "source": "https://www.supplysidesj.com/litigation/new-york-attorney-general-schneiderman-targets-devils-claw-supplements",
+      "source_name": "SupplySide Supplement Journal"
+    },
+    {
+      "text": "A 2016 class action (Hunter v. Nature's Way, S.D. Cal.) alleged its coconut oil was falsely advertised as healthy; in 2019 the company agreed to a $1.8 million settlement and five years of label restrictions.",
+      "source": "https://topclassactions.com/lawsuit-settlements/consumer-products/food/natures-way-agrees-1-8m-coconut-oil-class-action-settlement",
+      "source_name": "Top Class Actions"
+    },
+    {
+      "text": "A class action (Sonner v. Schwabe North America, C.D. Cal.) alleged Ginkgold memory claims lacked scientific support; a settlement of nearly $3.4 million with label changes was filed for court approval in August 2020.",
+      "source": "https://topclassactions.com/lawsuit-settlements/consumer-products/supplements/natures-way-supplements-class-action-settles-for-3-4m",
+      "source_name": "Top Class Actions"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

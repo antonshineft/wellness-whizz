@@ -1,0 +1,48 @@
+{
+  "name": "Solgar",
+  "founded": 1947,
+  "founder": null,
+  "headquarters": "Leonia, New Jersey",
+  "owner": "Nestlé Health Science",
+  "history": "Solgar has made branded vitamins and supplements since 1947 and is based in Leonia, New Jersey. By 2005 it belonged to the drug company Wyeth, which sold it that year to NBTY for about $115 million; Solgar then had sales of roughly $105 million and was stocked by more than 5,000 US health food and specialty stores and sold in 40 countries. NBTY later became The Bountiful Company, majority-owned by the investment firm KKR from 2017. In August 2021 Nestlé Health Science completed its purchase of Bountiful's core brands, including Solgar, under a $5.75 billion agreement.",
+  "positives": [
+    {
+      "text": "ConsumerLab's public brand page lists 14 Solgar products as voluntarily tested and approved in its Quality Certification Program; results for 4 products it selected itself are visible to members only.",
+      "source": "https://www.consumerlab.com/solgar/",
+      "source_name": "ConsumerLab"
+    },
+    {
+      "text": "In a 2019 trade-magazine company profile, Solgar said most of its products are made in its own facilities and tested at multiple stages, from raw material to finished product.",
+      "source": "https://wholefoodsmagazine.com/articles/5485-company-profile-solgar",
+      "source_name": "WholeFoods Magazine"
+    },
+    {
+      "text": "The brand dates from 1947 and its range includes halal, kosher, vegetarian and vegan supplements, according to the same company profile.",
+      "source": "https://wholefoodsmagazine.com/articles/5485-company-profile-solgar",
+      "source_name": "WholeFoods Magazine"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "In November 2014 Solgar recalled three lots of ABC Dophilus Powder after the mould Rhizopus oryzae was found in it; a premature infant given the product in hospital had died in October 2014.",
+      "source": "https://www.nutraingredients.com/Article/2015/01/08/FDA-warning-over-infant-s-death-shouldn-t-call-safety-of-probiotics-into-question-experts-say",
+      "source_name": "NutraIngredients"
+    },
+    {
+      "text": "A proposed class action filed in October 2026 (Higgins v. Nestlé Health Science, D.N.J.) alleged that Solgar VM-75's 75 mg vitamin B6 dose can cause nerve damage and that the label carries no warning.",
+      "source": "https://www.classaction.org/media/nestle-complaint.pdf",
+      "source_name": "ClassAction.org"
+    },
+    {
+      "text": "In December 2023 Nestlé Health Science recalled 612 bottles of Solgar Glucosamine Chondroitin MSM (FDA Class III) because a B-complex product had been filled into bottles carrying that label.",
+      "source": "https://api.fda.gov/food/enforcement.json?search=recall_number:%22F-0803-2024%22",
+      "source_name": "FDA recall record"
+    },
+    {
+      "text": "Solgar has belonged to the multinational food group Nestlé since August 2021, after earlier ownership by Wyeth, NBTY and the KKR-controlled Bountiful Company.",
+      "source": "https://www.supplysidesj.com/supplements/nestl-completes-bountiful-co-acquisition",
+      "source_name": "SupplySide Supplement Journal"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

@@ -1,0 +1,52 @@
+{
+  "name": "NOW Foods",
+  "aliases": [
+    "NOW",
+    "Now Foods"
+  ],
+  "founded": 1968,
+  "founder": "Elwood Richard",
+  "headquarters": "Bloomingdale, Illinois",
+  "owner": "the Richard family, with employees holding about 30%",
+  "history": "NOW Foods was started in 1968 by Elwood Richard, whose father had bought the soy-products maker Fearn Soya in 1948 and who had opened his first health food store near Chicago in 1962. The company, legally NOW Health Group, Inc., is based in Bloomingdale, Illinois, and has a second plant in Sparks, Nevada. It sells supplements, foods, sports nutrition and personal care products. Richard died in 2017. The business stayed in the Richard family until January 2026, when it announced the sale of about 30 percent of its shares to employees through a stock ownership plan.",
+  "positives": [
+    {
+      "text": "Has tested other brands' supplements bought on Amazon since 2017 and published the results; the 24th round (2026) used its own labs plus the independent Alkemist Labs.",
+      "source": "https://www.nutraingredients.com/Article/2026/08/20/nows-testing-of-vitamin-c-gummies-on-amazon-returns-deeply-disappointing-results/",
+      "source_name": "NutraIngredients"
+    },
+    {
+      "text": "UL certified its Bloomingdale and Sparks facilities under its yearly GMP audit programme (reported 2016); NOW was among the first certified under the Natural Products Association GMP programme in 2000.",
+      "source": "https://www.nutritionaloutlook.com/view/now-foods-gets-underwriters-laboratory-certification-dietary-supplement-facilities",
+      "source_name": "Nutritional Outlook"
+    },
+    {
+      "text": "ConsumerLab's public brand page lists 45 NOW products tested: 39 approved (20 of them Top Picks), 5 not approved and 1 with another status (page viewed November 2026).",
+      "source": "https://www.consumerlab.com/now-foods/",
+      "source_name": "ConsumerLab"
+    },
+    {
+      "text": "Still controlled by the founding family after more than 50 years; in January 2026 it announced that employees would own about 30% through a stock ownership plan.",
+      "source": "https://www.wholefoodsmagazine.com/articles/17848-now-health-group-sells-family-shares-to-employees",
+      "source_name": "WholeFoods Magazine"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "FDA warning letter in October 2004 about possible contamination of one lot of NOW American ginseng with the pesticide quintozene; NOW had recalled its American ginseng lots that August.",
+      "source": "https://www.supplysidesj.com/supplement-regulations/now-responds-to-fda-warning-letter",
+      "source_name": "SupplySide Supplement Journal"
+    },
+    {
+      "text": "In June 2011 NOW recalled Calcium & Magnesium softgels found to contain 50 to 66 times the labelled vitamin D; the error was traced to a contract manufacturer's formulation.",
+      "source": "https://www.supplysidesj.com/legal-compliance/now-foods-recalls-softgels-for-excessive-vitamin-d",
+      "source_name": "SupplySide Supplement Journal"
+    },
+    {
+      "text": "In January 2024 NOW recalled four lots of phosphatidylserine softgels (NOW and Protocol For Life Balance brands) after a ConsumerLab report; some softgels tested at 30 to 55 mg against a 300 mg claim.",
+      "source": "https://www.nutraingredients.com/Article/2024/01/11/NOW-recalls-low-potency-phosphatidylserine-products/",
+      "source_name": "NutraIngredients"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

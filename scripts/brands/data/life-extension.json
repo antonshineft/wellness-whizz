@@ -1,0 +1,43 @@
+{
+  "name": "Life Extension",
+  "founded": 1980,
+  "founder": "Saul Kent and William Faloon",
+  "headquarters": "Fort Lauderdale, Florida",
+  "owner": "private owners, not disclosed",
+  "history": "Life Extension was founded in 1980 in Florida by Saul Kent and William Faloon as the non-profit Life Extension Foundation. Supplements were sold through an affiliated for-profit company, the Life Extension Foundation Buyers Club, which paid royalties to the foundation. The FDA raided its warehouse in 1987 and both founders were indicted in 1991; the company says every charge was dismissed by 1996. The foundation now operates as the Biomedical Research & Longevity Society, while the privately owned supplement business trades as Life Extension from Fort Lauderdale. It sells nearly 400 supplements, offers mail-order laboratory tests and publishes Life Extension Magazine.",
+  "positives": [
+    {
+      "text": "NSF's official NSF/ANSI 455-2 GMP listing (checked November 2026) includes Life Extension's operating company for its distribution facilities in New Jersey and Nevada.",
+      "source": "https://info.nsf.org/Certified/455GMP/Listings.asp",
+      "source_name": "NSF"
+    },
+    {
+      "text": "The company says it will provide, on request, a summary of the contract-manufacturer and independent-laboratory test reports for every supplement it sells.",
+      "source": "https://www.lifeextension.com/about/life-extension-research/safety",
+      "source_name": "Life Extension"
+    },
+    {
+      "text": "ConsumerLab's 2026 survey of supplement users rated Life Extension the top catalog/internet merchant and brand for customer satisfaction; this is a consumer survey, not a product test.",
+      "source": "https://consumerlab.com/news/top-rated-vitamins-and-supplements-2026/02-25-2026",
+      "source_name": "ConsumerLab"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "FDA warning letter in February 2017 said website and Facebook claims presented products as treatments for diseases such as breast cancer, and noted over 400 products with disease claims.",
+      "source": "https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/warning-letters/life-extension-foundation-buyers-club-inc-500619-02012017",
+      "source_name": "FDA"
+    },
+    {
+      "text": "FDA agents raided its warehouse in 1987, and a federal indictment unsealed in 1991 accused the founders of importing unapproved drugs; the company reports all charges were dismissed by 1996.",
+      "source": "https://www.miaminewtimes.com/news/theyre-gonna-live-forever-6363863",
+      "source_name": "Miami New Times"
+    },
+    {
+      "text": "In May 2013 the IRS revoked the Life Extension Foundation's tax-exempt status, retroactive to 2006, over its ties to the for-profit Buyers Club; the foundation challenged this in court.",
+      "source": "https://nonprofitquarterly.org/nonprofit-strays-over-the-irs-line-in-making-a-healthy-profit/",
+      "source_name": "Nonprofit Quarterly"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

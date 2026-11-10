@@ -1,0 +1,53 @@
+{
+  "name": "Swanson Vitamins",
+  "aliases": [
+    "Swanson",
+    "Swanson Health Products",
+    "Swanson Health"
+  ],
+  "founded": 1969,
+  "founder": "Leland Swanson",
+  "headquarters": "Fargo, North Dakota",
+  "owner": "Swander Pace Capital, a private equity firm",
+  "history": "Swanson Health Products was founded in 1969 in Fargo, North Dakota, by Leland Swanson, who began ordering supplements in bulk and selling them by mail-order catalogue. His sons Jay and Lee later joined, and under Lee Swanson the business moved online in the 1990s. The company sells Swanson-branded supplements, which it manufactures in Fargo, alongside other brands, and trades online as Swanson Vitamins. In January 2016 it was sold to the San Francisco private equity firm Swander Pace Capital, which still lists it as a current investment; terms were not disclosed. Headquarters remain in Fargo.",
+  "positives": [
+    {
+      "text": "NSF lists Swanson's manufacturing facility in Fargo as certified to NSF/ANSI 455-2, the good manufacturing practice standard for dietary supplements (listing checked November 2026).",
+      "source": "https://info.nsf.org/Certified/455GMP/Listings.asp?Company=C0054895&Standard=455-2GMP",
+      "source_name": "NSF"
+    },
+    {
+      "text": "In June 2025 the Fargo facility was reported to have earned an 'A' rating under NSF/ANSI 455-2; Swanson has held NSF GMP certification since 2010.",
+      "source": "https://www.nutraceuticalsworld.com/breaking-news/swanson-health-earns-a-rating-under-nsf-ansi-455-2-gmp-certification-for-dietary-supplements/",
+      "source_name": "Nutraceuticals World"
+    },
+    {
+      "text": "ConsumerLab's public brand page lists 51 Swanson products tested: 38 approved (22 of them Top Picks), 8 not approved and 4 with another status (page viewed November 2026).",
+      "source": "https://www.consumerlab.com/swanson/",
+      "source_name": "ConsumerLab"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "FDA warning letter in August 2007 stating that Swanson's Red Yeast Rice and Red Yeast Rice/Policosanol Complex contained significant levels of lovastatin and were being sold as unapproved new drugs.",
+      "source": "https://quackwatch.org/cases/fdawarning/prod/fda-warning-letters-about-products-2007/swanson/",
+      "source_name": "FDA letter, via Quackwatch"
+    },
+    {
+      "text": "In 2009 Swanson settled a California Proposition 65 lawsuit brought by As You Sow over lead in herbal products, with payments totalling $682,500 plus required product testing and warnings.",
+      "source": "https://oag.ca.gov/prop65/60-day-notice-2007-00105",
+      "source_name": "California Attorney General"
+    },
+    {
+      "text": "In April 2014 Swanson voluntarily recalled its Full Spectrum Cilantro (Coriander) capsules because of possible Salmonella contamination.",
+      "source": "https://www.consumerlab.com/recalls/10619/digestive-health-supplement-recalled-due-to-salmonella-risk/",
+      "source_name": "ConsumerLab"
+    },
+    {
+      "text": "Owned by a private equity firm, Swander Pace Capital, since January 2016; the purchase terms were not disclosed.",
+      "source": "https://www.nutraingredients.com/Article/2016/01/26/Online-retailer-Swanson-acquired-by-private-equity-firm/",
+      "source_name": "NutraIngredients"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

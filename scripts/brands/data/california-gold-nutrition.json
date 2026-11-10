@@ -1,0 +1,41 @@
+{
+  "name": "California Gold Nutrition",
+  "aliases": [
+    "CGN"
+  ],
+  "founded": 2013,
+  "founder": "iHerb",
+  "headquarters": "Irvine, California",
+  "owner": "iHerb, the retailer that sells it",
+  "history": "California Gold Nutrition is a house brand of the online retailer iHerb, which says it was founded in a California apartment in 1996. iHerb introduced its first owned brands in 2009 and launched California Gold Nutrition in 2013. The range covers vitamins, minerals, supplements, sports nutrition and grocery items, and a beauty line was added in 2025. The brand is not a separate company: a US regulator names the firm behind it as iHerb LLC, doing business as Madre Labs LLC, of Irvine, California. In 2018 iHerb started its iTested programme, under which own-brand products are tested by outside laboratories.",
+  "positives": [
+    {
+      "text": "Under iHerb's iTested programme, badged products are tested per batch by third-party laboratories accredited to ISO/IEC 17025 and the batch results are published; only badged products are covered.",
+      "source": "https://www.iherb.com/c/itested-products",
+      "source_name": "iHerb"
+    },
+    {
+      "text": "NSF lists five iHerb distribution centres in the United States as certified to NSF/ANSI 455-2 (dietary supplement GMP); this covers storage and distribution, not manufacturing.",
+      "source": "https://info.nsf.org/Certified/455GMP/Listings.asp?Standard=455-2GMP",
+      "source_name": "NSF"
+    },
+    {
+      "text": "ConsumerLab's public brand page lists 4 California Gold Nutrition products tested: 3 approved and 1 not approved (page viewed November 2026).",
+      "source": "https://www.consumerlab.com/california-gold-nutrition/",
+      "source_name": "ConsumerLab"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "The brand belongs to the retailer that sells it: iHerb lists California Gold Nutrition, launched in 2013, among its own brands, so seller and brand owner are the same company.",
+      "source": "https://www.iherb.com/lp/iherb-brands-learn-more",
+      "source_name": "iHerb"
+    },
+    {
+      "text": "In June 2025 iHerb recalled about 60,000 units of three California Gold Nutrition iron-containing multivitamins because the packaging was not child-resistant as US rules require; no incidents were reported.",
+      "source": "https://www.cpsc.gov/Recalls/2025/iHerb-Recalls-Bottles-and-Blister-Packs-of-California-Gold-Nutrition-Iron-Supplements-Due-to-Risk-of-Serious-Injury-or-Death-from-Child-Poisoning-Violation-of-Federal-Standard-for-Child-Resistant-Packaging",
+      "source_name": "CPSC"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

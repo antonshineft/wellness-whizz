@@ -1,0 +1,46 @@
+{
+  "name": "Jarrow Formulas",
+  "aliases": [
+    "Jarrow"
+  ],
+  "founded": 1977,
+  "founder": "Jarrow Rogovin",
+  "headquarters": "Los Angeles, California",
+  "owner": "Vytalogy Wellness, held by the private equity firm New Mountain Capital",
+  "history": "Jarrow Rogovin founded Jarrow Formulas in Los Angeles in 1977, at first delivering supplement orders in person to local health food stores. The company launched its Jarro-Dophilus probiotic in 1986, and in 2000 a sister company opened a manufacturing, packaging and laboratory site in Santa Fe Springs, California. Rogovin also founded the International Probiotics Association in 2001. The private equity firm New Mountain Capital bought Jarrow Formulas effective 1 September 2020 and acquired Natrol that November. In January 2022 the two were combined under a new parent, Vytalogy Wellness, while keeping their own brand names.",
+  "positives": [
+    {
+      "text": "ConsumerLab's public brand page reports that of 8 Jarrow Formulas products it selected for testing, 7 were approved for quality and 1 was not.",
+      "source": "https://www.consumerlab.com/jarrow-formulas/",
+      "source_name": "ConsumerLab"
+    },
+    {
+      "text": "The company states that raw materials are tested for identity, purity and potency before production and that finished products are tested again in its in-house analytical laboratories.",
+      "source": "https://jarrow.com/pages/science",
+      "source_name": "Jarrow Formulas"
+    },
+    {
+      "text": "In 2006 NSF International awarded GMP registration to the Santa Fe Springs manufacturing facility of Jarrow Industries, which the brand describes as its sister company.",
+      "source": "https://www.supplysidesj.com/manufacturing/jarrow-industries-gains-nsf-gmp-registration",
+      "source_name": "SupplySide Supplement Journal"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "In January 2018 Jarrow Formulas recalled 2,853 units of Liquid L-Carnitine nationwide (FDA Class II) after one lot showed a higher-than-normal microbial result at a six-month check.",
+      "source": "https://api.fda.gov/food/enforcement.json?search=recall_number:%22F-0682-2018%22",
+      "source_name": "FDA recall record"
+    },
+    {
+      "text": "In December 2005 Jarrow Formulas recalled its Ginkgo biloba 50:1 products because raw material potency was below the label claim, according to ConsumerLab's recall record.",
+      "source": "https://www.consumerlab.com/jarrow-formulas/",
+      "source_name": "ConsumerLab"
+    },
+    {
+      "text": "Jarrow Formulas has been private-equity owned since New Mountain Capital bought it in September 2020; founder Jarrow Rogovin stayed on as chairman at the time of the sale.",
+      "source": "https://wholefoodsmagazine.com/articles/5968-jarrow-formulas-sold-to-private-equity-firm",
+      "source_name": "WholeFoods Magazine"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

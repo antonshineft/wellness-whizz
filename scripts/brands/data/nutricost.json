@@ -1,0 +1,33 @@
+{
+  "name": "Nutricost",
+  "founded": 2012,
+  "founder": "Min Kim",
+  "headquarters": "Vineyard, Utah",
+  "owner": "eSupplements, LLC, privately held",
+  "history": "Nutricost is a supplement brand based in Vineyard, Utah. A company press release says it launched in 2012, while chief executive Min Kim has said it grew out of an affiliate internet-marketing business he started with a school friend and became Nutricost in 2013. Court and regulatory records name the seller as eSupplements, LLC, doing business as Nutricost, and the manufacturer as Nutricost Manufacturing, LLC in Vineyard. In 2021 it signed a five-year deal as official supplement supplier to Brigham Young University athletics. A 2024 business-magazine profile reported more than 650 employees and fulfilment centres in Utah, North Carolina and California.",
+  "positives": [
+    {
+      "text": "NSF lists Nutricost Manufacturing, LLC facilities in Vineyard, Utah, as certified to NSF/ANSI 455-2, the good manufacturing practice standard for dietary supplements (listing checked November 2026).",
+      "source": "https://info.nsf.org/Certified/455GMP/Listings.asp?Standard=455-2GMP",
+      "source_name": "NSF"
+    },
+    {
+      "text": "ConsumerLab's public brand page lists 18 Nutricost products tested: 15 approved (6 of them Top Picks) and 3 not approved (page viewed November 2026).",
+      "source": "https://www.consumerlab.com/nutricost/",
+      "source_name": "ConsumerLab"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "A 2023 class action (Cohen v. eSupplements) alleged Nutricost's magnesium glycinate supplements were not as labelled; a $1.835 million settlement, in which Nutricost denies wrongdoing, awaited final court approval after an October 2026 hearing.",
+      "source": "https://cohenmag.com/",
+      "source_name": "Settlement website"
+    },
+    {
+      "text": "A proposed class action filed in November 2022 (Scheibe v. eSupplements, California) alleged that Nutricost EAA and pre-workout powders contained far more calories than labelled and undisclosed artificial flavouring; the allegations were not proven.",
+      "source": "https://www.classaction.org/news/class-action-claims-nutricost-powders-contain-more-calories-undisclosed-artificial-flavor-than-advertised",
+      "source_name": "ClassAction.org"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

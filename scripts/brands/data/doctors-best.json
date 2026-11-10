@@ -1,0 +1,41 @@
+{
+  "name": "Doctor's Best",
+  "aliases": [
+    "Doctors Best"
+  ],
+  "founded": 1990,
+  "founder": "Ken Halvorsrude and Dr. James Braly",
+  "headquarters": "Tustin, California",
+  "owner": "Xiamen Kingdomway Group of China",
+  "history": "Doctor's Best was founded in 1990 by Ken Halvorsrude and Dr. James Braly; the company describes itself as founded by a physician. The private equity firm North Castle Partners acquired it in 2014 and sold it in June 2016 to Xiamen Kingdomway Group, a Chinese ingredient manufacturer and major producer of coenzyme Q10. Terms were not disclosed. Doctor's Best is now a subsidiary of Kingdomway USA and is based in Tustin, California, where its sister manufacturing company Vit-Best Nutrition also operates. It sells more than 200 products and acquired the Viactiv calcium chew brand in 2024.",
+  "positives": [
+    {
+      "text": "Its sister manufacturing company Vit-Best Nutrition in Tustin, California, appears on NSF's official NSF/ANSI 455-2 GMP listing (checked November 2026).",
+      "source": "https://info.nsf.org/Certified/455GMP/Listings.asp",
+      "source_name": "NSF"
+    },
+    {
+      "text": "The company says its products are manufactured and tested exclusively at cGMP-certified facilities in the United States, and it has its own manufacturing arm, Vit-Best.",
+      "source": "https://www.nutraceuticalsworld.com/top-company-profile/doctors-best-2025/",
+      "source_name": "Nutraceuticals World"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "In June 2014 Doctor's Best recalled 7,379 bottles of its Red Yeast Rice supplement because it contained undeclared lovastatin, a prescription cholesterol drug; the company reported no adverse events.",
+      "source": "https://www.supplysidesj.com/labeling/doctors-best-recalls-cholesterol-supplement-due-to-presence-of-drug",
+      "source_name": "SupplySide Supplement Journal"
+    },
+    {
+      "text": "A 2020 class action (Casey v. Doctor's Best) alleged glucosamine products contained no glucosamine sulfate as labelled; it was settled in 2022 with refunds and label changes, without admitting wrongdoing.",
+      "source": "https://topclassactions.com/lawsuit-settlements/open-lawsuit-settlements/doctors-best-glucosamine-false-advertising-class-action-settlement/",
+      "source_name": "Top Class Actions"
+    },
+    {
+      "text": "Since June 2016 the brand has been owned by Xiamen Kingdomway Group, a Chinese ingredient manufacturer, which bought it from the private equity firm North Castle Partners.",
+      "source": "https://www.nutraingredients.com/Article/2016/06/16/Doctor-s-Best-sold-to-Chinese-company-extending-trend-in-industry/",
+      "source_name": "NutraIngredients"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

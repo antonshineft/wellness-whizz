@@ -1,0 +1,43 @@
+{
+  "name": "Force Factor",
+  "founded": 2009,
+  "founder": "Daniel Wallace and a co-founder",
+  "headquarters": "Boston, Massachusetts",
+  "owner": "Force Factor, LLC, privately held",
+  "history": "Force Factor was founded in 2009 by Harvard graduates; co-founder and chief executive Daniel Wallace rowed on Harvard's heavyweight crew, and trade sources describe the founders as two Harvard rowers. The Boston company won an early award from the retailer GNC. Its parent later traded as NutraClick, which sold Force Factor and other brands online through free-sample offers tied to paid monthly memberships. The US Federal Trade Commission took action against NutraClick over those offers in 2016 and again in 2020. The company now operates as Force Factor, LLC, remains based in Boston and sells through major US retailers.",
+  "positives": [
+    {
+      "text": "The company states its products are developed in GMP-certified manufacturing facilities and that ingredients and raw materials are checked for impurities; no certifying body is named.",
+      "source": "https://forcefactor.com/pages/science",
+      "source_name": "Force Factor"
+    },
+    {
+      "text": "The company was still led in 2025 by co-founder and chief executive Daniel Wallace, who started it in 2009.",
+      "source": "https://massmarketretailers.com/people-who-made-a-difference-daniel-wallace-co-founder-and-ceo-force-factor/",
+      "source_name": "Mass Market Retailers"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "In 2016 the FTC alleged that NutraClick, seller of Force Factor, enrolled people who ordered free samples in paid monthly memberships without clear disclosure; a court order required changes and a $350,000 payment.",
+      "source": "https://www.ftc.gov/news-events/press-releases/2016/09/ftc-action-nutraclick-must-change-billing-practices",
+      "source_name": "FTC"
+    },
+    {
+      "text": "In 2020 the FTC alleged NutraClick and its two officers had violated the 2016 order; they agreed to pay $1.04 million and accepted a permanent ban on negative-option (automatic rebilling) marketing.",
+      "source": "https://www.ftc.gov/news-events/news/press-releases/2020/09/nutraclick-llc-pay-104-million-agree-negative-option-marketing-ban-settle-ftc-allegations-it",
+      "source_name": "FTC"
+    },
+    {
+      "text": "Force Factor was among the defendants in a class action alleging unsupported claims for testosterone supplements containing Testofen (Robbins v. Gencor Nutrients); a settlement requiring marketing changes received final approval in August 2018.",
+      "source": "https://www.truthinadvertising.org/class-action/supplements-containing-testofen/",
+      "source_name": "Truth in Advertising"
+    },
+    {
+      "text": "A class action filed in October 2024 (Mendez v. Force Factor, C.D. Cal.) alleged that front labels overstate the dose per unit of several supplements, including melatonin products; the case was listed as pending.",
+      "source": "https://truthinadvertising.org/class-action/force-factor-supplements",
+      "source_name": "Truth in Advertising"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}

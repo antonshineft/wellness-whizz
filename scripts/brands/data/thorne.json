@@ -1,0 +1,56 @@
+{
+  "name": "Thorne",
+  "aliases": [
+    "Thorne Research"
+  ],
+  "founded": 1984,
+  "founder": "Al Czap",
+  "headquarters": "Summerville, South Carolina",
+  "owner": "L Catterton, a private equity firm; a sale to Procter & Gamble was agreed in August 2026",
+  "history": "Al Czap formed Thorne Research in 1984 in the Seattle area and moved it to northern Idaho in 1990, where it sold supplements mainly through health practitioners. In 2010 it merged with Diversified Natural Products, financed by outside investment firms, and Paul Jacobson took over leadership. The company later moved most operations to Summerville, South Carolina, a relocation completed in 2017. As Thorne HealthTech it listed on Nasdaq in September 2021 at $10 a share, then was taken private by L Catterton in October 2023 for about $680 million. In August 2026 Procter & Gamble agreed to buy Thorne for a reported $3.8 billion.",
+  "positives": [
+    {
+      "text": "NSF's GMP registry lists Thorne's manufacturing facilities in Summerville, South Carolina, as registered (listing checked 10 November 2026).",
+      "source": "https://info.nsf.org/Certified/GMP/Listings.asp",
+      "source_name": "NSF"
+    },
+    {
+      "text": "Thorne stated in November 2026 that more than 60 of its products hold NSF Certified for Sport certification.",
+      "source": "https://www.thorne.com/press-releases/thorne-expands-nsf-certified-for-sport-portfolio-reinforcing-commitment-to-independent-third-party-testing",
+      "source_name": "Thorne"
+    },
+    {
+      "text": "The company states that it makes its supplements at its own Summerville campus, with two in-house laboratories and four rounds of testing per product.",
+      "source": "https://www.thorne.com/quality",
+      "source_name": "Thorne"
+    },
+    {
+      "text": "The company states that it holds an A rating from Australia's Therapeutic Goods Administration.",
+      "source": "https://www.thorne.com/quality",
+      "source_name": "Thorne"
+    }
+  ],
+  "negatives": [
+    {
+      "text": "In June 2014 the FDA warned consumers not to buy or use Thorne Research's Captomer and Captomer-250 chelation supplements; Thorne agreed to a voluntary recall and had received several adverse event reports.",
+      "source": "https://www.fda.gov/drugs/drug-safety-and-availability/fda-warns-consumers-about-potential-health-risks-using-thorne-researchs-captomer-products",
+      "source_name": "FDA"
+    },
+    {
+      "text": "In September 2015 Thorne Research was one of 13 manufacturers sent cease-and-desist letters by the New York Attorney General over devil's claw supplements said to contain a cheaper related species.",
+      "source": "https://www.supplysidesj.com/litigation/new-york-attorney-general-schneiderman-targets-devils-claw-supplements",
+      "source_name": "SupplySide Supplement Journal"
+    },
+    {
+      "text": "In November 2014 Thorne Research settled a California Proposition 65 lawsuit brought by the Environmental Research Center over lead in dietary supplements, with payments totalling $250,000 and warning-or-reformulation and testing terms.",
+      "source": "https://oag.ca.gov/prop65/60-day-notice-2013-01044",
+      "source_name": "California Attorney General"
+    },
+    {
+      "text": "Thorne has been private-equity owned since L Catterton's $680 million buyout in October 2023, and in August 2026 it agreed to be sold to Procter & Gamble for a reported $3.8 billion.",
+      "source": "https://www.nutraingredients.com/Article/2026/08/04/pg-to-acquire-thorne-in-premium-wellness-play/",
+      "source_name": "NutraIngredients"
+    }
+  ],
+  "reviewed": "2026-11-10"
+}
