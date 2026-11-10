@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<defs><linearGradient id="b12" gradientUnits="userSpaceOnUse" x1="735.3" y1="229.5" x2="904.0" y2="239.2"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b13" gradientUnits="userSpaceOnUse" x1="740.9" y1="250.6" x2="896.1" y2="259.4"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient></defs>
+<line x1="196.0" y1="784.8" x2="364.6" y2="794.5" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="224.1" y1="765.7" x2="338.8" y2="772.3" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="364.6" y1="794.5" x2="457.3" y2="653.2" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="457.3" y1="653.2" x2="381.3" y2="502.4" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="426.7" y1="638.4" x2="375.0" y2="535.8" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="381.3" y1="502.4" x2="212.7" y2="492.7" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="212.7" y1="492.7" x2="120.0" y2="634.0" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="215.2" y1="526.7" x2="152.1" y2="622.7" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="381.3" y1="502.4" x2="474.0" y2="361.1" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="474.0" y1="361.1" x2="642.7" y2="370.8" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="479.6" y1="382.2" x2="634.7" y2="391.0" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="642.7" y1="370.8" x2="735.3" y2="229.5" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="735.3" y1="229.5" x2="904.0" y2="239.2" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="740.9" y1="250.6" x2="896.1" y2="259.4" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="120.0" y1="634.0" x2="196.0" y2="784.8" stroke="#8d979c" stroke-width="15.1" stroke-linecap="round"/>
+<line x1="196.0" y1="784.8" x2="364.6" y2="794.5" stroke="#ffffff" stroke-width="11.825143630991173" stroke-linecap="round"/>
+<line x1="224.1" y1="765.7" x2="338.8" y2="772.3" stroke="#ffffff" stroke-width="11.825143630991173" stroke-linecap="round"/>
+<line x1="364.6" y1="794.5" x2="457.3" y2="653.2" stroke="#ffffff" stroke-width="11.825143630991173" stroke-linecap="round"/>
+<line x1="457.3" y1="653.2" x2="381.3" y2="502.4" stroke="#ffffff" stroke-width="11.825143630991173" stroke-linecap="round"/>
+<line x1="426.7" y1="638.4" x2="375.0" y2="535.8" stroke="#ffffff" stroke-width="11.825143630991173" stroke-linecap="round"/>
+<line x1="381.3" y1="502.4" x2="212.7" y2="492.7" stroke="#ffffff" stroke-width="11.825143630991173" stroke-linecap="round"/>
+<line x1="212.7" y1="492.7" x2="120.0" y2="634.0" stroke="#ffffff" stroke-width="11.825143630991173" stroke-linecap="round"/>
+<line x1="215.2" y1="526.7" x2="152.1" y2="622.7" stroke="#ffffff" stroke-width="11.825143630991173" stroke-linecap="round"/>
+<line x1="381.3" y1="502.4" x2="474.0" y2="361.1" stroke="#ffffff" stroke-width="11.825143630991173" stroke-linecap="round"/>
+<line x1="474.0" y1="361.1" x2="642.7" y2="370.8" stroke="#ffffff" stroke-width="11.825143630991173" stroke-linecap="round"/>
+<line x1="479.6" y1="382.2" x2="634.7" y2="391.0" stroke="#ffffff" stroke-width="11.825143630991173" stroke-linecap="round"/>
+<line x1="642.7" y1="370.8" x2="735.3" y2="229.5" stroke="#ffffff" stroke-width="11.825143630991173" stroke-linecap="round"/>
+<line x1="120.0" y1="634.0" x2="196.0" y2="784.8" stroke="#ffffff" stroke-width="11.825143630991173" stroke-linecap="round"/>
+<line x1="735.3" y1="229.5" x2="904.0" y2="239.2" stroke="url(#b12)" stroke-width="11.825143630991173" stroke-linecap="round"/>
+<line x1="740.9" y1="250.6" x2="896.1" y2="259.4" stroke="url(#b13)" stroke-width="11.825143630991173" stroke-linecap="round"/>
+</svg>

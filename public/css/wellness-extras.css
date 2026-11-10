@@ -734,3 +734,8 @@ img.ww-opaque { mix-blend-mode: multiply; }
   .ww-top-grid { grid-template-columns: 1fr; }
   .ww-top-photo img { height: 150px; }
 }
+
+/* The molecule as the big picture of a supplement page (src/structures.ts). The drawing is transparent; the tile
+   supplies the cream ground and the soft mint glow, so the two always meet without an edge. */
+.frame-226:has(.ww-structure) { background: radial-gradient(ellipse 62% 40% at 50% 100%, rgba(135, 213, 129, .42), rgba(135, 213, 129, 0)), #fdf1cf; overflow: hidden; }
+.ww-structure { display: block; width: 100%; height: 100%; min-height: 340px; max-height: 420px; object-fit: contain; }

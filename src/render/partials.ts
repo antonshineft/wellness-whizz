@@ -1,5 +1,6 @@
 /** Reusable fragments that mirror the exported Webflow markup (same classes, so the exported CSS applies). */
 import type { FdaStatus, FormType, Product, SafetyStatus, Supplement } from '../db';
+import { structureAlt } from '../structures';
 import { doseFor, doseScale, type DoseCheck } from '../dose';
 import { escapeHtml } from '../html';
 import { primaryProduct, shopUrl, type LinkEnv } from '../links';
@@ -87,6 +88,9 @@ export function cardImage(sup: Supplement, attrs: string): string {
 }
 
 export function detailImage(sup: Supplement): string {
+  // The molecule, drawn from its PubChem structure (src/structures.ts), where the page has one.
+  const alt = structureAlt(sup.slug, sup.name);
+  if (alt) return `<img src="/images/structures/${escapeHtml(sup.slug)}.svg" width="354" height="344" alt="${escapeHtml(alt)}" title="${escapeHtml(alt)}" class="ww-structure">`;
   if (sup.image) return `<img src="${escapeHtml(sup.image)}" loading="lazy" alt="${escapeHtml(sup.name)}" class="image-3 ww-generated-tile">`;
   const img = DETAIL_IMAGES[sup.form_type] ?? DETAIL_IMAGES.capsule;
   const cls = img.cls ? ` class="${img.cls}"` : '';

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<defs><linearGradient id="b0" gradientUnits="userSpaceOnUse" x1="120.0" y1="516.6" x2="254.9" y2="448.5"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b1" gradientUnits="userSpaceOnUse" x1="254.9" y1="448.5" x2="381.3" y2="531.3"><stop offset="0" stop-color="#8fdc88"/><stop offset=".1" stop-color="#8fdc88"/><stop offset=".85" stop-color="#ffffff"/><stop offset="1" stop-color="#ffffff"/></linearGradient><linearGradient id="b5" gradientUnits="userSpaceOnUse" x1="777.6" y1="478.0" x2="786.1" y2="327.1"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b6" gradientUnits="userSpaceOnUse" x1="796.4" y1="473.0" x2="804.2" y2="334.2"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b7" gradientUnits="userSpaceOnUse" x1="777.6" y1="478.0" x2="904.0" y2="560.8"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b8" gradientUnits="userSpaceOnUse" x1="642.7" y1="546.0" x2="634.2" y2="696.9"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient></defs>
+<line x1="120.0" y1="516.6" x2="254.9" y2="448.5" stroke="#8d979c" stroke-width="13.5" stroke-linecap="round"/>
+<line x1="254.9" y1="448.5" x2="381.3" y2="531.3" stroke="#8d979c" stroke-width="13.5" stroke-linecap="round"/>
+<line x1="381.3" y1="531.3" x2="516.2" y2="463.2" stroke="#8d979c" stroke-width="13.5" stroke-linecap="round"/>
+<line x1="516.2" y1="463.2" x2="642.7" y2="546.0" stroke="#8d979c" stroke-width="13.5" stroke-linecap="round"/>
+<line x1="642.7" y1="546.0" x2="777.6" y2="478.0" stroke="#8d979c" stroke-width="13.5" stroke-linecap="round"/>
+<line x1="777.6" y1="478.0" x2="786.1" y2="327.1" stroke="#8d979c" stroke-width="13.5" stroke-linecap="round"/>
+<line x1="796.4" y1="473.0" x2="804.2" y2="334.2" stroke="#8d979c" stroke-width="13.5" stroke-linecap="round"/>
+<line x1="777.6" y1="478.0" x2="904.0" y2="560.8" stroke="#8d979c" stroke-width="13.5" stroke-linecap="round"/>
+<line x1="642.7" y1="546.0" x2="634.2" y2="696.9" stroke="#8d979c" stroke-width="13.5" stroke-linecap="round"/>
+<line x1="381.3" y1="531.3" x2="516.2" y2="463.2" stroke="#ffffff" stroke-width="10.578386804111364" stroke-linecap="round"/>
+<line x1="516.2" y1="463.2" x2="642.7" y2="546.0" stroke="#ffffff" stroke-width="10.578386804111364" stroke-linecap="round"/>
+<line x1="642.7" y1="546.0" x2="777.6" y2="478.0" stroke="#ffffff" stroke-width="10.578386804111364" stroke-linecap="round"/>
+<line x1="120.0" y1="516.6" x2="254.9" y2="448.5" stroke="url(#b0)" stroke-width="10.578386804111364" stroke-linecap="round"/>
+<line x1="254.9" y1="448.5" x2="381.3" y2="531.3" stroke="url(#b1)" stroke-width="10.578386804111364" stroke-linecap="round"/>
+<line x1="777.6" y1="478.0" x2="786.1" y2="327.1" stroke="url(#b5)" stroke-width="10.578386804111364" stroke-linecap="round"/>
+<line x1="796.4" y1="473.0" x2="804.2" y2="334.2" stroke="url(#b6)" stroke-width="10.578386804111364" stroke-linecap="round"/>
+<line x1="777.6" y1="478.0" x2="904.0" y2="560.8" stroke="url(#b7)" stroke-width="10.578386804111364" stroke-linecap="round"/>
+<line x1="642.7" y1="546.0" x2="634.2" y2="696.9" stroke="url(#b8)" stroke-width="10.578386804111364" stroke-linecap="round"/>
+</svg>

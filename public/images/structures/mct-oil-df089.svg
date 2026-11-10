@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<defs><linearGradient id="b7" gradientUnits="userSpaceOnUse" x1="767.1" y1="304.3" x2="689.2" y2="191.2"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b8" gradientUnits="userSpaceOnUse" x1="777.8" y1="290.3" x2="706.2" y2="186.1"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b9" gradientUnits="userSpaceOnUse" x1="767.1" y1="304.3" x2="904.0" y2="293.5"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient></defs>
+<line x1="120.0" y1="832.8" x2="179.1" y2="708.8" stroke="#8d979c" stroke-width="12.3" stroke-linecap="round"/>
+<line x1="179.1" y1="708.8" x2="316.0" y2="698.0" stroke="#8d979c" stroke-width="12.3" stroke-linecap="round"/>
+<line x1="316.0" y1="698.0" x2="375.1" y2="574.0" stroke="#8d979c" stroke-width="12.3" stroke-linecap="round"/>
+<line x1="375.1" y1="574.0" x2="512.0" y2="563.2" stroke="#8d979c" stroke-width="12.3" stroke-linecap="round"/>
+<line x1="512.0" y1="563.2" x2="571.1" y2="439.2" stroke="#8d979c" stroke-width="12.3" stroke-linecap="round"/>
+<line x1="571.1" y1="439.2" x2="708.0" y2="428.3" stroke="#8d979c" stroke-width="12.3" stroke-linecap="round"/>
+<line x1="708.0" y1="428.3" x2="767.1" y2="304.3" stroke="#8d979c" stroke-width="12.3" stroke-linecap="round"/>
+<line x1="767.1" y1="304.3" x2="689.2" y2="191.2" stroke="#8d979c" stroke-width="12.3" stroke-linecap="round"/>
+<line x1="777.8" y1="290.3" x2="706.2" y2="186.1" stroke="#8d979c" stroke-width="12.3" stroke-linecap="round"/>
+<line x1="767.1" y1="304.3" x2="904.0" y2="293.5" stroke="#8d979c" stroke-width="12.3" stroke-linecap="round"/>
+<line x1="120.0" y1="832.8" x2="179.1" y2="708.8" stroke="#ffffff" stroke-width="9.614811153049876" stroke-linecap="round"/>
+<line x1="179.1" y1="708.8" x2="316.0" y2="698.0" stroke="#ffffff" stroke-width="9.614811153049876" stroke-linecap="round"/>
+<line x1="316.0" y1="698.0" x2="375.1" y2="574.0" stroke="#ffffff" stroke-width="9.614811153049876" stroke-linecap="round"/>
+<line x1="375.1" y1="574.0" x2="512.0" y2="563.2" stroke="#ffffff" stroke-width="9.614811153049876" stroke-linecap="round"/>
+<line x1="512.0" y1="563.2" x2="571.1" y2="439.2" stroke="#ffffff" stroke-width="9.614811153049876" stroke-linecap="round"/>
+<line x1="571.1" y1="439.2" x2="708.0" y2="428.3" stroke="#ffffff" stroke-width="9.614811153049876" stroke-linecap="round"/>
+<line x1="708.0" y1="428.3" x2="767.1" y2="304.3" stroke="#ffffff" stroke-width="9.614811153049876" stroke-linecap="round"/>
+<line x1="767.1" y1="304.3" x2="689.2" y2="191.2" stroke="url(#b7)" stroke-width="9.614811153049876" stroke-linecap="round"/>
+<line x1="777.8" y1="290.3" x2="706.2" y2="186.1" stroke="url(#b8)" stroke-width="9.614811153049876" stroke-linecap="round"/>
+<line x1="767.1" y1="304.3" x2="904.0" y2="293.5" stroke="url(#b9)" stroke-width="9.614811153049876" stroke-linecap="round"/>
+</svg>

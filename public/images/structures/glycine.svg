@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<defs><linearGradient id="b1" gradientUnits="userSpaceOnUse" x1="609.4" y1="568.2" x2="609.4" y2="343.2"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b2" gradientUnits="userSpaceOnUse" x1="633.2" y1="559.2" x2="633.2" y2="352.2"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b3" gradientUnits="userSpaceOnUse" x1="609.4" y1="568.2" x2="804.3" y2="680.8"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient><linearGradient id="b4" gradientUnits="userSpaceOnUse" x1="414.6" y1="680.8" x2="219.7" y2="568.2"><stop offset="0" stop-color="#ffffff"/><stop offset=".15" stop-color="#ffffff"/><stop offset=".9" stop-color="#8fdc88"/><stop offset="1" stop-color="#8fdc88"/></linearGradient></defs>
+<line x1="414.6" y1="680.8" x2="609.4" y2="568.2" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
+<line x1="609.4" y1="568.2" x2="609.4" y2="343.2" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
+<line x1="633.2" y1="559.2" x2="633.2" y2="352.2" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
+<line x1="609.4" y1="568.2" x2="804.3" y2="680.8" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
+<line x1="414.6" y1="680.8" x2="219.7" y2="568.2" stroke="#8d979c" stroke-width="17.4" stroke-linecap="round"/>
+<line x1="414.6" y1="680.8" x2="609.4" y2="568.2" stroke="#ffffff" stroke-width="13.6" stroke-linecap="round"/>
+<line x1="609.4" y1="568.2" x2="609.4" y2="343.2" stroke="url(#b1)" stroke-width="13.6" stroke-linecap="round"/>
+<line x1="633.2" y1="559.2" x2="633.2" y2="352.2" stroke="url(#b2)" stroke-width="13.6" stroke-linecap="round"/>
+<line x1="609.4" y1="568.2" x2="804.3" y2="680.8" stroke="url(#b3)" stroke-width="13.6" stroke-linecap="round"/>
+<line x1="414.6" y1="680.8" x2="219.7" y2="568.2" stroke="url(#b4)" stroke-width="13.6" stroke-linecap="round"/>
+</svg>
