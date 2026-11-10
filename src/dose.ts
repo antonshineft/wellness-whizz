@@ -474,9 +474,10 @@ export function doseScale(c: DoseCheck, p: DoseProduct, teaser = false): string 
         </div>`;
 }
 
-/** "100 mg per capsule" or "500 mg per tablet, 2 a day". */
+/** "100 mg per capsule" or "500 mg per tablet, 2 a day", as markup (already escaped). */
 export function doseLine(c: DoseCheck, p: DoseProduct): string {
-  return `${fmt(p.amount as number)} ${c.unit} per ${p.per}${p.servings > 1 ? `, ${fmt(p.servings)} a day` : ''}`;
+  // Each part is its own piece of text, so the Spanish site can look "per", the serving and "a day" up one by one.
+  return `${fmt(p.amount as number)} ${esc(c.unit)} <span>per</span> <span>${esc(p.per)}</span>${p.servings > 1 ? `<span>, ${fmt(p.servings)} a day</span>` : ''}`;
 }
 
 /** The owner's report: every page with a pick outside the comfortable range, worst first. */

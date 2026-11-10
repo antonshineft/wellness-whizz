@@ -286,7 +286,7 @@ async function localizeResultItems(db: D1Database, lang: Lang, items: ResultItem
 
 pageRoute('/', async (c, lang) => {
   track(c, { type: 'home_view', page: '/' });
-  return sendPage(c, await renderHome(c.env, c.req.raw, curatedOnly(c.env), lang, lang === 'en' && doseVisible(c), studiedVisible(c), lang === 'en' && brandsVisible(c) ? brandStrip(listBrands()) : ''), lang, '/', 'public, max-age=60');
+  return sendPage(c, await renderHome(c.env, c.req.raw, curatedOnly(c.env), lang, doseVisible(c), studiedVisible(c), brandsVisible(c) ? brandStrip(listBrands()) : ''), lang, '/', 'public, max-age=60');
 });
 
 pageRoute('/wellness-quiz', async (c, lang) => {
@@ -396,8 +396,8 @@ pageRoute('/supplement/:slug', async (c, lang) => {
   track(c, { type: 'supplement_view', page: `/supplement/${supplement.slug}`, slug: supplement.slug });
   // The dose check (src/dose.ts) is English only. DOSE_CHECK "true" shows it to everyone; "preview" (the default)
   // only with ?dose=preview, so the owner can review it before readers see it; "false" hides it.
-  const dose = lang === 'en' && doseVisible(c) ? visibleCheck(await getDoseCheck(c.env.DB, supplement.slug), studiedVisible(c)) : undefined;
-  const html = renderSupplementPage(localizeSupplement(supplement, translation), explore, c.env, { related, origin: new URL(c.req.url).origin, notes, dose, ...(lang === 'en' && brandsVisible(c) ? { brandStrip: brandStrip(listBrands()), brandPath: (name: string) => { const b = brandFor(name); return b ? `/brand/${b.slug}` : null; } } : {}) });
+  const dose = doseVisible(c) ? visibleCheck(await getDoseCheck(c.env.DB, supplement.slug), studiedVisible(c)) : undefined;
+  const html = renderSupplementPage(localizeSupplement(supplement, translation), explore, c.env, { related, origin: new URL(c.req.url).origin, notes, dose, ...(brandsVisible(c) ? { brandStrip: brandStrip(listBrands()), brandPath: (name: string) => { const b = brandFor(name); return b ? `/brand/${b.slug}` : null; } } : {}) });
   const body = pending ? new Response(html, { status: 200, headers: { ...htmlHeaders('public, max-age=60'), 'x-robots-tag': 'noindex' } }) : html;
   return sendPage(c, body, lang, `/supplement/${supplement.slug}`, 'public, max-age=300', alternates);
 });
@@ -410,22 +410,22 @@ pageRoute('/how-it-works', async (c, lang) => {
   return sendPage(c, renderHowItWorks(n, new URL(c.req.url).origin), lang, '/how-it-works', 'public, max-age=600');
 });
 
-// Brand profiles (src/brands.ts), English only.
-app.get('/brands', async (c) => {
+// Brand profiles (src/brands.ts). The Spanish pages are the English ones with their text looked up in src/i18n/es.json.
+pageRoute('/brands', async (c, lang) => {
   if (!brandsVisible(c)) return c.notFound();
   const sups = await listSupplements(c.env.DB, 500, curatedOnly(c.env));
   const count = new Map<string, number>();
   for (const s of sups) for (const p of s.products.slice(0, MAX_PICKS)) { const b = brandFor(p.brand); if (b) count.set(b.slug, (count.get(b.slug) ?? 0) + 1); }
   track(c, { type: 'page_view', page: '/brands' });
-  return sendPage(c, renderBrandsIndex(listBrands().map((b) => ({ ...b, picks: count.get(b.slug) ?? 0 })), new URL(c.req.url).origin), 'en', '/brands', 'public, max-age=600', false);
+  return sendPage(c, renderBrandsIndex(listBrands().map((b) => ({ ...b, picks: count.get(b.slug) ?? 0 })), new URL(c.req.url).origin), lang, '/brands', 'public, max-age=600');
 });
-app.get('/brand/:slug', async (c) => {
+pageRoute('/brand/:slug', async (c, lang) => {
   const brand = brandsVisible(c) ? getBrand(c.req.param('slug') ?? '') : null;
   if (!brand) return c.notFound();
   const picks = await brandPicks(c.env.DB, brand, curatedOnly(c.env), studiedVisible(c), MAX_PICKS);
   track(c, { type: 'page_view', page: `/brand/${brand.slug}` });
   const html = renderBrandPage(c.env, { brand, picks, record: doseRecord(picks), others: listBrands().filter((b) => b.slug !== brand.slug), origin: new URL(c.req.url).origin });
-  return sendPage(c, html, 'en', `/brand/${brand.slug}`, 'public, max-age=600', false);
+  return sendPage(c, html, lang, `/brand/${brand.slug}`, 'public, max-age=600');
 });
 
 pageRoute('/about', (c, lang) => {

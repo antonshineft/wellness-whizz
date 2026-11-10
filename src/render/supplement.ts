@@ -162,7 +162,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandP
               <span class="ww-top-n" aria-hidden="true">${n + 1}</span>
               <div class="ww-top-photo">${image}</div>
               <div class="ww-top-name">${escapeHtml(p.name)}</div>
-              <div class="ww-top-meta">${brandLabel(p.brand, brandPath)}${r.d && dose ? `${p.brand ? ' · ' : ''}${escapeHtml(doseLine(dose, r.d))}` : ''}</div>
+              <div class="ww-top-meta">${brandLabel(p.brand, brandPath)}${r.d && dose ? `${p.brand ? ' · ' : ''}${doseLine(dose, r.d)}` : ''}</div>
               ${r.d && dose ? doseScale(dose, r.d) : doseLimits(dose, p.url) ?? doseBlank(dose, false, sup.name)}
               <a href="${escapeHtml(shopUrl(env, sup, p))}" target="_blank" rel="noopener nofollow sponsored" class="outbutton w-button" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}" data-product="${escapeHtml(p.name)}">Buy on iHerb</a>
             </article>`;
