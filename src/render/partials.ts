@@ -1,5 +1,6 @@
 /** Reusable fragments that mirror the exported Webflow markup (same classes, so the exported CSS applies). */
 import type { FdaStatus, FormType, Product, SafetyStatus, Supplement } from '../db';
+import { doseFor, doseScale, type DoseCheck } from '../dose';
 import { escapeHtml } from '../html';
 import { primaryProduct, shopUrl, type LinkEnv } from '../links';
 
@@ -328,8 +329,10 @@ export function exploreSection(supplements: Supplement[]): string {
 }
 
 /** One card of the home-page slider: the real product photo on the cream square, illustration as fallback. */
-export function homeCard(sup: Supplement): string {
+export function homeCard(sup: Supplement, dose?: DoseCheck | null): string {
   const product = sup.products.find((p) => p.image);
+  // The teaser: the scale of the pictured pick only, in its barest form.
+  const pick = product && dose ? doseFor(dose, product.url) : null;
   const image = product
     ? `<img src="${escapeHtml(product.image)}" loading="lazy" width="213" height="213" alt="${escapeHtml(product.name)}" class="convertedimage2 ww-slider-photo"${blendAttr(product)}>`
     : cardImage(sup, `width="213" height="213" class="convertedimage2${sup.image ? ' ww-slider-photo' : ''}"`);
@@ -338,7 +341,7 @@ export function homeCard(sup: Supplement): string {
   <div class="imagecard">${image}
     <div class="frame-256">
       <div class="text-75">${escapeHtml(sup.name)}</div>
-      <div class="frame-257">${headerBadges(sup)}</div>
+      <div class="frame-257">${headerBadges(sup)}</div>${pick && dose ? `\n      ${doseScale(dose, pick, true)}` : ''}
     </div>
   </div>
 </div>`;

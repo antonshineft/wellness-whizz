@@ -1,6 +1,6 @@
 /** /supplement/:slug — the "Supplements" CMS template page. */
 import type { Supplement } from '../db';
-import { doseSection, type DoseCheck } from '../dose';
+import { MAX_PICKS, STATE_RANK, doseFor, doseLegend, doseLine, doseScale, type DoseCheck } from '../dose';
 import { escapeHtml } from '../html';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
@@ -131,6 +131,51 @@ function productCards(env: LinkEnv, sup: Supplement): string {
     </section>`;
 }
 
+/**
+ * The picks section with dose scales: a numbered list of brands on the left and a two-column grid of cards on the
+ * right (three rows for six picks). Picks are ordered by their verdict, best-dosed first.
+ */
+function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null): string {
+  const products = sup.products.slice(0, MAX_PICKS);
+  if (!products.length) return '';
+  const ranked = products
+    .map((p, i) => ({ p, i, d: doseFor(dose, p.url) }))
+    .sort((a, b) => (a.d ? STATE_RANK[a.d.state] : STATE_RANK.unknown) - (b.d ? STATE_RANK[b.d.state] : STATE_RANK.unknown) || a.i - b.i);
+  const anyScale = ranked.some((r) => r.d);
+  const list = ranked
+    .map((r, n) => `<li><a href="#pick-${n + 1}"><span class="ww-top-n">${n + 1}</span><span class="ww-top-brand">${escapeHtml(r.p.brand || r.p.name)}${r.p.brand ? `<small>${escapeHtml(r.p.name)}</small>` : ''}</span></a></li>`)
+    .join('\n            ');
+  const cards = ranked
+    .map((r, n) => {
+      const p = r.p;
+      const image = p.image
+        ? `<img src="${escapeHtml(p.image)}" loading="lazy" width="200" height="200" alt="${escapeHtml(p.name)}"${blendAttr(p)}>`
+        : cardImage(sup, 'width="200" height="200"');
+      return `
+            <article class="ww-top-card" id="pick-${n + 1}">
+              <span class="ww-top-n" aria-hidden="true">${n + 1}</span>
+              <div class="ww-top-photo">${image}</div>
+              <div class="ww-top-name">${escapeHtml(p.name)}</div>
+              <div class="ww-top-meta">${escapeHtml(p.brand)}${r.d && dose ? `${p.brand ? ' · ' : ''}${escapeHtml(doseLine(dose, r.d))}` : ''}</div>
+              ${r.d && dose ? doseScale(dose, r.d) : ''}
+              <a href="${escapeHtml(shopUrl(env, sup, p))}" target="_blank" rel="noopener nofollow sponsored" class="outbutton w-button" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}" data-product="${escapeHtml(p.name)}">Buy on iHerb</a>
+            </article>`;
+    })
+    .join('');
+  return `
+    <section class="ww-top" aria-label="Top picks">
+      <div class="ww-top-side">
+        <h3 class="heading-3">${escapeHtml(picksHeading(sup).replace('Top 5 Picks', `Top ${products.length} Picks`))}</h3>
+        <ol class="ww-top-list">
+            ${list}
+        </ol>
+        ${anyScale && dose ? doseLegend(dose) : ''}
+      </div>
+      <div class="ww-top-grid">${cards}
+      </div>
+    </section>`;
+}
+
 function synergySection(sup: Supplement): string {
   if (!sup.enhancing_html && !sup.interactions_html) return '';
   return `
@@ -216,7 +261,10 @@ export interface SupplementPageExtras {
   origin?: string;
   /** The newest research notes about this supplement (src/research.ts), shown as "Latest Research". */
   notes?: readonly ResearchNote[];
-  /** The dose check for this supplement's picks (src/dose.ts); shown under the picks when present. */
+  /**
+   * The dose check for this supplement's picks (src/dose.ts). Undefined keeps the old picks section; a check, or
+   * null when the page has none yet, shows the new one: brands on the left, a grid of cards with scales on the right.
+   */
   dose?: DoseCheck | null;
 }
 
@@ -385,9 +433,9 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
           </div>
           <div class="frame-52">${headerTags(sup)}</div>
         </div>
-        ${reviewedLine(sup.updated_at || sup.created_at)}
+        ${reviewedLine(sup.updated_at || sup.created_at, '', false)}
       </div>
-    </div>${productPicks(env, sup)}${doseSection(extras.dose ?? null)}
+    </div>${productPicks(env, sup)}
     <div data-w-id="2841e5e2-b1d4-d414-f4f8-0c4efba35769" style="opacity:0.27;-webkit-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-moz-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-ms-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0)" class="_3-columns">
       <div class="column-5">
         <div class="frame-226">${detailImage(sup)}</div>
@@ -412,7 +460,7 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
         rating: ratingBlock('SAFETY', SAFETY_LABELS, sup.safety, true),
         html: sup.contraindications_html,
       })}
-    </div>${productCards(env, sup)}
+    </div>${extras.dose === undefined ? productCards(env, sup) : picksGrid(env, sup, extras.dose)}
   </div>
   <section class="info">${synergySection(sup)}${insightsSection(sup)}${studiesSection(sup)}${researchSection(extras.notes ?? [])}${faqSection(sup)}
   </section>${relatedSection(extras.related ?? [])}${exploreSection(explore)}${footer()}${stickyBuyBar(env, sup)}`;

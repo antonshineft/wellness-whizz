@@ -193,12 +193,13 @@ export function formatDate(iso: string): string {
 
 /**
  * "Reviewed by the Wellness Whizz editorial team · Last reviewed 12 October 2026 · Medical disclaimer", linking the
- * About page. `date` is an ISO date or an SQLite datetime; the day part is shown.
+ * About page. `date` is an ISO date or an SQLite datetime; the day part is shown. `disclaimer` false leaves the link
+ * out on pages that carry the disclaimer itself (the supplement page has it once, under the main picture).
  */
-export function reviewedLine(date: string | null | undefined, cls = ''): string {
+export function reviewedLine(date: string | null | undefined, cls = '', disclaimer = true): string {
   const day = (date ?? '').slice(0, 10);
   const when = /^\d{4}-\d{2}-\d{2}$/.test(day) ? `<span aria-hidden="true"> · </span><span>Last reviewed ${escapeHtml(formatDate(day))}</span>` : '';
-  return `<p class="ww-reviewed${cls ? ` ${cls}` : ''}"><a href="/about#editorial">Reviewed by the Wellness Whizz editorial team</a>${when}<span aria-hidden="true"> · </span><a href="/about#disclaimer">Medical disclaimer</a></p>`;
+  return `<p class="ww-reviewed${cls ? ` ${cls}` : ''}"><a href="/about#editorial">Reviewed by the Wellness Whizz editorial team</a>${when}${disclaimer ? '<span aria-hidden="true"> · </span><a href="/about#disclaimer">Medical disclaimer</a>' : ''}</p>`;
 }
 
 // ---------- About ----------

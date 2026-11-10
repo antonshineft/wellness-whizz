@@ -66,6 +66,9 @@ export function nutrientFor(sup: Pick<Supplement, 'name' | 'category'>): Nutrien
   return NUTRIENTS.find((n) => n.match.test(sup.name)) ?? null;
 }
 
+/** Picks per supplement page: a two by three grid. */
+export const MAX_PICKS = 6;
+
 export type DoseState = 'within' | 'above' | 'more' | 'over' | 'under' | 'in' | 'beyond' | 'unknown';
 
 export interface DoseProduct {
@@ -180,7 +183,7 @@ function verdict(basis: 'official' | 'studied', low: number | null, high: number
 
 /** Read the labels of one supplement's picks through the Claude API and store the check. */
 export async function checkSupplement(env: VideoEnv, sup: Supplement): Promise<DoseCheck> {
-  const products = sup.products.slice(0, 5);
+  const products = sup.products.slice(0, MAX_PICKS);
   const nutrient = nutrientFor(sup);
   const labels = new Map<string, LabelRow>();
   for (const p of products) {
@@ -266,10 +269,13 @@ export async function storeLabels(db: D1Database, items: { url: string; title?: 
   return n;
 }
 
-// ---------- the block on the supplement page ----------
+// ---------- rendering: one scale per product ----------
 
 const esc = (s: unknown) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const fmt = (n: number) => n.toLocaleString('en-GB', { maximumFractionDigits: n >= 100 ? 0 : 2 });
+
+/** Best-dosed first when the picks are ordered: in range, then merely above the need, down to above the ceiling. */
+export const STATE_RANK: Record<DoseState, number> = { in: 0, within: 0, above: 1, under: 2, unknown: 3, more: 4, beyond: 5, over: 6 };
 
 const WORDS: Record<DoseState, { mark: string; cls: string; text: string }> = {
   within: { mark: '✓', cls: 'ok', text: 'Within the daily need' },
@@ -282,53 +288,72 @@ const WORDS: Record<DoseState, { mark: string; cls: string; text: string }> = {
   unknown: { mark: '?', cls: 'info', text: 'Dose not confirmed from the label' },
 };
 
-/** Where the pin sits, in percent of the bar: each zone takes an equal share and the pin moves within its zone. */
-function pinAt(c: DoseCheck, daily: number): number {
+interface Zone { cls: string; label: string; sub: string }
+
+/** The zones of a check's scale and the figures between them. */
+function scaleOf(c: DoseCheck): { zones: Zone[]; edges: number[] } {
   const low = c.low ?? 0;
-  const high = c.high;
-  const edge = c.basis === 'official' && high !== null ? Math.min(low, high) : low;
-  const zones = high === null ? 2 : 3;
-  const w = 100 / zones;
-  if (daily <= edge) return Math.max(3, (daily / (edge || 1)) * w * 0.94);
-  if (high === null) return Math.min(97, w + Math.min(1, (daily - edge) / (edge * 9 || 1)) * w * 0.9 + 2);
-  if (daily <= high) return w + Math.max(0.06, (daily - edge) / (high - edge || 1)) * w * 0.94;
-  return Math.min(97, 2 * w + Math.min(1, (daily - high) / (high || 1)) * w * 0.8 + 3);
+  if (c.basis === 'studied') {
+    return { zones: [{ cls: 'z0', label: 'Below', sub: 'less than studies used' }, { cls: 'z1', label: 'Studied range', sub: 'the doses trials tested' }, { cls: 'z2', label: 'Above', sub: 'more than studies used' }], edges: [low, c.high ?? low] };
+  }
+  if (c.high === null) return { zones: [{ cls: 'z1', label: 'Daily need', sub: 'covers what the body requires' }, { cls: 'z2', label: 'Extra', sub: 'no ceiling has been set' }], edges: [low] };
+  // Magnesium: the ceiling counts supplements only and sits below the daily need, which food mostly covers.
+  if (c.high <= low) return { zones: [{ cls: 'z1', label: 'Within the limit', sub: 'for supplements' }, { cls: 'z3', label: 'Too much', sub: 'above the safe ceiling' }], edges: [c.high] };
+  return { zones: [{ cls: 'z1', label: 'Daily need', sub: 'covers what the body requires' }, { cls: 'z2', label: 'Extra', sub: 'safe, often not all absorbed' }, { cls: 'z3', label: 'Too much', sub: 'above the safe ceiling' }], edges: [low, c.high] };
 }
 
-/** "Dose check" under the product picks: one row per pick with a three-zone bar (two zones where no ceiling exists). */
-export function doseSection(c: DoseCheck | null): string {
-  if (!c || c.low === null) return '';
-  const rows = c.products.filter((p) => p.state !== 'unknown' && p.daily !== null);
-  if (!rows.length) return '';
-  const official = c.basis === 'official';
-  const edge = official && c.high !== null ? Math.min(c.low, c.high) : c.low;
-  const zones = official
-    ? [['Daily need', 'covers what the body requires'], ['Extra', c.high === null ? 'no ceiling has been set' : 'safe, often not all absorbed'], ...(c.high === null ? [] : [['Too much', 'above the safe ceiling']])]
-    : [['Below', 'less than studies used'], ['Studied range', 'the doses trials tested'], ['Above', 'more than studies used']];
+/** Where a daily amount sits, in percent of the bar: zones are equally wide and the mark moves within its zone. */
+function positionOf(c: DoseCheck, daily: number): number {
+  const { zones, edges } = scaleOf(c);
+  const w = 100 / zones.length;
+  let k = edges.findIndex((e) => daily <= e);
+  if (k < 0) k = zones.length - 1;
+  const lower = k === 0 ? 0 : edges[k - 1];
+  const upper = k < edges.length ? edges[k] : null;
+  const frac = upper === null ? Math.min(1, (daily - lower) / (lower || 1)) * 0.8 : (daily - lower) / (upper - lower || 1);
+  return (k + Math.min(0.94, Math.max(0.06, frac))) * w;
+}
+
+export function doseFor(c: DoseCheck | null | undefined, url: string): DoseProduct | null {
+  const p = c?.products.find((x) => x.url === url) ?? null;
+  return c && c.low !== null && p && p.state !== 'unknown' && p.daily !== null ? p : null;
+}
+
+function wordsFor(c: DoseCheck, state: DoseState): { mark: string; cls: string; text: string } {
+  if (state === 'within' && c.basis === 'official' && c.high !== null && c.high <= (c.low ?? 0)) return { ...WORDS.within, text: 'Under the safe ceiling for supplements' };
+  return WORDS[state];
+}
+
+/**
+ * The scale of one product: verdict, bar and the figures between the zones. `teaser` is the bare form for the home
+ * page slider: a small mark, a dot on the bar, and the reference figures only.
+ */
+export function doseScale(c: DoseCheck, p: DoseProduct, teaser = false): string {
+  const { zones, edges } = scaleOf(c);
+  const w = wordsFor(c, p.state);
+  const at = positionOf(c, p.daily as number).toFixed(1);
   const cols = `grid-template-columns:repeat(${zones.length},1fr)`;
-  const items = rows.map((p) => {
-    const w = WORDS[p.state];
-    const at = pinAt(c, p.daily as number).toFixed(1);
-    const dayLine = p.servings > 1 ? `${fmt(p.amount as number)} ${esc(c.unit)} per ${esc(p.per)}, ${fmt(p.servings)} a day` : `${fmt(p.amount as number)} ${esc(c.unit)} per ${esc(p.per)}`;
-    const also = p.also.length ? `<p class="ww-dose-also"><b>Also check:</b> ${esc(p.also.join('; '))}.</p>` : '';
-    return `
-      <div class="ww-dose ww-dose-${w.cls}">
-        <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">${w.mark}</span><span>${esc(w.text)}</span></div>
-        <div class="ww-dose-name">${esc(p.name)} <span>· ${dayLine}</span></div>
-        <div class="ww-dose-bar" style="${cols}">${zones.map((_, i) => `<i class="ww-dose-z${official ? i + 1 : i}"></i>`).join('')}<span class="ww-dose-pin" style="left:${at}%">${fmt(p.daily as number)} ${esc(c.unit)} a day</span></div>
-        <div class="ww-dose-edges"><span style="left:${(100 / zones.length).toFixed(1)}%">${fmt(edge)} ${esc(c.unit)}</span>${zones.length === 3 && c.high !== null ? `<span style="left:${(200 / zones.length).toFixed(1)}%">${fmt(official ? c.high : c.high)} ${esc(c.unit)}</span>` : ''}</div>${also}
-      </div>`;
-  }).join('');
-  return `
-    <section class="ww-dose-wrap" aria-label="Dose check">
-      <div class="ww-strip-title">Dose check</div>
-      <p class="ww-dose-intro">${official ? 'How much each pick gives you a day at the label\'s directions, against the official daily need and the safe ceiling for adults.' : 'How much each pick gives you a day at the label\'s directions, against the daily doses used in the studies on this page. There is no official daily need for this supplement.'}</p>
-      <div class="ww-dose-list">${items}
-      </div>
-      <div class="ww-dose-zones" style="${cols}">${zones.map((z) => `<div><b>${z[0]}</b>${z[1]}</div>`).join('')}</div>
-      ${c.note ? `<p class="ww-dose-note">${esc(c.note)}</p>` : ''}
-      <p class="ww-dose-src">Figures: ${esc(c.source)}. Amounts are read from each product's label. Zones are not drawn to scale. This is information, not medical advice.</p>
-    </section>`;
+  const bar = zones.map((z) => `<i class="ww-dose-${z.cls}"></i>`).join('');
+  const marks = edges.map((e, i) => `<span style="left:${(((i + 1) * 100) / zones.length).toFixed(1)}%">${fmt(e)} ${esc(c.unit)}</span>`).join('');
+  const mark = teaser ? `<span class="ww-dose-dot" style="left:${at}%"></span>` : `<span class="ww-dose-pin" style="left:${at}%">${fmt(p.daily as number)} ${esc(c.unit)} a day</span>`;
+  return `<div class="ww-dose ww-dose-${w.cls}${teaser ? ' ww-dose-teaser' : ''}">
+          <div class="ww-dose-head"><span class="ww-dose-mark" aria-hidden="true">${w.mark}</span><span>${esc(w.text)}</span></div>
+          <div class="ww-dose-bar" style="${cols}">${bar}${mark}</div>
+          <div class="ww-dose-edges">${marks}</div>${!teaser && p.also.length ? `\n          <p class="ww-dose-also"><b>Also check:</b> ${esc(p.also.join('; '))}.</p>` : ''}
+        </div>`;
+}
+
+/** What the zones mean, the note behind the figures and where they come from; shown once per section. */
+export function doseLegend(c: DoseCheck): string {
+  const { zones } = scaleOf(c);
+  return `<div class="ww-dose-zones" style="grid-template-columns:repeat(${zones.length},1fr)">${zones.map((z) => `<div><b>${z.label}</b>${z.sub}</div>`).join('')}</div>
+          ${c.note ? `<p class="ww-dose-note">${esc(c.note)}</p>` : ''}
+          <p class="ww-dose-src">The scale shows each pick's daily amount at the label's directions. Figures: ${esc(c.source)}. Zones are not drawn to scale.</p>`;
+}
+
+/** "100 mg per capsule" or "500 mg per tablet, 2 a day". */
+export function doseLine(c: DoseCheck, p: DoseProduct): string {
+  return `${fmt(p.amount as number)} ${c.unit} per ${p.per}${p.servings > 1 ? `, ${fmt(p.servings)} a day` : ''}`;
 }
 
 /** The owner's report: every page with a pick outside the comfortable range, worst first. */

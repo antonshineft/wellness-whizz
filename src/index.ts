@@ -61,7 +61,8 @@ import {
 import { runQuizPipeline } from './pipeline';
 import { dashboardToken, snapshotTrials, trialDashboard } from './trialboard';
 import { getLearned, learnFromTrials } from './triallearn';
-import { checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels } from './dose';
+import { MAX_PICKS, checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels } from './dose';
+import { addExtraProduct } from './products';
 import { feedItems } from './social/feeds';
 import { autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
@@ -278,7 +279,7 @@ async function localizeResultItems(db: D1Database, lang: Lang, items: ResultItem
 
 pageRoute('/', async (c, lang) => {
   track(c, { type: 'home_view', page: '/' });
-  return sendPage(c, await renderHome(c.env, c.req.raw, curatedOnly(c.env), lang), lang, '/', 'public, max-age=60');
+  return sendPage(c, await renderHome(c.env, c.req.raw, curatedOnly(c.env), lang, lang === 'en' && doseVisible(c)), lang, '/', 'public, max-age=60');
 });
 
 pageRoute('/wellness-quiz', async (c, lang) => {
@@ -388,8 +389,7 @@ pageRoute('/supplement/:slug', async (c, lang) => {
   track(c, { type: 'supplement_view', page: `/supplement/${supplement.slug}`, slug: supplement.slug });
   // The dose check (src/dose.ts) is English only. DOSE_CHECK "true" shows it to everyone; "preview" (the default)
   // only with ?dose=preview, so the owner can review it before readers see it; "false" hides it.
-  const doseMode = c.env.DOSE_CHECK ?? 'preview';
-  const dose = lang === 'en' && (doseMode === 'true' || (doseMode === 'preview' && c.req.query('dose') === 'preview')) ? await getDoseCheck(c.env.DB, supplement.slug) : null;
+  const dose = lang === 'en' && doseVisible(c) ? await getDoseCheck(c.env.DB, supplement.slug) : undefined;
   const html = renderSupplementPage(localizeSupplement(supplement, translation), explore, c.env, { related, origin: new URL(c.req.url).origin, notes, dose });
   const body = pending ? new Response(html, { status: 200, headers: { ...htmlHeaders('public, max-age=60'), 'x-robots-tag': 'noindex' } }) : html;
   return sendPage(c, body, lang, `/supplement/${supplement.slug}`, 'public, max-age=300', alternates);
@@ -859,6 +859,12 @@ app.get('/api/admin/subscribers', async (c) => {
 });
 
 /** Owner-only routes: require the STATS_KEY secret as ?key= or a bearer token. */
+/** The dose check (src/dose.ts): DOSE_CHECK "true" shows it to everyone, "preview" (the default) only with ?dose=preview, "false" never. */
+function doseVisible(c: { env: Bindings; req: { query: (k: string) => string | undefined } }): boolean {
+  const mode = c.env.DOSE_CHECK ?? 'preview';
+  return mode === 'true' || (mode === 'preview' && c.req.query('dose') === 'preview');
+}
+
 function authorized(c: { env: Bindings; req: { query: (k: string) => string | undefined; header: (k: string) => string | undefined } }): Response | null {
   const key = c.env.STATS_KEY;
   if (!key) return Response.json({ error: 'Not found' }, { status: 404 });
@@ -1552,8 +1558,31 @@ app.get('/api/admin/dose/products', async (c) => {
   await ensureDatabase(c.env.DB);
   const sups = await listSupplements(c.env.DB, 500, false);
   const have = new Set((await c.env.DB.prepare('SELECT url FROM dose_labels').all<{ url: string }>()).results.map((r) => r.url));
-  const done = new Set((await c.env.DB.prepare('SELECT slug FROM dose_checks').all<{ slug: string }>()).results.map((r) => r.slug));
-  return c.json({ supplements: sups.map((s) => ({ slug: s.slug, name: s.name, category: s.category, official: !!nutrientFor(s), checked: done.has(s.slug), products: s.products.slice(0, 5).map((p) => ({ name: p.name, url: p.url, label: have.has(p.url) })) })) });
+  // A page counts as checked only when its stored check covers every pick it has now.
+  const covered = new Map((await listDoseChecks(c.env.DB)).map((d) => [d.slug, new Set(d.products.map((p) => p.url))]));
+  return c.json({ supplements: sups.map((s) => ({ slug: s.slug, name: s.name, category: s.category, official: !!nutrientFor(s), checked: !!covered.get(s.slug) && s.products.slice(0, MAX_PICKS).every((p) => covered.get(s.slug)!.has(p.url)), products: s.products.slice(0, MAX_PICKS).map((p) => ({ name: p.name, brand: p.brand, url: p.url, label: have.has(p.url) })) })) });
+});
+
+/** Owner-only: give the next supplements one more pick from iHerb, up to six each (?n=3, or ?slug= for one). */
+app.post('/api/admin/dose/extra', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const sups = (await listSupplements(c.env.DB, 500, false)).filter((s) => s.products.length > 0 && s.products.length < MAX_PICKS);
+  const slug = (c.req.query('slug') ?? '').trim();
+  const skip = new Set((c.req.query('skip') ?? '').split(',').filter(Boolean));
+  const n = Math.min(4, Math.max(1, Number(c.req.query('n') ?? '2') || 2));
+  const todo = (slug ? sups.filter((s) => s.slug === slug) : sups.filter((s) => !skip.has(s.slug))).slice(0, slug ? 1 : n);
+  const results: { slug: string; added: string | null; note: string }[] = [];
+  for (const s of todo) {
+    try {
+      const p = await addExtraProduct(c.env, s, MAX_PICKS);
+      results.push({ slug: s.slug, added: p ? `${p.brand}: ${p.name}` : null, note: p ? p.url : 'nothing new found' });
+    } catch (err) {
+      results.push({ slug: s.slug, added: null, note: String(err instanceof Error ? err.message : err).slice(0, 120) });
+    }
+  }
+  return c.json({ results, remaining: sups.length - results.filter((r) => r.added).length });
 });
 
 /** The label collector stores what it read from the shop: {items: [{url, title, label, directions}]}. */
@@ -1571,7 +1600,8 @@ app.post('/api/admin/dose/run', async (c) => {
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
   const sups = (await listSupplements(c.env.DB, 500, false)).filter((s) => s.products.length);
-  const done = new Set((await c.env.DB.prepare('SELECT slug FROM dose_checks').all<{ slug: string }>()).results.map((r) => r.slug));
+  const covered = new Map((await listDoseChecks(c.env.DB)).map((d) => [d.slug, new Set(d.products.map((p) => p.url))]));
+  const done = new Set(sups.filter((s) => !!covered.get(s.slug) && s.products.slice(0, MAX_PICKS).every((p) => covered.get(s.slug)!.has(p.url))).map((s) => s.slug));
   const slug = (c.req.query('slug') ?? '').trim();
   const redo = c.req.query('redo') === '1';
   const n = Math.min(4, Math.max(1, Number(c.req.query('n') ?? '2') || 2));

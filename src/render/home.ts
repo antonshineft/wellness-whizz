@@ -9,12 +9,15 @@ import { getSupplementsBySlugs, listSupplements, randomSupplements } from '../db
 import type { LinkEnv } from '../links';
 import { postCard } from './blog';
 import { exploreItem, homeCard } from './partials';
+import { getDoseCheck, type DoseCheck } from '../dose';
 
 export async function renderHome(
   env: LinkEnv & { DB: D1Database; ASSETS: Fetcher },
   request: Request,
   curatedOnly = false,
   lang: Lang = 'en',
+  /** Show the dose teaser on the slider cards (src/dose.ts). */
+  doseOn = false,
 ): Promise<Response> {
   const posts = await localizePosts(env.DB, lang, (await allPosts(env.DB)).slice(0, 3));
   const [assetResponse, candidatesEn, exploreEn, postSupplements] = await Promise.all([
@@ -30,6 +33,9 @@ export async function renderHome(
   const withPhoto = candidates.filter((s) => s.products.some((p) => p.image));
   const cards = [...withPhoto, ...candidates.filter((s) => !withPhoto.includes(s))].slice(0, 10);
 
+  const doses = new Map<string, DoseCheck>();
+  if (doseOn) for (const s of cards) { const d = await getDoseCheck(env.DB, s.slug); if (d) doses.set(s.slug, d); }
+
   const rewriter = new HTMLRewriter()
     // The home page answers on several URLs (query strings, the old index.html); one canonical for all of them.
     .on('head', {
@@ -39,7 +45,7 @@ export async function renderHome(
     })
     .on('.ww-carousel-track', {
       element(el) {
-        if (cards.length) el.setInnerContent(cards.map(homeCard).join(''), { html: true });
+        if (cards.length) el.setInnerContent(cards.map((s) => homeCard(s, doses.get(s.slug))).join(''), { html: true });
       },
     })
     .on('.ww-teaser-posts', {
