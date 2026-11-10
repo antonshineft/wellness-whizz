@@ -65,7 +65,7 @@ import { backfillBrands, brandFor, brandPicks, doseRecord, getBrand, listBrands 
 import { brandStrip, renderBrandPage, renderBrandsIndex } from './render/brand';
 import { getDoseRef, listDoseRefs, researchReference, setManualRef, setRefStatus } from './doseref';
 import { MAX_PICKS, checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels, visibleCheck } from './dose';
-import { attachExtraProduct, setProduct } from './products';
+import { attachExtraProduct, setProduct, setProductCutout } from './products';
 import { feedItems } from './social/feeds';
 import { autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
@@ -1608,7 +1608,7 @@ app.get('/api/admin/dose/products', async (c) => {
   const have = new Set((await c.env.DB.prepare('SELECT url FROM dose_labels').all<{ url: string }>()).results.map((r) => r.url));
   // A page counts as checked only when its stored check covers every pick it has now.
   const covered = new Map((await listDoseChecks(c.env.DB)).map((d) => [d.slug, new Set(d.products.map((p) => p.url))]));
-  return c.json({ supplements: sups.map((s) => ({ slug: s.slug, name: s.name, category: s.category, official: !!nutrientFor(s), checked: !!covered.get(s.slug) && s.products.slice(0, MAX_PICKS).every((p) => covered.get(s.slug)!.has(p.url)), products: s.products.slice(0, MAX_PICKS).map((p) => ({ name: p.name, brand: p.brand, url: p.url, label: have.has(p.url) })) })) });
+  return c.json({ supplements: sups.map((s) => ({ slug: s.slug, name: s.name, category: s.category, official: !!nutrientFor(s), checked: !!covered.get(s.slug) && s.products.slice(0, MAX_PICKS).every((p) => covered.get(s.slug)!.has(p.url)), products: s.products.slice(0, MAX_PICKS).map((p) => ({ name: p.name, brand: p.brand, url: p.url, label: have.has(p.url), image: p.image, opaque: !!p.opaque })) })) });
 });
 
 /** The pick collector adds one more pick to a page: {slug, name, brand, url, photo (base64), type}. Up to six picks a page. */
@@ -1646,6 +1646,24 @@ app.post('/api/admin/dose/pick', async (c) => {
     }
   }
   const r = await setProduct(c.env, sup, Number(body.n), { name: String(body.name ?? ''), brand: String(body.brand ?? ''), url: body.url ? String(body.url) : undefined }, photo, MAX_PICKS);
+  return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 400);
+});
+
+/** Replace a pick's photo with its cut-out on a transparent background: {slug, n, photo (base64), type}. */
+app.post('/api/admin/dose/photo', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const body = (await c.req.json().catch(() => ({}))) as { slug?: string; n?: number; photo?: string; type?: string };
+  const sup = await getSupplementBySlug(c.env.DB, String(body.slug ?? ''));
+  if (!sup) return c.json({ ok: false, error: 'no such supplement' }, 404);
+  let bytes: Uint8Array;
+  try {
+    bytes = Uint8Array.from(atob(String(body.photo ?? '')), (ch) => ch.charCodeAt(0));
+  } catch {
+    return c.json({ ok: false, error: 'photo must be base64' }, 400);
+  }
+  const r = await setProductCutout(c.env, sup, Number(body.n), { bytes, type: String(body.type ?? '') });
   return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 400);
 });
 

@@ -244,7 +244,7 @@ export async function checkSupplement(env: VideoEnv, sup: Supplement): Promise<D
     high: usable ? refHigh : null,
     lowLabel: nutrient ? `Daily need (${nutrient.needKind})` : 'Lowest daily dose in studies',
     highLabel: nutrient ? 'Safe ceiling (UL)' : 'Highest daily dose in studies',
-    note: nutrient ? nutrient.note : ref ? `Published trials and reviews gave ${fmt(ref.low as number)} to ${fmt(ref.high as number)} ${ref.unit} of ${ref.marker} a day.` : String(out.reference?.quote ?? '').trim().slice(0, 240),
+    note: nutrient ? nutrient.note : ref ? `Published trials and reviews gave ${fmt(ref.low as number)} to ${fmt(ref.high as number)} ${ref.unit} of ${ref.marker}${/serving/i.test(ref.marker) ? '' : ' a day'}.` : String(out.reference?.quote ?? '').trim().slice(0, 240),
     source: nutrient ? 'NIH Office of Dietary Supplements, figures for adults' : ref ? 'Doses used in published trials and reviews' : 'Doses used in the studies described on this page',
     ...(ref ? { researched: true, marker: ref.marker, papers: [...new Map(ref.evidence.map((e) => [e.pmid, { pmid: e.pmid, title: e.title }])).values()].slice(0, 5) } : {}),
     products: products.map((p, i) => {

@@ -181,6 +181,25 @@ export async function setProduct(
   return { ok: true, product };
 }
 
+/**
+ * Replace the photo of the pick at place `n` with a cut-out of the same photo (the product on a transparent
+ * background). Photos taken from the shop come on white, and were shown blended into the card, which washed out
+ * white bottles; a cut-out needs no blending.
+ */
+export async function setProductCutout(env: { DB: D1Database }, sup: Supplement, n: number, photo: { bytes: Uint8Array; type: string }): Promise<{ ok: true; image: string } | { ok: false; message: string }> {
+  const product = sup.products[n - 1];
+  const key = /^\/images\/generated\/([a-z0-9-]+)\.(?:jpe?g|png|webp)$/.exec(product?.image ?? '')?.[1];
+  if (!product || !key) return { ok: false, message: 'that pick has no stored photo to replace' };
+  if (!/^image\/(png|webp)$/.test(photo.type) || photo.bytes.length < 2000 || photo.bytes.length > 900_000) return { ok: false, message: 'the cut-out must be a PNG or WebP image' };
+  const cut = `${key.replace(/-cut$/, '')}-cut`.slice(0, 120);
+  await storeImage(env.DB, cut, photo.type, photo.bytes);
+  const { opaque: _opaque, ...rest } = product;
+  const products = [...sup.products];
+  products[n - 1] = { ...rest, image: `/images/generated/${cut}.${photo.type.includes('png') ? 'png' : 'webp'}` };
+  await env.DB.prepare("UPDATE supplements SET products_json = ?, updated_at = datetime('now') WHERE id = ?").bind(JSON.stringify(products), sup.id).run();
+  return { ok: true, image: products[n - 1].image as string };
+}
+
 /** Supplements without a single product photo, AI-created ones first. */
 export async function supplementsWithoutPhotos(db: D1Database, limit: number): Promise<{ id: number; slug: string }[]> {
   const { results } = await db

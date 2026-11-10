@@ -846,3 +846,7 @@ a.ww-brand-link { color: inherit; text-decoration: underline; text-decoration-co
 
 /* The word "studies" in a verdict: a link to the research section, searched for the supplement. */
 a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-color: #87d581; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+
+/* The picks section keeps its distance from the dark block that follows it. */
+.ww-top { margin-bottom: 56px; }
+@media (max-width: 767px) { .ww-top { margin-bottom: 36px; } }
