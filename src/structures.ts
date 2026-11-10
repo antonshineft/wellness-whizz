@@ -6,13 +6,14 @@
  * database; `cid` is its record there), never by an image model. `kind` says how the compound relates to the page:
  *   self   - the supplement is this substance
  *   form   - a common supplement form of a mineral (a mineral alone is a single atom)
+ *   capsule - a mineral page: no molecule, the shared capsule picture
  *   active - the main studied compound of a plant or extract
  *   part   - a characteristic component of a food, protein, blend or category page
  * Pages without an entry (an enzyme, for example, has no small-molecule structure) keep their earlier picture.
  */
 export interface Structure {
   compound: string;
-  kind: 'self' | 'form' | 'active' | 'part';
+  kind: 'self' | 'form' | 'active' | 'part' | 'capsule';
   note: string;
   cid: number;
 }
@@ -35,19 +36,19 @@ export const STRUCTURES: Record<string, Structure> = {
   "biotin-41328": { compound: "biotin", kind: "self", note: "", cid: 171548 },
   "black-seed-oil": { compound: "thymoquinone", kind: "active", note: "the main studied compound in black seed oil", cid: 10281 },
   "blueberry-supplements-7540e": { compound: "malvidin 3-glucoside", kind: "active", note: "a main anthocyanin pigment of blueberries", cid: 443652 },
-  "boron-95c26": { compound: "boric acid", kind: "form", note: "", cid: 7628 },
+  "boron-95c26": { compound: "", kind: "capsule", note: "", cid: 0 },
   "boswellia": { compound: "acetyl-11-keto-beta-boswellic acid", kind: "active", note: "AKBA, the main studied boswellic acid", cid: 11168203 },
-  "calcium-31e0e": { compound: "calcium citrate", kind: "form", note: "", cid: 13136 },
+  "calcium-31e0e": { compound: "", kind: "capsule", note: "", cid: 0 },
   "casein-protein-441df": { compound: "L-proline", kind: "part", note: "an amino acid casein is rich in", cid: 145742 },
   "childrens-vitamins-345ee": { compound: "pyridoxine", kind: "part", note: "vitamin B6", cid: 1054 },
   "chlorella-0dc2f": { compound: "chlorophyll a", kind: "active", note: "the green pigment of chlorella", cid: 12085802 },
   "choline-2f904": { compound: "choline", kind: "self", note: "", cid: 305 },
   "chondroitin": { compound: "chondroitin sulfate", kind: "part", note: "the repeating unit of chondroitin sulfate", cid: 24766 },
-  "chromium-d5cc7": { compound: "chromium picolinate", kind: "form", note: "", cid: 151932 },
+  "chromium-d5cc7": { compound: "", kind: "capsule", note: "", cid: 0 },
   "citrulline-606c9": { compound: "L-citrulline", kind: "self", note: "", cid: 9750 },
   "coenzyme-q10-33ce3": { compound: "coenzyme Q10", kind: "self", note: "", cid: 5281915 },
   "collagen-c8ddc": { compound: "hydroxyproline", kind: "part", note: "the amino acid that is almost unique to collagen", cid: 5810 },
-  "copper-4fd77": { compound: "copper glycinate", kind: "form", note: "", cid: 3032611 },
+  "copper-4fd77": { compound: "", kind: "capsule", note: "", cid: 0 },
   "cranberry-supplements-ab277": { compound: "procyanidin A2", kind: "active", note: "the type of proanthocyanidin cranberries are studied for", cid: 124025 },
   "creatine-ce673": { compound: "creatine", kind: "self", note: "", cid: 586 },
   "curcumin-ad864": { compound: "curcumin", kind: "self", note: "", cid: 969516 },
@@ -82,8 +83,8 @@ export const STRUCTURES: Record<string, Structure> = {
   "holy-basil-tulsi": { compound: "eugenol", kind: "active", note: "the main aromatic compound of holy basil", cid: 3314 },
   "hyaluronic-acid": { compound: "N-acetyl-D-glucosamine", kind: "part", note: "one of the two sugars hyaluronic acid is built from", cid: 439174 },
   "inositol-f71ea": { compound: "myo-inositol", kind: "self", note: "", cid: 892 },
-  "iodine-8c905": { compound: "levothyroxine", kind: "part", note: "thyroxine, the thyroid hormone that carries four iodine atoms", cid: 5819 },
-  "iron-f14ff": { compound: "ferrous bisglycinate", kind: "form", note: "", cid: 9837124 },
+  "iodine-8c905": { compound: "", kind: "capsule", note: "", cid: 0 },
+  "iron-f14ff": { compound: "", kind: "capsule", note: "", cid: 0 },
   "joint-health-supplements-8263f": { compound: "glucosamine sulfate", kind: "part", note: "one of the most studied joint ingredients", cid: 73415774 },
   "keto-supplements-0fa79": { compound: "3-hydroxybutyric acid", kind: "part", note: "beta-hydroxybutyrate, the main ketone body", cid: 441 },
   "krill-oil": { compound: "astaxanthin", kind: "active", note: "the red pigment of krill oil", cid: 5281224 },
@@ -98,8 +99,8 @@ export const STRUCTURES: Record<string, Structure> = {
   "lutein-392f2": { compound: "lutein", kind: "self", note: "", cid: 5281243 },
   "lycopene-cbdf9": { compound: "lycopene", kind: "self", note: "", cid: 446925 },
   "maca-root": { compound: "N-benzylhexadecanamide", kind: "active", note: "a macamide, a compound found only in maca", cid: 11198769 },
-  "magnesium-32aa0": { compound: "magnesium glycinate", kind: "form", note: "", cid: 84645 },
-  "manganese-d62af": { compound: "manganese gluconate", kind: "form", note: "", cid: 22988 },
+  "magnesium-32aa0": { compound: "", kind: "capsule", note: "", cid: 0 },
+  "manganese-d62af": { compound: "", kind: "capsule", note: "", cid: 0 },
   "mct-oil-df089": { compound: "octanoic acid", kind: "active", note: "caprylic acid, the main fatty acid of MCT oil", cid: 379 },
   "meal-replacement-shakes-cf427": { compound: "L-tryptophan", kind: "part", note: "one of the nine essential amino acids", cid: 6305 },
   "melatonin": { compound: "melatonin", kind: "self", note: "", cid: 896 },
@@ -120,7 +121,7 @@ export const STRUCTURES: Record<string, Structure> = {
   "pea-protein-ed488": { compound: "L-lysine", kind: "part", note: "an essential amino acid pea protein is rich in", cid: 5962 },
   "policosanol": { compound: "1-octacosanol", kind: "active", note: "the main alcohol in policosanol", cid: 68406 },
   "pomegranate-supplements-5bf68": { compound: "ellagic acid", kind: "active", note: "the polyphenol pomegranate tannins break down into", cid: 5281855 },
-  "potassium-131fa": { compound: "potassium citrate", kind: "form", note: "", cid: 2735208 },
+  "potassium-131fa": { compound: "", kind: "capsule", note: "", cid: 0 },
   "pre-workout-supplements-e1983": { compound: "caffeine", kind: "part", note: "the most common pre-workout ingredient", cid: 2519 },
   "prenatal-vitamins-89ca3": { compound: "levomefolic acid", kind: "part", note: "the active form of folate", cid: 135398561 },
   "probiotics-823e4": { compound: "lactic acid", kind: "part", note: "the acid that probiotic bacteria produce", cid: 612 },
@@ -139,7 +140,7 @@ export const STRUCTURES: Record<string, Structure> = {
   "saffron-extracts-814f4": { compound: "safranal", kind: "active", note: "the compound behind saffron's aroma", cid: 61041 },
   "sam-e": { compound: "S-adenosylmethionine", kind: "self", note: "", cid: 34755 },
   "saw-palmetto-bd325": { compound: "lauric acid", kind: "active", note: "the main fatty acid of saw palmetto extract", cid: 3893 },
-  "selenium-b2365": { compound: "selenomethionine", kind: "form", note: "", cid: 15103 },
+  "selenium-b2365": { compound: "", kind: "capsule", note: "", cid: 0 },
   "shilajit": { compound: "urolithin A", kind: "active", note: "a dibenzo-alpha-pyrone, one of the defined compounds of shilajit", cid: 5488186 },
   "sleep-aids-6794a": { compound: "apigenin", kind: "part", note: "the calming compound of chamomile", cid: 5280443 },
   "soy-protein-05d08": { compound: "genistein", kind: "part", note: "the main isoflavone of soy", cid: 5280961 },
@@ -163,15 +164,16 @@ export const STRUCTURES: Record<string, Structure> = {
   "whey-protein-isolate-e849d": { compound: "L-isoleucine", kind: "part", note: "a branched-chain amino acid whey is rich in", cid: 6306 },
   "womens-health-supplements-3a4ee": { compound: "daidzein", kind: "part", note: "a soy isoflavone", cid: 5281708 },
   "yerba-mate": { compound: "theobromine", kind: "active", note: "a stimulant yerba mate shares with cocoa", cid: 5429 },
-  "zinc-citrate-87bd8": { compound: "zinc citrate", kind: "self", note: "", cid: 11023 },
-  "zinc-fe1df": { compound: "zinc picolinate", kind: "form", note: "", cid: 9904746 },
-  "zma-zinc-magnesium-aspartate-336bd": { compound: "L-aspartic acid", kind: "part", note: "aspartate, the amino acid zinc and magnesium are bound to in ZMA", cid: 5960 },
+  "zinc-citrate-87bd8": { compound: "", kind: "capsule", note: "", cid: 0 },
+  "zinc-fe1df": { compound: "", kind: "capsule", note: "", cid: 0 },
+  "zma-zinc-magnesium-aspartate-336bd": { compound: "", kind: "capsule", note: "", cid: 0 },
 };
 
 /** What the picture shows, for the image description: "Molecular structure of withaferin A, the most studied withanolide of ashwagandha". */
 export function structureAlt(slug: string, supplementName: string): string | null {
   const s = STRUCTURES[slug];
   if (!s) return null;
+  if (s.kind === 'capsule') return `Illustration of a supplement capsule: ${supplementName} is a mineral`;
   const base = `Molecular structure of ${s.compound}`;
   if (s.kind === 'form') return `${base}, a common supplement form of ${supplementName.toLowerCase()}`;
   return s.note ? `${base}, ${s.note}` : base;

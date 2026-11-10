@@ -4,6 +4,8 @@ kind: self   - the supplement is this substance
       form   - a common supplement form of a mineral (a mineral alone is a single atom)
       active - the main studied compound of a plant or extract
       part   - a characteristic component of a food, protein, blend or category page
+      capsule - a mineral page: a mineral is a single atom with no molecule to draw, so these pages share one
+                capsule picture (capsule.py) and name no compound
 The names are PubChem names; the structure itself always comes from PubChem, never from here.
 """
 M = {
@@ -128,20 +130,20 @@ M = {
     'vitamin-e-f4fa7': ('alpha-tocopherol', 'self', ''),
     'vitamin-k-8e985': ('phylloquinone', 'self', ''),
     # minerals: shown as a common supplement form
-    'boron-95c26': ('boric acid', 'form', ''),
-    'calcium-31e0e': ('calcium citrate', 'form', ''),
-    'chromium-d5cc7': ('chromium picolinate', 'form', ''),
-    'copper-4fd77': ('copper glycinate', 'form', ''),
+    'boron-95c26': ('', 'capsule', ''),
+    'calcium-31e0e': ('', 'capsule', ''),
+    'chromium-d5cc7': ('', 'capsule', ''),
+    'copper-4fd77': ('', 'capsule', ''),
     'electrolyte-drinks-4cb22': ('sodium citrate', 'part', 'a salt used in electrolyte drinks'),
-    'iodine-8c905': ('levothyroxine', 'part', 'thyroxine, the thyroid hormone that carries four iodine atoms'),
-    'iron-f14ff': ('ferrous bisglycinate', 'form', ''),
-    'magnesium-32aa0': ('magnesium glycinate', 'form', ''),
-    'manganese-d62af': ('manganese gluconate', 'form', ''),
-    'potassium-131fa': ('potassium citrate', 'form', ''),
-    'selenium-b2365': ('selenomethionine', 'form', ''),
-    'zinc-fe1df': ('zinc picolinate', 'form', ''),
-    'zinc-citrate-87bd8': ('zinc citrate', 'self', ''),
-    'zma-zinc-magnesium-aspartate-336bd': ('L-aspartic acid', 'part', 'aspartate, the amino acid zinc and magnesium are bound to in ZMA'),
+    'iodine-8c905': ('', 'capsule', ''),
+    'iron-f14ff': ('', 'capsule', ''),
+    'magnesium-32aa0': ('', 'capsule', ''),
+    'manganese-d62af': ('', 'capsule', ''),
+    'potassium-131fa': ('', 'capsule', ''),
+    'selenium-b2365': ('', 'capsule', ''),
+    'zinc-fe1df': ('', 'capsule', ''),
+    'zinc-citrate-87bd8': ('', 'capsule', ''),
+    'zma-zinc-magnesium-aspartate-336bd': ('', 'capsule', ''),
     # proteins: a characteristic amino acid each
     'casein-protein-441df': ('L-proline', 'part', 'an amino acid casein is rich in'),
     'protein-powder-casein-c95a1': ('L-glutamic acid', 'part', 'the most abundant amino acid in casein'),
