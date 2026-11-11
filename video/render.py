@@ -379,9 +379,25 @@ ELEVEN_STABILITY = float(os.environ.get('ELEVENLABS_STABILITY') or '0.75')
 ELEVEN_STYLE = float(os.environ.get('ELEVENLABS_STYLE') or '0.25')
 ELEVEN_TAGS = os.environ.get('ELEVENLABS_TAGS') == 'true'
 # The owner found the narrator too slow ("we can fit more info on that timeline"): measured, he read about 2.3 words a
-# second. The voice service's own speed stops at 1.2, so the recording is tightened a further quarter afterwards, pitch
-# kept: just under three words a second.
-ELEVEN_TEMPO = float(os.environ.get('ELEVENLABS_TEMPO') or '1.25')
+# second. The voice service's own speed stops at 1.2, so each recording is tightened afterwards, pitch kept. The voice
+# model does not keep one pace (in one video its scenes ran from 9 to 14.5 letters a second), so a fixed factor rushed
+# the scenes that were already quick. Each scene is brought to the same pace instead: ELEVEN_PACE letters a second,
+# just under three words. A scene already at that pace is left alone, none is slowed, none is tightened past
+# ELEVEN_TEMPO_MAX. ELEVENLABS_TEMPO, when set, is one fixed factor for every scene instead.
+ELEVEN_PACE = float(os.environ.get('ELEVENLABS_PACE') or '12.5')
+ELEVEN_TEMPO_MAX = 1.4
+ELEVEN_TEMPO = float(os.environ.get('ELEVENLABS_TEMPO') or '0')
+
+
+def pace_tempo(words: list[dict]) -> float:
+    """How much a recording is tightened to reach the house pace, from its word times ({'w', 's', 'e'})."""
+    if 0.8 <= ELEVEN_TEMPO <= 1.5:
+        return ELEVEN_TEMPO
+    letters = sum(len(re.sub(r'[^A-Za-z0-9]', '', w.get('w', ''))) for w in words)
+    spoken = (words[-1]['e'] - words[0]['s']) if words else 0.0
+    if letters < 10 or spoken <= 0.5 or ELEVEN_PACE <= 0:
+        return 1.0
+    return max(1.0, min(ELEVEN_TEMPO_MAX, ELEVEN_PACE / (letters / spoken)))
 TAG_RE = re.compile(r'\[[^\]]*\]')
 
 
@@ -433,10 +449,11 @@ def has_audio(path: Path) -> bool:
 
 
 def fit_narration(mp3: Path, words: list[dict], wav: Path, max_len: float) -> tuple[list[dict], float]:
-    """The narration as the voice model made it, tightened by ELEVEN_TEMPO (pitch kept) with the word times moved to match:
-    no trimming and no added tail. The picture is fitted to the voice in compose(). A 5 ms guard against clicks at the edges."""
+    """The narration as the voice model made it, tightened to the house pace (pace_tempo, pitch kept) with the word times
+    moved to match: no trimming and no added tail. The picture is fitted to the voice in compose(). A 5 ms guard against
+    clicks at the edges."""
     d = ffprobe_duration(mp3)
-    tempo = ELEVEN_TEMPO if 0.8 <= ELEVEN_TEMPO <= 1.5 else 1.0
+    tempo = pace_tempo(words)
     faster = f'atempo={tempo:.3f},' if abs(tempo - 1.0) > 0.005 else ''
     ffmpeg('-i', str(mp3), '-af', f'afade=t=in:st=0:d=0.005,afade=t=out:st={max(0.0, d - 0.005):.3f}:d=0.005,{faster}aresample=48000', '-ar', '48000', '-ac', '2', str(wav))
     return [{**w, 's': w['s'] / tempo, 'e': w['e'] / tempo} for w in words], ffprobe_duration(wav)
@@ -721,7 +738,7 @@ def render(job: dict) -> Path:
         if over > SCENE_SECONDS * (MAX_SLOW - 1) + MAX_HOLD:
             raise RuntimeError(f'scene {i + 1} narration is {nd:.1f} s even at {MAX_TEMPO}x; shorten it ({len(spoken_words(sc["narration"]))} words)')
         narrations.append((WORK / f'vo{i + 1}.wav', fitted, nd))
-        log(f'narration {i + 1}: {nd:.2f} s' + (f' (the scene is held {over:.1f} s longer)' if over > 0 else ''))
+        log(f'narration {i + 1}: {nd:.2f} s, tightened {pace_tempo(words):.2f}x' + (f' (the scene is held {over:.1f} s longer)' if over > 0 else ''))
 
     # 2. clips
     reuse = os.environ.get('RENDER_CLIPS')
@@ -744,7 +761,8 @@ def render(job: dict) -> Path:
         try:
             import follow_ending
             with_ending = WORK / f'{slug}-with-ending.mp4'
-            length = follow_ending.append(out, ending, with_ending, WORK, run=ffmpeg, duration=ffprobe_duration, bed=BED, bed_volume=BED_VOLUME, ffmpeg_bin=FFMPEG, tempo=ELEVEN_TEMPO)
+            said = json.loads((ROOT / 'assets' / f'follow-voice-{ending}.json').read_text())['words']
+            length = follow_ending.append(out, ending, with_ending, WORK, run=ffmpeg, duration=ffprobe_duration, bed=BED, bed_volume=BED_VOLUME, ffmpeg_bin=FFMPEG, tempo=pace_tempo(said))
             with_ending.replace(out)
             log(f'follow ending "{ending}" added: {length:.1f} s in all')
         except Exception as e:  # noqa: BLE001
