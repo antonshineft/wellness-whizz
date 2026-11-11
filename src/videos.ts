@@ -92,8 +92,8 @@ const RENDER_STALE_MINUTES = 150;
 /** Scenes per video; each is a ten-second clip. */
 export const SCENES = 9;
 const MIN_SCENES = 4;
-/** Spoken words per scene; the narrator (ElevenLabs "Liam") speaks about 3 words a second, so 27 to 29 words fill a ten-second scene. */
-export const MAX_SCENE_WORDS = 28;
+/** Spoken words per scene. The narrator (ElevenLabs "Liam", tightened by a quarter in video/render.py) speaks about 3 words a second, so 27 to 30 words fill a ten-second scene. */
+export const MAX_SCENE_WORDS = 30;
 /** Spoken words per video. The render job refuses scripts far above this. */
 const MAX_SCRIPT_WORDS = SCENES * MAX_SCENE_WORDS;
 const MAX_ATTEMPTS = 2;
@@ -198,7 +198,7 @@ The three scripts must differ in SHAPE, not only in moment. Give each a differen
 This is a story, not advice, and nothing in it may need a disclaimer: no doses, no "take X milligrams", no "with food", no timing instructions, no warnings, no "ask a doctor", no "if you are pregnant / on medication", no claims that it treats, cures or prevents anything. A popular nickname ("the internet calls it nature's Ozempic") is a great story beat, told as what people say and why, never as a claim that it works like the medicine. If the article's practical advice is the only thing left, find the history and the chemistry instead. No call to action, no "follow", no "link in bio", no website mention anywhere in the narration.
 
 Narration rules:
-- Between 23 and ${MAX_SCENE_WORDS} words per scene, usually 25 to 26 (the evidence scene 23 to 25, because names and years read slowly), so the narration fills the ten seconds with no silent tail and no overrun. Short spoken sentences with a verb. The narrator is a warm, curious young man; write for his voice.
+- Between 25 and ${MAX_SCENE_WORDS} words per scene, usually 27 to 29 (the evidence scene 25 to 27, because names and years read slowly), so the narration fills the ten seconds with no silent tail and no overrun. Short spoken sentences with a verb. The narrator is a warm, curious young man; write for his voice.
 - Direct the narrator lightly: at most two bracketed stage directions per scene from this set, placed before the sentence they colour: [curious] [intrigued] [slowly] [pause] [amused] [serious] [whispers] [excited]. Use *asterisks* around one word to stress it. These are read by the voice, never shown in the captions, and they do not count as words.
 - Write numbers and years as digits, as the captions show them: "1992", "38 trillion", "90 percent", "200 milligrams". Spell units out in full (milligrams, grams, percent) so the narrator reads them correctly; no symbols, no abbreviations.
 - Facts come from the article first. You may add well-known, well-documented general knowledge about the supplement (its discovery, origin, chemistry, famous experiments) that a good reference book would confirm. Never invent a number, a study or a name. A study may appear as a story ("in a famous experiment, mice given it lived longer"), never as a promise for the viewer.

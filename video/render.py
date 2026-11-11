@@ -378,6 +378,10 @@ ELEVEN_SPEED = float(os.environ.get('ELEVENLABS_SPEED') or '1.2')
 ELEVEN_STABILITY = float(os.environ.get('ELEVENLABS_STABILITY') or '0.75')
 ELEVEN_STYLE = float(os.environ.get('ELEVENLABS_STYLE') or '0.25')
 ELEVEN_TAGS = os.environ.get('ELEVENLABS_TAGS') == 'true'
+# The owner found the narrator too slow ("we can fit more info on that timeline"): measured, he read about 2.3 words a
+# second. The voice service's own speed stops at 1.2, so the recording is tightened a further quarter afterwards, pitch
+# kept: just under three words a second.
+ELEVEN_TEMPO = float(os.environ.get('ELEVENLABS_TEMPO') or '1.25')
 TAG_RE = re.compile(r'\[[^\]]*\]')
 
 
@@ -429,11 +433,13 @@ def has_audio(path: Path) -> bool:
 
 
 def fit_narration(mp3: Path, words: list[dict], wav: Path, max_len: float) -> tuple[list[dict], float]:
-    """The narration is used exactly as the voice model made it: no trimming, no speed change, no added tail. The picture is
-    fitted to the voice in compose(). Only a 5 ms guard against clicks at the very edges."""
+    """The narration as the voice model made it, tightened by ELEVEN_TEMPO (pitch kept) with the word times moved to match:
+    no trimming and no added tail. The picture is fitted to the voice in compose(). A 5 ms guard against clicks at the edges."""
     d = ffprobe_duration(mp3)
-    ffmpeg('-i', str(mp3), '-af', f'afade=t=in:st=0:d=0.005,afade=t=out:st={max(0.0, d - 0.005):.3f}:d=0.005', '-ar', '48000', '-ac', '2', str(wav))
-    return words, ffprobe_duration(wav)
+    tempo = ELEVEN_TEMPO if 0.8 <= ELEVEN_TEMPO <= 1.5 else 1.0
+    faster = f'atempo={tempo:.3f},' if abs(tempo - 1.0) > 0.005 else ''
+    ffmpeg('-i', str(mp3), '-af', f'afade=t=in:st=0:d=0.005,afade=t=out:st={max(0.0, d - 0.005):.3f}:d=0.005,{faster}aresample=48000', '-ar', '48000', '-ac', '2', str(wav))
+    return [{**w, 's': w['s'] / tempo, 'e': w['e'] / tempo} for w in words], ffprobe_duration(wav)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -738,7 +744,7 @@ def render(job: dict) -> Path:
         try:
             import follow_ending
             with_ending = WORK / f'{slug}-with-ending.mp4'
-            length = follow_ending.append(out, ending, with_ending, WORK, run=ffmpeg, duration=ffprobe_duration, bed=BED, bed_volume=BED_VOLUME, ffmpeg_bin=FFMPEG)
+            length = follow_ending.append(out, ending, with_ending, WORK, run=ffmpeg, duration=ffprobe_duration, bed=BED, bed_volume=BED_VOLUME, ffmpeg_bin=FFMPEG, tempo=ELEVEN_TEMPO)
             with_ending.replace(out)
             log(f'follow ending "{ending}" added: {length:.1f} s in all')
         except Exception as e:  # noqa: BLE001

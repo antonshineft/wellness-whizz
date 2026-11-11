@@ -39,13 +39,14 @@ STORY_FADE = 1.5  # seconds over which compose() fades the music out at the end 
 IG_FOLLOW = (372, 1634)
 
 
-def _use(kind: str) -> None:
-    """Take the look's own recording: the ending lasts as long as its line, and the tap lands on the word "follow"."""
+def _use(kind: str, tempo: float = 1.0) -> None:
+    """Take the look's own recording: the ending lasts as long as its line, and the tap lands on the word "follow".
+    `tempo` is how much the story's narration was tightened; the line is tightened the same, so the pace does not drop."""
     global VOICE, LENGTH, TAP
     VOICE = ASSETS / f'follow-voice-{kind}.mp3'
     words = json.loads((ASSETS / f'follow-voice-{kind}.json').read_text())['words']
-    LENGTH = LEAD + words[-1]['e'] + TAIL
-    TAP = LEAD + next(w['s'] for w in words if w['w'].lower().startswith('follow')) + 0.18
+    LENGTH = LEAD + words[-1]['e'] / tempo + TAIL
+    TAP = LEAD + next(w['s'] for w in words if w['w'].lower().startswith('follow')) / tempo + 0.18
 
 
 def ease(t: float) -> float:
@@ -226,13 +227,14 @@ def _picture_length(src: Path, ffmpeg_bin: str, fallback: float) -> float:
     return min(fallback, int(frames[-1]) / FPS) if frames and int(frames[-1]) > 0 else fallback
 
 
-def append(src: Path, kind: str, out: Path, work: Path, *, run: Callable[..., None], duration: Callable[[Path], float], bed: Path, bed_volume: float, ffmpeg_bin: str = 'ffmpeg') -> float:
+def append(src: Path, kind: str, out: Path, work: Path, *, run: Callable[..., None], duration: Callable[[Path], float], bed: Path, bed_volume: float, ffmpeg_bin: str = 'ffmpeg', tempo: float = 1.0) -> float:
     """Write `out`: the finished video `src` followed by the follow ending `kind`. Returns the new length in seconds.
     `run` runs ffmpeg with the given arguments, `duration` measures a media file, `ffmpeg_bin` is the ffmpeg to ask
     about the picture; `bed` and `bed_volume` are the music and the level compose() mixed it at (0: no music)."""
     if kind not in KINDS:
         raise ValueError(f'unknown ending {kind!r}')
-    _use(kind)
+    tempo = tempo if 0.8 <= tempo <= 1.5 else 1.0
+    _use(kind, tempo)
     work.mkdir(parents=True, exist_ok=True)
     sound = duration(src)  # where the story's sound ends: its closing music fade runs up to here
     total = _picture_length(src, ffmpeg_bin, sound)  # where its picture ends: the ending starts here
@@ -258,7 +260,7 @@ def append(src: Path, kind: str, out: Path, work: Path, *, run: Callable[..., No
     stereo = 'aformat=sample_rates=48000:channel_layouts=stereo'
     graph = (f'[0:v]fps={FPS},format=yuv420p,setsar=1[v0];[1:v]fps={FPS},format=yuv420p,setsar=1[v1];[v0][v1]concat=n=2:v=1:a=0[v];'
              f'[0:a]{stereo},apad=whole_dur={whole:.3f}[s];'
-             f'[2:a]{stereo},volume={VOICE_GAIN},{late(total + LEAD)}[n];')
+             f'[2:a]{"atempo=%.3f," % tempo if abs(tempo - 1.0) > 0.005 else ""}{stereo},volume={VOICE_GAIN},{late(total + LEAD)}[n];')
     mix = '[s][n]'
     if bed_volume > 0 and bed.exists():
         start = sound - STORY_FADE  # the laid-in music rises exactly as the story's own music falls
