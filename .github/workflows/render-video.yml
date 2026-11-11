@@ -71,13 +71,14 @@ jobs:
           SLUG: ${{ github.event.inputs.slug }}
         run: |
           case "$SLUG" in ''|*[!a-z0-9-]*) echo "a recut needs the video's slug"; exit 1;; esac
-          mkdir -p video/work /tmp/kept
+          # not video/work: the render empties that directory when it starts
+          mkdir -p video/kept /tmp/kept
           gh release download clips -p "$SLUG-clips.zip" -p "$SLUG-20??????-????-clips.zip" -D /tmp/kept --clobber
           zip=/tmp/kept/$SLUG-clips.zip
           [ -f "$zip" ] || zip=$(ls /tmp/kept/"$SLUG"-20*-clips.zip | sort | tail -1)
-          unzip -q -o "$zip" -d video/work
-          ls video/work
-          echo "RENDER_CLIPS=$PWD/video/work" >> "$GITHUB_ENV"
+          unzip -q -o "$zip" -d video/kept
+          ls video/kept
+          echo "RENDER_CLIPS=$PWD/video/kept" >> "$GITHUB_ENV"
           echo "RENDER_REVIEW=1" >> "$GITHUB_ENV"
       - name: Render
         env:
@@ -107,11 +108,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          cd video/work 2> /dev/null || exit 0
-          [ -f clip1.mp4 ] || exit 0
-          slug=$(ls ./*-cover.jpg 2> /dev/null | head -1 | sed 's|^\./||; s/-cover\.jpg$//; s/-[0-9]\{8\}-[0-9]\{4\}$//')
+          # a recut's clips sit in video/kept (the redrawn scenes already in place), a new render's in video/work
+          dir=video/work; [ -f video/kept/clip1.mp4 ] && dir=video/kept
+          [ -f "$dir/clip1.mp4" ] || exit 0
+          slug=$(ls video/work/*-cover.jpg 2> /dev/null | head -1 | sed 's|.*/||; s/-cover\.jpg$//; s/-[0-9]\{8\}-[0-9]\{4\}$//')
           [ -n "$slug" ] || exit 0
-          zip -q -0 "/tmp/$slug-clips.zip" clip*.mp4
+          (cd "$dir" && zip -q -0 "/tmp/$slug-clips.zip" clip*.mp4)
           gh release view clips > /dev/null 2>&1 || gh release create clips --title "Raw clips" --notes "The generated scene clips of each video, kept so new cuts can be made without paying for footage again."
           gh release upload clips "/tmp/$slug-clips.zip" --clobber || echo "clips not kept (the render itself is fine)"
       - name: Keep the work files for a week

@@ -859,7 +859,7 @@ def main() -> int:
         return 0 if rr.ok else 1
     except Exception as e:  # noqa: BLE001
         log(f'render failed: {e}')
-        if not LOCAL:
+        if not LOCAL and not os.environ.get('RENDER_CLIPS'):  # a failed recut leaves the finished video's record alone
             site('POST', f"/api/admin/videos/{job['slug']}/failed", json={'error': str(e)[:900]})
         raise
 
