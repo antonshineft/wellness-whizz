@@ -4,9 +4,12 @@
 name: Trial video
 
 on:
-  # The daily loop, 08:40 in Madrid in winter: yesterday's video gets three variations, scheduled for the same day.
+  # The daily loop: yesterday's video gets three variations, scheduled for the same day. GitHub starts this repository's
+  # scheduled runs hours late and drops most of them (the 07:40 run of 10 Nov started at 15:45, that of 11 Nov never
+  # did), so the loop is asked for every hour of the morning. The first run that starts does the work; the others find
+  # the video already has its trials and stop within seconds.
   schedule:
-    - cron: '40 7 * * *'
+    - cron: '40 6-13 * * *'
   workflow_dispatch:
     inputs:
       slug:
