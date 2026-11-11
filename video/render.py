@@ -420,9 +420,10 @@ ELEVEN_TAGS = os.environ.get('ELEVENLABS_TAGS') == 'true'
 # second. The voice service's own speed stops at 1.2, so each recording is tightened afterwards, pitch kept. The voice
 # model does not keep one pace (in one video its scenes ran from 9 to 14.5 letters a second), so a fixed factor rushed
 # the scenes that were already quick. Each scene is brought to the same pace instead: ELEVEN_PACE letters a second,
-# just under three words. A scene already at that pace is left alone, none is slowed, none is tightened past
-# ELEVEN_TEMPO_MAX. ELEVENLABS_TEMPO, when set, is one fixed factor for every scene instead.
-ELEVEN_PACE = float(os.environ.get('ELEVENLABS_PACE') or '12.5')
+# a little over three words (the owner heard 12.5 and 14 and chose 14). A scene already at that pace is left alone,
+# none is slowed, none is tightened past ELEVEN_TEMPO_MAX. ELEVENLABS_TEMPO, when set, is one fixed factor for every
+# scene instead.
+ELEVEN_PACE = float(os.environ.get('ELEVENLABS_PACE') or '14')
 ELEVEN_TEMPO_MAX = 1.4
 ELEVEN_TEMPO = float(os.environ.get('ELEVENLABS_TEMPO') or '0')
 
