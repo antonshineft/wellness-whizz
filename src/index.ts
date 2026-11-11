@@ -24,7 +24,7 @@ import { queueQuizDataArticle, quizDataSummary } from './quizdata';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
 import { carouselJob, getCarousel, listCarousels, markCarouselFailed, markCarouselReady, queueCarousel, scheduleCarousel, setCarouselStatus } from './carousels';
-import { approveVideo, keepVideo, autoPost, getVideo, listVideos, markFailed, markPosted, markReady, monthlyLimit, nextJob, parseScript, queueVideo, rendersThisMonth, rewriteVideo, scriptNext, writeStory } from './videos';
+import { approveVideo, keepVideo, autoPost, getVideo, listVideos, markFailed, markPosted, markReady, monthlyLimit, nextJob, recutJob, parseScript, queueVideo, rendersThisMonth, rewriteVideo, scriptNext, writeStory } from './videos';
 import { actOnProspect, addProspect, checkWins, counts as prospectCounts, dailyOutreach, discoverProspects, draftPending, findContacts, listProspects, noteReply, outreachDigest, outreachStep, recentEvents, sendApproved, type ProspectKind } from './backlinks';
 import { badgeWallHtml, withBadgeWall } from './badges';
 import { serviceAccountEmail, submitiumDigestLine, submitiumReportLine, submitiumState, submitiumStep } from './submitium';
@@ -1487,6 +1487,16 @@ app.get('/api/admin/videos/next', async (c) => {
   c.header('cache-control', 'no-store');
   const job = await nextJob(c.env, c.req.query('slug') || undefined);
   return c.json(job ?? { job: null });
+});
+
+/** The render workflow, for a recut of a video that already has footage (scenes drawn again, or a new voice): its job, nothing changed. */
+app.get('/api/admin/videos/:slug/job', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  c.header('cache-control', 'no-store');
+  const job = await recutJob(c.env, c.req.param('slug') ?? '');
+  return job ? c.json(job) : c.json({ error: 'no rendered video for that slug' }, 404);
 });
 
 app.post('/api/admin/videos/:slug/ready', async (c) => {

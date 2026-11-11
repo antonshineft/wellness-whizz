@@ -20,6 +20,18 @@ on:
         required: false
         default: false
         type: boolean
+      redo:
+        description: 'Recut of a video that already has footage (needs slug): scene numbers to draw again, e.g. "8" or "3,8"; "voice" for a new narration only. The other clips are reused. Always a review run.'
+        required: false
+        default: ''
+      note:
+        description: 'Recut: one more sentence for the redrawn scenes (what went wrong the first time)'
+        required: false
+        default: ''
+      pace:
+        description: 'Narrator pace in letters a second (default: the one in video/render.py)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -51,6 +63,22 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+      - name: "Recut: fetch the clips kept from the first render"
+        if: github.event.inputs.redo != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SLUG: ${{ github.event.inputs.slug }}
+        run: |
+          case "$SLUG" in ''|*[!a-z0-9-]*) echo "a recut needs the video's slug"; exit 1;; esac
+          mkdir -p video/work /tmp/kept
+          gh release download clips -p "$SLUG-clips.zip" -p "$SLUG-20??????-????-clips.zip" -D /tmp/kept --clobber
+          zip=/tmp/kept/$SLUG-clips.zip
+          [ -f "$zip" ] || zip=$(ls /tmp/kept/"$SLUG"-20*-clips.zip | sort | tail -1)
+          unzip -q -o "$zip" -d video/work
+          ls video/work
+          echo "RENDER_CLIPS=$PWD/video/work" >> "$GITHUB_ENV"
+          echo "RENDER_REVIEW=1" >> "$GITHUB_ENV"
       - name: Render
         env:
           WW_ORIGIN: https://aiww.io
@@ -65,8 +93,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           JOB_SLUG: ${{ github.event.inputs.slug }}
-          RENDER_REVIEW: ${{ github.event.inputs.review == 'true' && '1' || '' }}
-        run: python video/render.py
+          REVIEW_INPUT: ${{ github.event.inputs.review == 'true' && '1' || '' }}
+          REDO_INPUT: ${{ github.event.inputs.redo }}
+          RENDER_REDO_NOTE: ${{ github.event.inputs.note }}
+          ELEVENLABS_PACE: ${{ github.event.inputs.pace }}
+        run: |
+          [ -n "$REVIEW_INPUT" ] && export RENDER_REVIEW=1
+          case "$REDO_INPUT" in ''|voice) ;; *) export RENDER_REDO="$REDO_INPUT";; esac
+          python video/render.py
       - name: Keep the raw clips for trial reels and recuts
         if: success()
         env:

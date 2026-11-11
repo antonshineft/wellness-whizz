@@ -71,6 +71,10 @@ MODEL = os.environ.get('VIDEO_MODEL') or ('gemini-omni-1.1-flash-preview' if VER
 INTERACTIONS = f'https://aiplatform.googleapis.com/v1beta1/projects/{VERTEX_PROJECT}/locations/global/interactions' if VERTEX else 'https://generativelanguage.googleapis.com/v1beta/interactions'
 RESOLUTION = os.environ.get('VIDEO_RESOLUTION') or '720p'
 LOCAL = os.environ.get('RENDER_LOCAL') == '1'
+# A recut: scene numbers ("8" or "3,8") drawn again over the clips kept from the first render (RENDER_CLIPS), every
+# other clip reused. RENDER_REDO_NOTE: one more sentence for those scenes' prompts (what went wrong the first time).
+REDO = sorted({int(x) for x in re.findall(r'\d+', os.environ.get('RENDER_REDO') or '')})
+REDO_NOTE = (os.environ.get('RENDER_REDO_NOTE') or '').strip()
 REVIEW = os.environ.get('RENDER_REVIEW') == '1'
 GOOGLE = 'https://generativelanguage.googleapis.com'
 def _ffmpeg_path() -> str:
@@ -365,6 +369,40 @@ def generate_clips(job: dict, out_dir: Path) -> list[Path]:
     with ThreadPoolExecutor(max_workers=PARALLEL_CLIPS) as pool:
         list(pool.map(one, range(1, len(scenes))))
     return clips
+
+
+def redo_clips(job: dict, clips: list[Path], numbers: list[int]) -> None:
+    """Draw the numbered scenes again, in place, over a kept set of clips. The first drawing is kept beside it as
+    first-clipN.mp4. Scenes after the first take their look from clip 1, as in a full render."""
+    scenes = job['script']['scenes']
+    topic = job.get('product_name') or job['title']
+    bad = [n for n in numbers if not 1 <= n <= len(scenes)]
+    if bad:
+        raise RuntimeError(f'RENDER_REDO names scene {bad[0]}, the video has {len(scenes)}')
+    anchor: Path | None = clips[0].parent / 'anchor.jpg'
+    if 1 not in numbers:
+        try:
+            ffmpeg('-ss', '2', '-i', str(clips[0]), '-frames:v', '1', '-vf', 'scale=720:-2', '-q:v', '3', str(anchor))
+        except Exception as e:  # noqa: BLE001
+            log(f'no reference picture from clip 1 ({e}); drawing without one')
+            anchor = None
+    for n in numbers:
+        i = n - 1
+        prompt = scene_prompt(i, len(scenes), topic, scenes[i]['visual'])
+        if REDO_NOTE:
+            prompt += f'\nImportant: {REDO_NOTE}'
+        new = clips[i].with_name(f'new-clip{n}.mp4')
+        if i == 0:
+            generate_first(prompt, new)
+        else:
+            try:
+                generate_clip(prompt, new, f'clip {n} (redo)', anchor=anchor if anchor and anchor.exists() else None)
+            except RuntimeError as e:
+                log(f'clip {n} failed ({str(e)[:200]}); retrying once without the reference picture')
+                generate_clip(prompt, new, f'clip {n} (redo, retry)')
+        clips[i].replace(clips[i].with_name(f'first-clip{n}.mp4'))
+        new.replace(clips[i])
+        log(f'scene {n} drawn again')
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -748,6 +786,8 @@ def render(job: dict) -> Path:
         if missing:
             raise RuntimeError(f'RENDER_CLIPS is missing {missing[0].name}')
         log(f'reusing {len(clips)} clips from {reuse}')
+        if REDO:
+            redo_clips(job, clips, REDO)
     else:
         clips = generate_clips(job, WORK)
     (WORK / 'words.json').write_text(json.dumps([n[1] for n in narrations], indent=1))
@@ -783,7 +823,14 @@ def main() -> int:
             log('secrets WW_STATS_KEY / GEMINI_API_KEY (or GOOGLE_VERTEX_PROJECT + GOOGLE_CREDENTIALS_JSON) / ELEVENLABS_API_KEY are not all set; skipping')
             return 0
         params = {'slug': os.environ['JOB_SLUG']} if os.environ.get('JOB_SLUG') else {}
-        r = site('GET', '/api/admin/videos/next', params=params)
+        if os.environ.get('RENDER_CLIPS'):
+            # a recut of a video that already has footage: its job as it stands, no render counted
+            if not params:
+                print('a recut needs JOB_SLUG', file=sys.stderr)
+                return 1
+            r = site('GET', f"/api/admin/videos/{params['slug']}/job")
+        else:
+            r = site('GET', '/api/admin/videos/next', params=params)
         if r.status_code != 200:
             print(f'next job: HTTP {r.status_code} {r.text[:200]}', file=sys.stderr)
             return 1

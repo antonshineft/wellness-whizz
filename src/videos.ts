@@ -600,10 +600,14 @@ export async function nextJob(env: VideoEnv, onlySlug?: string): Promise<RenderJ
     console.warn(`video render for ${row.slug} held: ${used} of ${limit} renders used this month`);
     return null;
   }
-  const sup = script.product_slug ? await getSupplementBySlug(env.DB, script.product_slug) : null;
-  const image = sup?.products?.find((p) => p.image)?.image ?? sup?.image ?? null;
   await env.DB.prepare("UPDATE videos SET status = 'rendering', error = '', updated_at = datetime('now') WHERE id = ?").bind(row.id).run();
   await setMeta(env.DB, monthKey(), String(used + 1));
+  return jobFor(env, row, script);
+}
+
+async function jobFor(env: VideoEnv, row: VideoRow, script: VideoScript): Promise<RenderJob> {
+  const sup = script.product_slug ? await getSupplementBySlug(env.DB, script.product_slug) : null;
+  const image = sup?.products?.find((p) => p.image)?.image ?? sup?.image ?? null;
   return {
     ending: await endingFor(env.DB, row),
     slug: row.slug,
@@ -615,6 +619,17 @@ export async function nextJob(env: VideoEnv, onlySlug?: string): Promise<RenderJ
     product_name: sup?.name ?? null,
     article_url: `${origin(env)}/blog/${row.slug}`,
   };
+}
+
+/**
+ * The render job of a video that already has its footage, whatever its status, for a recut: single scenes drawn again
+ * over the kept clips, or a new voice. Nothing is changed and no render is counted against the month, since a recut
+ * pays for one clip at most, not nine.
+ */
+export async function recutJob(env: VideoEnv, slug: string): Promise<RenderJob | null> {
+  const row = await getVideo(env.DB, slug);
+  const script = row ? parseScript(row.script_json) : null;
+  return row && script && row.video_url ? jobFor(env, row, script) : null;
 }
 
 export async function markReady(env: VideoEnv, slug: string, videoUrl: string, duration: number, coverUrl = ''): Promise<boolean> {
