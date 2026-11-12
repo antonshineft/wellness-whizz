@@ -103,3 +103,33 @@
   .ww-st-track b, .ww-st-opt, .ww-st-go { transition: none; }
   .ww-st-opt:active { transform: none; }
 }
+
+/* ---------- desktop: the steps on the left, a full-frame drawing with a post over it on the right ---------- */
+.ww-side { display: none; }
+@media (min-width: 992px) {
+  .sliderblock.ww-quiz-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; grid-gap: 0; padding: 10px; min-height: 600px; }
+  .sliderblock.ww-quiz-split .quiz-form-block { align-self: center; padding: 20px 56px; }
+  .sliderblock.ww-quiz-split .ww-st { max-width: 560px; padding: 0; }
+  .sliderblock.ww-quiz-split .ww-st-bar { margin: 0; padding-left: 0; padding-right: 0; }
+  .sliderblock.ww-quiz-split .ww-st-ask { font-size: 30px; line-height: 34px; }
+  /* a little tighter than on a phone, so the longest list and the post under the drawing fit a laptop screen together */
+  .sliderblock.ww-quiz-split .ww-st-opts { gap: 8px; }
+  .sliderblock.ww-quiz-split .ww-st-opt, .sliderblock.ww-quiz-split .ww-st-opts.is-two .ww-st-opt { min-height: 48px; padding-top: 6px; padding-bottom: 6px; }
+  .sliderblock.ww-quiz-split .ww-st-own { min-height: 46px; }
+  .sliderblock.ww-quiz-split .ww-st-body { gap: 12px; padding: 10px 0 12px; }
+  .sliderblock.ww-quiz-split .ww-st-bar { padding-top: 8px; padding-bottom: 4px; }
+  .sliderblock.ww-quiz-split .ww-st-go { min-height: 52px; }
+  .ww-side { display: block; position: relative; min-height: 580px; border-radius: 30px; overflow: hidden; background: #26333b; }
+  .ww-side-pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 30%; opacity: 0; transition: opacity .7s ease; }
+  .ww-side-pic.is-on { opacity: 1; }
+  .ww-side::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, #11181cb3 0%, #11181c00 55%); pointer-events: none; }
+  /* the line, as a post on the panel's own dark so it does not fight the drawing */
+  .ww-side-post { position: absolute; left: 22px; right: 22px; bottom: 22px; z-index: 2; display: grid; grid-template-columns: 40px minmax(0, 1fr); grid-gap: 12px; padding: 16px 18px; border: 1px solid #ffffff1f; border-radius: 18px; background: #1d272df0; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); font-family: Aeonik, sans-serif; color: #fff; text-align: left; opacity: 0; transition: opacity .3s ease; }
+  .ww-side-post.is-ready { opacity: 1; }
+  .ww-side-logo { width: 40px; height: 40px; border-radius: 50%; background: #fff url(/images/Vectors-Wrapper_4.svg) center / 74% no-repeat; }
+  .ww-side-who b { font-size: 15px; line-height: 20px; font-weight: 700; }
+  .ww-side-who span { margin-left: 6px; font-size: 14px; line-height: 20px; color: #9fb0b9; }
+  .ww-side-text { margin: 4px 0 0; font-size: 17px; line-height: 24px; color: #fff; transition: opacity .2s ease; }
+  .ww-side-post.is-changing .ww-side-text { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .ww-side-pic, .ww-side-text, .ww-side-post { transition: none; } }

@@ -2,8 +2,12 @@
    A layer over the ordinary form: the form, its field names, the validation, the waiting screen and the request to
    /api/quiz in quiz.js all stay as they are. This script hides the long form, asks its five questions one at a time
    with answers the size of a thumb, writes the choices back into the real fields and then submits the form.
-   Without JavaScript, or if anything here fails, the visitor gets the ordinary form. So does a visitor on a desktop
-   screen: the owner asked for the long form to stay there until a two-column version is designed.
+   Without JavaScript, or if anything here fails, the visitor gets the ordinary form.
+
+   On a desktop screen the same steps take the left half of the panel and the right half is one full-frame drawing from
+   the site's videos with a line from that video laid over it like a post. The pairs (public/js/quiz-facts.js) turn
+   over on a timer, and one that suits the goal just picked, or the question on screen, comes up first. DESKTOP below
+   says whether desktop visitors get this, or the long form as before.
 
    The answers shown come from the page itself (radio labels, the activity list, the diet and goal chips), so the
    Spanish page, which the Worker translates before sending, needs no second list here. Only the new wording does. */
@@ -58,6 +62,9 @@
   };
   var MAX_GOALS = 3;
   var STEPS_UP_TO = '(max-width: 991px)'; // phones and tablets; decided once, when the page loads
+  var DESKTOP = 'preview'; // 'off': the long form. 'preview': the two halves only when the address ends in ?split=1. 'on': for everyone.
+  var ROTATE_EVERY = 7000; // ms a drawing and its line stay up
+  var HANDLE = '@aiwwio';
   var ADVANCE_AFTER = 260; // ms a single choice stays lit before the next question appears
 
   function el(tag, cls, text) {
@@ -103,14 +110,66 @@
     };
   }
 
-  function start(form) {
+  /* The right half on a desktop screen. Returns two calls the steps use: goals(positions picked) and step(key). */
+  function sidePanel(panel) {
+    var box = el('aside', 'ww-side'); box.setAttribute('aria-label', LANG === 'es' ? '¿Sabías que…?' : 'Did you know?');
+    var pics = [el('img', 'ww-side-pic'), el('img', 'ww-side-pic')];
+    pics.forEach(function (im) { im.alt = ''; im.decoding = 'async'; box.appendChild(im); });
+    var card = el('div', 'ww-side-post'), text = el('p', 'ww-side-text');
+    var who = el('div', 'ww-side-who'); who.appendChild(el('b', '', 'Wellness Whizz')); who.appendChild(el('span', '', HANDLE));
+    var words = el('div', 'ww-side-words'); words.appendChild(who); words.appendChild(text);
+    card.appendChild(el('span', 'ww-side-logo')); card.appendChild(words); box.appendChild(card);
+    panel.appendChild(box);
+
+    var facts = [], seen = {}, current = null, front = 0, tick = null, held = false, goals = [], stepKey = '';
+    function suits(f) { return (f.step && f.step === stepKey) || f.goals.some(function (g) { return goals.indexOf(g) >= 0; }); }
+    function upNext() {
+      var fresh = facts.filter(function (f) { return !seen[f.id]; });
+      if (!fresh.length) { seen = {}; if (current) seen[current.id] = true; fresh = facts.filter(function (f) { return !seen[f.id]; }); }
+      return fresh.filter(suits)[0] || fresh[0] || null;
+    }
+    function show(f) {
+      if (!f || f === current) return;
+      current = f; seen[f.id] = true;
+      var back = pics[1 - front];
+      back.onload = function () { // the next drawing fades in over the last one, and the line changes with it
+        pics[front].classList.remove('is-on'); back.classList.add('is-on'); front = 1 - front;
+        card.classList.add('is-changing');
+        setTimeout(function () { text.textContent = f[LANG] || f.en; card.classList.remove('is-changing'); }, reducedMotion() ? 0 : 220);
+      };
+      back.src = '/images/quiz/' + f.id + '.webp';
+    }
+    function wind() { // a visitor who asked for less motion keeps one drawing per question, changed only by what they pick
+      clearTimeout(tick);
+      if (reducedMotion()) return;
+      tick = setTimeout(function () { if (!held) show(upNext()); wind(); }, ROTATE_EVERY);
+    }
+    function bring() { // something was picked: a pair that suits it comes up now, if one is waiting
+      var forStep = facts.filter(function (f) { return !seen[f.id] && f.step && f.step === stepKey; })[0];
+      var match = forStep || facts.filter(function (f) { return !seen[f.id] && suits(f); })[0];
+      if (match && (forStep || !(current && suits(current)))) { show(match); wind(); } // a pair made for this question goes first
+    }
+    box.addEventListener('mouseenter', function () { held = true; });
+    box.addEventListener('mouseleave', function () { held = false; });
+
+    var script = document.createElement('script');
+    script.src = '/js/quiz-facts.js';
+    script.onload = function () { facts = window.wwQuizFacts || []; card.classList.add('is-ready'); show(upNext()); wind(); };
+    document.head.appendChild(script);
+    return {
+      goals: function (list) { goals = list; bring(); },
+      step: function (key) { stepKey = key; bring(); }
+    };
+  }
+
+  function start(form, split) {
     var data = readForm(form);
     if (!data) return;
     var steps = data.steps;
     var panel = form.closest('.sliderblock') || form.parentNode;
     var answers = { goal: [], diet: [], sex: '', age: '', activity: '' };
     var typed = { goal: '', diet: '' };
-    var at = 0, started = false, timer = null;
+    var at = 0, started = false, timer = null, side = null;
 
     var root = el('div', 'ww-st');
     var head = el('div', 'ww-st-head');
@@ -179,6 +238,7 @@
             if (list.length < step.many) list.push(o.value);
           }
           paint();
+          if (side && step.key === 'goal') side.goals(answers.goal.map(function (v) { return step.list.map(function (x) { return x.value; }).indexOf(v); }));
         });
         grid.appendChild(b);
       });
@@ -199,6 +259,7 @@
       verify.hidden = !last;
       paint();
       settle();
+      if (side) side.step(step.key);
       if (focus) try { ask.focus({ preventScroll: true }); } catch (e) { /* older browsers */ }
     }
 
@@ -229,16 +290,20 @@
     draw(false);
     form.classList.add('ww-steps-on'); // only now is the long form hidden
     panel.classList.add('ww-quiz-steps');
+    if (split) { panel.classList.add('ww-quiz-split'); side = sidePanel(panel); side.step(steps[at].key); }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('quiz-form');
     if (!form) return;
-    if (!window.matchMedia || !window.matchMedia(STEPS_UP_TO).matches) return; // desktop keeps the long form
-    try { start(form); } catch (e) { // anything unexpected: the ordinary form stays
+    if (!window.matchMedia) return;
+    var small = window.matchMedia(STEPS_UP_TO).matches;
+    var split = !small && (DESKTOP === 'on' || (DESKTOP === 'preview' && /[?&]split=1(&|$)/.test(window.location.search)));
+    if (!small && !split) return; // desktop keeps the long form
+    try { start(form, split); } catch (e) { // anything unexpected: the ordinary form stays
       form.classList.remove('ww-steps-on');
-      var half = form.querySelector('.ww-st');
-      if (half) half.parentNode.removeChild(half);
+      Array.prototype.forEach.call(document.querySelectorAll('.ww-st, .ww-side'), function (half) { half.parentNode.removeChild(half); });
+      Array.prototype.forEach.call(document.querySelectorAll('.ww-quiz-steps'), function (p) { p.classList.remove('ww-quiz-steps', 'ww-quiz-split'); });
       if (window.console) console.error('quiz steps:', e);
     }
   });
