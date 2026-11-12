@@ -95,13 +95,10 @@
 .ww-st-go { width: 100%; min-height: 56px; padding: 0 20px; border: 0; border-radius: 20px; background: #87d581; color: #0f1f12; font-size: 18px; line-height: 22px; font-weight: 700; transition: background-color .15s, color .15s; }
 @media (hover: hover) { .ww-st-go:not([disabled]):hover { background: #97dd91; } }
 .ww-st-go[disabled] { background: #25323a; color: #9fb0b9; cursor: default; }
-/* phones: the question, not the page heading, is what the first screen is for */
-@media (max-width: 767px) {
-  .sliderblock.ww-quiz-steps { padding-top: 20px; }
-  .sliderblock.ww-quiz-steps .heading-4.quiz { font-size: 24px; line-height: 28px; }
-  .sliderblock.ww-quiz-steps .frame-250 .text-48 { display: none; }
-  .sliderblock.ww-quiz-started .frame-250 { display: none; }
-}
+/* With the steps on (phones and tablets) the first screen belongs to the question: the page heading is kept for
+   screen readers and search engines but takes no room. */
+.sliderblock.ww-quiz-steps { padding-top: 20px; }
+.sliderblock.ww-quiz-steps .frame-250 { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (prefers-reduced-motion: reduce) {
   .ww-st-track b, .ww-st-opt, .ww-st-go { transition: none; }
   .ww-st-opt:active { transform: none; }
