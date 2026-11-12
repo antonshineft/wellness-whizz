@@ -513,7 +513,7 @@ export async function exportSupplements(db: D1Database): Promise<Supplement[]> {
 
 // ---------- events (measurement) ----------
 
-export type EventType = 'home_view' | 'quiz_view' | 'result_view' | 'supplement_view' | 'page_view' | 'outbound_click' | 'subscribe' | 'share';
+export type EventType = 'home_view' | 'quiz_view' | 'quiz_start' | 'result_view' | 'supplement_view' | 'page_view' | 'outbound_click' | 'subscribe' | 'share';
 /**
  * An address that fires more than this many events in one day is a crawler with a browser-like user agent (the ones
  * that say what they are never get in: src/index.ts isBot), so the statistics leave every event of such an address out.
@@ -523,7 +523,7 @@ const CRAWLER_IPS = `SELECT DISTINCT ip_hash FROM events WHERE ts >= datetime('n
 /** WHERE fragment: the event comes from a visitor, not from one of those addresses. */
 const HUMAN = `(ip_hash IS NULL OR ip_hash NOT IN (${CRAWLER_IPS}))`;
 
-export const EVENT_TYPES: readonly EventType[] = ['home_view', 'quiz_view', 'result_view', 'supplement_view', 'page_view', 'outbound_click', 'subscribe', 'share'];
+export const EVENT_TYPES: readonly EventType[] = ['home_view', 'quiz_view', 'quiz_start', 'result_view', 'supplement_view', 'page_view', 'outbound_click', 'subscribe', 'share'];
 
 export interface EventInput {
   type: EventType;

@@ -30,7 +30,8 @@ function lines(n: WeeklyNumbers): Line[] {
   return [
     ev('home_view', 'Home page visits'),
     ev('quiz_view', 'Quiz page visits'),
-    { label: 'Quizzes started', now: n.quizzes.this_week, before: n.quizzes.last_week },
+    ev('quiz_start', 'Quiz: first answer tapped'),
+    { label: 'Quizzes sent', now: n.quizzes.this_week, before: n.quizzes.last_week },
     ev('result_view', 'Result pages viewed'),
     ev('supplement_view', 'Supplement pages viewed'),
     ev('outbound_click', 'Clicks through to iHerb'),

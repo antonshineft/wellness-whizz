@@ -52,3 +52,57 @@
   .success-message .image-6 { display: none; }
   .ww-chip { transition: none; }
 }
+
+/* ---------- one question per screen (public/js/quiz-steps.js) ----------
+   The stepper sits inside the form on the dark #1d272d panel. While it is on, the long form's own blocks are hidden;
+   they still hold the answers that are sent. */
+.form-2.ww-steps-on > .formdiv, .form-2.ww-steps-on > .submit-button { display: none !important; }
+/* the form otherwise shrinks to its content, which used to be the 800px question blocks */
+.form-2.ww-steps-on, .sliderblock.ww-quiz-steps .quiz-form-block { width: 100%; max-width: 100%; align-items: stretch; align-self: stretch; box-sizing: border-box; }
+.ww-st { width: 100%; max-width: 520px; margin: 0 auto; padding: 0 16px; box-sizing: border-box; text-align: left; font-family: Aeonik, sans-serif; color: #fff; -webkit-tap-highlight-color: transparent; }
+.ww-st button { -webkit-appearance: none; appearance: none; margin: 0; font-family: inherit; cursor: pointer; }
+.ww-st button:focus-visible, .ww-st input:focus-visible { outline: 2px solid #87d581; outline-offset: 2px; }
+.ww-st-head { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+.ww-st-back { flex: 0 0 auto; width: 44px; height: 44px; margin-left: -10px; padding: 0; border: 0; border-radius: 50%; background: none; color: #9fb0b9; font-size: 22px; line-height: 1; }
+@media (hover: hover) { .ww-st-back:hover { color: #fff; } }
+.ww-st-back[disabled] { visibility: hidden; }
+.ww-st-track { flex: 1 1 auto; height: 6px; border-radius: 999px; background: #ffffff1f; overflow: hidden; }
+.ww-st-track b { display: block; height: 100%; width: 0; border-radius: 999px; background: #87d581; transition: width .25s ease; }
+.ww-st-count { flex: 0 0 auto; font-size: 13px; line-height: 16px; color: #9fb0b9; font-variant-numeric: tabular-nums; }
+.ww-st-body { display: flex; flex-direction: column; gap: 14px; padding: 14px 0 18px; }
+.ww-st-ask { margin: 0; font-size: 26px; line-height: 30px; font-weight: 500; letter-spacing: -0.01em; color: #fff; text-wrap: balance; outline: none; }
+.ww-st-hint { margin: -6px 0 0; font-size: 15px; line-height: 20px; color: #9fb0b9; }
+.ww-st-opts { display: grid; gap: 10px; }
+.ww-st-opts.is-two { grid-template-columns: 1fr 1fr; }
+.ww-st-opt { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 58px; padding: 10px 18px; box-sizing: border-box; border: 1.5px solid transparent; border-radius: 16px; background: #25323a; color: #fff; font-size: 17px; line-height: 22px; font-weight: 500; text-align: left; transition: background-color .15s, border-color .15s, opacity .15s; }
+@media (hover: hover) { .ww-st-opt:not([aria-pressed="true"]):hover { background: #2b3a43; } }  /* not on touch, where a tapped answer would stay lit */
+.ww-st-opt:active { transform: scale(.985); }
+.ww-st-opt-text { min-width: 0; }
+.ww-st-opt small { display: block; margin-top: 2px; font-size: 13px; line-height: 17px; font-weight: 400; color: #9fb0b9; }
+.ww-st-opt i { flex: 0 0 auto; display: grid; place-items: center; width: 22px; height: 22px; border: 1.5px solid #3a4a54; border-radius: 50%; font-style: normal; font-size: 13px; line-height: 1; color: transparent; }
+/* a chosen answer: a soft gradient from the site's green into its steel blue, a green outline, a tick with its own small gradient */
+.ww-st-opt[aria-pressed="true"] { border-color: #87d581; background: linear-gradient(135deg, #33523a 0%, #263c42 100%); }
+.ww-st-opt[aria-pressed="true"] i { border-color: transparent; background: linear-gradient(135deg, #b4eeac, #6fcb78); color: #0f1f12; }
+.ww-st-opt.is-dim { opacity: .45; }
+.ww-st-opts.is-two .ww-st-opt { min-height: 56px; padding: 10px 14px; font-size: 15px; line-height: 20px; }
+.ww-st-own { width: 100%; min-height: 52px; margin: 0; padding: 0 16px; box-sizing: border-box; border: 1.5px dashed #3a4a54; border-radius: 16px; background: transparent; color: #fff; font-family: inherit; font-size: 16px; }
+.ww-st-own::placeholder { color: #9fb0b9; }
+.ww-st-own:focus { border-style: solid; border-color: #87d581; outline: none; }
+/* the button stays at the bottom of the screen while a list is longer than the screen */
+.ww-st-bar { position: sticky; bottom: 0; z-index: 5; display: flex; flex-direction: column; gap: 10px; margin: 0 -16px; padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, #1d272d 78%, #1d272d00); }
+.ww-st-bar[hidden], .ww-st-verify[hidden] { display: none; }
+.ww-st-verify:empty { display: none; }
+.ww-st-go { width: 100%; min-height: 56px; padding: 0 20px; border: 0; border-radius: 20px; background: #87d581; color: #0f1f12; font-size: 18px; line-height: 22px; font-weight: 700; transition: background-color .15s, color .15s; }
+@media (hover: hover) { .ww-st-go:not([disabled]):hover { background: #97dd91; } }
+.ww-st-go[disabled] { background: #25323a; color: #9fb0b9; cursor: default; }
+/* phones: the question, not the page heading, is what the first screen is for */
+@media (max-width: 767px) {
+  .sliderblock.ww-quiz-steps { padding-top: 20px; }
+  .sliderblock.ww-quiz-steps .heading-4.quiz { font-size: 24px; line-height: 28px; }
+  .sliderblock.ww-quiz-steps .frame-250 .text-48 { display: none; }
+  .sliderblock.ww-quiz-started .frame-250 { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ww-st-track b, .ww-st-opt, .ww-st-go { transition: none; }
+  .ww-st-opt:active { transform: none; }
+}

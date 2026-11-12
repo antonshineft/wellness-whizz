@@ -1,0 +1,287 @@
+<!-- Working prototypes of the quiz for a phone, kept for reference (not served by the site).
+     Tab A, one question per screen, is what public/js/quiz-steps.js now does on phones and tablets.
+     Tab C, a chat with the advisor, was liked and kept for later.
+     The three __F400__/__F500__/__F700__ marks stand for the Aeonik fonts (public/fonts) as base64; to view the file,
+     replace each src: url(data:...) with url(../public/fonts/Aeonik-Regular.otf), -Medium.otf and -Bold.otf. -->
+<title>Quiz Mobile Options</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a one-screen phone app. A switcher on top picks one of three working quiz prototypes, which fills the rest of the screen. */
+@font-face { font-family: Aeonik; font-weight: 400; font-display: swap; src: url(data:font/otf;base64,__F400__) format("opentype"); }
+@font-face { font-family: Aeonik; font-weight: 500; font-display: swap; src: url(data:font/otf;base64,__F500__) format("opentype"); }
+@font-face { font-family: Aeonik; font-weight: 700; font-display: swap; src: url(data:font/otf;base64,__F700__) format("opentype"); }
+:root {
+  color-scheme: dark;
+  --page: #11181c;        /* behind the quiz panel */
+  --panel: #1d272d;       /* the site's quiz panel */
+  --card: #25323a;        /* an answer at rest */
+  --line: #3a4a54;        /* hairlines and card borders */
+  --text: #ffffff;
+  --muted: #9fb0b9;       /* the site's steel grey, lightened for dark ground */
+  --green: #87d580;       /* the site's button green */
+  --green-ink: #0f1f12;   /* text on green */
+  --green-soft: #2a4030;  /* a chosen answer's fill (flat fallback) */
+  --sel-a: #33523a;       /* chosen answer: the gradient runs from this green ... */
+  --sel-b: #263c42;       /* ... into the site's steel blue */
+  --tick-a: #b4eeac; --tick-b: #6fcb78;  /* the tick's own small gradient */
+  --track: #ffffff1f;     /* the waiting bar's track, as on the live site */
+  --sheen: #ffffff80;     /* the light that sweeps along the waiting bar */
+  --font: Aeonik, "Helvetica Neue", Arial, sans-serif;
+  --r-card: 16px; --r-panel: 24px;
+}
+html, body { height: 100%; }
+body { box-sizing: border-box; background: var(--page); color: var(--text); font: 400 16px/1.35 var(--font); display: flex; flex-direction: column;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 10px 12px; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+.top { display: flex; flex-direction: column; gap: 8px; max-width: 440px; width: 100%; margin: 0 auto; }
+.seg { display: grid; grid-template-columns: repeat(2, 1fr); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 4px; gap: 4px; }
+.seg button { min-height: 40px; border-radius: 10px; font-weight: 500; font-size: 14px; color: var(--muted); }
+.seg button[aria-selected="true"] { background: var(--green); color: var(--green-ink); }
+.note { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; font-size: 13px; color: var(--muted); min-height: 34px; }
+.note span { min-width: 0; }
+.note button { color: var(--green); font-weight: 500; white-space: nowrap; padding: 6px 0; }
+
+.stage { flex: 1; min-height: 0; max-width: 440px; width: 100%; margin: 6px auto 0; background: var(--panel); border-radius: var(--r-panel); overflow: hidden; position: relative; display: flex; flex-direction: column; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 18px 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+.bar { padding: 12px 16px 14px; border-top: 1px solid var(--line); background: var(--panel); display: flex; gap: 12px; align-items: center; }
+.cta { flex: 1; min-height: 54px; border-radius: 18px; background: var(--green); color: var(--green-ink); font-weight: 700; font-size: 17px; }
+.cta[disabled] { background: var(--card); color: var(--muted); cursor: default; }
+h2 { margin: 0; font-weight: 500; font-size: 26px; line-height: 1.12; letter-spacing: -0.01em; text-wrap: balance; }
+.hint { margin: -6px 0 0; color: var(--muted); font-size: 15px; }
+
+/* answers */
+.opts { display: grid; gap: 10px; }
+.opts.two { grid-template-columns: 1fr 1fr; }
+.opt { min-height: 58px; border-radius: var(--r-card); background: var(--card); border: 1.5px solid transparent; padding: 10px 18px; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 17px; font-weight: 500; }
+.opt small { display: block; font-weight: 400; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.opt i { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font-style: normal; font-size: 13px; color: transparent; }
+.opt, .pill, .chip { position: relative; }
+.opt[aria-pressed="true"], .pill[aria-pressed="true"], .chip[aria-pressed="true"] { background: linear-gradient(135deg, var(--sel-a) 0%, var(--sel-b) 100%); border-color: var(--green); }
+.opt[aria-pressed="true"] i { background: linear-gradient(135deg, var(--tick-a), var(--tick-b)); border-color: transparent; color: var(--green-ink); }
+.opts.two .opt { padding: 10px 14px; font-size: 15px; min-height: 56px; }
+.own { min-height: 52px; width: 100%; border-radius: var(--r-card); border: 1.5px dashed var(--line); background: transparent; color: var(--text); font: inherit; padding: 0 16px; }
+.own::placeholder { color: var(--muted); }
+
+/* A: one question at a time */
+.a-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px 0; }
+.back { width: 44px; height: 44px; margin-left: -10px; border-radius: 50%; font-size: 22px; color: var(--muted); }
+.back[disabled] { visibility: hidden; }
+.prog { flex: 1; height: 6px; border-radius: 3px; background: var(--card); overflow: hidden; }
+.prog b { display: block; height: 100%; background: var(--green); border-radius: 3px; transition: width .25s ease; }
+.count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* B: one page */
+.b-card { border: 1px solid var(--line); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.b-card h3 { margin: 0; font-size: 17px; font-weight: 500; display: flex; gap: 8px; align-items: center; }
+.b-card h3 em { font-style: normal; flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--card); color: var(--muted); font-size: 12px; display: grid; place-items: center; }
+.b-card.done h3 em { background: var(--green); color: var(--green-ink); }
+.row { display: grid; gap: 8px; }
+.row.r2 { grid-template-columns: 1fr 1fr; } .row.r5 { grid-template-columns: repeat(5, 1fr); }
+.pill { min-height: 48px; border-radius: 14px; background: var(--card); border: 1.5px solid transparent; font-weight: 500; font-size: 15px; padding: 4px 6px; }
+.row.r5 .pill { font-size: 14px; padding: 4px 0; white-space: nowrap; }
+.dots { display: flex; gap: 5px; align-items: center; } .dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--card); } .dots span.on { background: var(--green); }
+.left { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; flex: none; }
+
+/* C: chat */
+.chat { gap: 10px; }
+.msg { max-width: 86%; padding: 11px 14px; border-radius: 18px; font-size: 16px; }
+.msg.bot { background: var(--card); border-bottom-left-radius: 6px; align-self: flex-start; }
+.msg.me { background: var(--green); color: var(--green-ink); font-weight: 500; border-bottom-right-radius: 6px; align-self: flex-end; }
+.msg.me button { color: inherit; text-decoration: underline; font-size: 12px; margin-left: 8px; font-weight: 400; }
+.who { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.who b { width: 26px; height: 26px; border-radius: 50%; background: var(--green); color: var(--green-ink); display: grid; place-items: center; font-size: 13px; }
+.typing { display: inline-flex; gap: 4px; } .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: blink 1s infinite; } .typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes blink { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+.tray { padding: 12px 14px 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; max-height: 56%; }
+.tray:empty { display: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; min-height: 0; overflow-y: auto; }
+.tray .cta { flex: none; }
+.chip { min-height: 46px; padding: 0 16px; border-radius: 23px; background: var(--card); border: 1.5px solid transparent; font-weight: 500; font-size: 15px; }
+
+/* the wait screen every option ends on */
+.wait { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 24px 26px; text-align: center; }
+.wait-msg { display: flex; align-items: center; justify-content: center; min-height: 56px; margin: 0; font-size: 20px; line-height: 28px; font-weight: 500; transition: opacity .25s ease; }
+.wait-msg.fading { opacity: 0; }
+.wait-bar { height: 10px; margin: 12px 0 14px; border-radius: 999px; background: var(--track); overflow: hidden; }
+.wait-fill { position: relative; height: 100%; width: 0; border-radius: 999px; background: var(--green); overflow: hidden; transition: width .45s ease-out; }
+.wait-fill::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 45%; background-image: linear-gradient(90deg, transparent, var(--sheen), transparent); animation: sweep 1.8s ease-in-out infinite; }
+.wait.done .wait-fill::after { animation: none; }
+.wait-note { margin: 0; font-size: 13px; line-height: 18px; color: var(--muted); }
+@keyframes sweep { 0% { transform: translateX(-110%); } 100% { transform: translateX(240%); } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="top">
+  <div class="seg" role="tablist" aria-label="Quiz options">
+    <button role="tab" id="tab-a" data-o="a">A · Steps (chosen)</button>
+    <button role="tab" id="tab-c" data-o="c">C · Chat (saved)</button>
+  </div>
+  <div class="note"><span id="note"></span><button id="restart">Start over</button></div>
+</div>
+<div class="stage" id="stage"></div>
+
+<script>
+(function () {
+  var GOALS = ['Better sleep', 'More energy', 'Stress & anxiety', 'Focus & memory', 'Immune support', 'Muscle & recovery', 'Joint health', 'Gut health', 'Heart health', 'Weight management', 'Skin, hair & nails', 'Hormonal balance'];
+  var DIETS = ['No restrictions', 'Vegan', 'Vegetarian', 'Gluten-free', 'Dairy-free', 'Keto / low-carb', 'Halal / kosher'];
+  var ACTIVITY = [['Sedentary', 'Mostly sitting'], ['Lightly active', 'Walks, light exercise once or twice a week'], ['Moderately active', 'Exercise three or four times a week'], ['Very active', 'Hard exercise most days'], ['Extra active', 'Physical job or daily training']];
+  var Q = {
+    goal: { ask: 'What would you like help with?', hint: 'Pick up to three.', multi: 3, list: GOALS, own: 'Something else? Type it' },
+    sex: { ask: 'Your biological sex?', hint: 'Some needs differ, such as iron.', list: ['Female', 'Male'] },
+    age: { ask: 'How old are you?', list: ['Under 18', '18 to 25', '26 to 40', '41 to 65', 'Over 65'] },
+    activity: { ask: 'How active are you?', list: ACTIVITY },
+    diet: { ask: 'Any diet you follow?', hint: 'Pick all that apply.', multi: 9, list: DIETS, own: 'Another diet? Type it' }
+  };
+  var NOTES = {
+    a: 'Chosen answers carry a soft gradient and a green outline. The ending uses your rounded bar.',
+    b: 'Today’s single page, shortened: no dropdown, no typing, button always in reach.',
+    c: 'Kept for later: the advisor asks, you tap a reply.'
+  };
+  var stage = document.getElementById('stage'), note = document.getElementById('note');
+  var current = 'a', timers = [];
+  function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function label(o) { return Array.isArray(o) ? o[0] : o; }
+  function said(v) { return Array.isArray(v) ? v.join(', ') : (v || ''); }
+
+  function finish() {
+    stage.innerHTML = '';
+    var w = el('div', 'wait'), msg = el('p', 'wait-msg', 'Reading your answers\u2026'), bar = el('div', 'wait-bar'), fill = el('div', 'wait-fill'),
+      nt = el('p', 'wait-note', 'Your personal recommendation usually takes under a minute. Please keep this page open.');
+    bar.appendChild(fill); w.appendChild(msg); w.appendChild(bar); w.appendChild(nt); stage.appendChild(w);
+    var lines = ['Checking 100+ supplements against your profile\u2026', 'Ruling out interactions and safety flags\u2026', 'Picking the three to five that fit best\u2026', 'Writing your personal explanations\u2026'];
+    function say(t) { msg.classList.add('fading'); later(function () { msg.textContent = t; msg.classList.remove('fading'); }, 250); }
+    later(function () { fill.style.width = '12%'; }, 60);
+    lines.forEach(function (t, i) { later(function () { say(t); fill.style.width = (30 + i * 19) + '%'; }, 1500 * (i + 1)); });
+    later(function () { w.classList.add('done'); fill.style.width = '100%'; say('All set, opening your results\u2026'); nt.textContent = 'The preview stops here. Tap Start over to try it again.'; }, 1500 * (lines.length + 1));
+  }
+
+  /* ---------- A: one question at a time ---------- */
+  function optionA() {
+    var order = ['goal', 'sex', 'age', 'activity', 'diet'], step = 0, ans = { goal: [], diet: [] };
+    function draw() {
+      stage.innerHTML = '';
+      var key = order[step], q = Q[key];
+      var head = el('div', 'a-head'), back = el('button', 'back', '←'); back.setAttribute('aria-label', 'Back'); back.disabled = step === 0;
+      back.onclick = function () { step--; draw(); };
+      var pr = el('div', 'prog'), b = el('b'); b.style.width = ((step + 1) / order.length * 100) + '%'; pr.appendChild(b);
+      head.appendChild(back); head.appendChild(pr); head.appendChild(el('span', 'count', (step + 1) + ' of ' + order.length));
+      var sc = el('div', 'scroll'); sc.appendChild(el('h2', '', q.ask)); if (q.hint) sc.appendChild(el('p', 'hint', q.hint));
+      var grid = el('div', 'opts' + (q.multi && q.list.length > 7 ? ' two' : ''));
+      var bar = el('div', 'bar'), go = el('button', 'cta', step === order.length - 1 ? 'See my supplements' : 'Continue');
+      function sync() { go.disabled = q.multi ? !(ans[key].length) : !ans[key]; }
+      q.list.forEach(function (o) {
+        var name = label(o), bt = el('button', 'opt'), tx = el('span'); tx.textContent = name;
+        if (Array.isArray(o)) { var sm = el('small', '', o[1]); tx.appendChild(sm); }
+        bt.appendChild(tx); var tick = el('i', '', '✓'); bt.appendChild(tick);
+        var on = q.multi ? ans[key].indexOf(name) >= 0 : ans[key] === name; bt.setAttribute('aria-pressed', on ? 'true' : 'false');
+        bt.onclick = function () {
+          if (q.multi) {
+            var i = ans[key].indexOf(name);
+            if (i >= 0) ans[key].splice(i, 1); else { if (name === 'No restrictions') ans[key] = []; else ans[key] = ans[key].filter(function (x) { return x !== 'No restrictions'; }); if (ans[key].length < q.multi) ans[key].push(name); }
+            [].forEach.call(grid.children, function (c) { var n = c.firstChild.firstChild.textContent; c.setAttribute('aria-pressed', ans[key].indexOf(n) >= 0 ? 'true' : 'false'); });
+            sync();
+          } else {
+            ans[key] = name; [].forEach.call(grid.children, function (c) { c.setAttribute('aria-pressed', c === bt ? 'true' : 'false'); });
+            later(next, 260);
+          }
+        };
+        grid.appendChild(bt);
+      });
+      sc.appendChild(grid);
+      if (q.own) { var inp = el('input', 'own'); inp.id = 'a-own-' + key; inp.placeholder = q.own; inp.setAttribute('aria-label', q.own); sc.appendChild(inp); }
+      stage.appendChild(head); stage.appendChild(sc);
+      if (q.multi) { go.onclick = next; bar.appendChild(go); stage.appendChild(bar); sync(); }
+    }
+    function next() { if (step < order.length - 1) { step++; draw(); } else finish(ans); }
+    draw();
+  }
+
+  /* ---------- B: the single page, made for a thumb ---------- */
+  function optionB() {
+    var ans = { goal: [], diet: [] }, cards = {};
+    var sc = el('div', 'scroll');
+    function card(n, key, title, body) { var c = el('div', 'b-card'), h = el('h3'), em = el('em', '', String(n)); h.appendChild(em); h.appendChild(document.createTextNode(title)); c.appendChild(h); c.appendChild(body); cards[key] = { box: c, em: em, n: n }; sc.appendChild(c); }
+    function single(key, list, cls) {
+      var r = el('div', 'row ' + cls);
+      list.forEach(function (o) { var b = el('button', 'pill', o); b.setAttribute('aria-pressed', 'false'); b.onclick = function () { ans[key] = o; [].forEach.call(r.children, function (c) { c.setAttribute('aria-pressed', c === b ? 'true' : 'false'); }); sync(); var nx = cards[key].box.nextElementSibling; if (nx) nx.scrollIntoView({ behavior: 'smooth', block: 'center' }); }; r.appendChild(b); });
+      return r;
+    }
+    function many(key, list) {
+      var r = el('div', 'row r2');
+      list.forEach(function (o) { var b = el('button', 'pill', o); b.setAttribute('aria-pressed', 'false'); b.onclick = function () {
+        var i = ans[key].indexOf(o); if (i >= 0) ans[key].splice(i, 1); else { if (o === 'No restrictions') ans[key] = []; else ans[key] = ans[key].filter(function (x) { return x !== 'No restrictions'; }); ans[key].push(o); }
+        [].forEach.call(r.children, function (c) { c.setAttribute('aria-pressed', ans[key].indexOf(c.textContent) >= 0 ? 'true' : 'false'); }); sync(); }; r.appendChild(b); });
+      return r;
+    }
+    card(1, 'sex', 'Biological sex', single('sex', ['Female', 'Male'], 'r2'));
+    card(2, 'age', 'Your age', single('age', ['<18', '18-25', '26-40', '41-65', '65+'], 'r5'));
+    card(3, 'activity', 'Activity level', single('activity', ACTIVITY.map(label), ''));
+    card(4, 'diet', 'Diet', many('diet', DIETS));
+    card(5, 'goal', 'Health goals', many('goal', GOALS));
+    var bar = el('div', 'bar'), left = el('div', 'left'), dots = el('div', 'dots'), txt = el('span'), go = el('button', 'cta', 'See my supplements');
+    for (var i = 0; i < 5; i++) dots.appendChild(el('span'));
+    left.appendChild(dots); left.appendChild(txt); bar.appendChild(left); bar.appendChild(go);
+    function done(k) { return Array.isArray(ans[k]) ? ans[k].length > 0 : !!ans[k]; }
+    function sync() {
+      var keys = ['sex', 'age', 'activity', 'diet', 'goal'], n = 0;
+      keys.forEach(function (k, i) { var d = done(k); if (d) n++; cards[k].box.classList.toggle('done', d); cards[k].em.textContent = d ? '✓' : String(cards[k].n); dots.children[i].className = d ? 'on' : ''; });
+      txt.textContent = n + ' of 5 answered'; go.textContent = n === 5 ? 'See my supplements' : 'Next question';
+    }
+    go.onclick = function () { var miss = ['sex', 'age', 'activity', 'diet', 'goal'].filter(function (k) { return !done(k); })[0]; if (miss) cards[miss].box.scrollIntoView({ behavior: 'smooth', block: 'center' }); else finish(ans); };
+    stage.innerHTML = ''; stage.appendChild(sc); stage.appendChild(bar); sync();
+  }
+
+  /* ---------- C: a chat with the advisor ---------- */
+  function optionC() {
+    var order = ['goal', 'sex', 'age', 'activity', 'diet'], step = 0, ans = { goal: [], diet: [] };
+    var lines = { goal: 'Hi! I’m your supplement advisor. What would you like help with? Pick up to three.', sex: 'Thanks. What is your biological sex? A few needs differ, such as iron.', age: 'And your age?', activity: 'How active are you in a normal week?', diet: 'Last one: any diet you follow?' };
+    stage.innerHTML = '';
+    var sc = el('div', 'scroll chat'), tray = el('div', 'tray');
+    var who = el('div', 'who'); who.appendChild(el('b', '', 'W')); who.appendChild(el('span', '', 'Wellness Whizz advisor')); sc.appendChild(who);
+    stage.appendChild(sc); stage.appendChild(tray);
+    function down() { sc.scrollTop = sc.scrollHeight; }
+    function ask() {
+      tray.innerHTML = '';
+      var t = el('div', 'msg bot'), dots = el('span', 'typing'); dots.appendChild(el('i')); dots.appendChild(el('i')); dots.appendChild(el('i')); t.appendChild(dots); sc.appendChild(t); down();
+      later(function () { t.textContent = lines[order[step]]; down(); options(); }, 550);
+    }
+    function options() {
+      var key = order[step], q = Q[key], chips = el('div', 'chips'); tray.innerHTML = ''; tray.appendChild(chips);
+      var send = el('button', 'cta', 'Send'); send.disabled = true;
+      q.list.forEach(function (o) {
+        var name = label(o), b = el('button', 'chip', name); b.setAttribute('aria-pressed', 'false');
+        b.onclick = function () {
+          if (!q.multi) { ans[key] = name; reply(name); return; }
+          var i = ans[key].indexOf(name); if (i >= 0) ans[key].splice(i, 1); else { if (name === 'No restrictions') ans[key] = []; else ans[key] = ans[key].filter(function (x) { return x !== 'No restrictions'; }); if (ans[key].length < q.multi) ans[key].push(name); }
+          [].forEach.call(chips.children, function (c) { c.setAttribute('aria-pressed', ans[key].indexOf(c.textContent) >= 0 ? 'true' : 'false'); }); send.disabled = !ans[key].length;
+        };
+        chips.appendChild(b);
+      });
+      if (q.multi) { send.onclick = function () { reply(ans[key].join(', ')); }; tray.appendChild(send); }
+      down();
+    }
+    function reply(text) {
+      var at = step, m = el('div', 'msg me', text), ch = el('button', '', 'change');
+      ch.onclick = function () { while (m.nextSibling) sc.removeChild(m.nextSibling); sc.removeChild(m.previousSibling); sc.removeChild(m); timers.forEach(clearTimeout); step = at; if (Q[order[at]].multi) ans[order[at]] = []; ask(); };
+      m.appendChild(ch); sc.appendChild(m); tray.innerHTML = ''; down(); step++;
+      if (step < order.length) later(ask, 250);
+      else { var t = el('div', 'msg bot', 'Got it. Give me a moment to put your list together.'); later(function () { sc.appendChild(t); down(); }, 300); later(function () { finish(ans); }, 1500); }
+    }
+    ask();
+  }
+
+  var run = { a: optionA, c: optionC };
+  function show(o) {
+    current = run[o] ? o : 'a'; timers.forEach(clearTimeout); timers = [];
+    [].forEach.call(document.querySelectorAll('.seg button'), function (b) { b.setAttribute('aria-selected', b.dataset.o === current ? 'true' : 'false'); });
+    note.textContent = NOTES[current]; run[current]();
+  }
+  document.querySelector('.seg').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; if (location.hash.slice(1) === b.dataset.o) show(b.dataset.o); else location.hash = b.dataset.o; });
+  document.getElementById('restart').onclick = function () { show(current); };
+  window.addEventListener('hashchange', function () { show(location.hash.slice(1)); });
+  show(location.hash.slice(1) || 'a');
+})();
+</script>

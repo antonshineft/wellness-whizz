@@ -191,7 +191,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 /** A session still pending after this long has lost its Worker (client disconnected); it is marked failed. */
 const PENDING_TIMEOUT_MS = 4 * 60 * 1000;
 /** Event types the browser may report; page views and subscriptions are recorded server-side. */
-const CLIENT_EVENT_TYPES: readonly EventType[] = ['quiz_view', 'outbound_click', 'share'];
+const CLIENT_EVENT_TYPES: readonly EventType[] = ['quiz_view', 'quiz_start', 'outbound_click', 'share'];
 
 const htmlHeaders = (cacheControl: string) => ({ 'content-type': 'text/html; charset=utf-8', 'cache-control': cacheControl });
 const curatedOnly = (env: Bindings) => env.LIST_AI_SUPPLEMENTS === 'false';
