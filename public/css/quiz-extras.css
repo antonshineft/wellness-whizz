@@ -107,7 +107,7 @@
 /* ---------- desktop: the steps on the left, a full-frame drawing with a post over it on the right ---------- */
 .ww-side { display: none; }
 @media (min-width: 992px) {
-  .sliderblock.ww-quiz-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; grid-gap: 0; padding: 10px; min-height: 600px; }
+  .sliderblock.ww-quiz-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; grid-gap: 0; padding: 10px; min-height: 600px; min-height: max(600px, calc(100vh - 150px)); }  /* the panel fills the window: 140px of header above it, the page's 10px margin below */
   .sliderblock.ww-quiz-split .quiz-form-block { align-self: center; padding: 20px 56px; }
   .sliderblock.ww-quiz-split .ww-st { max-width: 560px; padding: 0; }
   .sliderblock.ww-quiz-split .ww-st-bar { margin: 0; padding-left: 0; padding-right: 0; }
