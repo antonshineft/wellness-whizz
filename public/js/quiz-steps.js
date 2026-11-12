@@ -62,7 +62,7 @@
   };
   var MAX_GOALS = 3;
   var STEPS_UP_TO = '(max-width: 991px)'; // phones and tablets; decided once, when the page loads
-  var DESKTOP = 'preview'; // 'off': the long form. 'preview': the two halves only when the address ends in ?split=1. 'on': for everyone.
+  var DESKTOP = 'on'; // 'off': the long form. 'preview': the two halves only when the address ends in ?split=1. 'on': for everyone (the owner's go, 12 Nov).
   var ROTATE_EVERY = 7000; // ms a drawing and its line stay up
   var HANDLE = '@aiwwio';
   var ADVANCE_AFTER = 260; // ms a single choice stays lit before the next question appears
