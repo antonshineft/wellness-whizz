@@ -49,7 +49,7 @@ import { feedXml, indexSync, renderSitemap, sitemapEntries } from './indexing';
 import { renderResearchNote, renderResearchPage } from './render/research';
 import { renderSupplementsIndex } from './render/supplements-index';
 import { buildQueue, discoveriesDigest, enqueue, listSocialPosts, postDue, postingPlan, sendState, sendWeeklyNow, setSocialStatus, siteOrigin, weeklyDigest } from './social/content';
-import { videoUploadCheck, xEnabled } from './social/x';
+import { uploadVideo, videoUploadCheck, xEnabled } from './social/x';
 import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
   getSessionResults, getSupplementBySlug, listSupplements, logEvent, markSession, mergeDuplicateSupplements,
@@ -162,6 +162,8 @@ export interface Bindings {
   X_POSTS_PER_WEEK?: string;
   X_POST_DAYS?: string;
   X_POST_HOUR_UTC?: string;
+  /** "false": the site's videos are not posted on X (src/social/content.ts). */
+  X_VIDEOS?: string;
   /** Where a "post failed" email and the Monday numbers go (default: the EMAIL_FROM address). */
   ALERT_EMAIL?: string;
   /** Optional NCBI key for faster PubMed requests; RESEARCH_BATCH supplements checked per daily run (default 15) and
@@ -689,12 +691,21 @@ app.post('/api/admin/social/weekly', async (c) => {
   }
 });
 
-/** Owner-only: does the X developer access accept video uploads? Asks X and reports its answer; posts nothing. */
+/** Owner-only: does the X developer access accept video uploads? Asks X and reports its answer; posts nothing.
+ *  With ?url=<address of an mp4> the whole file is uploaded and processed as a rehearsal (still nothing is posted). */
 app.get('/api/admin/social/x-video-check', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   if (!xEnabled(c.env)) return c.json({ error: 'X keys are not configured' }, 400);
   try {
+    const url = c.req.query('url') ?? '';
+    if (/^https:\/\//.test(url)) {
+      const res = await fetch(url, { redirect: 'follow' });
+      if (!res.ok) return c.json({ error: `fetching the file failed: HTTP ${res.status}` }, 502);
+      const bytes = await res.arrayBuffer();
+      const started = Date.now();
+      return c.json({ uploaded: true, media_id: await uploadVideo(c.env, bytes), megabytes: Math.round(bytes.byteLength / 104857.6) / 10, seconds: Math.round((Date.now() - started) / 1000) });
+    }
     return c.json(await videoUploadCheck(c.env));
   } catch (err) {
     return c.json({ error: String(err instanceof Error ? err.message : err) }, 502);

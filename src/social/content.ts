@@ -20,10 +20,11 @@ import { escapeHtml } from '../html';
 import { chatJson, useFakeAi, type AiEnv } from '../openai';
 import { notePath, pubmedAbstract, pubmedSummaries, pubmedUrl, searchPubmedTerm, unqueuedNotes, type ResearchNote } from '../research';
 import { feedItems, type FeedItem } from './feeds';
-import { postThread, tweetLength, xEnabled, type XEnv } from './x';
+import { postThread, tweetLength, uploadVideo, xEnabled, type XEnv } from './x';
+import { recentPublished, type ZernioEnv } from '../zernio';
 import { HOOKS, HOOK_REPEAT_DAYS } from './hooks';
 
-export interface SocialEnv extends AiEnv, XEnv, EmailEnv {
+export interface SocialEnv extends AiEnv, XEnv, EmailEnv, ZernioEnv {
   DB: D1Database;
   CANONICAL_HOST?: string;
   /** "false" keeps posts queued without sending them. */
@@ -38,6 +39,8 @@ export interface SocialEnv extends AiEnv, XEnv, EmailEnv {
   X_RESEARCH_POSTS?: string;
   /** "false": no Wednesday discoveries thread. */
   X_DISCOVERIES?: string;
+  /** "false": the site's videos are not posted on X. */
+  X_VIDEOS?: string;
 }
 
 export interface SocialPost {
@@ -61,6 +64,7 @@ const MIN_GAP_MINUTES = 150; // between two posts when more than seven a week ar
 const SAME_DAY_HOURS = 22; // a posting day holds one post; 22 rather than 24 so a late cron run keeps the slot
 const FAIL_PAUSE_HOURS = 3; // after a failed send, no further attempt for this long
 const STALE_RESEARCH_DAYS = 60; // a research note still queued after this long is no longer news
+const VIDEO_FRESH_DAYS = 2; // a video is posted on X only within this long of going out elsewhere
 const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const DEFAULT_DAYS: string[][] = [
   [],
@@ -82,6 +86,18 @@ function clampTweet(text: string, max = MAX_TWEET): string {
   let t = text.replace(/\s+/g, ' ').trim();
   while (tweetLength(t) > max) t = t.slice(0, t.length - 10).replace(/\s+\S*$/, '').trim() + '…';
   return t;
+}
+
+/** The words that go with a video on X: its caption as written for the script, or the stored caption without its hashtags and link. */
+function videoLine(scriptJson: string, caption: string): string {
+  try {
+    const parsed = JSON.parse(scriptJson) as { caption?: string } | { caption?: string }[];
+    const own = (Array.isArray(parsed) ? parsed[0]?.caption : parsed.caption) ?? '';
+    if (own.trim()) return own.trim();
+  } catch {
+    // fall through to the stored caption
+  }
+  return caption.replace(/\s+Full guide:\s+\S+/i, '').replace(/\s+#\S+/g, '').trim();
 }
 
 export async function enqueue(db: D1Database, kind: string, ref: string, tweets: string[], when: Date): Promise<void> {
@@ -378,6 +394,27 @@ export async function buildQueue(env: SocialEnv): Promise<{ queued: string[] }> 
   }
   const pending = (kind: string) => pendingByKind.get(kind) ?? 0;
 
+  // 0. A video of the site's that went out on Instagram and TikTok in the last two days goes on X as well, once, with
+  // the caption the owner approved (no hashtags, no link). The meta flag keeps the address of the file that was published.
+  if (env.X_VIDEOS !== 'false' && env.ZERNIO_API_KEY) {
+    try {
+      for (const p of await recentPublished(env, 10)) {
+        if (!p.video || !p.mediaUrl || !p.at || now.getTime() - new Date(p.at).getTime() > VIDEO_FRESH_DAYS * 86_400_000) continue;
+        const row = await env.DB.prepare('SELECT slug, script_json, caption FROM videos WHERE publish_id = ?').bind(`zernio:${p.id}`).first<{ slug: string; script_json: string; caption: string }>();
+        if (!row) continue; // a trial reel, not one of the main videos
+        const flag = `x:video:${row.slug}`;
+        if (await getMeta(env.DB, flag)) continue;
+        const line = clampTweet(videoLine(row.script_json, row.caption));
+        if (!line) continue;
+        await setMeta(env.DB, flag, p.mediaUrl);
+        await enqueue(env.DB, 'video', row.slug, [line], now);
+        queued.push(`video:${row.slug}`);
+      }
+    } catch (err) {
+      console.error(`video for X not queued: ${String(err)}`);
+    }
+  }
+
   // 1. One thread per article, never twice (meta flag); drafted one per run while fewer than three threads wait.
   for (const post of await allPosts(env.DB)) {
     if (pending('article') >= 3) break;
@@ -584,7 +621,15 @@ export async function postDue(env: SocialEnv): Promise<{ posted: string[]; faile
   if (!next) return { posted, failed, skipped: 'nothing due' };
   try {
     const tweets = JSON.parse(next.thread_json) as string[];
-    const id = await postThread(env, tweets);
+    let media: string | undefined;
+    if (next.kind === 'video') {
+      const file = await getMeta(env.DB, `x:video:${next.ref}`);
+      if (!file) throw new Error('the address of the video file is missing');
+      const res = await fetch(file, { redirect: 'follow' });
+      if (!res.ok) throw new Error(`fetching the video file failed: HTTP ${res.status}`);
+      media = await uploadVideo(env, await res.arrayBuffer());
+    }
+    const id = await postThread(env, tweets, media);
     await env.DB.prepare("UPDATE social_posts SET status = 'posted', posted_at = datetime('now'), external_id = ?, error = NULL WHERE id = ?").bind(id, next.id).run();
     posted.push(`${next.kind}:${next.ref}`);
   } catch (err) {
@@ -645,7 +690,7 @@ export async function nextDue(db: D1Database): Promise<SocialPost | null> {
   for (const row of (await db.prepare("SELECT kind, MAX(posted_at) AS t FROM social_posts WHERE status = 'posted' GROUP BY kind").all<{ kind: string; t: string | null }>()).results) {
     lastByKind.set(row.kind, row.t ?? '');
   }
-  const order = ['hook', 'article', 'fact', 'research'];
+  const order = ['video', 'hook', 'article', 'fact', 'research'];
   const rank = (kind: string) => (order.includes(kind) ? order.indexOf(kind) : order.length);
   return [...due].sort(
     (a, b) =>

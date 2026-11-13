@@ -98,6 +98,9 @@
     // discoveries thread; the Sunday digest stays. The day's post is a one-line story with its link in a reply.
     "X_RESEARCH_POSTS": "false",
     "X_DISCOVERIES": "false",
+    // The owner (13 Nov): the videos go on X too. Each main video is posted there, with its caption and no link, in
+    // the first posting slot after it has gone out on Instagram and TikTok. "false" stops that.
+    "X_VIDEOS": "false",
     // Illustrations (OpenAI image model) for supplements without product photos; "false" switches them off.
     "IMAGE_GENERATION": "false",
     // IndexNow key (public by design; also the name of public/<key>.txt): new and changed pages are submitted to

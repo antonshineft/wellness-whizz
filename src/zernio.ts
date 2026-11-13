@@ -180,9 +180,12 @@ export async function deletePost(env: ZernioEnv, id: string): Promise<{ ok: true
   return r.ok ? { ok: true } : r;
 }
 
-/** The most recently published posts, newest first (id, when they went out, whether they carry a video). */
-export async function recentPublished(env: ZernioEnv, limit = 20): Promise<{ id: string; at: string; video: boolean }[]> {
-  const r = await call<{ posts?: { _id?: string; publishedAt?: string; scheduledFor?: string; mediaItems?: { type?: string }[] }[] }>(env, 'GET', `/posts?status=published&limit=${limit}`);
+/** The most recently published posts, newest first (id, when they went out, whether they carry a video, and that video's address). */
+export async function recentPublished(env: ZernioEnv, limit = 20): Promise<{ id: string; at: string; video: boolean; mediaUrl: string }[]> {
+  const r = await call<{ posts?: { _id?: string; publishedAt?: string; scheduledFor?: string; mediaItems?: { type?: string; url?: string }[] }[] }>(env, 'GET', `/posts?status=published&limit=${limit}`);
   if (!r.ok) return [];
-  return (r.data.posts ?? []).map((p) => ({ id: String(p._id ?? ''), at: String(p.publishedAt ?? p.scheduledFor ?? ''), video: (p.mediaItems ?? []).some((m) => m.type === 'video') }));
+  return (r.data.posts ?? []).map((p) => {
+    const file = (p.mediaItems ?? []).find((m) => m.type === 'video');
+    return { id: String(p._id ?? ''), at: String(p.publishedAt ?? p.scheduledFor ?? ''), video: !!file, mediaUrl: String(file?.url ?? '') };
+  });
 }
