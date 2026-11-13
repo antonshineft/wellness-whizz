@@ -21,6 +21,7 @@ import { chatJson, useFakeAi, type AiEnv } from '../openai';
 import { notePath, pubmedAbstract, pubmedSummaries, pubmedUrl, searchPubmedTerm, unqueuedNotes, type ResearchNote } from '../research';
 import { feedItems, type FeedItem } from './feeds';
 import { postThread, tweetLength, xEnabled, type XEnv } from './x';
+import { HOOKS, HOOK_REPEAT_DAYS } from './hooks';
 
 export interface SocialEnv extends AiEnv, XEnv, EmailEnv {
   DB: D1Database;
@@ -33,6 +34,10 @@ export interface SocialEnv extends AiEnv, XEnv, EmailEnv {
   X_POST_DAYS?: string;
   /** UTC hour of the post on a posting day (default 14: 16:00 in Madrid in summer, 10:00 in New York). */
   X_POST_HOUR_UTC?: string;
+  /** "false": no single-study posts; the Sunday digest is the week's one research thread. */
+  X_RESEARCH_POSTS?: string;
+  /** "false": no Wednesday discoveries thread. */
+  X_DISCOVERIES?: string;
 }
 
 export interface SocialPost {
@@ -133,7 +138,7 @@ async function articleThread(env: SocialEnv, post: BlogPost): Promise<string[]> 
 
 async function factPost(env: SocialEnv, sup: Supplement): Promise<string[]> {
   const url = `${siteOrigin(env)}/supplement/${sup.slug}`;
-  if (useFakeAi(env)) return [`[Dev mode] ${sup.name}: ${sup.summary} ${url}`];
+  if (useFakeAi(env)) return [`[Dev mode] ${sup.name}: ${sup.summary}`, `The full ${sup.name} profile: ${url}`];
   const article = sup.holistic_html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 1800);
   const draft = await chatJson<{ text: string }>(
     env,
@@ -150,7 +155,7 @@ async function factPost(env: SocialEnv, sup: Supplement): Promise<string[]> {
   );
   const text = (draft.text ?? '').trim();
   if (!text) throw new Error('empty fact draft');
-  return [`${text} ${url}`];
+  return [text, `The full ${sup.name} profile, with the studies behind it: ${url}`]; // X spreads a post with a link less, so the link rides underneath
 }
 
 const weeklySchema = {
@@ -385,13 +390,27 @@ export async function buildQueue(env: SocialEnv): Promise<{ queued: string[] }> 
     break; // one per run; the next hour handles the next article
   }
 
-  // 2. One supplement fact drafted per day while fewer than two wait.
+  // 2. The day's opener: one surprising line from the site's videos (src/social/hooks.ts), with no link in it. The
+  // page it comes from goes in a reply underneath. Lines take turns; one comes round again after HOOK_REPEAT_DAYS.
   const today = now.toISOString().slice(0, 10);
-  const factToday = await env.DB
-    .prepare("SELECT COUNT(*) AS n FROM social_posts WHERE kind = 'fact' AND substr(created_at, 1, 10) = ?")
+  const openerToday = await env.DB
+    .prepare("SELECT COUNT(*) AS n FROM social_posts WHERE kind IN ('hook', 'fact') AND substr(created_at, 1, 10) = ?")
     .bind(today)
     .first<{ n: number }>();
-  if (!(factToday?.n ?? 0) && pending('fact') < 2) {
+  let hookQueued = false;
+  if (!(openerToday?.n ?? 0) && pending('hook') < 2) {
+    const used = new Set((await env.DB.prepare("SELECT ref FROM social_posts WHERE kind = 'hook' AND created_at >= datetime('now', ?)").bind(`-${HOOK_REPEAT_DAYS} days`).all<{ ref: string }>()).results.map((r) => r.ref));
+    const hook = HOOKS.find((h) => !used.has(h.id));
+    if (hook) {
+      const tweets = hook.slug ? [hook.text, `The story behind it, and what the research says: ${siteOrigin(env)}/supplement/${hook.slug}`] : [hook.text];
+      await enqueue(env.DB, 'hook', hook.id, tweets, now);
+      queued.push(`hook:${hook.id}`);
+      hookQueued = true;
+    }
+  }
+
+  // 2b. A supplement tip, only on a day with no opener left to send (every line used within HOOK_REPEAT_DAYS).
+  if (!(openerToday?.n ?? 0) && !hookQueued && pending('hook') === 0 && pending('fact') < 2) {
     const all = (await listSupplements(env.DB, 500, true)).filter((s) => s.holistic_html.length > 400);
     const done = new Set((await env.DB.prepare("SELECT ref FROM social_posts WHERE kind = 'fact'").all<{ ref: string }>()).results.map((r) => r.ref));
     const candidates = all.filter((s) => !done.has(s.slug));
@@ -408,11 +427,10 @@ export async function buildQueue(env: SocialEnv): Promise<{ queued: string[] }> 
   const recentResearch = await env.DB
     .prepare("SELECT COUNT(*) AS n FROM social_posts WHERE kind = 'research' AND created_at >= datetime('now', '-7 days')")
     .first<{ n: number }>();
-  if ((recentResearch?.n ?? 0) < 2 && pending('research') < 2) {
+  if (env.X_RESEARCH_POSTS !== 'false' && (recentResearch?.n ?? 0) < 2 && pending('research') < 2) {
     for (const note of await unqueuedNotes(env.DB, 1)) {
       const page = `${siteOrigin(env)}/supplement/${note.supplement_slug}`;
-      const text = `${note.tweet.trim()} Study: ${pubmedUrl(note.pmid)} Our ${note.supplement_name} profile: ${page}`;
-      await enqueue(env.DB, 'research', note.pmid, [text], now);
+      await enqueue(env.DB, 'research', note.pmid, [note.tweet.trim(), `Study: ${pubmedUrl(note.pmid)} Our ${note.supplement_name} profile: ${page}`], now);
       await env.DB.prepare('UPDATE research_notes SET queued = 1 WHERE id = ?').bind(note.id).run();
       queued.push(`research:${note.pmid}`);
     }
@@ -436,7 +454,7 @@ export async function buildQueue(env: SocialEnv): Promise<{ queued: string[] }> 
   }
 
   // 5. Wednesday afternoon (UTC): the discoveries thread, once per week (meta flag).
-  if (now.getUTCDay() === 3 && now.getUTCHours() >= 12) {
+  if (env.X_DISCOVERIES !== 'false' && now.getUTCDay() === 3 && now.getUTCHours() >= 12) {
     const flag = `x:discoveries:${weekKey(now)}`;
     if (!(await getMeta(env.DB, flag))) {
       try {
@@ -627,7 +645,7 @@ export async function nextDue(db: D1Database): Promise<SocialPost | null> {
   for (const row of (await db.prepare("SELECT kind, MAX(posted_at) AS t FROM social_posts WHERE status = 'posted' GROUP BY kind").all<{ kind: string; t: string | null }>()).results) {
     lastByKind.set(row.kind, row.t ?? '');
   }
-  const order = ['article', 'fact', 'research'];
+  const order = ['hook', 'article', 'fact', 'research'];
   const rank = (kind: string) => (order.includes(kind) ? order.indexOf(kind) : order.length);
   return [...due].sort(
     (a, b) =>

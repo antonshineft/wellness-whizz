@@ -77,3 +77,18 @@ export async function postThread(env: XEnv, tweets: string[]): Promise<string> {
 export function tweetLength(text: string): number {
   return text.replace(/https?:\/\/\S+/g, 'x'.repeat(23)).length;
 }
+
+/**
+ * Whether this account's developer access accepts a video upload: asks X to open an upload of a small mp4 and reports
+ * the answer. Nothing is uploaded or posted; an upload that is opened and never filled expires by itself.
+ */
+export async function videoUploadCheck(env: XEnv): Promise<{ status: number; body: string }> {
+  const url = 'https://api.x.com/2/media/upload/initialize';
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { authorization: await oauthHeader(env, 'POST', url), 'content-type': 'application/json' },
+    body: JSON.stringify({ media_type: 'video/mp4', total_bytes: 1_048_576, media_category: 'tweet_video' }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  return { status: res.status, body: (await res.text()).slice(0, 500) };
+}

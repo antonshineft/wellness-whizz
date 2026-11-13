@@ -93,7 +93,11 @@
     // 14:00 UTC (16:00 in Madrid in summer); 1 = Tuesdays only; X_POST_DAYS ("tue,fri") and X_POST_HOUR_UTC override
     // the days and hour; ALERT_EMAIL (dashboard variable) is where a "post failed" email goes (default: EMAIL_FROM).
     "X_AUTOPOST": "true",
-    "X_POSTS_PER_WEEK": "7",
+    "X_POSTS_PER_WEEK": "10",
+    // The owner (13 Nov): one research thread a week. "false" stops the single-study posts and the Wednesday
+    // discoveries thread; the Sunday digest stays. The day's post is a one-line story with its link in a reply.
+    "X_RESEARCH_POSTS": "false",
+    "X_DISCOVERIES": "false",
     // Illustrations (OpenAI image model) for supplements without product photos; "false" switches them off.
     "IMAGE_GENERATION": "false",
     // IndexNow key (public by design; also the name of public/<key>.txt): new and changed pages are submitted to

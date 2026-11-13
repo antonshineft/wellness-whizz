@@ -49,7 +49,7 @@ import { feedXml, indexSync, renderSitemap, sitemapEntries } from './indexing';
 import { renderResearchNote, renderResearchPage } from './render/research';
 import { renderSupplementsIndex } from './render/supplements-index';
 import { buildQueue, discoveriesDigest, enqueue, listSocialPosts, postDue, postingPlan, sendState, sendWeeklyNow, setSocialStatus, siteOrigin, weeklyDigest } from './social/content';
-import { xEnabled } from './social/x';
+import { videoUploadCheck, xEnabled } from './social/x';
 import {
   EVENT_TYPES, countRecentSessions, countSupplementsNeedingContent, createSession, exportSupplements, getSession,
   getSessionResults, getSupplementBySlug, listSupplements, logEvent, markSession, mergeDuplicateSupplements,
@@ -686,6 +686,18 @@ app.post('/api/admin/social/weekly', async (c) => {
     return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 400);
   } catch (err) {
     return c.json({ ok: false, error: String(err instanceof Error ? err.message : err) }, 502);
+  }
+});
+
+/** Owner-only: does the X developer access accept video uploads? Asks X and reports its answer; posts nothing. */
+app.get('/api/admin/social/x-video-check', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  if (!xEnabled(c.env)) return c.json({ error: 'X keys are not configured' }, 400);
+  try {
+    return c.json(await videoUploadCheck(c.env));
+  } catch (err) {
+    return c.json({ error: String(err instanceof Error ? err.message : err) }, 502);
   }
 });
 
