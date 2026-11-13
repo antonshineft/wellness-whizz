@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wellness Whizz: X header, options that show the product</title>
+<style>
+  @font-face { font-family: Aeonik; src: url(../../public/fonts/Aeonik-Medium.otf); font-weight: 500; }
+  @font-face { font-family: Aeonik; src: url(../../public/fonts/Aeonik-Bold.otf); font-weight: 700; }
+  :root { --ink: #1d272d; --leaf: #87d581; --mint: #bcffb7; --cream: #fdf1cf; --mist: #ecf3f6; --paper: #ffffff; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: Aeonik, sans-serif; font-weight: 500; color: var(--ink); background: #dfe4e6; display: grid; gap: 48px; padding: 48px; justify-items: start; }
+  /* 1500×500. The profile photo covers the lower left corner; phones trim the top and bottom. */
+  .board { position: relative; overflow: hidden; width: 1500px; height: 500px; display: flex; align-items: center; gap: 50px; padding: 70px 70px 70px 400px; background: linear-gradient(var(--mint), var(--paper)) var(--paper); }
+  .board.dark { background: var(--ink); color: var(--paper); }
+  h2 { font-weight: 500; font-size: 72px; line-height: 1.02; letter-spacing: -0.02em; text-wrap: balance; }
+  .lede { font-size: 36px; line-height: 44px; margin-top: 22px; text-wrap: pretty; }
+  .tag { white-space: nowrap; font-size: 24px; line-height: 28px; letter-spacing: .04em; text-transform: uppercase; padding: 10px 20px; border-radius: 999px; background: rgb(29 39 45 / .08); }
+  .tag.leaf { background: var(--leaf); } .tag.solid { background: var(--ink); color: var(--paper); }
+  .mol { position: relative; flex: none; border-radius: 28px; overflow: hidden; background: radial-gradient(62% 40% at 50% 100%, rgb(135 213 129 / .42), rgb(135 213 129 / 0)), var(--cream); display: grid; place-items: center; }
+  .mol img { width: 88%; height: 88%; object-fit: contain; }
+
+  /* A · the home page itself: the lit head, with the mint panel laid over it */
+  .hero { padding: 0; background: #b9c4c9; }
+  .hero > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 78% 32%; }
+  .hero .panel { position: relative; margin-left: 380px; width: 700px; padding: 40px 44px; border-radius: 30px; background: linear-gradient(var(--mint), #eefdec); box-shadow: inset 0 0 0 1px rgb(0 0 0 / .1); }
+  .hero h2 { font-size: 66px; }
+
+  /* B · what the quiz gives back: the recommendation cards of the home page */
+  .cards { flex: none; margin-left: auto; width: 400px; display: grid; gap: 16px; }
+  .card { display: flex; align-items: center; gap: 20px; padding: 12px; border-radius: 24px; background: var(--mist); }
+  .card .photo { flex: none; width: 132px; height: 132px; border-radius: 16px; background: var(--cream); display: grid; place-items: center; }
+  .card .photo img { width: 84%; height: 84%; object-fit: contain; }
+  .card h3 { font-weight: 500; font-size: 38px; line-height: 1; letter-spacing: -0.01em; margin-bottom: 14px; }
+  .card .tags { display: flex; gap: 8px; }
+
+  /* C · what every page holds: the scores */
+  .scores { position: absolute; left: 20px; bottom: 20px; display: grid; gap: 8px; justify-items: start; }
+  .scores .tag { background: var(--paper); color: var(--ink); }
+</style>
+</head>
+<body>
+<main>
+<section class="board hero" id="hdr-hero" aria-label="X header A, the home page picture">
+  <img src="still-home-head.jpg" alt="">
+  <div class="panel"><h2>Your personalized AI supplement quiz</h2><p class="lede">Two minutes, free, at aiww.io</p></div>
+</section>
+<section class="board" id="hdr-cards" aria-label="X header B, what the quiz gives back">
+  <div><h2>Find the supplements that fit you.</h2><p class="lede">A two-minute AI quiz, free at aiww.io</p></div>
+  <div class="cards">
+    <article class="card"><div class="photo"><img src="../../public/images/products/taurine-1.webp" alt=""></div><div><h3>Taurine</h3><div class="tags"><span class="tag leaf">Safe</span><span class="tag solid">FDA</span></div></div></article>
+    <article class="card"><div class="photo"><img src="../../public/images/products/magnesium-32aa0-1.webp" alt=""></div><div><h3>Magnesium</h3><div class="tags"><span class="tag leaf">Safe</span><span class="tag solid">FDA</span></div></div></article>
+  </div>
+</section>
+<section class="board dark" id="hdr-scores" aria-label="X header C, the scores on every page">
+  <div><h2>Every supplement, scored on evidence and safety.</h2><p class="lede">Benefits, risks and studies at aiww.io</p></div>
+  <div class="mol" style="width:300px;height:360px;margin-left:auto"><img src="../../public/images/structures/creatine-ce673.svg" alt="" style="margin-top:-70px"><div class="scores"><span class="tag">Effectivity 4/5</span><span class="tag">Safety 4/5</span></div></div>
+</section>
+</main>
+<script>document.fonts.ready.then(() => { document.body.dataset.ready = '1'; });</script>
+</body>
+</html>
