@@ -55,7 +55,7 @@
     "GSC_RECHECK_DAYS": "7",
     // A rendered video is posted through Zernio as soon as it is ready (src/videos.ts); "false" waits for the posting page.
     "VIDEO_AUTOPOST": "false",
-    "VIDEO_MONTHLY_LIMIT": "32",
+    "VIDEO_MONTHLY_LIMIT": "33",
     // Trial reels (src/trials.ts): "true" lets the morning workflow post three variations of yesterday's video (one line
     // changed each) as reels kept out of the feed; "false" stops it. TRIALS_SKIP: videos whose raw clips are not clean.
     // The dose check on supplement pages and the home slider (src/dose.ts): "true" shows it to everyone, "preview"
