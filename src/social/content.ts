@@ -88,15 +88,8 @@ function clampTweet(text: string, max = MAX_TWEET): string {
   return t;
 }
 
-/** The words that go with a video on X: its caption as written for the script, or the stored caption without its hashtags and link. */
-function videoLine(scriptJson: string, caption: string): string {
-  try {
-    const parsed = JSON.parse(scriptJson) as { caption?: string } | { caption?: string }[];
-    const own = (Array.isArray(parsed) ? parsed[0]?.caption : parsed.caption) ?? '';
-    if (own.trim()) return own.trim();
-  } catch {
-    // fall through to the stored caption
-  }
+/** The words that go with a video on X: the caption the owner approved, without its hashtags and site link. */
+function videoLine(caption: string): string {
   return caption.replace(/\s+Full guide:\s+\S+/i, '').replace(/\s+#\S+/g, '').trim();
 }
 
@@ -400,11 +393,11 @@ export async function buildQueue(env: SocialEnv): Promise<{ queued: string[] }> 
     try {
       for (const p of await recentPublished(env, 10)) {
         if (!p.video || !p.mediaUrl || !p.at || now.getTime() - new Date(p.at).getTime() > VIDEO_FRESH_DAYS * 86_400_000) continue;
-        const row = await env.DB.prepare('SELECT slug, script_json, caption FROM videos WHERE publish_id = ?').bind(`zernio:${p.id}`).first<{ slug: string; script_json: string; caption: string }>();
+        const row = await env.DB.prepare('SELECT slug, caption FROM videos WHERE publish_id = ?').bind(`zernio:${p.id}`).first<{ slug: string; caption: string }>();
         if (!row) continue; // a trial reel, not one of the main videos
         const flag = `x:video:${row.slug}`;
         if (await getMeta(env.DB, flag)) continue;
-        const line = clampTweet(videoLine(row.script_json, row.caption));
+        const line = clampTweet(videoLine(row.caption));
         if (!line) continue;
         await setMeta(env.DB, flag, p.mediaUrl);
         await enqueue(env.DB, 'video', row.slug, [line], now);

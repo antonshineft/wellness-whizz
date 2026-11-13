@@ -100,7 +100,7 @@
     "X_DISCOVERIES": "false",
     // The owner (13 Nov): the videos go on X too. Each main video is posted there, with its caption and no link, in
     // the first posting slot after it has gone out on Instagram and TikTok. "false" stops that.
-    "X_VIDEOS": "false",
+    "X_VIDEOS": "true",
     // Illustrations (OpenAI image model) for supplements without product photos; "false" switches them off.
     "IMAGE_GENERATION": "false",
     // IndexNow key (public by design; also the name of public/<key>.txt): new and changed pages are submitted to
