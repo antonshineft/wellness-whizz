@@ -1,4 +1,5 @@
 /** /supplement/:slug — the "Supplements" CMS template page. */
+import { OG_IMAGES } from '../og';
 import type { Supplement } from '../db';
 import { MAX_PICKS, STATE_RANK, doseBlank, doseFor, doseLimits, doseLine, doseScale, type DoseCheck } from '../dose';
 import { escapeHtml } from '../html';
@@ -308,6 +309,9 @@ function seoHead(sup: Supplement, origin: string): string {
   const reviewed = (sup.updated_at || sup.created_at || '').slice(0, 10);
   const product = sup.products.find((p) => p.image);
   const image = product?.image ? new URL(product.image, origin).toString() : null;
+  // What a shared link shows: the page's own card (name, a short line, its molecule) where one has been drawn
+  // (scripts/og/build.cjs), else the first product photo as before.
+  const card = OG_IMAGES.has(sup.slug) ? `${origin}/images/og/${sup.slug}.jpg` : null;
   const safe = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
   // The page is described as a MedicalWebPage about a Substance rather than as a DietarySupplement: that type is a
   // Product subtype, and Google (and so Semrush) treats a Product without offers, a review or a rating as an error.
@@ -347,7 +351,7 @@ function seoHead(sup: Supplement, origin: string): string {
       }
     : null;
   return `
-  <link rel="canonical" href="${escapeHtml(url)}">${image ? `\n  <meta property="og:image" content="${escapeHtml(image)}">\n  <meta name="twitter:image" content="${escapeHtml(image)}">` : ''}
+  <link rel="canonical" href="${escapeHtml(url)}">${card ? `\n  <meta property="og:image" content="${escapeHtml(card)}">\n  <meta property="og:image:type" content="image/jpeg">\n  <meta property="og:image:width" content="1200">\n  <meta property="og:image:height" content="630">\n  <meta property="og:image:alt" content="${escapeHtml(sup.name)}: ${escapeHtml(sup.summary)}">\n  <meta name="twitter:image" content="${escapeHtml(card)}">` : image ? `\n  <meta property="og:image" content="${escapeHtml(image)}">\n  <meta name="twitter:image" content="${escapeHtml(image)}">` : ''}
   <script type="application/ld+json">${safe(webPage)}</script>
   <script type="application/ld+json">${safe(breadcrumbs)}</script>${faqPage ? `\n  <script type="application/ld+json">${safe(faqPage)}</script>` : ''}`;
 }

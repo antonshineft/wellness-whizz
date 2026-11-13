@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Share image of a supplement page</title>
+<style>
+  /* The owner's design: Figma file "AI — WW", frame "OG C · white card, scores as dots--opt" (node 3364:516). */
+  @font-face { font-family: 'DM Sans'; src: url(/fonts/dm-sans-latin-400-normal.woff2) format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'DM Sans'; src: url(/fonts/dm-sans-latin-500-normal.woff2) format('woff2'); font-weight: 500; }
+  @font-face { font-family: 'DM Sans'; src: url(/fonts/dm-sans-latin-600-normal.woff2) format('woff2'); font-weight: 600; }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #1d272d; }
+  #og { position: relative; overflow: hidden; width: 1200px; height: 630px; background: #1d272d; font-family: 'DM Sans', sans-serif; }
+  .card { position: absolute; left: 60px; top: 56px; width: 1080px; height: 470px; border-radius: 56px; overflow: hidden; background: linear-gradient(180deg, #6d9971 0%, #b6ffbc 46.3%); }
+  .ring { position: absolute; inset: 18px; border-radius: 40px; border: 2px solid rgb(29 39 45 / .08); }
+  .text { position: absolute; left: 64px; top: 0; width: 540px; height: 470px; display: flex; flex-direction: column; justify-content: center; gap: 80px; }
+  .mark { width: 51px; height: 51px; border-radius: 7.8px; background: #fff; box-shadow: 0 0 19.5px rgb(29 39 45 / .2); display: grid; place-items: center; overflow: hidden; }
+  .mark img { width: 54px; height: 54px; }
+  .block { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .name { font-weight: 600; font-size: 64px; line-height: 1.078; letter-spacing: -0.05em; color: #1d272d; }
+  .line { width: 500px; font-weight: 400; font-size: 26px; line-height: 35px; color: rgb(29 39 45 / .7); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+  .tile { position: absolute; left: 646px; top: 30px; width: 402px; height: 409px; border-radius: 40px; overflow: hidden; background: #faf1d7; display: grid; place-items: center; }
+  .tile img { width: 100%; height: 100%; object-fit: contain; }
+  .tile img.flat { width: 84%; height: 84%; }
+  .brand { position: absolute; left: 0; right: 0; top: 562px; text-align: center; font-weight: 500; font-size: 26px; line-height: 30px; color: rgb(255 255 255 / .55); white-space: pre; }
+</style>
+</head>
+<body>
+<div id="og">
+  <div class="card">
+    <div class="ring"></div>
+    <div class="text">
+      <div class="mark"><img src="/public/images/Vectors-Wrapper_4.svg" alt=""></div>
+      <div class="block"><h1 class="name" id="name"></h1><p class="line" id="line"></p></div>
+    </div>
+    <div class="tile"><img id="picture" alt=""></div>
+  </div>
+  <p class="brand">aiww.io  ·  Supplement guide</p>
+</div>
+<script>
+  const NAME_SIZE = 64, NAME_LINES = 2, NAME_MIN = 34;
+  /** Fill the card and wait until the picture and the type are in place. A long name, or one long word in it, steps down
+   *  in size until it fits two lines of the column. */
+  window.setCard = async ({ name, line, picture, flat }) => {
+    const h = document.getElementById('name'), img = document.getElementById('picture');
+    h.textContent = name;
+    document.getElementById('line').textContent = line;
+    let size = NAME_SIZE;
+    h.style.fontSize = size + 'px';
+    await document.fonts.ready;
+    // offsetHeight counts lines; scrollHeight would also count the letters' descenders and shrink a name that fits.
+    while ((h.offsetHeight > Math.ceil(size * 1.078 * NAME_LINES) + 2 || h.scrollWidth > h.clientWidth + 1) && size > NAME_MIN) { size -= 2; h.style.fontSize = size + 'px'; }
+    img.className = flat ? 'flat' : '';
+    await new Promise((done, fail) => { img.onload = done; img.onerror = () => fail(new Error('picture not found: ' + picture)); img.src = picture; });
+    await img.decode().catch(() => {});
+    return size;
+  };
+  document.fonts.load('600 64px "DM Sans"').then(() => document.fonts.load('400 26px "DM Sans"')).then(() => document.fonts.load('500 26px "DM Sans"')).then(() => { window.cardReady = true; });
+</script>
+</body>
+</html>
