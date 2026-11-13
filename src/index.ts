@@ -24,7 +24,7 @@ import { queueQuizDataArticle, quizDataSummary } from './quizdata';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
 import { carouselJob, getCarousel, listCarousels, markCarouselFailed, markCarouselReady, queueCarousel, scheduleCarousel, setCarouselStatus } from './carousels';
-import { approveVideo, keepVideo, autoPost, getVideo, listVideos, markFailed, markPosted, markReady, monthlyLimit, nextJob, recutJob, parseScript, queueVideo, rendersThisMonth, rewriteVideo, scriptNext, writeStory } from './videos';
+import { approveVideo, keepVideo, autoPost, getVideo, listVideos, markFailed, markPosted, markReady, monthlyLimit, nextJob, recutJob, parseScript, queueVideo, rendersThisMonth, rewriteVideo, scriptNext, writeStory, writeFormulaVariants } from './videos';
 import { actOnProspect, addProspect, checkWins, counts as prospectCounts, dailyOutreach, discoverProspects, draftPending, findContacts, listProspects, noteReply, outreachDigest, outreachStep, recentEvents, sendApproved, type ProspectKind } from './backlinks';
 import { badgeWallHtml, withBadgeWall } from './badges';
 import { serviceAccountEmail, submitiumDigestLine, submitiumReportLine, submitiumState, submitiumStep } from './submitium';
@@ -1600,8 +1600,11 @@ app.post('/api/admin/videos/story', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
-  const body = (await c.req.json().catch(() => ({}))) as { slug?: string; title?: string; brief?: string; rewrite?: boolean };
-  const r = await writeStory(c.env, String(body.slug ?? '').trim(), String(body.title ?? ''), String(body.brief ?? ''), body.rewrite === true);
+  const body = (await c.req.json().catch(() => ({}))) as { slug?: string; title?: string; brief?: string; rewrite?: boolean; formulas?: boolean };
+  // formulas: keep the story's script and add two more, each on one of the owner's four formulas (src/videos.ts FORMULAS)
+  const r = body.formulas === true
+    ? await writeFormulaVariants(c.env, String(body.slug ?? '').trim(), String(body.title ?? ''), String(body.brief ?? ''))
+    : await writeStory(c.env, String(body.slug ?? '').trim(), String(body.title ?? ''), String(body.brief ?? ''), body.rewrite === true);
   return r.ok ? c.json({ ok: true, slug: body.slug, scripts: r.scripts }) : c.json({ ok: false, error: r.message }, 400);
 });
 

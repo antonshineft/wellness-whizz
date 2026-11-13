@@ -460,6 +460,106 @@ Write one complete ${SCENES}-scene script (narration and visual for each scene, 
   return { ok: true, scripts };
 }
 
+/**
+ * The four opening formulas the owner asked for on 13 November 2026. Each decides how a video opens and what keeps the
+ * viewer watching; the facts and the rules for clarity stay as in STORY_SYSTEM.
+ */
+export const FORMULAS = [
+  'Formula 1 · common belief, then the contradiction',
+  'Formula 2 · a better way, the best way, then a re-hook',
+  'Formula 3 · the result first, then what was done',
+  'Formula 4 · it does not work, unless',
+] as const;
+
+const FORMULA_SCENES = `Each script is built on ONE of four formulas. The formula decides how the video opens and what keeps the viewer watching to the end. The facts stay at their true size, whichever formula carries them.
+
+Formula 1, a common belief, then the contradiction. Scene 1 states something nearly every viewer believes or does, as a plain fact about the world ("Every fitness watch sets the same goal: 10,000 steps a day."), then contradicts it flat in the next sentence with a fact ("No study chose that number."). The viewer stays to hear why. Scene 2 gives the first piece of the why. Scenes 3 to 7 tell how the belief came about and what was really found, in the order it happened. Scene 8 is the biggest consequence. Scene ${SCENES} is where it stands today.
+
+Formula 2, a better way, the best way, then a re-hook. Scene 1 names the ordinary way people did the thing and a better way, with the difference in a number or a fact. Scene 2 says a third way beat both and holds back what it is: only when and where it was found. Scenes 3 to 5 tell how it was found and what it did, with its numbers. Scene 6 is the re-hook: a new fact that reopens the story just as it seems finished (it was ignored, banned, lost, stolen, or came at a cost). Scenes 7 and 8 answer the re-hook. Scene ${SCENES} is where it stands today.
+
+Formula 3, the result first, then what was done. Scene 1 states the end result with its number, as an accomplished fact, and says in a few words that this is how it was done. Scenes 2 to 7 are the steps in the order they were taken, one step per scene: each scene says what someone did and what that step changed, so the viewer learns something new with every scene. Scene 8 is the consequence beyond the result. Scene ${SCENES} is where it stands today.
+
+Formula 4, it does not work, unless. Scene 1 says flatly that the thing fails, with the fact that shows it, and ends on "unless" and a condition that is named but not yet explained. Scene 2: who found the condition, where and when. Scenes 3 to 6: how they found it and how it works, step by step. Scene 7: one human or funny detail that is itself a true fact from the brief. Scene 8: the biggest consequence. Scene ${SCENES} is where it stands today.
+
+In every formula the last scene ties the story to something the viewer has at home or does every day, in one plain closing thought; it may end on a short question, but only one the story has equipped the viewer to answer.
+
+Use a formula only where the facts support it honestly. The belief in formula 1 must be one people really hold or held. The three ways in formula 2 must all be in the brief and ranked that way by its facts. The result in formula 3 must be in the brief with its number. The failure and the condition in formula 4 must both be in the brief. Never bend, enlarge or invent a fact to fit a formula; if a formula does not fit, use another.
+
+Start the "angle" field with the formula, exactly as "Formula 1 · common belief, then the contradiction", "Formula 2 · a better way, the best way, then a re-hook", "Formula 3 · the result first, then what was done" or "Formula 4 · it does not work, unless", then " · " and the thread of the story in a few words.
+
+`;
+
+/** STORY_SYSTEM with its fixed nine-scene order replaced by the four formulas. */
+const FORMULA_SYSTEM = (() => {
+  const from = STORY_SYSTEM.indexOf(`The ${SCENES} scenes, in order:`);
+  const to = STORY_SYSTEM.indexOf('Rules for clarity:');
+  return STORY_SYSTEM.slice(0, from) + FORMULA_SCENES + STORY_SYSTEM.slice(to).replace('After the opening fact, tell it', 'After the opening, tell it');
+})();
+
+const formulaSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    variants: {
+      type: 'array',
+      description: 'Exactly two complete scripts on the same facts, each built on a different one of the four formulas.',
+      items: {
+        ...storySchema,
+        properties: {
+          ...storySchema.properties,
+          angle: { type: 'string', description: 'The formula, written exactly as instructed, then " · " and the thread of the story in a few words.' },
+          scenes: { ...scriptSchema.properties.scenes, description: `Exactly ${SCENES} scenes in the order the chosen formula gives. Every scene states a concrete fact; no advice, doses or warnings anywhere.` },
+        },
+      },
+    },
+  },
+  required: ['variants'],
+};
+
+/**
+ * Two more scripts for a story that has not been rendered, each on a different one of the owner's four formulas. The
+ * script the story already has stays as it is, as the first of the three to choose from. A story the owner had already
+ * kept goes back to "scripted" (three scripts cannot wait in the render queue), so nothing is rendered until he picks.
+ */
+export async function writeFormulaVariants(env: VideoEnv, slug: string, title: string, brief: string): Promise<{ ok: true; scripts: VideoScript[] } | { ok: false; message: string }> {
+  if (title.trim().length < 5 || brief.trim().length < 80) return { ok: false, message: 'a title and a brief of facts are required' };
+  const row = await getVideo(env.DB, slug);
+  if (!row) return { ok: false, message: `no video for "${slug}"` };
+  if (!['scripted', 'kept'].includes(row.status) || row.video_url) return { ok: false, message: `"${slug}" is ${row.status}; only a story that has not been rendered gets variations` };
+  const original = parseVariants(row.script_json)?.[0] ?? parseScript(row.script_json);
+  if (!original) return { ok: false, message: `"${slug}" has no script to keep` };
+  const user = `Subject: ${title.trim()}
+
+Facts you may rely on (checked). Use them at their true size. You may add only well-documented general knowledge that a good reference book would confirm, and never a number, a study, a date or a name of your own:
+${brief.trim().slice(0, 4000)}
+
+There is no article and no product: wherever the rules say "the supplement" or "the article", read "the subject" and "the brief". Set product_slug to an empty string; the first hashtag names the subject.
+
+The owner already has one script for this story, below. It stays as it is. Write TWO more complete ${SCENES}-scene scripts on the same facts (narration and visual for each scene, angle, title, caption, hashtags, product_slug), each built on a different formula: the two of the four that these facts support best. Give each its own title and its own opening; do not reuse the existing script's sentences.
+
+The existing script, for reference only:
+${original.scenes.map((sc, i) => `${i + 1}. ${sc.narration}`).join('\n')}`;
+  const longest = (sc: VideoScript) => Math.max(...sc.scenes.map((x) => words(x.narration)));
+  const worst = (list: VideoScript[]) => Math.max(...list.map(longest));
+  const ask = async (prompt: string) => (await claudeJson<{ variants: VideoScript[] }>(env, FORMULA_SYSTEM, prompt, formulaSchema, { tier: 'fast', maxTokens: 30000, timeoutMs: 280_000 })).variants.map((v) => tidyScript(v, '')).slice(0, 2);
+  let made: VideoScript[];
+  try {
+    made = await ask(user);
+    if (made.length < 2 || made.some((v) => v.scenes.length < SCENES)) throw new Error('the writer did not return two complete scripts');
+    if (worst(made) > MAX_SCENE_WORDS) {
+      const shorter = await ask(`${user}\n\nYour previous scripts have a scene of ${worst(made)} words, too long for the narrator. Here they are:\n${JSON.stringify({ variants: made })}\n\nReturn the same two scripts with every scene at most ${MAX_SCENE_WORDS} spoken words. Cut a clause rather than a fact.`);
+      if (shorter.length === 2 && worst(shorter) <= worst(made)) made = shorter;
+    }
+    if (worst(made) > MAX_SCENE_WORDS + 6) throw new Error(`a scene still has ${worst(made)} words after shortening`);
+  } catch (err) {
+    return { ok: false, message: String(err instanceof Error ? err.message : err).slice(0, 300) };
+  }
+  const scripts = [original, ...made.map((v) => ({ ...v, product_slug: '', story: true }))];
+  await env.DB.prepare("UPDATE videos SET status = 'scripted', script_json = ?, caption = ?, set_index = 0, error = '', updated_at = datetime('now') WHERE id = ?")
+    .bind(JSON.stringify({ variants: scripts }), captionFor(original, slug), row.id).run();
+  return { ok: true, scripts };
+}
+
 /** Cron step: write the script for the oldest queued video. Returns true when it did something. */
 export async function scriptNext(env: VideoEnv): Promise<boolean> {
   const row = await env.DB.prepare("SELECT * FROM videos WHERE status = 'queued' ORDER BY id LIMIT 1").first<VideoRow>();
