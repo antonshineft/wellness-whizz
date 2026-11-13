@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wellness Whizz: share images, X header, covers</title>
+<style>
+  @font-face { font-family: Aeonik; src: url(../../public/fonts/Aeonik-Medium.otf); font-weight: 500; }
+  @font-face { font-family: Aeonik; src: url(../../public/fonts/Aeonik-Bold.otf); font-weight: 700; }
+  :root { --ink: #1d272d; --leaf: #87d581; --mint: #bcffb7; --cream: #fdf1cf; --mist: #ecf3f6; --paper: #ffffff; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: Aeonik, sans-serif; font-weight: 500; color: var(--ink); background: #dfe4e6; display: grid; gap: 48px; padding: 48px; justify-items: start; }
+  ::selection { background: var(--leaf); color: var(--ink); }
+
+  /* The page's own header panel: mint fading out, with a hairline frame set inside it. */
+  .board { position: relative; overflow: hidden; padding: 20px; background: linear-gradient(var(--mint), var(--paper)) var(--paper); }
+  .board.dark { background: var(--ink); color: var(--paper); }
+  .board.mist { background: var(--mist); }
+  .frame { height: 100%; border: 1px solid rgb(0 0 0 / .1); border-radius: 30px; background: rgb(210 240 208 / .1); display: flex; gap: 44px; }
+  .dark .frame { border-color: rgb(255 255 255 / .16); background: none; }
+  .mist .frame { background: none; }
+
+  .col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+  .top { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .mid { margin-block: auto; display: grid; gap: 24px; justify-items: start; }
+  .logo { display: flex; align-items: center; gap: 14px; }
+  .logo .mark { height: 44px; } .logo .word { height: 19px; }
+  .dark .logo .mark { background: var(--paper); border-radius: 12px; padding: 5px; }
+  .dark .logo .word { filter: brightness(0) invert(1); }
+
+  h2 { font-weight: 500; letter-spacing: -0.02em; line-height: 1; text-wrap: balance; }
+  .lede { text-wrap: pretty; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  .tags { display: flex; flex-wrap: wrap; gap: 12px; }
+  .tag { white-space: nowrap; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; background: rgb(29 39 45 / .08); }
+  .tag.solid { background: var(--ink); color: var(--paper); }
+  .dark .tag { background: rgb(255 255 255 / .14); } .dark .tag.solid { background: var(--leaf); color: var(--ink); }
+
+  /* The picture tile of a supplement page: cream ground, mint glow rising from the foot. */
+  .mol { position: relative; flex: none; border-radius: 28px; overflow: hidden; background: radial-gradient(62% 40% at 50% 100%, rgb(135 213 129 / .42), rgb(135 213 129 / 0)), var(--cream); display: grid; place-items: center; }
+  .mol img { width: 88%; height: 88%; object-fit: contain; }
+  .mol img.still { width: 100%; height: 100%; object-fit: cover; }
+  .mol .tag { position: absolute; left: 24px; top: 24px; background: var(--paper); color: var(--ink); }
+
+  /* 1 · share image, 1200×630. X lays the site's address over the lower left corner, so that strip stays empty. */
+  .og { width: 1200px; height: 630px; } .og .frame { padding: 38px 38px 38px 46px; }
+  .og .col { padding-bottom: 46px; }
+  .og .name { text-transform: uppercase; font-size: 84px; line-height: .94; letter-spacing: -0.01em; }
+  .og .lede { font-size: 36px; line-height: 44px; max-width: 640px; }
+  .og .tag { font-size: 26px; line-height: 30px; padding: 12px 24px; }
+  .og .mol { width: 400px; }
+
+  /* 2 · X header, 1500×500. The profile photo covers the lower left corner; phones trim the top and bottom. */
+  .hdr { width: 1500px; height: 500px; padding: 0; }
+  .hdr .frame { border: 0; background: none; border-radius: 0; padding: 70px 70px 70px 400px; align-items: center; gap: 50px; }
+  .hdr h2 { font-size: 72px; line-height: 1.02; }
+  .hdr .lede { font-size: 36px; line-height: 44px; margin-top: 22px; }
+  .hdr .mol { width: 250px; height: 340px; margin-left: auto; }
+
+  /* 3 and 4 · covers, 1600×900. The player draws its controls along the foot, so nothing sits there. */
+  .cover { width: 1600px; height: 900px; } .cover .frame { padding: 56px 56px 56px 68px; }
+  .cover .col { padding-bottom: 54px; }
+  .cover .logo .mark { height: 60px; } .cover .logo .word { height: 26px; }
+  .cover h2 { font-size: 112px; max-width: 820px; }
+  .cover .lede { font-size: 46px; line-height: 56px; max-width: 820px; }
+  .cover .tag { font-size: 28px; line-height: 32px; padding: 14px 28px; }
+  .cover .mol.tall { width: 540px; }
+  .digest .col { padding-bottom: 0; } .digest h2 { font-size: 86px; line-height: 1.02; max-width: 740px; }
+  .digest .lede { font-size: 38px; line-height: 48px; max-width: 700px; }
+  .digest .tag { font-size: 30px; line-height: 34px; padding: 15px 30px; }
+  .cards { flex: none; width: 660px; display: grid; gap: 18px; align-content: center; }
+  .card { display: flex; align-items: center; gap: 28px; padding: 16px; border-radius: 28px; background: var(--mist); color: var(--ink); }
+  .card .mol { width: 170px; height: 170px; border-radius: 18px; }
+  .card h3 { font-weight: 500; font-size: 48px; line-height: 1.05; letter-spacing: -0.01em; }
+  .card p { font-size: 34px; line-height: 40px; margin-top: 8px; color: rgb(29 39 45 / .8); text-wrap: pretty; }
+</style>
+</head>
+<body>
+<!-- Brand boards (13 Nov): the share image of a supplement page, the X header, video covers and the cover of the weekly
+     research digest, drawn with the site's own type, colours, panel, tags and picture tile. Open this file in a browser;
+     render.cjs writes each board to a PNG. The automated Impeccable check passes with no findings. -->
+<main>
+
+<!-- 1 · Share image of a supplement page -->
+<section class="board og" id="og-light" aria-label="Share image, light">
+  <div class="frame">
+    <div class="col">
+      <div class="logo"><img class="mark" src="../../public/images/Vectors-Wrapper_4.svg" alt=""><img class="word" src="../../public/images/Vectors-Wrapper.svg" alt="Wellness Whizz"></div>
+      <div class="mid"><h2 class="name" data-fit="170">N-Acetylcysteine (NAC)</h2><p class="lede">Antioxidant defense, detoxification and respiratory health.</p><div class="tags"><span class="tag">Effectivity 4/5</span><span class="tag">Safety 4/5</span></div></div>
+    </div>
+    <div class="mol"><img src="../../public/images/structures/n-acetylcysteine-nac.svg" alt="Molecular structure of acetylcysteine"></div>
+  </div>
+</section>
+<section class="board og dark" id="og-dark" aria-label="Share image, dark">
+  <div class="frame">
+    <div class="col">
+      <div class="logo"><img class="mark" src="../../public/images/Vectors-Wrapper_4.svg" alt=""><img class="word" src="../../public/images/Vectors-Wrapper.svg" alt="Wellness Whizz"></div>
+      <div class="mid"><h2 class="name" data-fit="170">N-Acetylcysteine (NAC)</h2><p class="lede">Antioxidant defense, detoxification and respiratory health.</p><div class="tags"><span class="tag">Effectivity 4/5</span><span class="tag">Safety 4/5</span></div></div>
+    </div>
+    <div class="mol"><img src="../../public/images/structures/n-acetylcysteine-nac.svg" alt="Molecular structure of acetylcysteine"></div>
+  </div>
+</section>
+
+<!-- 2 · X profile header -->
+<section class="board hdr" id="hdr-light" aria-label="X header, light">
+  <div class="frame">
+    <div><h2>The strange true stories behind ordinary supplements.</h2><p class="lede">One a day, with the sources at aiww.io</p></div>
+    <div class="mol"><img src="../../public/images/structures/creatine-ce673.svg" alt=""></div>
+  </div>
+</section>
+<section class="board hdr dark" id="hdr-dark" aria-label="X header, dark">
+  <div class="frame">
+    <div><h2>The strange true stories behind ordinary supplements.</h2><p class="lede">One a day, with the sources at aiww.io</p></div>
+    <div class="mol"><img src="../../public/images/structures/creatine-ce673.svg" alt=""></div>
+  </div>
+</section>
+
+<!-- 3 · Video covers -->
+<section class="board cover" id="cover-light" aria-label="Video cover, light">
+  <div class="frame">
+    <div class="col">
+      <div class="top"><div class="logo"><img class="mark" src="../../public/images/Vectors-Wrapper_4.svg" alt=""><img class="word" src="../../public/images/Vectors-Wrapper.svg" alt="Wellness Whizz"></div><span class="tag">90-second story</span></div>
+      <div class="mid"><h2 data-fit="350">The spring the cows wouldn’t touch</h2><p class="lede">In 1618 some cows refused to drink from a spring.</p></div>
+    </div>
+    <div class="mol tall"><img src="../../public/images/structures/magnesium-32aa0.svg" alt=""><span class="tag">Magnesium</span></div>
+  </div>
+</section>
+<section class="board cover dark" id="cover-dark" aria-label="Video cover, dark">
+  <div class="frame">
+    <div class="col">
+      <div class="top"><div class="logo"><img class="mark" src="../../public/images/Vectors-Wrapper_4.svg" alt=""><img class="word" src="../../public/images/Vectors-Wrapper.svg" alt="Wellness Whizz"></div><span class="tag">90-second story</span></div>
+      <div class="mid"><h2 data-fit="350">The fruit that sets off port scanners</h2><p class="lede">Trucks of bananas have set off radiation alarms at ports.</p></div>
+    </div>
+    <div class="mol tall"><img src="../../public/images/structures/potassium-131fa.svg" alt=""><span class="tag">Potassium</span></div>
+  </div>
+</section>
+<section class="board cover mist" id="cover-mist" aria-label="Video cover, mist">
+  <div class="frame">
+    <div class="col">
+      <div class="top"><div class="logo"><img class="mark" src="../../public/images/Vectors-Wrapper_4.svg" alt=""><img class="word" src="../../public/images/Vectors-Wrapper.svg" alt="Wellness Whizz"></div><span class="tag">90-second story</span></div>
+      <div class="mid"><h2 data-fit="350">Why a seed survives winter</h2><p class="lede">A seed can lie in cold soil for years without its oil going off.</p></div>
+    </div>
+    <div class="mol tall"><img src="../../public/images/structures/vitamin-e-f4fa7.svg" alt=""><span class="tag">Vitamin E</span></div>
+  </div>
+</section>
+<section class="board cover" id="cover-still" aria-label="Video cover with a still from the video">
+  <div class="frame">
+    <div class="col">
+      <div class="top"><div class="logo"><img class="mark" src="../../public/images/Vectors-Wrapper_4.svg" alt=""><img class="word" src="../../public/images/Vectors-Wrapper.svg" alt="Wellness Whizz"></div><span class="tag">90-second story</span></div>
+      <div class="mid"><h2 data-fit="350">The spice that makes mustard yellow</h2><p class="lede">It has been in the jar on your table all along.</p></div>
+    </div>
+    <div class="mol tall"><img class="still" src="still-turmeric.jpg" alt="A drawn hot dog with a line of mustard"><span class="tag">Turmeric</span></div>
+  </div>
+</section>
+
+<!-- 4 · Cover of the weekly research digest on X (text taken from the digest of 9 to 15 November) -->
+<section class="board cover digest" id="digest-light" aria-label="Weekly digest cover, light">
+  <div class="frame">
+    <div class="col">
+      <div class="logo"><img class="mark" src="../../public/images/Vectors-Wrapper_4.svg" alt=""><img class="word" src="../../public/images/Vectors-Wrapper.svg" alt="Wellness Whizz"></div>
+      <div class="mid"><h2>Potassium lowered blood pressure about 5 points in 19 trials</h2><p class="lede">In adults with untreated high blood pressure. The trials were short.</p></div>
+      <div class="tags"><span class="tag solid">Research digest</span><span class="tag">9 to 15 Nov</span></div>
+    </div>
+    <div class="cards">
+      <article class="card"><div class="mol"><img src="../../public/images/structures/melatonin.svg" alt=""></div><div><h3>Melatonin</h3><p>IBS symptoms eased in 7 trials</p></div></article>
+      <article class="card"><div class="mol"><img src="../../public/images/structures/probiotics-823e4.svg" alt=""></div><div><h3>Probiotics</h3><p>About 2 fewer migraines a month</p></div></article>
+      <article class="card"><div class="mol"><img src="../../public/images/structures/ginger-da075.svg" alt=""></div><div><h3>Ginger</h3><p>A very small drop in body fat</p></div></article>
+    </div>
+  </div>
+</section>
+<section class="board cover digest dark" id="digest-dark" aria-label="Weekly digest cover, dark">
+  <div class="frame">
+    <div class="col">
+      <div class="logo"><img class="mark" src="../../public/images/Vectors-Wrapper_4.svg" alt=""><img class="word" src="../../public/images/Vectors-Wrapper.svg" alt="Wellness Whizz"></div>
+      <div class="mid"><h2>Potassium lowered blood pressure about 5 points in 19 trials</h2><p class="lede">In adults with untreated high blood pressure. The trials were short.</p></div>
+      <div class="tags"><span class="tag solid">Research digest</span><span class="tag">9 to 15 Nov</span></div>
+    </div>
+    <div class="cards">
+      <article class="card"><div class="mol"><img src="../../public/images/structures/melatonin.svg" alt=""></div><div><h3>Melatonin</h3><p>IBS symptoms eased in 7 trials</p></div></article>
+      <article class="card"><div class="mol"><img src="../../public/images/structures/probiotics-823e4.svg" alt=""></div><div><h3>Probiotics</h3><p>About 2 fewer migraines a month</p></div></article>
+      <article class="card"><div class="mol"><img src="../../public/images/structures/ginger-da075.svg" alt=""></div><div><h3>Ginger</h3><p>A very small drop in body fat</p></div></article>
+    </div>
+  </div>
+</section>
+
+</main>
+<script>
+  // A long name steps down in size until it fits the height it is given.
+  document.fonts.ready.then(() => {
+    for (const el of document.querySelectorAll('[data-fit]')) {
+      const max = Number(el.dataset.fit);
+      let size = parseFloat(getComputedStyle(el).fontSize);
+      while ((el.scrollHeight > max || el.scrollWidth > el.clientWidth) && size > 36) { size -= 2; el.style.fontSize = size + 'px'; }
+    }
+    document.body.dataset.ready = '1';
+  });
+</script>
+</body>
+</html>
