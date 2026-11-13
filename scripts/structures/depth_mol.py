@@ -22,8 +22,11 @@ S = 1024
 ORGANIC = {'C', 'N', 'O', 'S', 'P', 'H', 'F', 'Cl', 'Br', 'I', 'Se', 'B'}
 
 
-def conformer(smiles: str):
-    """Heavy atoms of the most extended relaxed conformer, widest side toward the viewer, then tilted."""
+def conformer(smiles: str, yaw_deg: float = -32, pitch_deg: float = 24):
+    """Heavy atoms of the most extended relaxed conformer, widest side toward the viewer, then tilted.
+
+    The tilt (yaw and pitch, in degrees) is what gives the flat drawing its depth; the glossy 3D picture, which has
+    light and shadow for that, asks for less of it (export3d.py)."""
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         raise ValueError('not a valid structure')
@@ -66,7 +69,7 @@ def conformer(smiles: str):
         if np.linalg.det(vt) < 0:  # keep the molecule's handedness: a rotation, never a mirror image
             vt[2] *= -1
         pos = pos @ vt.T  # x: longest extent, y: second, z: thinnest (toward the viewer)
-    yaw, pitch = math.radians(-32), math.radians(24)
+    yaw, pitch = math.radians(yaw_deg), math.radians(pitch_deg)
     ry = np.array([[math.cos(yaw), 0, math.sin(yaw)], [0, 1, 0], [-math.sin(yaw), 0, math.cos(yaw)]])
     rx = np.array([[1, 0, 0], [0, math.cos(pitch), -math.sin(pitch)], [0, math.sin(pitch), math.cos(pitch)]])
     pos = pos @ ry.T @ rx.T
