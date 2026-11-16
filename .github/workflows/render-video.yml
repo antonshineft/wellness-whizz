@@ -114,6 +114,8 @@ jobs:
           slug=$(ls video/work/*-cover.jpg 2> /dev/null | head -1 | sed 's|.*/||; s/-cover\.jpg$//; s/-[0-9]\{8\}-[0-9]\{4\}$//')
           [ -n "$slug" ] || exit 0
           (cd "$dir" && zip -q -0 "/tmp/$slug-clips.zip" clip*.mp4)
+          # the narration as it was spoken, so a trial reel or a recut does not pay for the same lines again
+          if [ -d video/work/voice ]; then (cd video/work && zip -q -r "/tmp/$slug-clips.zip" voice); fi
           gh release view clips > /dev/null 2>&1 || gh release create clips --title "Raw clips" --notes "The generated scene clips of each video, kept so new cuts can be made without paying for footage again."
           gh release upload clips "/tmp/$slug-clips.zip" --clobber || echo "clips not kept (the render itself is fine)"
       - name: Keep the work files for a week

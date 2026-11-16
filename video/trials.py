@@ -4,7 +4,7 @@ Usage: python video/trials.py <slug>   (one video's waiting trials; nothing is p
        python video/trials.py          (the daily loop: yesterday's video, rendered and scheduled for today)
 Env: WW_ORIGIN, WW_STATS_KEY, ELEVENLABS_API_KEY (render.py reads its own), GH_REPO; `gh` signed in through GH_TOKEN.
 The clips come from the "clips" release (<slug>-clips.zip, or <slug>-<time stamp>-clips.zip for older renders), which the render workflow fills after every new video.
-No footage is generated here, so a trial costs only its narration.
+No footage is generated here, and only the changed line is spoken again, so a trial costs one line of narration.
 """
 import json
 import os
@@ -56,6 +56,12 @@ def main() -> int:
     archive = found[-1]
     with zipfile.ZipFile(archive) as z:
         z.extractall(clips, members=[n for n in z.namelist() if n.startswith('clip') and n.endswith('.mp4') and '/' not in n])
+        # The narration of the video itself, kept with its clips (render.py): a trial changes one line, so only that
+        # line is spoken again. Videos rendered before this was kept have none; their first trial speaks every line
+        # once and the other two reuse them.
+        z.extractall(clips, members=[n for n in z.namelist() if n.startswith('voice/') and n.count('/') == 1 and '..' not in n and n.endswith(('.mp3', '.json'))])
+    voice = clips / 'voice'
+    voice.mkdir(exist_ok=True)
     failed = 0
     for item in jobs:
         n, job = item['n'], item['job']
@@ -64,7 +70,7 @@ def main() -> int:
         work.mkdir(parents=True, exist_ok=True)
         spec = work.parent / f'{name}.job.json'
         spec.write_text(json.dumps(job, ensure_ascii=False))
-        env = dict(os.environ, RENDER_LOCAL='1', RENDER_JOB=str(spec), RENDER_CLIPS=str(clips), RENDER_WORK=str(work))
+        env = dict(os.environ, RENDER_LOCAL='1', RENDER_JOB=str(spec), RENDER_CLIPS=str(clips), RENDER_WORK=str(work), RENDER_VOICE_CACHE=str(voice))
         run = subprocess.run([sys.executable, str(ROOT / 'render.py')], env=env)
         out = work / f'{name}.mp4'
         if run.returncode != 0 or not out.exists():

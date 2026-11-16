@@ -18,6 +18,7 @@ RENDER_WORK (work directory, default video/work).
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 import re
@@ -445,10 +446,42 @@ def spoken_words(text: str) -> list[str]:
     return [w.replace('*', '') for w in TAG_RE.sub(' ', text).split() if w.replace('*', '')]
 
 
+# Narration that has been spoken once is kept and not paid for again. Every line the narrator records is written to
+# WORK/voice/ under a name made from the exact words and voice settings, and the render workflow keeps that folder with
+# the video's clips. A run given RENDER_VOICE_CACHE (the trial reels: the same script with one line changed) looks there
+# first and has the narrator speak only the lines it does not find. A recut that asks for a new voice never sets it.
+VOICE_CACHE = Path(os.environ['RENDER_VOICE_CACHE']) if os.environ.get('RENDER_VOICE_CACHE') else None
+voice_stats = {'spoken': 0, 'reused': 0, 'characters': 0}
+
+
 def narrate(text: str, mp3: Path) -> list[dict]:
     settings = {'stability': ELEVEN_STABILITY, 'similarity_boost': 0.75, 'style': ELEVEN_STYLE, 'use_speaker_boost': True, 'speed': ELEVEN_SPEED}
     if not ELEVEN_TAGS:
         text = re.sub(r'\s+', ' ', TAG_RE.sub(' ', text).replace('*', '')).strip()
+    name = hashlib.sha1(json.dumps([VOICE, ELEVEN_MODEL, settings, text], sort_keys=True).encode()).hexdigest()[:20]
+    if VOICE_CACHE and (VOICE_CACHE / f'{name}.mp3').exists() and (VOICE_CACHE / f'{name}.json').exists():
+        try:
+            words = json.loads((VOICE_CACHE / f'{name}.json').read_text())['words']
+            shutil.copyfile(VOICE_CACHE / f'{name}.mp3', mp3)
+            voice_stats['reused'] += 1
+            return words
+        except (OSError, ValueError, KeyError):
+            pass  # an unreadable entry is spoken again
+    words = speak(text, settings, mp3)
+    voice_stats['spoken'] += 1
+    voice_stats['characters'] += len(text)
+    for keep in filter(None, (WORK / 'voice', VOICE_CACHE)):
+        try:
+            keep.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(mp3, keep / f'{name}.mp3')
+            (keep / f'{name}.json').write_text(json.dumps({'text': text, 'words': words}))
+        except OSError as err:
+            log(f'narration not kept in {keep}: {err}')
+    return words
+
+
+def speak(text: str, settings: dict, mp3: Path) -> list[dict]:
+    """One line from the narrator (ElevenLabs), with the time of every word."""
     r = requests.post(f'https://api.elevenlabs.io/v1/text-to-speech/{VOICE}/with-timestamps', params={'output_format': 'mp3_44100_128'},
                       headers={'xi-api-key': ELEVEN, 'content-type': 'application/json'}, timeout=180,
                       json={'text': text, 'model_id': ELEVEN_MODEL, 'voice_settings': settings})
@@ -778,6 +811,7 @@ def render(job: dict) -> Path:
             raise RuntimeError(f'scene {i + 1} narration is {nd:.1f} s even at {MAX_TEMPO}x; shorten it ({len(spoken_words(sc["narration"]))} words)')
         narrations.append((WORK / f'vo{i + 1}.wav', fitted, nd))
         log(f'narration {i + 1}: {nd:.2f} s, tightened {pace_tempo(words):.2f}x' + (f' (the scene is held {over:.1f} s longer)' if over > 0 else ''))
+    log(f'narrator: {voice_stats["spoken"]} lines spoken ({voice_stats["characters"]} characters), {voice_stats["reused"]} reused')
 
     # 2. clips
     reuse = os.environ.get('RENDER_CLIPS')
