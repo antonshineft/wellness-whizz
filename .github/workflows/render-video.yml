@@ -35,6 +35,7 @@ on:
 
 permissions:
   contents: write
+  actions: write  # a finished render starts the next one (last step)
 
 concurrency:
   group: render-video
@@ -128,3 +129,17 @@ jobs:
             !video/work/*.wav
           retention-days: 7
           if-no-files-found: ignore
+      # GitHub starts scheduled runs late and skips many of them, so the hourly schedule alone renders a few videos a
+      # day. A run that has rendered a video starts the next run itself while approved videos are still waiting; a run
+      # that rendered nothing (no job, or the monthly limit is reached) starts none, so the chain always ends.
+      - name: Start the next render while approved videos are waiting
+        if: success() && github.event.inputs.slug == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WW_STATS_KEY: ${{ secrets.WW_STATS_KEY }}
+        run: |
+          ls video/work/*-cover.jpg > /dev/null 2>&1 || { echo "nothing was rendered in this run"; exit 0; }
+          waiting=$(curl -s --max-time 60 -H "authorization: Bearer $WW_STATS_KEY" https://aiww.io/api/admin/videos \
+            | python3 -c "import sys, json; print(sum(1 for v in json.load(sys.stdin).get('videos', []) if v.get('status') == 'approved'))" || echo 0)
+          echo "approved videos still waiting: $waiting"
+          if [ "${waiting:-0}" -gt 0 ]; then gh workflow run render-video.yml --ref main -R "$GITHUB_REPOSITORY"; fi
