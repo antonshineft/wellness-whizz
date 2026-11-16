@@ -42,6 +42,8 @@ export interface VideoEnv {
   VIDEO_APPROVAL?: string;
   /** Local time and zone of the daily posting slot (default 09:00 Europe/Madrid); a rendered video takes the next free day. */
   VIDEO_POST_TIME?: string;
+  /** When a static post goes out on its day (HH:MM in VIDEO_TIMEZONE, default 18:00). */
+  STATIC_POST_TIME?: string;
   VIDEO_TIMEZONE?: string;
   ZERNIO_API_KEY?: string;
 }
@@ -762,17 +764,20 @@ export async function markReady(env: VideoEnv, slug: string, videoUrl: string, d
   return true;
 }
 
-/** The next posting slot: the first day from tomorrow that has no scheduled post yet, at VIDEO_POST_TIME in VIDEO_TIMEZONE.
+/** The next posting slot: the first day from tomorrow that has no scheduled post of this kind yet (a reel, or a static),
+ *  at VIDEO_POST_TIME (reels) or STATIC_POST_TIME (statics) in VIDEO_TIMEZONE.
  *  Returns the local time without an offset (Zernio reads it in the given timezone) and a label for the email. */
-export async function nextSlot(env: VideoEnv, fixedDay?: string): Promise<{ local: string; timezone: string; label: string }> {
+export async function nextSlot(env: VideoEnv, fixedDay?: string, kind: 'video' | 'static' = 'video'): Promise<{ local: string; timezone: string; label: string }> {
   const timezone = (env.VIDEO_TIMEZONE ?? '').trim() || 'Europe/Madrid';
-  const time = /^\d{2}:\d{2}$/.test((env.VIDEO_POST_TIME ?? '').trim()) ? env.VIDEO_POST_TIME!.trim() : '09:00';
+  // The owner (16 Nov): a reel and a static every day. Reels go out in the morning, statics in the evening.
+  const wanted = ((kind === 'static' ? env.STATIC_POST_TIME : env.VIDEO_POST_TIME) ?? '').trim();
+  const time = /^\d{2}:\d{2}$/.test(wanted) ? wanted : kind === 'static' ? '18:00' : '09:00';
   if (fixedDay && /^\d{4}-\d{2}-\d{2}$/.test(fixedDay)) {
     // A fixed day (the owner's calendar alternates statics and videos), still at the usual morning time.
     const label = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${fixedDay}T12:00:00Z`));
     return { local: `${fixedDay}T${time}:00`, timezone, label: `${label} at ${time}` };
   }
-  const taken = await zernioScheduledDays(env as ZernioEnv, timezone).catch(() => new Set<string>());
+  const taken = await zernioScheduledDays(env as ZernioEnv, timezone, kind).catch(() => new Set<string>());
   const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
   for (let d = 1; d <= 60; d++) {
     const day = fmt.format(new Date(Date.now() + d * 86_400_000));

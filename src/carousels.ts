@@ -182,7 +182,7 @@ export async function scheduleCarousel(env: CarouselEnv, pmid: string): Promise<
     if (!up.ok) return up;
     uploaded.push(up.url);
   }
-  const slot = await nextSlot(env);
+  const slot = await nextSlot(env, undefined, 'static');
   const copy = parseCopy(row.copy_json);
   const post = await zernioCreatePost(z, { content: row.caption, mediaItems: uploaded.map((u) => ({ type: 'image', url: u })), targets, title: copy?.cover.headline ?? `Research ${pmid}`, scheduledFor: slot.local, timezone: slot.timezone });
   if (!post.ok) return post;

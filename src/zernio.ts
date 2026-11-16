@@ -139,14 +139,16 @@ export async function createPost(env: ZernioEnv, o: ZernioPostOptions): Promise<
   return { ok: true, id: r.data.post?._id ?? '', status: r.data.post?.status ?? 'unknown' };
 }
 
-/** The local dates (YYYY-MM-DD in the post's timezone, as Zernio stores them in UTC) that already have a scheduled post. */
-export async function scheduledDays(env: ZernioEnv, timezone: string): Promise<Set<string>> {
-  const r = await call<{ posts?: { status?: string; scheduledFor?: string }[] }>(env, 'GET', '/posts?limit=100');
+/** The local dates (YYYY-MM-DD in the post's timezone, as Zernio stores them in UTC) that already have a scheduled post
+ *  of this kind: a reel (a post that carries a video) or a static (pictures only). One of each goes out a day. */
+export async function scheduledDays(env: ZernioEnv, timezone: string, kind: 'video' | 'static'): Promise<Set<string>> {
+  const r = await call<{ posts?: { status?: string; scheduledFor?: string; mediaItems?: { type?: string }[] }[] }>(env, 'GET', '/posts?status=scheduled&limit=100');
   const days = new Set<string>();
   if (!r.ok) return days;
   const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
   for (const p of r.data.posts ?? []) {
-    if (p.status === 'scheduled' && p.scheduledFor) days.add(fmt.format(new Date(p.scheduledFor)));
+    const isVideo = (p.mediaItems ?? []).some((m) => m.type === 'video');
+    if (p.status === 'scheduled' && p.scheduledFor && isVideo === (kind === 'video')) days.add(fmt.format(new Date(p.scheduledFor)));
   }
   return days;
 }

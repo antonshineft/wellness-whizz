@@ -131,6 +131,7 @@ export interface Bindings {
   VIDEO_MONTHLY_LIMIT?: string;
   VIDEO_APPROVAL?: string;
   VIDEO_POST_TIME?: string;
+  STATIC_POST_TIME?: string;
   VIDEO_TIMEZONE?: string;
   /** Zernio (src/zernio.ts): posts to TikTok, Instagram and others through Zernio's connected accounts. */
   ZERNIO_API_KEY?: string;
