@@ -96,6 +96,8 @@ export interface ZernioPostOptions {
   title?: string;
   /** Instagram: a 1080x1920 JPEG/PNG used as the Reel cover (what the profile grid shows). */
   coverUrl?: string;
+  /** TikTok: the same kind of picture as the video's cover. Only set for a cover the owner approved, because it becomes the video's first frame. */
+  tiktokCoverUrl?: string;
   /** When set, the post is scheduled for this local time ("2026-11-06T09:00:00" in `timezone`) instead of published now. */
   scheduledFor?: string;
   timezone?: string;
@@ -131,6 +133,8 @@ export async function createPost(env: ZernioEnv, o: ZernioPostOptions): Promise<
       media_type: 'video',
       auto_add_music: false,
       video_made_with_ai: o.madeWithAi ?? true,
+      // A titled cover the owner approved. Zernio puts the picture in as the video's first frame and TikTok takes it as the cover.
+      ...(o.tiktokCoverUrl ? { video_cover_image_url: o.tiktokCoverUrl } : {}),
       ...(privacy !== 'PUBLIC_TO_EVERYONE' ? { draft: true } : {}),
     };
   }

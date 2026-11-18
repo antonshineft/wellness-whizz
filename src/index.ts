@@ -1643,7 +1643,17 @@ app.post('/api/admin/videos/:slug/schedule', async (c) => {
   const cover = row.video_url.replace(/\.mp4$/, '-cover.jpg');  // the render job uploads the cover next to the video
   const when = (c.req.query('when') ?? '').trim();  // optional YYYY-MM-DD: a fixed calendar day instead of the next free one
   if (when && !/^\d{4}-\d{2}-\d{2}$/.test(when)) return c.json({ error: 'when must be YYYY-MM-DD' }, 400);
-  const r = await autoPost(c.env, row, cover, when || undefined);
+  // Optional JSON body {cover_base64}: a JPEG cover the owner approved, used instead of the render's clean frame.
+  const body = (await c.req.json().catch(() => ({}))) as { cover_base64?: string };
+  let coverImage: ArrayBuffer | undefined;
+  if (typeof body.cover_base64 === 'string' && body.cover_base64.length > 1000) {
+    try {
+      coverImage = Uint8Array.from(atob(body.cover_base64), (ch) => ch.charCodeAt(0)).buffer as ArrayBuffer;
+    } catch {
+      return c.json({ error: 'cover_base64 is not valid base64' }, 400);
+    }
+  }
+  const r = await autoPost(c.env, row, cover, when || undefined, coverImage);
   return r.ok ? c.json({ ok: true, where: r.where, when: r.when }) : c.json({ ok: false, error: r.message }, 502);
 });
 

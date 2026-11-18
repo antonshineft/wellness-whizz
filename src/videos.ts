@@ -791,8 +791,9 @@ export async function nextSlot(env: VideoEnv, fixedDay?: string, kind: 'video' |
 }
 
 /** Schedule a rendered video through every connected Zernio account (public, labelled as AI content) for the next free
- *  morning slot (or the given YYYY-MM-DD day); the cover, when there is one, becomes the Instagram Reel cover so the profile grid shows artwork. */
-export async function autoPost(env: VideoEnv, row: VideoRow, coverUrl = '', day?: string): Promise<{ ok: true; where: string; when: string } | { ok: false; message: string }> {
+ *  morning slot (or the given YYYY-MM-DD day); the cover, when there is one, becomes the Instagram Reel cover so the profile grid shows artwork
+ *  (a cover the owner approved, passed as coverImage, is also set on TikTok). */
+export async function autoPost(env: VideoEnv, row: VideoRow, coverUrl = '', day?: string, coverImage?: ArrayBuffer): Promise<{ ok: true; where: string; when: string } | { ok: false; message: string }> {
   const z = env as ZernioEnv;
   const accounts = await zernioAccounts(z);
   if (!accounts.ok) return { ok: false, message: accounts.message };
@@ -803,18 +804,20 @@ export async function autoPost(env: VideoEnv, row: VideoRow, coverUrl = '', day?
   const up = await zernioUpload(z, await res.arrayBuffer(), `${row.slug}-${Date.now()}.mp4`);
   if (!up.ok) return up;
   let cover = '';
-  if (coverUrl && targets.some((t) => t.platform === 'instagram')) {
+  if (coverImage || coverUrl) {
     try {
-      const cr = await fetch(coverUrl, { redirect: 'follow' });
-      const cu = cr.ok ? await zernioUploadMedia(z, await cr.arrayBuffer(), `${row.slug}-${Date.now()}-cover.jpg`, 'image/jpeg') : null;
+      // A cover the owner approved (the title drawn on a frame) comes with the request; otherwise the render's clean frame.
+      const cr = coverImage ? null : await fetch(coverUrl, { redirect: 'follow' });
+      const bytes = coverImage ?? (cr?.ok ? await cr.arrayBuffer() : null);
+      const cu = bytes ? await zernioUploadMedia(z, bytes, `${row.slug}-${Date.now()}-cover.jpg`, 'image/jpeg') : null;
       if (cu?.ok) cover = cu.url;
-      else console.warn(`video cover not attached for ${row.slug}: ${cu ? cu.message : `HTTP ${cr.status}`}`);
+      else console.warn(`video cover not attached for ${row.slug}: ${cu ? cu.message : `HTTP ${cr?.status}`}`);
     } catch (err) {
       console.warn(`video cover not attached for ${row.slug}: ${String(err)}`);
     }
   }
   const slot = await nextSlot(env, day);
-  const post = await zernioCreatePost(z, { content: row.caption, mediaUrl: up.url, targets, privacy: 'PUBLIC_TO_EVERYONE', allowComment: true, allowDuet: false, allowStitch: false, madeWithAi: true, title: parseScript(row.script_json)?.title ?? row.slug, coverUrl: cover, scheduledFor: slot.local, timezone: slot.timezone });
+  const post = await zernioCreatePost(z, { content: row.caption, mediaUrl: up.url, targets, privacy: 'PUBLIC_TO_EVERYONE', allowComment: true, allowDuet: false, allowStitch: false, madeWithAi: true, title: parseScript(row.script_json)?.title ?? row.slug, coverUrl: cover, tiktokCoverUrl: coverImage ? cover : '', scheduledFor: slot.local, timezone: slot.timezone });
   if (!post.ok) return post;
   await markPosted(env, row.slug, `zernio:${post.id}`);
   return { ok: true, where: targets.map((t) => t.platform).join(', '), when: slot.label };
