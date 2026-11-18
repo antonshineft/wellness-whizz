@@ -31,7 +31,7 @@ import { serviceAccountEmail, submitiumDigestLine, submitiumReportLine, submitiu
 import { renderBacklinksAdmin } from './render/backlinks-admin';
 import { renderBacklinksKit } from './render/backlinks-kit';
 import DIRECTORIES from '../data/directories.json';
-import { createPost as zernioCreatePost, getPost as zernioGetPost, listAccounts as zernioAccounts, uploadVideo as zernioUpload, zernioEnabled } from './zernio';
+import { createPost as zernioCreatePost, getPost as zernioGetPost, listAccounts as zernioAccounts, updatePostText as zernioUpdatePostText, uploadVideo as zernioUpload, zernioEnabled } from './zernio';
 import {
   getTranslation, hasTranslation, localizePost, localizePosts, localizeSupplement, localizeSupplements, translateBacklog, translateStrings, translationCounts,
   type PostTranslation, type SupplementTranslation,
@@ -2147,6 +2147,25 @@ app.post('/api/admin/videos/:slug/remove', async (c) => {
   if (!['queued', 'scripted', 'kept', 'approved', 'failed'].includes(row.status) || row.video_url) return c.json({ ok: false, error: `"${row.slug}" is ${row.status}; only a video that was never rendered can be removed` }, 409);
   await c.env.DB.prepare('DELETE FROM videos WHERE id = ?').bind(row.id).run();
   return c.json({ ok: true, removed: row.slug });
+});
+
+/** Owner-only: change a video's caption (with its hashtags): {caption}. A post that is scheduled but not yet out gets the same text. */
+app.post('/api/admin/videos/:slug/caption', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const row = await getVideo(c.env.DB, c.req.param('slug') ?? '');
+  if (!row) return c.json({ ok: false, error: 'no such video' }, 404);
+  const caption = String(((await c.req.json().catch(() => ({}))) as { caption?: string }).caption ?? '').replace(/\s+/g, ' ').trim();
+  if (caption.length < 20 || caption.length > 600) return c.json({ ok: false, error: 'a caption of 20 to 600 characters is required' }, 400);
+  let scheduled = 'no scheduled post';
+  if (row.publish_id.startsWith('zernio:')) {
+    const r = await zernioUpdatePostText(c.env, row.publish_id.slice(7), caption);
+    if (!r.ok) return c.json({ ok: false, error: `the scheduled post was not changed: ${r.message}` }, 502);
+    scheduled = 'updated';
+  }
+  await c.env.DB.prepare("UPDATE videos SET caption = ?, updated_at = datetime('now') WHERE id = ?").bind(caption, row.id).run();
+  return c.json({ ok: true, slug: row.slug, caption, scheduled });
 });
 
 /** Owner-only: record the follow ending a video's file was given after it was rendered (?ending=card|drawn|pointer, or empty for none). */

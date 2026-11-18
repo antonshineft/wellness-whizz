@@ -181,6 +181,13 @@ export async function postAnalyticsRaw(env: ZernioEnv, id: string): Promise<{ ok
 }
 
 /** Remove a post that has not been published yet (a scheduled or failed one). */
+/** Replace the text of a post that has not gone out yet (its caption and hashtags). */
+export async function updatePostText(env: ZernioEnv, id: string, content: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  const r = await call<{ post?: { content?: string } }>(env, 'PUT', `/posts/${encodeURIComponent(id)}`, { content });
+  if (!r.ok) return r;
+  return r.data.post?.content === content ? { ok: true } : { ok: false, message: 'the scheduler did not store the new text' };
+}
+
 export async function deletePost(env: ZernioEnv, id: string): Promise<{ ok: true } | { ok: false; message: string }> {
   const r = await call<unknown>(env, 'DELETE', `/posts/${encodeURIComponent(id)}`);
   return r.ok ? { ok: true } : r;
