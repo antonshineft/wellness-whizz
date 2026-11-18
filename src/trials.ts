@@ -206,12 +206,15 @@ export function trialJob(script: VideoScript, caption: string, row: TrialRow): T
   return { ...base, script: { ...script, scenes } };
 }
 
+/** What the renderer itself accepts in one scene (video/render.py MAX_SCENE_WORDS); the writers are asked for less. */
+const RENDER_MAX_WORDS = 34;
+
 const TESTS_SYSTEM = `You prepare three tests of a finished 90-second narrated explainer video (hand-drawn animation: a soft-teal cartoon figure, pastel objects, cream paper background), so the owner can learn on real viewers what keeps strangers watching. The script and its pictures are given. You write three things.
 
 1. A NEW OPENING SHOT (scene 1 is drawn again; every other scene keeps its picture).
 Most viewers leave within three seconds, so the new picture must be the strangest image this story has, already moving in its first second: never a wide calm establishing shot, never a figure standing still, never a slow push-in before anything happens. Write "visual" the way the scenes below are written ("0 to 4 s: ... 4 to 7 s: ... 7 to 10 s: ..."), naming exact objects, colours and motion. Keep the same figure and the same hand-drawn world, but give this opening its own composition (a different framing and camera move from the original scene 1) and one strong accent colour that belongs to the subject (the red of a chilli, the purple of acai), with the cream paper still behind it. No text, numbers or lettering in the picture. Then write "line": what the narrator says over that picture. The subject and the surprise are spoken within the first six words, the first thing named is what the viewer is looking at, and it leads straight into scene 2 as written.
 
-2. A SHORT CUT of 45 to 60 seconds: choose 5 or 6 of the scenes, always scene 1 and the last scene, in their original order, so the story still makes sense to someone who never saw the long version. Each kept scene plays over its own existing picture, so its narration must still fit that picture. Tighten each kept line where it helps and carry over, in a few words, any fact from a dropped scene that the story cannot do without.
+2. A SHORT CUT of 45 to 60 seconds: choose 5 or 6 of the scenes, always scene 1 and the last scene, in their original order, so the story still makes sense to someone who never saw the long version. Each kept scene plays over its own existing picture, so its narration must still fit that picture. Tighten each kept line where it helps and carry over, in a few words, any fact from a dropped scene that the story cannot do without. Count the words of every kept line: none may be longer than ${MAX_SCENE_WORDS - 2} words, so when a fact is carried over, something else in that line has to go.
 
 3. A SEND LINE: one short spoken sentence that starts with exactly "Send this to someone who" and names a kind of person from the viewer's own life whom this story is about (who takes a multivitamin every morning; who loves honey; who puts chilli on everything). At most 12 words. No promise, no advice.
 
@@ -280,8 +283,8 @@ export async function writeTests(env: VideoEnv, slug: string): Promise<{ ok: tru
   let sendLine = clean(out.send_line).replace(/[.!?]+$/, '');
   if (!/^send this to someone who /i.test(sendLine) || wordsIn(sendLine) > 14) sendLine = '';
   if (wordsIn(line) > MAX_SCENE_WORDS || wordsIn(line) < 8 || visual.length < 80) return { ok: false, message: 'the new opening came back unusable; ask again' };
-  if (kept.length < 4 || kept.length > 7 || new Set(numbers).size !== numbers.length || numbers[0] !== 1 || numbers[numbers.length - 1] !== last || kept.some((k) => wordsIn(k.narration) > MAX_SCENE_WORDS || wordsIn(k.narration) < 6)) {
-    return { ok: false, message: 'the short cut came back unusable; ask again' };
+  if (kept.length < 4 || kept.length > 7 || new Set(numbers).size !== numbers.length || numbers[0] !== 1 || numbers[numbers.length - 1] !== last || kept.some((k) => wordsIn(k.narration) > RENDER_MAX_WORDS || wordsIn(k.narration) < 6)) {
+    return { ok: false, message: `the short cut came back unusable (scenes ${numbers.join(',') || 'none'} of ${last}; words ${kept.map((k) => wordsIn(k.narration)).join(',')}; limit ${RENDER_MAX_WORDS}); ask again` };
   }
   const send = sendLine ? { send_line: `${sendLine}.` } : {};
   const rows: { kind: TrialKind; format: string; line: string; why: string; data: TrialData }[] = [
