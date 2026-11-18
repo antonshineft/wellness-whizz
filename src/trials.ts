@@ -35,7 +35,7 @@ export interface TrialRow {
   scheduled_for: string;
   /** The follow ending this trial is rendered with (FOLLOW_ENDINGS), or '' for none. */
   ending: string;
-  /** What a test needs beyond its line, as JSON: the new opening picture, the scenes of a short cut, the send line. */
+  /** What a test needs beyond its line, as JSON: the new opening picture, the scenes of a short cut. */
   data: string;
   created_at: string;
   updated_at: string;
@@ -44,7 +44,7 @@ export interface TrialRow {
 /**
  * The follow endings (video/follow_ending.py): a few seconds after the story in which the narrator asks for a follow
  * and the picture shows the tap. "pointer" points at Instagram's own Follow button, so it only suits Instagram.
- * "send" asks for a send instead ("Send this to someone who ..."), with a line written for the video.
+ * "send" asks for a send instead (SEND_LINE), spoken in the trial's own voice.
  */
 export const FOLLOW_ENDINGS = ['card', 'drawn', 'pointer', 'send'] as const;
 
@@ -163,13 +163,14 @@ export async function writeTrials(env: VideoEnv, slug: string, hooks = 2, ending
   return { ok: true, trials: (await listTrials(env.DB, slug)).slice(-lines.length) };
 }
 
+/** What the send ending says, the same on every video (the owner's wording, 18 Nov 2026). */
+export const SEND_LINE = 'Send this to someone with a curious mind.';
+
 interface TrialData {
   /** shot: what the new opening scene shows. */
   visual?: string;
   /** short: the scenes kept (1-based numbers of the original) with their tightened narration. */
   scenes?: { scene: number; narration: string }[];
-  /** "Send this to someone who ...", for the send ending. */
-  send_line?: string;
 }
 
 function trialData(row: TrialRow): TrialData {
@@ -191,7 +192,7 @@ type TrialJob = { slug: string; title: string; script: VideoScript; caption: str
  */
 export function trialJob(script: VideoScript, caption: string, row: TrialRow): TrialJob {
   const data = trialData(row);
-  const base = { slug: `${row.slug}-t${row.n}`, title: script.title, caption, ending: row.ending ?? '', ...(data.send_line ? { send_line: data.send_line } : {}) };
+  const base = { slug: `${row.slug}-t${row.n}`, title: script.title, caption, ending: row.ending ?? '', send_line: SEND_LINE };
   if (row.kind === 'shot') {
     const scenes = script.scenes.map((s, i) => (i === 0 ? { ...s, narration: row.line, visual: data.visual || s.visual } : s));
     return { ...base, script: { ...script, scenes }, new_opening: true };
@@ -209,19 +210,17 @@ export function trialJob(script: VideoScript, caption: string, row: TrialRow): T
 /** What the renderer itself accepts in one scene (video/render.py MAX_SCENE_WORDS); the writers are asked for less. */
 const RENDER_MAX_WORDS = 34;
 
-const TESTS_SYSTEM = `You prepare three tests of a finished 90-second narrated explainer video (hand-drawn animation: a soft-teal cartoon figure, pastel objects, cream paper background), so the owner can learn on real viewers what keeps strangers watching. The script and its pictures are given. You write three things.
+const TESTS_SYSTEM = `You prepare three tests of a finished 90-second narrated explainer video (hand-drawn animation: a soft-teal cartoon figure, pastel objects, cream paper background), so the owner can learn on real viewers what keeps strangers watching. The script and its pictures are given. You write two things.
 
 1. A NEW OPENING SHOT (scene 1 is drawn again; every other scene keeps its picture).
 Most viewers leave within three seconds, so the new picture must be the strangest image this story has, already moving in its first second: never a wide calm establishing shot, never a figure standing still, never a slow push-in before anything happens. Write "visual" the way the scenes below are written ("0 to 4 s: ... 4 to 7 s: ... 7 to 10 s: ..."), naming exact objects, colours and motion. Keep the same figure and the same hand-drawn world, but give this opening its own composition (a different framing and camera move from the original scene 1) and one strong accent colour that belongs to the subject (the red of a chilli, the purple of acai), with the cream paper still behind it. No text, numbers or lettering in the picture. Then write "line": what the narrator says over that picture. The subject and the surprise are spoken within the first six words, the first thing named is what the viewer is looking at, and it leads straight into scene 2 as written.
 
 2. A SHORT CUT of 45 to 60 seconds: choose 5 or 6 of the scenes, always scene 1 and the last scene, in their original order, so the story still makes sense to someone who never saw the long version. Each kept scene plays over its own existing picture, so its narration must still fit that picture. Tighten each kept line where it helps and carry over, in a few words, any fact from a dropped scene that the story cannot do without. Count the words of every kept line: none may be longer than ${MAX_SCENE_WORDS - 2} words, so when a fact is carried over, something else in that line has to go.
 
-3. A SEND LINE: one short spoken sentence that starts with exactly "Send this to someone who" and names a kind of person from the viewer's own life whom this story is about (who takes a multivitamin every morning; who loves honey; who puts chilli on everything). At most 12 words. No promise, no advice.
-
 Rules that never bend:
 - Only facts that are already in the script, at their true size. No new numbers, studies, names, dates or quotes.
 - No doses, no health promises, no advice, no warnings.
-- No call to follow, like, comment or visit anything, no website, no brand (the send line is the only ask).
+- No call to follow, like, comment or visit anything, no website, no brand.
 - Every narration line is ${MIN_LINE_WORDS} to ${MAX_SCENE_WORDS} spoken words. Plain spoken English, short sentences, digits written the way a narrator says them. No dashes, no emoji, no stage directions.
 - Never use: "is not just", "You think", "Watch the", "Look at", "Here is", "Back to", "Remember", "Most people think", "Nobody tells you", "turns out", "the truth is", "plot twist", "little did", "What if I told you".`;
 
@@ -256,14 +255,13 @@ const testsSchema = {
       },
       required: ['scenes', 'why'],
     },
-    send_line: { type: 'string' },
   },
-  required: ['shot', 'short', 'send_line'],
+  required: ['shot', 'short'],
 };
 
 /**
  * The three tests of a rendered video (the owner, 18 Nov 2026): a new opening shot, the Google voice, a short cut.
- * One call to the Claude API writes the new opening, the cut and the send line; the voice test needs no writing.
+ * One call to the Claude API writes the new opening and the cut; the voice test needs no writing.
  */
 export async function writeTests(env: VideoEnv, slug: string): Promise<{ ok: true; trials: TrialRow[] } | { ok: false; message: string }> {
   const video = await getVideo(env.DB, slug);
@@ -273,24 +271,21 @@ export async function writeTests(env: VideoEnv, slug: string): Promise<{ ok: tru
   const already = await listTrials(env.DB, slug);
   const last = script.scenes.length;
   const user = [`Video: ${script.title}`, '', 'The script as rendered (narration | picture):', ...script.scenes.map((s, i) => `${i + 1}. ${s.narration} | ${s.visual}`)].join('\n');
-  type Out = { shot: { visual: string; line: string; why: string }; short: { scenes: { scene: number; narration: string }[]; why: string }; send_line: string };
+  type Out = { shot: { visual: string; line: string; why: string }; short: { scenes: { scene: number; narration: string }[]; why: string }};
   const out = await claudeJson<Out>(env, TESTS_SYSTEM, user, testsSchema, { tier: 'fast', maxTokens: 5000 });
   const clean = (t: unknown) => String(t ?? '').replace(/\s+/g, ' ').replace(/[–—]/g, ',').trim();
   const line = clean(out.shot?.line);
   const visual = clean(out.shot?.visual);
   const kept = (out.short?.scenes ?? []).map((k) => ({ scene: Math.round(Number(k.scene)), narration: clean(k.narration) })).filter((k) => k.scene >= 1 && k.scene <= last).sort((a, b) => a.scene - b.scene);
   const numbers = kept.map((k) => k.scene);
-  let sendLine = clean(out.send_line).replace(/[.!?]+$/, '');
-  if (!/^send this to someone who /i.test(sendLine) || wordsIn(sendLine) > 14) sendLine = '';
   if (wordsIn(line) > MAX_SCENE_WORDS || wordsIn(line) < 8 || visual.length < 80) return { ok: false, message: 'the new opening came back unusable; ask again' };
   if (kept.length < 4 || kept.length > 7 || new Set(numbers).size !== numbers.length || numbers[0] !== 1 || numbers[numbers.length - 1] !== last || kept.some((k) => wordsIn(k.narration) > RENDER_MAX_WORDS || wordsIn(k.narration) < 6)) {
     return { ok: false, message: `the short cut came back unusable (scenes ${numbers.join(',') || 'none'} of ${last}; words ${kept.map((k) => wordsIn(k.narration)).join(',')}; limit ${RENDER_MAX_WORDS}); ask again` };
   }
-  const send = sendLine ? { send_line: `${sendLine}.` } : {};
   const rows: { kind: TrialKind; format: string; line: string; why: string; data: TrialData }[] = [
-    { kind: 'shot', format: 'new opening shot', line, why: clean(out.shot.why).slice(0, 300), data: { visual, ...send } },
-    { kind: 'voice', format: 'google voice', line: 'The same script and pictures, spoken by the Google voice.', why: 'Tests the narrator: a warm Google voice against the house voice.', data: { ...send } },
-    { kind: 'short', format: `short cut, ${kept.length} scenes`, line: kept[0].narration, why: clean(out.short.why).slice(0, 300), data: { scenes: kept, ...send } },
+    { kind: 'shot', format: 'new opening shot', line, why: clean(out.shot.why).slice(0, 300), data: { visual } },
+    { kind: 'voice', format: 'google voice', line: 'The same script and pictures, spoken by the Google voice.', why: 'Tests the narrator: a warm Google voice against the house voice.', data: {} },
+    { kind: 'short', format: `short cut, ${kept.length} scenes`, line: kept[0].narration, why: clean(out.short.why).slice(0, 300), data: { scenes: kept } },
   ];
   let n = already.reduce((m, r) => Math.max(m, r.n), 0);
   for (const t of rows) {
@@ -311,8 +306,7 @@ async function assignEndings(db: D1Database, slug: string): Promise<void> {
   if (!waiting.length) return;
   const batches = (await db.prepare("SELECT COUNT(DISTINCT slug) AS c FROM video_trials WHERE ending != '' AND slug != ?").bind(slug).first<{ c: number }>())?.c ?? 0;
   for (const r of waiting) {
-    let ending: string = FOLLOW_ENDINGS[(batches + r.n - 1) % FOLLOW_ENDINGS.length];
-    if (ending === 'send' && !trialData(r).send_line) ending = 'card';
+    const ending = FOLLOW_ENDINGS[(batches + r.n - 1) % FOLLOW_ENDINGS.length];
     await db.prepare("UPDATE video_trials SET ending = ?, updated_at = datetime('now') WHERE id = ?").bind(ending, r.id).run();
   }
 }
@@ -324,6 +318,12 @@ export async function trialJobs(env: VideoEnv, slug: string): Promise<{ n: numbe
   if (!video || !script) return [];
   await assignEndings(env.DB, slug);
   return (await listTrials(env.DB, slug)).filter((r) => r.status === 'written').map((r) => ({ n: r.n, job: trialJob(script, video.caption, r) }));
+}
+
+/** Send a rendered trial that was never posted back to the renderer (its file is made again from the current rules). */
+export async function redoTrial(db: D1Database, slug: string, n: number): Promise<boolean> {
+  const r = await db.prepare("UPDATE video_trials SET status = 'written', video_url = '', updated_at = datetime('now') WHERE slug = ? AND n = ? AND status = 'ready'").bind(slug, n).run();
+  return (r.meta.changes ?? 0) > 0;
 }
 
 export async function markTrialReady(db: D1Database, slug: string, n: number, videoUrl: string): Promise<boolean> {

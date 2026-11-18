@@ -67,7 +67,7 @@ import { getDoseRef, listDoseRefs, researchReference, setManualRef, setRefStatus
 import { MAX_PICKS, checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels, visibleCheck } from './dose';
 import { attachExtraProduct, removeProduct, setProduct, setProductCutout } from './products';
 import { feedItems } from './social/feeds';
-import { FOLLOW_ENDINGS, autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTests, writeTrials } from './trials';
+import { FOLLOW_ENDINGS, autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, redoTrial, resetTrial, trialJobs, trialStats, writeTests, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
 import { analyticsStep, gscSummary, inspectStep, type InspectOptions } from './gsc';
 import { exportToken, sheetCounts, sheetLastSync, sheetRows, sheetUrl, syncSheet } from './sheet';
@@ -2026,6 +2026,15 @@ app.post('/api/admin/trials/:slug/:n/post', async (c) => {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(when)) return c.json({ error: 'when must be YYYY-MM-DDTHH:MM (Madrid time)' }, 400);
   const r = await postTrial(c.env, c.req.param('slug') ?? '', Number(c.req.param('n')), `${when}:00`, c.req.query('mode') === 'reels_tab' ? 'reels_tab' : 'trial');
   return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 502);
+});
+
+/** Owner-only: render a trial again that is ready but was never posted. */
+app.post('/api/admin/trials/:slug/:n/redo', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const ok = await redoTrial(c.env.DB, c.req.param('slug') ?? '', Number(c.req.param('n')));
+  return ok ? c.json({ ok: true }) : c.json({ ok: false, error: 'no rendered, unposted trial with that number' }, 404);
 });
 
 /** Owner-only: take back a trial whose post never went out (still scheduled, or refused by Instagram); it becomes "ready" again. */
