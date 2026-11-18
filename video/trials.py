@@ -43,6 +43,10 @@ def main() -> int:
         jobs = r.json().get('jobs') or []
     if not jobs:
         print(f'no trials waiting for {slug or "today"}')
+        if auto and slug:
+            # trials rendered ahead of time (a batch the owner previewed) still go out on their day
+            pr = site('POST', f'/api/admin/trials/{slug}/autopost')
+            print(f'already rendered trials: HTTP {pr.status_code} {pr.text[:300]}')
         return 0
     clips = ROOT / 'trial-clips' / slug
     clips.mkdir(parents=True, exist_ok=True)
