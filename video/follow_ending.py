@@ -49,7 +49,7 @@ def _use(kind: str, tempo: float = 1.0, voice: Path | None = None, words: list[d
     words = words or json.loads((ASSETS / f'follow-voice-{kind}.json').read_text())['words']
     if kind == 'send':
         TAP = LEAD + words[-1]['e'] / tempo + 0.2
-        LENGTH = TAP + 1.3  # the plane has time to fly off
+        LENGTH = TAP + 1.5  # the ring around the send icon pulses once or twice
         return
     LENGTH = LEAD + words[-1]['e'] / tempo + TAIL
     TAP = LEAD + next(w['s'] for w in words if w['w'].lower().startswith('follow')) / tempo + 0.18
@@ -224,50 +224,62 @@ def _pointer(base: Image.Image) -> Iterator[Image.Image]:
         yield im
 
 
-def _plane(size: int, color) -> Image.Image:
+def _plane(size: int, color, width: float = 0.07) -> Image.Image:
     """Instagram's send mark, drawn: a paper plane."""
     s = size * 2
     im = Image.new('RGBA', (s, s), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     a, b, c, m = (s * 0.08, s * 0.42), (s * 0.92, s * 0.10), (s * 0.58, s * 0.92), (s * 0.44, s * 0.56)
-    d.line([a, b, c, m, a], fill=color, width=int(s * 0.07), joint='curve')
-    d.line([m, b], fill=color, width=int(s * 0.07))
+    d.line([a, b, c, m, a], fill=color, width=int(s * width), joint='curve')
+    d.line([m, b], fill=color, width=int(s * width))
     return im.resize((size, size), Image.LANCZOS)
 
 
+# Where Instagram draws its send icon (the paper plane) over a reel, 1080 x 1920. An estimate until measured on a phone.
+IG_SEND = (1012, 1490)
+
+
+def _curve(p0, p1, p2, n: int = 80) -> list[tuple[float, float]]:
+    return [((1 - u) ** 2 * p0[0] + 2 * (1 - u) * u * p1[0] + u ** 2 * p2[0], (1 - u) ** 2 * p0[1] + 2 * (1 - u) * u * p1[1] + u ** 2 * p2[1]) for u in (i / n for i in range(n + 1))]
+
+
 def _send(base: Image.Image, who: str) -> Iterator[Image.Image]:
-    """The send ending (approved by the owner on 18 Nov): the last picture dimmed, "Send this to someone" with who in
-    green, a Send button that a tap turns into Sent, and the paper plane flying off."""
-    dim = Image.blend(base.filter(ImageFilter.GaussianBlur(14)), Image.new('RGB', (W, H), DARK), 0.55)
-    big, small = _font('Bold', 84), _font('Medium', 52)
+    """The send ending (the owner's choice, 19 Nov): no button of ours. The last picture stays, lightly dimmed; the line
+    stands centred in the caption style, "Send this to someone" in white and who in green; a green paper plane flies
+    across on a dotted trail and lands on Instagram's own send icon as the line ends, and a ring pulses around it."""
+    dim = Image.new('RGB', (W, H), DARK)
+    font = _font('Bold', 88)
     measure = ImageDraw.Draw(Image.new('RGB', (8, 8)))
-    size = 84
-    while size > 52 and measure.textlength(who, font=_font('Bold', size)) > W - 140:
+    size = 88
+    while size > 56 and measure.textlength(who, font=_font('Bold', size)) > W - 160:
         size -= 4
     who_font = _font('Bold', size)
-    send, sent, icon = _pill('Send', WHITE, DARK, False), _pill('Sent', GREEN, DARK, True), _plane(170, WHITE)
-    cx, top = W // 2, 560
-    btn = (cx, top + 170 + 420)
+    path = _curve((90, 1400), (520, 1120), (IG_SEND[0] - 6, IG_SEND[1] - 4))
+    start = 0.4
     for i in range(int(LENGTH * FPS)):
         t = i / FPS
-        im = Image.blend(base, dim, ease(t / 0.4)).convert('RGBA')
-        a = ease((t - 0.15) / 0.4)
-        if a > 0:
-            card = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-            dy = int((1 - a) * 60)
-            fly = ease((t - TAP) / 0.5) if t >= TAP else 0.0
-            card.paste(icon, (cx - 85 + int(fly * 420), top + dy - int(fly * 380)), icon)
-            d = ImageDraw.Draw(card)
-            d.text((cx, top + 170 + 90 + dy), 'Send this to someone', font=big, fill=WHITE, anchor='mm')
-            d.text((cx, top + 170 + 190 + dy), who, font=who_font, fill=GREEN, anchor='mm')
-            sc = _press(t)
-            b = (sent if t >= TAP else send).resize((int(560 * sc), int(136 * sc)), Image.LANCZOS)
-            card.paste(b, (btn[0] - b.width // 2, btn[1] - b.height // 2 + dy), b)
-            d.text((cx, btn[1] + 130 + dy), HANDLE, font=small, fill=(255, 255, 255, 170), anchor='mm')
-            if a < 1:
-                card.putalpha(card.getchannel('A').point(lambda v: int(v * a)))
-            im.alpha_composite(card)
-        _touch(im, t, (btn[0] + 120, btn[1] + 6))
+        im = Image.blend(base, dim, 0.28 * ease(t / 0.4)).convert('RGBA')
+        layer = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+        d = ImageDraw.Draw(layer)
+        d.text((W // 2, 800), 'Send this to someone', font=font, fill=WHITE, anchor='mm', stroke_width=7, stroke_fill=DARK)
+        d.text((W // 2, 905), who, font=who_font, fill=GREEN, anchor='mm', stroke_width=7, stroke_fill=DARK)
+        k = max(1, int((len(path) - 1) * ease((t - start) / max(0.3, TAP - start))))
+        for j in range(0, k, 4):
+            x, y = path[j]
+            d.ellipse((x - 7, y - 7, x + 7, y + 7), fill=(255, 255, 255, 230), outline=DARK + (255,), width=3)
+        if t < TAP + 0.15:
+            ps = int(170 - 80 * ease((t - start) / max(0.3, TAP - start)))
+            plane = _plane(ps, GREEN + (255,), 0.12)
+            layer.alpha_composite(plane, (int(path[k][0] - ps / 2), int(path[k][1] - ps / 2)))
+        if t >= TAP:
+            q = ((t - TAP) % 0.9) / 0.9
+            r = 58 + 46 * q
+            d.ellipse((IG_SEND[0] - r, IG_SEND[1] - r, IG_SEND[0] + r, IG_SEND[1] + r), outline=GREEN + (int(255 * (1 - q)),), width=8)
+            d.ellipse((IG_SEND[0] - 58, IG_SEND[1] - 58, IG_SEND[0] + 58, IG_SEND[1] + 58), outline=GREEN + (255,), width=7)
+        a = ease(t / 0.4)
+        if a < 1:
+            layer.putalpha(layer.getchannel('A').point(lambda v: int(v * a)))
+        im.alpha_composite(layer)
         yield im
 
 
