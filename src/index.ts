@@ -67,7 +67,7 @@ import { getDoseRef, listDoseRefs, researchReference, setManualRef, setRefStatus
 import { MAX_PICKS, checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels, visibleCheck } from './dose';
 import { attachExtraProduct, removeProduct, setProduct, setProductCutout } from './products';
 import { feedItems } from './social/feeds';
-import { FOLLOW_ENDINGS, autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTrials } from './trials';
+import { FOLLOW_ENDINGS, autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, resetTrial, trialJobs, trialStats, writeTests, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
 import { analyticsStep, gscSummary, inspectStep, type InspectOptions } from './gsc';
 import { exportToken, sheetCounts, sheetLastSync, sheetRows, sheetUrl, syncSheet } from './sheet';
@@ -105,6 +105,8 @@ export interface Bindings {
   /** Trial reels (src/trials.ts): "true" runs the daily loop; TRIALS_SKIP lists video slugs it leaves alone. */
   TRIALS_AUTO?: string;
   TRIALS_SKIP?: string;
+  /** "tests": the daily batch is a new opening shot, the Google voice and a short cut; otherwise two openings and one ending. */
+  TRIALS_MODE?: string;
   REDDIT_MAX_THREADS?: string;
   REDDIT_MAX_REPLIES?: string;
   /** The article pipeline (src/articles.ts): topics queued on its own per week ("0" = off) and the first draft's thinking depth. */
@@ -1995,7 +1997,8 @@ app.post('/api/admin/trials/:slug/write', async (c) => {
   await ensureDatabase(c.env.DB);
   const count = (v: string | undefined, d: number) => (v === undefined || v === '' || Number.isNaN(Number(v)) ? d : Math.floor(Number(v)));
   try {
-    const r = await writeTrials(c.env, c.req.param('slug') ?? '', count(c.req.query('hooks'), 2), count(c.req.query('endings'), 1));
+    // ?tests=1: the three tests of the daily batch (a new opening shot, the Google voice, a short cut) instead of one-line trials
+    const r = c.req.query('tests') ? await writeTests(c.env, c.req.param('slug') ?? '') : await writeTrials(c.env, c.req.param('slug') ?? '', count(c.req.query('hooks'), 2), count(c.req.query('endings'), 1));
     return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 400);
   } catch (err) {
     return c.json({ ok: false, error: String(err instanceof Error ? err.message : err) }, 502);

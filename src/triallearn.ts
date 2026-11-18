@@ -48,6 +48,9 @@ export async function trialEvidence(env: VideoEnv): Promise<FormatRecord[]> {
   const originals = new Map<string, Snapshot | null>();
   const records = new Map<string, FormatRecord>();
   for (const r of posted) {
+    // The script lessons come from one-line trials only; the three tests of a batch (shot, voice, short) are read by the owner.
+    if (r.kind !== 'hook' && r.kind !== 'ending') continue;
+    const kind = r.kind;
     if (!originals.has(r.slug)) originals.set(r.slug, (await latestTwo(env.DB, `video:${r.slug}`))[0]);
     const orig = originals.get(r.slug) ?? null;
     const now = (await latestTwo(env.DB, `trial:${r.id}`))[0];
@@ -64,7 +67,7 @@ export async function trialEvidence(env: VideoEnv): Promise<FormatRecord[]> {
       if (Math.abs(change) >= WATCH_MARGIN) result = change > 0 ? 'win' : 'loss';
     }
     const key = `${r.kind}|${r.format}`;
-    const rec = records.get(key) ?? { kind: r.kind, format: r.format, tests: 0, wins: 0, losses: 0, mean_change: 0, verdict: 'open' as const, examples: [] };
+    const rec = records.get(key) ?? { kind, format: r.format, tests: 0, wins: 0, losses: 0, mean_change: 0, verdict: 'open' as const, examples: [] };
     rec.tests += 1;
     rec.wins += result === 'win' ? 1 : 0;
     rec.losses += result === 'loss' ? 1 : 0;

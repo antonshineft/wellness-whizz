@@ -454,7 +454,136 @@ VOICE_CACHE = Path(os.environ['RENDER_VOICE_CACHE']) if os.environ.get('RENDER_V
 voice_stats = {'spoken': 0, 'reused': 0, 'characters': 0}
 
 
+# The alternative narrator for trial reels (the owner, 18 Nov): one of Google's Gemini voices, paid from the Google credit.
+JOB_VOICE = ''  # 'google' while a job asks for it (job['voice']); '' is the house voice (ElevenLabs)
+GOOGLE_VOICE = os.environ.get('GOOGLE_TTS_VOICE') or 'Sulafat'  # a warm female voice, the contrast to Liam
+GOOGLE_TTS_MODELS = [m for m in (os.environ.get('GOOGLE_TTS_MODEL') or '').split(',') if m.strip()] or ['gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts', 'gemini-2.5-flash-tts']
+GOOGLE_TTS_STYLE = 'Narrate this in a warm, clear, engaging documentary voice at a brisk natural pace: '
+_whisper: dict = {}
+
+
+def google_speak(text: str, mp3: Path) -> None:
+    """One line from Google's Gemini text-to-speech, written as an mp3. The models are tried in order until one answers."""
+    body = {'contents': [{'role': 'user', 'parts': [{'text': GOOGLE_TTS_STYLE + text}]}],
+            'generationConfig': {'responseModalities': ['AUDIO'], 'speechConfig': {'voiceConfig': {'prebuiltVoiceConfig': {'voiceName': GOOGLE_VOICE}}}}}
+    errors: list[str] = []
+    for model in GOOGLE_TTS_MODELS:
+        url = (f'https://aiplatform.googleapis.com/v1/projects/{VERTEX_PROJECT}/locations/global/publishers/google/models/{model}:generateContent' if VERTEX
+               else f'{GOOGLE}/v1beta/models/{model}:generateContent')
+        for attempt in range(2):
+            try:
+                r = google('POST', url, json=body, timeout=180)
+            except requests.RequestException as e:
+                errors.append(f'{model}: {e}')
+                continue
+            if not r.ok:
+                errors.append(f'{model}: HTTP {r.status_code} {r.text[:160]}')
+                if r.status_code in (400, 403, 404):
+                    break  # this model is not offered here: try the next name
+                time.sleep(4)
+                continue
+            parts = ((r.json().get('candidates') or [{}])[0].get('content') or {}).get('parts') or []
+            data = next((p.get('inlineData') or p.get('inline_data') for p in parts if p.get('inlineData') or p.get('inline_data')), None)
+            if not data or not data.get('data'):
+                errors.append(f'{model}: no audio in the answer')
+                continue
+            mime = data.get('mimeType') or data.get('mime_type') or ''
+            raw = mp3.with_suffix('.raw')
+            raw.write_bytes(base64.b64decode(data['data']))
+            if 'wav' in mime or 'mpeg' in mime or 'mp3' in mime or 'ogg' in mime:
+                ffmpeg('-i', str(raw), '-ac', '1', '-ar', '44100', '-b:a', '128k', str(mp3))
+            else:  # raw 16-bit samples; the rate is named in the type ("audio/L16;rate=24000")
+                rate = (re.search(r'rate=(\d+)', mime) or [None, '24000'])[1]
+                ffmpeg('-f', 's16le', '-ar', rate, '-ac', '1', '-i', str(raw), '-ar', '44100', '-b:a', '128k', str(mp3))
+            raw.unlink(missing_ok=True)
+            GOOGLE_TTS_MODELS.insert(0, GOOGLE_TTS_MODELS.pop(GOOGLE_TTS_MODELS.index(model)))  # the one that works goes first
+            return
+    raise RuntimeError('Google text-to-speech: ' + ' | '.join(errors[-4:]))
+
+
+def _plain(word: str) -> str:
+    return re.sub(r'[^a-z0-9]', '', word.lower())
+
+
+def align_words(audio: Path, text: str) -> list[dict]:
+    """When each word of `text` is spoken in `audio` ({'w', 's', 'e'}), for the captions. Google's voices come without
+    word times, so the recording is listened to (faster-whisper, on this machine) and the heard words are matched to the
+    written ones; a word that was heard differently ("82" as "eighty-two") takes its time from its neighbours. Without
+    the listener the words are spread over the recording by their length."""
+    written = text.split()
+    total = ffprobe_duration(audio)
+    heard: list[tuple[str, float, float]] = []
+    try:
+        from faster_whisper import WhisperModel  # type: ignore
+        if 'model' not in _whisper:
+            _whisper['model'] = WhisperModel('base.en', device='cpu', compute_type='int8')
+        segments, _ = _whisper['model'].transcribe(str(audio), word_timestamps=True, initial_prompt=text[:220], language='en')
+        heard = [(_plain(w.word), float(w.start), float(w.end)) for seg in segments for w in (seg.words or []) if _plain(w.word)]
+    except Exception as e:  # noqa: BLE001
+        log(f'word times: no listener ({str(e)[:120]}); spreading the words by length')
+    times: list[tuple[float, float] | None] = [None] * len(written)
+    if heard:
+        import difflib
+        match = difflib.SequenceMatcher(a=[_plain(w) for w in written], b=[h[0] for h in heard], autojunk=False)
+        for block in match.get_matching_blocks():
+            for k in range(block.size):
+                times[block.a + k] = (heard[block.b + k][1], heard[block.b + k][2])
+    # the gaps: words between two known times share that stretch by their length
+    start_all = heard[0][1] if heard else min(0.12, total)
+    end_all = heard[-1][2] if heard else max(start_all, total - 0.15)
+    i = 0
+    while i < len(written):
+        if times[i] is not None:
+            i += 1
+            continue
+        j = i
+        while j < len(written) and times[j] is None:
+            j += 1
+        left = times[i - 1][1] if i > 0 else start_all
+        right = times[j][0] if j < len(written) else end_all
+        right = max(right, left)
+        weights = [max(1, len(_plain(w))) for w in written[i:j]]
+        at = left
+        for k, wgt in enumerate(weights):
+            span = (right - left) * wgt / sum(weights)
+            times[i + k] = (at, at + span)
+            at += span
+        i = j
+    words = [{'w': w, 's': round(t[0], 3), 'e': round(max(t[1], t[0] + 0.02), 3)} for w, t in zip(written, times) if t is not None]
+    for a, b in zip(words, words[1:]):  # never out of order
+        b['s'] = max(b['s'], a['s'])
+        a['e'] = min(a['e'], b['s']) if a['e'] > b['s'] else a['e']
+    return words
+
+
+def narrate_google(text: str, mp3: Path) -> list[dict]:
+    text = re.sub(r'\s+', ' ', TAG_RE.sub(' ', text).replace('*', '')).strip()
+    name = 'g' + hashlib.sha1(json.dumps(['google', GOOGLE_VOICE, GOOGLE_TTS_STYLE, text]).encode()).hexdigest()[:19]
+    if VOICE_CACHE and (VOICE_CACHE / f'{name}.mp3').exists() and (VOICE_CACHE / f'{name}.json').exists():
+        try:
+            words = json.loads((VOICE_CACHE / f'{name}.json').read_text())['words']
+            shutil.copyfile(VOICE_CACHE / f'{name}.mp3', mp3)
+            voice_stats['reused'] += 1
+            return words
+        except (OSError, ValueError, KeyError):
+            pass
+    google_speak(text, mp3)
+    words = align_words(mp3, text)
+    voice_stats['spoken'] += 1
+    voice_stats['characters'] += len(text)
+    for keep in filter(None, (WORK / 'voice', VOICE_CACHE)):
+        try:
+            keep.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(mp3, keep / f'{name}.mp3')
+            (keep / f'{name}.json').write_text(json.dumps({'text': text, 'words': words}))
+        except OSError as err:
+            log(f'narration not kept in {keep}: {err}')
+    return words
+
+
 def narrate(text: str, mp3: Path) -> list[dict]:
+    if JOB_VOICE == 'google':
+        return narrate_google(text, mp3)
     settings = {'stability': ELEVEN_STABILITY, 'similarity_boost': 0.75, 'style': ELEVEN_STYLE, 'use_speaker_boost': True, 'speed': ELEVEN_SPEED}
     if not ELEVEN_TAGS:
         text = re.sub(r'\s+', ' ', TAG_RE.sub(' ', text).replace('*', '')).strip()
@@ -785,7 +914,9 @@ def upload_release_asset(path: Path, slug: str, suffix: str = '.mp4') -> str:
 # ---------------------------------------------------------------------------------------------------------------------
 
 def render(job: dict) -> Path:
+    global JOB_VOICE
     slug = job['slug']
+    JOB_VOICE = (job.get('voice') or '').strip()
     scenes = job['script']['scenes']
     if not 1 <= len(scenes) <= MAX_SCENES:
         raise RuntimeError(f'script has {len(scenes)} scenes; refusing to render more than {MAX_SCENES}')
@@ -816,13 +947,31 @@ def render(job: dict) -> Path:
     # 2. clips
     reuse = os.environ.get('RENDER_CLIPS')
     if reuse:
-        clips = [Path(reuse) / f'clip{i + 1}.mp4' for i in range(len(scenes))]
+        # a scene may name the kept clip it plays over (a short cut keeps some scenes and drops others)
+        clips = [Path(reuse) / f"clip{int(sc.get('clip') or i + 1)}.mp4" for i, sc in enumerate(scenes)]
         missing = [c for c in clips if not c.exists()]
         if missing:
             raise RuntimeError(f'RENDER_CLIPS is missing {missing[0].name}')
         log(f'reusing {len(clips)} clips from {reuse}')
         if REDO:
             redo_clips(job, clips, REDO)
+        if job.get('new_opening'):
+            # A trial with a new opening shot: scene 1 is drawn again from the job's own picture, into this job's folder
+            # (the kept clips are shared by the other trials). The figure keeps its look from the first drawing.
+            look: Path | None = WORK / 'anchor.jpg'
+            try:
+                ffmpeg('-ss', '2', '-i', str(clips[0]), '-frames:v', '1', '-vf', 'scale=720:-2', '-q:v', '3', str(look))
+            except Exception as e:  # noqa: BLE001
+                log(f'no reference picture from the first opening ({e}); drawing without one')
+                look = None
+            opening = scene_prompt(0, len(scenes), job.get('product_name') or job['title'], scenes[0]['visual'])
+            fresh = WORK / 'clip1-new.mp4'
+            try:
+                generate_clip(opening, fresh, 'clip 1 (new opening)', anchor=look)
+            except RuntimeError as e:
+                log(f'new opening failed ({str(e)[:200]}); once more, finding a request shape the API accepts')
+                generate_first(opening, fresh)
+            clips[0] = fresh
     else:
         clips = generate_clips(job, WORK)
     (WORK / 'words.json').write_text(json.dumps([n[1] for n in narrations], indent=1))
@@ -836,8 +985,18 @@ def render(job: dict) -> Path:
         try:
             import follow_ending
             with_ending = WORK / f'{slug}-with-ending.mp4'
-            said = json.loads((ROOT / 'assets' / f'follow-voice-{ending}.json').read_text())['words']
-            length = follow_ending.append(out, ending, with_ending, WORK, run=ffmpeg, duration=ffprobe_duration, bed=BED, bed_volume=BED_VOLUME, ffmpeg_bin=FFMPEG, tempo=pace_tempo(said))
+            extra: dict = {}
+            if ending == 'send':
+                # "Send this to someone who ...": written for this video, so it is spoken for it, in the job's voice
+                line = re.sub(r'\s+', ' ', str(job.get('send_line') or '')).strip()
+                if not line.lower().startswith('send this to someone'):
+                    raise RuntimeError('the job has no send line')
+                send_mp3 = WORK / 'send-line.mp3'
+                said = narrate(line, send_mp3)
+                extra = {'voice': send_mp3, 'words': said, 'who': line[len('send this to someone'):].strip(' .')}
+            else:
+                said = json.loads((ROOT / 'assets' / f'follow-voice-{ending}.json').read_text())['words']
+            length = follow_ending.append(out, ending, with_ending, WORK, run=ffmpeg, duration=ffprobe_duration, bed=BED, bed_volume=BED_VOLUME, ffmpeg_bin=FFMPEG, tempo=pace_tempo(said), **extra)
             with_ending.replace(out)
             log(f'follow ending "{ending}" added: {length:.1f} s in all')
         except Exception as e:  # noqa: BLE001

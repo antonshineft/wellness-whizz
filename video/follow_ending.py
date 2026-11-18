@@ -24,7 +24,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 ROOT = Path(__file__).resolve().parent
 ASSETS = ROOT / 'assets'
 SITE_FONTS = ROOT.parent / 'public' / 'fonts'
-KINDS = ('card', 'drawn', 'pointer')
+KINDS = ('card', 'drawn', 'pointer', 'send')
 W, H, FPS = 1080, 1920, 24
 DARK, GREEN, WHITE = (29, 39, 45), (135, 213, 129), (255, 255, 255)
 HANDLE = 'aiww.io'
@@ -39,12 +39,18 @@ STORY_FADE = 1.5  # seconds over which compose() fades the music out at the end 
 IG_FOLLOW = (372, 1634)
 
 
-def _use(kind: str, tempo: float = 1.0) -> None:
+def _use(kind: str, tempo: float = 1.0, voice: Path | None = None, words: list[dict] | None = None) -> None:
     """Take the look's own recording: the ending lasts as long as its line, and the tap lands on the word "follow".
-    `tempo` is how much the story's narration was tightened; the line is tightened the same, so the pace does not drop."""
+    `tempo` is how much the story's narration was tightened; the line is tightened the same, so the pace does not drop.
+    The send ending's line is written for each video, so its recording and word times are handed in; its tap comes
+    when the line has been said."""
     global VOICE, LENGTH, TAP
-    VOICE = ASSETS / f'follow-voice-{kind}.mp3'
-    words = json.loads((ASSETS / f'follow-voice-{kind}.json').read_text())['words']
+    VOICE = voice or ASSETS / f'follow-voice-{kind}.mp3'
+    words = words or json.loads((ASSETS / f'follow-voice-{kind}.json').read_text())['words']
+    if kind == 'send':
+        TAP = LEAD + words[-1]['e'] / tempo + 0.2
+        LENGTH = TAP + 1.3  # the plane has time to fly off
+        return
     LENGTH = LEAD + words[-1]['e'] / tempo + TAIL
     TAP = LEAD + next(w['s'] for w in words if w['w'].lower().startswith('follow')) / tempo + 0.18
 
@@ -218,6 +224,53 @@ def _pointer(base: Image.Image) -> Iterator[Image.Image]:
         yield im
 
 
+def _plane(size: int, color) -> Image.Image:
+    """Instagram's send mark, drawn: a paper plane."""
+    s = size * 2
+    im = Image.new('RGBA', (s, s), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    a, b, c, m = (s * 0.08, s * 0.42), (s * 0.92, s * 0.10), (s * 0.58, s * 0.92), (s * 0.44, s * 0.56)
+    d.line([a, b, c, m, a], fill=color, width=int(s * 0.07), joint='curve')
+    d.line([m, b], fill=color, width=int(s * 0.07))
+    return im.resize((size, size), Image.LANCZOS)
+
+
+def _send(base: Image.Image, who: str) -> Iterator[Image.Image]:
+    """The send ending (approved by the owner on 18 Nov): the last picture dimmed, "Send this to someone" with who in
+    green, a Send button that a tap turns into Sent, and the paper plane flying off."""
+    dim = Image.blend(base.filter(ImageFilter.GaussianBlur(14)), Image.new('RGB', (W, H), DARK), 0.55)
+    big, small = _font('Bold', 84), _font('Medium', 52)
+    measure = ImageDraw.Draw(Image.new('RGB', (8, 8)))
+    size = 84
+    while size > 52 and measure.textlength(who, font=_font('Bold', size)) > W - 140:
+        size -= 4
+    who_font = _font('Bold', size)
+    send, sent, icon = _pill('Send', WHITE, DARK, False), _pill('Sent', GREEN, DARK, True), _plane(170, WHITE)
+    cx, top = W // 2, 560
+    btn = (cx, top + 170 + 420)
+    for i in range(int(LENGTH * FPS)):
+        t = i / FPS
+        im = Image.blend(base, dim, ease(t / 0.4)).convert('RGBA')
+        a = ease((t - 0.15) / 0.4)
+        if a > 0:
+            card = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+            dy = int((1 - a) * 60)
+            fly = ease((t - TAP) / 0.5) if t >= TAP else 0.0
+            card.paste(icon, (cx - 85 + int(fly * 420), top + dy - int(fly * 380)), icon)
+            d = ImageDraw.Draw(card)
+            d.text((cx, top + 170 + 90 + dy), 'Send this to someone', font=big, fill=WHITE, anchor='mm')
+            d.text((cx, top + 170 + 190 + dy), who, font=who_font, fill=GREEN, anchor='mm')
+            sc = _press(t)
+            b = (sent if t >= TAP else send).resize((int(560 * sc), int(136 * sc)), Image.LANCZOS)
+            card.paste(b, (btn[0] - b.width // 2, btn[1] - b.height // 2 + dy), b)
+            d.text((cx, btn[1] + 130 + dy), HANDLE, font=small, fill=(255, 255, 255, 170), anchor='mm')
+            if a < 1:
+                card.putalpha(card.getchannel('A').point(lambda v: int(v * a)))
+            im.alpha_composite(card)
+        _touch(im, t, (btn[0] + 120, btn[1] + 6))
+        yield im
+
+
 def _picture_length(src: Path, ffmpeg_bin: str, fallback: float) -> float:
     """How long the picture of a file runs. It can end a little before the sound does (a held last scene), and the
     ending has to start where the picture stops, so the container's length is not enough. Counted from ffmpeg's own
@@ -227,14 +280,14 @@ def _picture_length(src: Path, ffmpeg_bin: str, fallback: float) -> float:
     return min(fallback, int(frames[-1]) / FPS) if frames and int(frames[-1]) > 0 else fallback
 
 
-def append(src: Path, kind: str, out: Path, work: Path, *, run: Callable[..., None], duration: Callable[[Path], float], bed: Path, bed_volume: float, ffmpeg_bin: str = 'ffmpeg', tempo: float = 1.0) -> float:
+def append(src: Path, kind: str, out: Path, work: Path, *, run: Callable[..., None], duration: Callable[[Path], float], bed: Path, bed_volume: float, ffmpeg_bin: str = 'ffmpeg', tempo: float = 1.0, voice: Path | None = None, words: list[dict] | None = None, who: str = '') -> float:
     """Write `out`: the finished video `src` followed by the follow ending `kind`. Returns the new length in seconds.
     `run` runs ffmpeg with the given arguments, `duration` measures a media file, `ffmpeg_bin` is the ffmpeg to ask
     about the picture; `bed` and `bed_volume` are the music and the level compose() mixed it at (0: no music)."""
     if kind not in KINDS:
         raise ValueError(f'unknown ending {kind!r}')
     tempo = tempo if 0.8 <= tempo <= 1.5 else 1.0
-    _use(kind, tempo)
+    _use(kind, tempo, voice, words)
     work.mkdir(parents=True, exist_ok=True)
     sound = duration(src)  # where the story's sound ends: its closing music fade runs up to here
     total = _picture_length(src, ffmpeg_bin, sound)  # where its picture ends: the ending starts here
@@ -247,7 +300,7 @@ def append(src: Path, kind: str, out: Path, work: Path, *, run: Callable[..., No
     fd.mkdir(exist_ok=True)
     for f in fd.glob('*.jpg'):
         f.unlink()
-    frames = _card(base) if kind == 'card' else _drawn(base, work, run) if kind == 'drawn' else _pointer(base)
+    frames = _card(base) if kind == 'card' else _drawn(base, work, run) if kind == 'drawn' else _send(base, who) if kind == 'send' else _pointer(base)
     for i, im in enumerate(frames):
         im.convert('RGB').save(fd / f'{i:03d}.jpg', quality=93)
     inputs = ['-i', str(src), '-framerate', str(FPS), '-i', str(fd / '%03d.jpg'), '-i', str(VOICE)]

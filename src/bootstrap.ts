@@ -89,6 +89,7 @@ const LATER_COLUMNS: [table: string, column: string, definition: string][] = [
   // Which follow ending a video or a trial reel was rendered with (video/follow_ending.py); empty: none.
   ['videos', 'ending', "TEXT NOT NULL DEFAULT ''"],
   ['video_trials', 'ending', "TEXT NOT NULL DEFAULT ''"],
+  ['video_trials', 'data', "TEXT NOT NULL DEFAULT ''"],
 ];
 let ready: Promise<void> | null = null;
 
