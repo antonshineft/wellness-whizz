@@ -216,7 +216,9 @@ Visual rules (the "visual" field is handed to a video generation model, so descr
 - Build one world, not separate scenes: one continuous set the single camera travels through with push-ins, pull-backs, dollies and morphs (an object opens into its cross-section and folds back) rather than hard cuts, so each scene's first beat grows out of the previous scene's last. Use scale as punctuation: wide, extreme close-up, cutaway, many-of-them grid, back to wide. One hero colour, the cream ground, and one accent (terracotta) that always means the same thing ("the problem", "pay attention"). Break the palette only in scene 8, the twist (a sudden cold or deep recolour), and return to cream in scene ${SCENES}.
 - Every fact is an instrument, never static: rings fill, paths leave trails, grids populate, a chain lengthens, a bucket drains. Scene 1 ends and scene ${SCENES} ends on the same composition and pose, so the loop is invisible; scene 1 contains a dramatic camera move (crash push, sudden macro) at the moment the new truth lands.
 
-The caption is one hook sentence for TikTok (at most 140 characters) stating the most surprising fact; hashtags are separate: 4 or 5 lowercase tags without the # sign, the first being the supplement. product_slug is the catalogue slug of the supplement the video is about (given in the task).`;
+The first three seconds decide whether a stranger stays (the owner, 18 November 2026). Scene 1's picture opens on the strangest image of the whole story, already moving in its first second: never a wide, calm establishing shot, never a figure standing still, never a slow push-in before anything happens. The words do the same: the subject and the surprise are spoken within the first six words of scene 1, before any place, date or name.
+No health promises in the title, the caption or scene 1. Instagram does not recommend posts that promise a health result, so these three say what was found or what happens in the body as a curiosity ("Beetroot juice has to pass through your mouth twice"), never a benefit the viewer would get ("lowers blood pressure", "sleep better", "calms", "cures", "remedy"). A measured result may be told inside the story, with its size and its limits.
+The caption is one hook sentence for TikTok (at most 140 characters) stating the most surprising fact; hashtags are separate: exactly 3 lowercase tags without the # sign, each specific to this story (the subject first, then the two most specific things in it); never general tags such as supplements, sciencefacts, wellness, health, history or fyp. product_slug is the catalogue slug of the supplement the video is about (given in the task).`;
 
 const scriptSchema = {
   type: 'object',
@@ -238,7 +240,7 @@ const scriptSchema = {
       },
     },
     caption: { type: 'string' },
-    hashtags: { type: 'array', items: { type: 'string' }, description: '4 or 5 lowercase tags without the # sign.' },
+    hashtags: { type: 'array', items: { type: 'string' }, description: 'Exactly 3 lowercase tags without the # sign, specific to this story.' },
     product_slug: { type: 'string' },
   },
   required: ['angle', 'title', 'scenes', 'caption', 'hashtags', 'product_slug'],
@@ -310,7 +312,7 @@ export async function writeScripts(env: VideoEnv, post: BlogPost): Promise<Video
         { narration: 'The powder in the tub is the same molecule that sits in a steak, made from two cheap chemicals. Nothing exotic, and nothing newer has beaten it.', visual: `0 to 4 s: a shelf of loud colourful tubs shrinks away, leaving one plain white tub. 4 to 7 s: a teaspoon drops small soft white spheres into a glass of water on a wooden table. 7 to 10 s: ${figure} sips by a window at sunrise and leans back, the camera slowly pulling out.` },
       ],
       caption: "In 1992 Britain's Olympic sprinters were quietly using a legal white powder nobody had heard of. Creatine.",
-      hashtags: [(sup?.slug ?? 'supplements').replace(/-/g, ''), 'supplements', 'gym', 'fitness', 'wellness'],
+      hashtags: [(sup?.slug ?? 'supplements').replace(/-/g, ''), 'gym', 'creatine'],
       product_slug: sup?.slug ?? hero,
     };
     return [one, { ...one, angle: 'A kilo of steak', title: 'A kilo of steak a day' }, { ...one, angle: 'The brain', title: 'Your brain runs on the same battery' }];
@@ -369,7 +371,7 @@ function tidyScript(s: VideoScript, fallbackSlug: string): VideoScript {
     title: clean(s.title).slice(0, 60),
     scenes,
     caption: clean(s.caption).slice(0, 140),
-    hashtags: (s.hashtags ?? []).map((h) => h.replace(/[^a-z0-9]/gi, '').toLowerCase()).filter(Boolean).slice(0, 5),
+    hashtags: (s.hashtags ?? []).map((h) => h.replace(/[^a-z0-9]/gi, '').toLowerCase()).filter(Boolean).slice(0, 3),
     product_slug: (s.product_slug || fallbackSlug).trim(),
   };
 }
