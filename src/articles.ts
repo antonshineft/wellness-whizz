@@ -502,7 +502,9 @@ export async function suggestTopics(env: ArticleEnv, n = 8): Promise<TopicIdea[]
   if (useFakeAi(env)) return [{ topic: `${ctx.catalogue[0]?.name ?? 'zinc'} dosage`, kind: 'dosage', slug: `${ctx.catalogue[0]?.slug.replace(/-[0-9a-f]{5}$/, '') ?? 'zinc'}-dosage`, why: 'Dev mode placeholder.' }];
   const user = [
     `Propose ${n} new articles for the Wellness Whizz blog that people search for and the site does not have yet.`,
-    'Favour: dosage guides for catalogue supplements without one, comparisons shoppers actually make, and goal guides with clear buying intent. Each must map to supplements in the catalogue so it can link to their pages and products.',
+    // The owner, 19 Nov 2026: what ranks on this site is the specific question (Search Console and Semrush: "tart cherry juice dosage",
+    // "can laxative help bloating", "casein protein powder vs whey"), not the broad guide.
+    'Each article answers ONE specific question a person types into Google, in one of three shapes: a dosage question ("how much X per day", "X dosage for Y", "when to take X"), a comparison shoppers actually make ("X vs Y", "X or Y for Z"), or a "can X help Y" / "does X do Y" question. Write "topic" as that question in the searcher\'s own words, and make the slug its key words. No broad overviews ("everything about X", "the complete guide to Y", "benefits of X" on its own). Prefer questions about a single named supplement or a single pair over round-ups. Each must map to supplements in the catalogue so it can link to their pages and products.',
     'Skip anything medical-condition specific (treating a disease), pregnancy, children, weight-loss drugs, hormones or prescription medicines. Spread the kinds. Best ideas first.',
     '',
     'Existing articles (slug | title):',
