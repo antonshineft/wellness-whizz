@@ -158,7 +158,38 @@ CHARACTER_BLOCK = ('Characters: every person in every scene is the same kind of 
                    'moment to the next.')
 
 
+# A whole reel remade in another look, as a test (job['style']). "felt": needle-felted wool stop-motion miniatures, after a
+# reference the owner sent on 19 Nov 2026. The script and its scenes stay the same; only the making of the picture changes.
+JOB_STYLE = ''
+FELT_BLOCK = (
+    'LOOK: a handmade stop-motion miniature film. Everything in the frame is needle-felted wool and stitched felt fabric on a small '
+    'physical set: soft fuzzy fibres catching the light, visible wool texture, tiny hand-stitched seams, felt cut-out shapes for '
+    'backgrounds (felt hills, felt waves, felt clouds, felt stars), small props made of felt, wool, cotton thread and wooden beads. '
+    'Shot with a macro lens: shallow depth of field, soft bokeh, warm studio lighting with gentle shadows, rich but natural colours. '
+    'Slightly stepped stop-motion movement, with a slow physical camera move on the miniature set.\n'
+    'CHARACTER: the recurring figure is a small needle-felted wool puppet: a rounded, soft teal body like a smooth bean, short arms '
+    'and legs, two small black bead eyes, a tiny stitched smile, a little blush on the cheeks. It keeps exactly this look in every scene. '
+    'Any other people are felt puppets of the same family in other soft colours.\n'
+    'The scene description below was written for a hand-drawn cartoon. Keep what happens, in the same order and with the same objects, '
+    'but build every part of it as felt and wool miniatures: where it says paper, drawing, sketch or ink, make it felt, wool or thread; '
+    'a diagram or a symbol becomes a small felt object on the set.')
+
+
+def felt_prompt(index: int, count: int, topic: str, visual: str) -> str:
+    role = 'the opening hook' if index == 0 else 'the calm ending' if index == count - 1 else 'a middle scene'
+    return (f'Stop-motion animation with needle-felted wool miniatures, vertical 9:16, {SCENE_SECONDS} seconds, {role} of a short video about {topic}.\n'
+            'Strictly no titles, headings, captions, labels or lettering of any kind anywhere in the frame, at any moment.\n\n'
+            f'{FELT_BLOCK}\n\n'
+            f'Sequence ({SCENE_SECONDS} seconds, one continuous shot, always in motion, no static holds):\n{visual}\n\n'
+            'No text of any kind: no words, no letters, no numbers, no labels, no watermark. No logos, emblems, flags or brand marks of '
+            'any real organisation, company or country. No real people. No realistic anatomy, nothing gory: bodies and cells are '
+            'friendly felt shapes.\n'
+            'Audio: no spoken words, no voice, no dialogue, no singing. Only a soft, minimal ambient music bed, quiet.')
+
+
 def scene_prompt(index: int, count: int, topic: str, visual: str) -> str:
+    if JOB_STYLE == 'felt':
+        return felt_prompt(index, count, topic, visual)
     refs = ' '.join(f'<IMAGE_REF_{i}>' for i in range(len(STYLE)))
     # No scene numbers in the prompt: given "scene 6 of 9" the model draws a numbered title card ("6. ...") on the footage.
     role = 'the opening hook' if index == 0 else 'the calm ending' if index == count - 1 else 'a middle scene'
@@ -252,7 +283,7 @@ def _download_file(uri: str, out: Path) -> None:
 
 def _request(prompt: str, refs: bool, fmt: dict, anchor: Path | None = None) -> dict:
     content: list[dict] = []
-    if refs:
+    if refs and not JOB_STYLE:  # another look takes no pictures of the house style
         content = [{'type': 'image', 'data': base64.b64encode(p.read_bytes()).decode(), 'mime_type': 'image/jpeg'} for p in STYLE]
     text = prompt if refs else re.sub(r'in the style of (<IMAGE_REF_\d+>\s*)+', 'in a hand-drawn illustration style', prompt)
     if anchor is not None:
@@ -914,9 +945,10 @@ def upload_release_asset(path: Path, slug: str, suffix: str = '.mp4') -> str:
 # ---------------------------------------------------------------------------------------------------------------------
 
 def render(job: dict) -> Path:
-    global JOB_VOICE
+    global JOB_VOICE, JOB_STYLE
     slug = job['slug']
     JOB_VOICE = (job.get('voice') or '').strip()
+    JOB_STYLE = (job.get('style') or '').strip()
     scenes = job['script']['scenes']
     if not 1 <= len(scenes) <= MAX_SCENES:
         raise RuntimeError(f'script has {len(scenes)} scenes; refusing to render more than {MAX_SCENES}')
@@ -946,6 +978,8 @@ def render(job: dict) -> Path:
 
     # 2. clips
     reuse = os.environ.get('RENDER_CLIPS')
+    if JOB_STYLE:
+        reuse = None  # another look: every scene is made again, into this job's own folder
     if reuse:
         # a scene may name the kept clip it plays over (a short cut keeps some scenes and drops others)
         clips = [Path(reuse) / f"clip{int(sc.get('clip') or i + 1)}.mp4" for i, sc in enumerate(scenes)]

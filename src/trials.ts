@@ -17,8 +17,9 @@ import { claudeJson } from './claude';
 import { MAX_SCENE_WORDS, getVideo, parseScript, type VideoEnv, type VideoScript } from './videos';
 import { createPost, deletePost, getPost, listAccounts, postAnalytics, recentPublished, uploadVideo, type ZernioEnv } from './zernio';
 
-/** hook, ending: one spoken line changed (the first kind of trial). shot, voice, short: the three tests of a daily batch since 19 Nov 2026. */
-export type TrialKind = 'hook' | 'ending' | 'shot' | 'voice' | 'short';
+/** hook, ending: one spoken line changed (the first kind of trial). shot, voice, short: the three tests of a daily batch since 19 Nov 2026.
+ *  style: the whole reel remade in another look (every clip is generated again), added by hand for a round. */
+export type TrialKind = 'hook' | 'ending' | 'shot' | 'voice' | 'short' | 'style';
 
 export interface TrialRow {
   id: number;
@@ -169,6 +170,8 @@ export const SEND_LINE = 'Send this to someone with a curious mind.';
 interface TrialData {
   /** shot: what the new opening scene shows. */
   visual?: string;
+  /** style: the look the whole reel is remade in ("felt": needle-felted wool stop-motion). */
+  style?: string;
   /** short: the scenes kept (1-based numbers of the original) with their tightened narration. */
   scenes?: { scene: number; narration: string }[];
 }
@@ -181,7 +184,7 @@ function trialData(row: TrialRow): TrialData {
   }
 }
 
-type TrialJob = { slug: string; title: string; script: VideoScript; caption: string; ending: string; voice?: string; new_opening?: boolean; send_line?: string };
+type TrialJob = { slug: string; title: string; script: VideoScript; caption: string; ending: string; voice?: string; new_opening?: boolean; send_line?: string; style?: string };
 
 /**
  * The render job for one trial; the file is named <slug>-t<n>.
@@ -198,6 +201,7 @@ export function trialJob(script: VideoScript, caption: string, row: TrialRow): T
     return { ...base, script: { ...script, scenes }, new_opening: true };
   }
   if (row.kind === 'voice') return { ...base, script, voice: 'google' };
+  if (row.kind === 'style') return { ...base, script, style: data.style || 'felt' };
   if (row.kind === 'short') {
     const scenes = (data.scenes ?? []).filter((k) => script.scenes[k.scene - 1]).map((k) => ({ ...script.scenes[k.scene - 1], narration: k.narration, clip: k.scene }));
     return { ...base, script: { ...script, scenes: scenes.length ? scenes : script.scenes } };
@@ -318,6 +322,19 @@ export async function trialJobs(env: VideoEnv, slug: string): Promise<{ n: numbe
   if (!video || !script) return [];
   await assignEndings(env.DB, slug);
   return (await listTrials(env.DB, slug)).filter((r) => r.status === 'written').map((r) => ({ n: r.n, job: trialJob(script, video.caption, r) }));
+}
+
+/** Add one test that remakes the whole reel in another look (nine clips are generated: about the cost of a new reel). */
+export async function addStyleTest(env: VideoEnv, slug: string, style: string): Promise<{ ok: true; trial: TrialRow } | { ok: false; message: string }> {
+  if (style !== 'felt') return { ok: false, message: 'the only other look so far is "felt"' };
+  const video = await getVideo(env.DB, slug);
+  if (!video || !parseScript(video.script_json) || !video.video_url) return { ok: false, message: `no rendered video "${slug}"` };
+  const already = await listTrials(env.DB, slug);
+  if (already.some((r) => r.kind === 'style' && trialData(r).style === style)) return { ok: false, message: 'this video already has that test' };
+  const n = already.reduce((m, r) => Math.max(m, r.n), 0) + 1;
+  await env.DB.prepare("INSERT INTO video_trials (slug, n, kind, format, line, why, data, status, created_at, updated_at) VALUES (?, ?, 'style', ?, ?, ?, ?, 'written', datetime('now'), datetime('now'))")
+    .bind(slug, n, `${style} stop-motion`, 'The same script and voice, every picture remade as felt stop-motion.', 'Tests the look: felt miniatures against the hand-drawn style.', JSON.stringify({ style })).run();
+  return { ok: true, trial: (await getTrial(env.DB, slug, n))! };
 }
 
 /** Send a rendered trial that was never posted back to the renderer (its file is made again from the current rules). */

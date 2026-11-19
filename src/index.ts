@@ -67,7 +67,7 @@ import { getDoseRef, listDoseRefs, researchReference, setManualRef, setRefStatus
 import { MAX_PICKS, checkSupplement, doseReport, getDoseCheck, listDoseChecks, nutrientFor, storeLabels, visibleCheck } from './dose';
 import { attachExtraProduct, removeProduct, setProduct, setProductCutout } from './products';
 import { feedItems } from './social/feeds';
-import { FOLLOW_ENDINGS, autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, redoTrial, resetTrial, trialJobs, trialStats, writeTests, writeTrials } from './trials';
+import { FOLLOW_ENDINGS, addStyleTest, autoPostTrials, listTrials, markTrialReady, nextTrialBatch, postTrial, redoTrial, resetTrial, trialJobs, trialStats, writeTests, writeTrials } from './trials';
 import { digestStatus, digestWatch, fetchThread, markUsed, parseF5BotAlert, runRedditDigest, screenStep, storeAlert } from './reddit';
 import { analyticsStep, gscSummary, inspectStep, type InspectOptions } from './gsc';
 import { exportToken, sheetCounts, sheetLastSync, sheetRows, sheetUrl, syncSheet } from './sheet';
@@ -1997,6 +1997,11 @@ app.post('/api/admin/trials/:slug/write', async (c) => {
   await ensureDatabase(c.env.DB);
   const count = (v: string | undefined, d: number) => (v === undefined || v === '' || Number.isNaN(Number(v)) ? d : Math.floor(Number(v)));
   try {
+    if (c.req.query('style')) {
+      // ?style=felt: one more test, the whole reel remade in another look
+      const st = await addStyleTest(c.env, c.req.param('slug') ?? '', c.req.query('style') ?? '');
+      return st.ok ? c.json(st) : c.json({ ok: false, error: st.message }, 400);
+    }
     // ?tests=1: the three tests of the daily batch (a new opening shot, the Google voice, a short cut) instead of one-line trials
     const r = c.req.query('tests') ? await writeTests(c.env, c.req.param('slug') ?? '') : await writeTrials(c.env, c.req.param('slug') ?? '', count(c.req.query('hooks'), 2), count(c.req.query('endings'), 1));
     return r.ok ? c.json(r) : c.json({ ok: false, error: r.message }, 400);
