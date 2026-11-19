@@ -436,8 +436,8 @@ export async function resetTrial(env: VideoEnv, slug: string, n: number): Promis
 
 const madridDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 const madridClock = (d: Date) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
-/** Batches rotate through these hours (Madrid), so the time of day is tested between batches while a batch shares one hour. */
-const TRIAL_HOURS = ['13:00', '18:00', '21:00'];
+/** When a batch goes out, Madrid time. The owner, 19 Nov 2026: 18:00 did not work, post the tests at 08:00. */
+const TRIAL_TIME = '08:00';
 
 type TrialAutoEnv = VideoEnv & { TRIALS_AUTO?: string; TRIALS_SKIP?: string; TRIALS_MODE?: string };
 
@@ -467,22 +467,20 @@ export async function nextTrialBatch(env: TrialAutoEnv): Promise<{ slug: string 
   return { slug, reason: jobs.length ? 'render these' : 'this video already has its trials', jobs };
 }
 
-/** Schedule every rendered ("ready") trial of a video for today, two minutes apart, in this batch's hour. */
+/** Schedule every rendered ("ready") trial of a video for the next 08:00 (Madrid), two minutes apart. */
 export async function autoPostTrials(env: TrialAutoEnv, slug: string): Promise<{ ok: boolean; posted: { n: number; when: string }[]; errors: string[] }> {
   if (env.TRIALS_AUTO !== 'true') return { ok: false, posted: [], errors: ['TRIALS_AUTO is not "true"'] };
   const ready = (await listTrials(env.DB, slug)).filter((r) => r.status === 'ready');
   if (!ready.length) return { ok: false, posted: [], errors: ['nothing rendered is waiting'] };
-  const batches = (await env.DB.prepare("SELECT COUNT(DISTINCT slug || substr(scheduled_for, 1, 10)) AS c FROM video_trials WHERE status = 'posted'").first<{ c: number }>())?.c ?? 0;
   const now = new Date();
-  const soon = madridClock(new Date(now.getTime() + 15 * 60_000));
-  const wanted = TRIAL_HOURS[batches % TRIAL_HOURS.length];
-  // An hour that has already passed today falls back to a quarter of an hour from now.
-  const [h, m] = (wanted > soon ? wanted : soon).split(':').map(Number);
+  // today when 08:00 is still at least a quarter of an hour away, otherwise tomorrow
+  const day = madridClock(new Date(now.getTime() + 15 * 60_000)) < TRIAL_TIME && madridDay(new Date(now.getTime() + 15 * 60_000)) === madridDay(now) ? madridDay(now) : madridDay(new Date(now.getTime() + 24 * 3600_000));
+  const [h, m] = TRIAL_TIME.split(':').map(Number);
   const posted: { n: number; when: string }[] = [];
   const errors: string[] = [];
   for (const [i, r] of ready.entries()) {
     const minutes = h * 60 + m + i * 2;
-    const when = `${madridDay(now)}T${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:00`;
+    const when = `${day}T${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:00`;
     const res = await postTrial(env, slug, r.n, when, 'reels_tab');
     if (res.ok) posted.push({ n: r.n, when });
     else errors.push(`trial ${r.n}: ${res.message}`);
