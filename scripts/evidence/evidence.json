@@ -1,0 +1,1226 @@
+{
+ "method": "Each supplement was matched to the one outcome with the best trial evidence, preferring non-disease outcomes, and graded only on that outcome. Grade A needed a Cochrane review or at least two independent meta-analyses of randomised trials agreeing on an effect of meaningful size in the relevant population; effects that were small, heterogeneous, low-certainty, limited to a narrow or diseased group, or dependent on product composition were held at B; conflicting meta-analyses gave C; null or thin evidence gave D. Every reference was retrieved from PubMed (NCBI E-utilities and the PubMed connector) and its numbers copied from the abstract; a number the abstract does not state is null. When in doubt the lower grade was given, and volume of research was not counted as strength. EU claim wording is from recall of the authorised list and was not re-checked online; NIH Office of Dietary Supplements pages could not be fetched, so nih is null throughout.",
+ "supplements": [
+  {
+   "slug": "iron-f14ff",
+   "name": "Iron",
+   "outcome": "Correcting anaemia and low iron status (a deficiency-correction outcome)",
+   "population": "Menstruating women, many with low iron or anaemia at baseline",
+   "grade": "A",
+   "why": "Two Cochrane reviews (daily and intermittent dosing) agree that iron cuts anaemia and raises haemoglobin, with high-quality evidence for haemoglobin across 51 trials.",
+   "effect_plain": "In trials of menstruating women, daily iron cut the share who were anaemic by about 60% and raised haemoglobin by about 5 g/L.",
+   "limits": "This is evidence for correcting or preventing low iron, not for a benefit in people with normal iron stores, and iron roughly doubled gastrointestinal side effects.",
+   "eu_claim": "Authorised (Reg. 432/2012): 'Iron contributes to normal formation of red blood cells and haemoglobin'.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "27087396",
+     "author": "Low MS",
+     "year": 2016,
+     "journal": "Cochrane Database Syst Rev",
+     "title": "Daily iron supplementation for improving anaemia, iron status and health in menstruating women.",
+     "trials": 67,
+     "participants": 8506,
+     "result": "Anaemia RR 0.39 (95% CI 0.25 to 0.60; 10 studies, 3273 women); haemoglobin MD +5.30 g/L (95% CI 4.14 to 6.45; 51 studies, 6861 women, high quality); iron deficiency RR 0.62 (95% CI 0.50 to 0.76); GI side effects RR 1.99 (95% CI 1.26 to 3.12).",
+     "doi": "10.1002/14651858.CD009747.pub2"
+    },
+    {
+     "pmid": "30699468",
+     "author": "Fernández-Gaxiola AC",
+     "year": 2019,
+     "journal": "Cochrane Database Syst Rev",
+     "title": "Intermittent iron supplementation for reducing anaemia and its associated impairments in adolescent and adult menstruating women.",
+     "trials": 25,
+     "participants": 10996,
+     "result": "Intermittent iron vs none/placebo: anaemia RR 0.65 (95% CI 0.49 to 0.87; 11 studies, 3135 participants); haemoglobin MD +5.19 g/L (95% CI 3.07 to 7.32); ferritin MD +7.46 ug/L (95% CI 5.02 to 9.90).",
+     "doi": "10.1002/14651858.CD009218.pub3"
+    }
+   ]
+  },
+  {
+   "slug": "folic-acid-7f343",
+   "name": "Folic Acid",
+   "outcome": "Lower risk of neural tube defects in the baby when taken around conception",
+   "population": "Women who are or could become pregnant",
+   "grade": "A",
+   "why": "A Cochrane review rates the evidence high quality and the effect is large and consistent across its comparisons, although it rests on only five older trials.",
+   "effect_plain": "In five trials, women taking folic acid around conception had about 70% fewer pregnancies affected by a neural tube defect.",
+   "limits": "Applies only around conception and early pregnancy; the review found no clear effect on other birth defects, and studies done after food fortification have not consistently shown the same association.",
+   "eu_claim": "Authorised (Reg. 432/2012): 'Folate contributes to maternal tissue growth during pregnancy'. A separate risk-reduction claim on supplemental folic acid, maternal folate status and neural tube defects exists (wording not verified).",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "26662928",
+     "author": "De-Regil LM",
+     "year": 2015,
+     "journal": "Cochrane Database Syst Rev",
+     "title": "Effects and safety of periconceptional oral folate supplementation for preventing birth defects.",
+     "trials": 5,
+     "participants": 7391,
+     "result": "Neural tube defects RR 0.31 (95% CI 0.17 to 0.58; 5 studies, 6708 births; high quality evidence); recurrence RR 0.34 (95% CI 0.18 to 0.64; 4 studies, 1846 births).",
+     "doi": "10.1002/14651858.CD007950.pub3"
+    },
+    {
+     "pmid": "28097361",
+     "author": "Viswanathan M",
+     "year": 2017,
+     "journal": "JAMA",
+     "title": "Folic Acid Supplementation for the Prevention of Neural Tube Defects: An Updated Evidence Report and Systematic Review for the US Preventive Services Task Force.",
+     "trials": null,
+     "participants": null,
+     "result": "Systematic review of 24 studies (N > 58,860), not pooled; the one randomised trial (n = 4862) gave Peto OR 0.13 (95% CI 0.03 to 0.65); post-fortification case-control studies did not consistently show protection (ORs 0.93 to 1.4).",
+     "doi": "10.1001/jama.2016.19193"
+    }
+   ]
+  },
+  {
+   "slug": "probiotics-823e4",
+   "name": "Probiotics",
+   "outcome": "Lower risk of diarrhoea while taking antibiotics",
+   "population": "Children and adults prescribed antibiotics",
+   "grade": "A",
+   "why": "A Cochrane review in children and three independent meta-analyses in adults or mixed ages all find a risk reduction of roughly 40-55%, with moderate-certainty evidence.",
+   "effect_plain": "Across dozens of trials, people who took a probiotic alongside antibiotics were roughly 40% (adults) to 55% (children) less likely to get diarrhoea; in children about 9 needed to take one to prevent one case.",
+   "limits": "The effect depends on strain and dose (higher doses worked better), was not seen where the baseline risk was low, and says nothing about probiotics for general gut health.",
+   "eu_claim": "None known (no probiotic health claim is authorised in the EU).",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "31039287",
+     "author": "Guo Q",
+     "year": 2019,
+     "journal": "Cochrane Database Syst Rev",
+     "title": "Probiotics for the prevention of pediatric antibiotic-associated diarrhea.",
+     "trials": 33,
+     "participants": 6352,
+     "result": "Antibiotic-associated diarrhoea 8% vs 19%; RR 0.45 (95% CI 0.36 to 0.56); NNTB 9 (95% CI 7 to 13); moderate certainty.",
+     "doi": "10.1002/14651858.CD004827.pub5"
+    },
+    {
+     "pmid": "34385227",
+     "author": "Goodman C",
+     "year": 2021,
+     "journal": "BMJ Open",
+     "title": "Probiotics for the prevention of antibiotic-associated diarrhoea: a systematic review and meta-analysis.",
+     "trials": 42,
+     "participants": 11305,
+     "result": "Adults: RR 0.63 (95% CI 0.54 to 0.73); GRADE moderate; no difference in studies with low baseline risk.",
+     "doi": "10.1136/bmjopen-2020-043054"
+    },
+    {
+     "pmid": "22570464",
+     "author": "Hempel S",
+     "year": 2012,
+     "journal": "JAMA",
+     "title": "Probiotics for the prevention and treatment of antibiotic-associated diarrhea: a systematic review and meta-analysis.",
+     "trials": 63,
+     "participants": 11811,
+     "result": "RR 0.58 (95% CI 0.50 to 0.68); risk difference -0.07; NNT 13 (95% CI 10.3 to 19.1) (63 of 82 included RCTs pooled).",
+     "doi": "10.1001/jama.2012.3507"
+    }
+   ]
+  },
+  {
+   "slug": "fiber-supplements-10200",
+   "name": "Fiber Supplements",
+   "outcome": "Lower LDL cholesterol (evidence is for psyllium fibre specifically)",
+   "population": "Adults with or without raised cholesterol",
+   "grade": "A",
+   "why": "Two independent meta-analyses of about 28 trials each agree on an LDL reduction of about 0.33-0.35 mmol/L, graded moderate quality.",
+   "effect_plain": "In 28 trials, about 10 g of psyllium a day lowered LDL cholesterol by about 0.33 mmol/L on average.",
+   "limits": "The evidence is for psyllium, not every fibre product, and it shows a change in a blood marker, not fewer heart attacks.",
+   "eu_claim": "None known for psyllium (cholesterol claims are authorised for some other fibres, such as beta-glucans).",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "30239559",
+     "author": "Jovanovski E",
+     "year": 2018,
+     "journal": "Am J Clin Nutr",
+     "title": "Effect of psyllium (Plantago ovata) fiber on LDL cholesterol and alternative lipid targets, non-HDL cholesterol and apolipoprotein B: a systematic review and meta-analysis of randomized controlled trials.",
+     "trials": 28,
+     "participants": 1924,
+     "result": "LDL cholesterol MD -0.33 mmol/L (95% CI -0.38 to -0.27) at a median dose of ~10.2 g; non-HDL cholesterol MD -0.39 mmol/L; moderate quality.",
+     "doi": "10.1093/ajcn/nqy115"
+    },
+    {
+     "pmid": "38688104",
+     "author": "Zhu R",
+     "year": 2024,
+     "journal": "Nutr Res",
+     "title": "Plantago consumption significantly reduces total cholesterol and low-density lipoprotein cholesterol in adults: A systematic review and meta-analysis.",
+     "trials": 29,
+     "participants": 2769,
+     "result": "LDL cholesterol reduced by 0.35 mmol/L and total cholesterol by 0.28 mmol/L (CIs not stated in abstract); no effect on HDL or triglycerides.",
+     "doi": "10.1016/j.nutres.2024.03.013"
+    }
+   ]
+  },
+  {
+   "slug": "omega-3-fatty-acids-95158",
+   "name": "Omega-3 Fatty Acids",
+   "outcome": "Lower blood triglycerides",
+   "population": "Adults, with larger effects at higher doses and in people with raised blood fats",
+   "grade": "A",
+   "why": "A Cochrane review gives high-certainty evidence of a dose-dependent fall in triglycerides of about 15%, and a 90-trial dose-response meta-analysis confirms a near-linear effect.",
+   "effect_plain": "In long-term trials, EPA and DHA lowered blood triglycerides by about 15%, with more effect at higher doses.",
+   "limits": "The same Cochrane review found little or no effect on deaths, heart attacks or strokes, so a better triglyceride reading has not translated into clear protection.",
+   "eu_claim": "Authorised (Reg. 536/2013): 'DHA and EPA contribute to the maintenance of normal blood triglyceride levels' (for a daily intake of 2 g).",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "32114706",
+     "author": "Abdelhamid AS",
+     "year": 2020,
+     "journal": "Cochrane Database Syst Rev",
+     "title": "Omega-3 fatty acids for the primary and secondary prevention of cardiovascular disease.",
+     "trials": 86,
+     "participants": 162796,
+     "result": "Long-chain omega-3 reduced triglycerides by ~15% in a dose-dependent way (high-certainty); cardiovascular events RR 0.96 (95% CI 0.92 to 1.01); all-cause mortality RR 0.97 (95% CI 0.93 to 1.01).",
+     "doi": "10.1002/14651858.CD003177.pub5"
+    },
+    {
+     "pmid": "37264945",
+     "author": "Wang T",
+     "year": 2023,
+     "journal": "J Am Heart Assoc",
+     "title": "Association Between Omega-3 Fatty Acid Intake and Dyslipidemia: A Continuous Dose-Response Meta-Analysis of Randomized Controlled Trials.",
+     "trials": 90,
+     "participants": 72598,
+     "result": "Approximately linear dose-response lowering of triglycerides and non-HDL cholesterol, clearest above 2 g/day in people with hyperlipidaemia or overweight (no pooled size stated in abstract).",
+     "doi": "10.1161/JAHA.123.029512"
+    }
+   ]
+  },
+  {
+   "slug": "creatine-ce673",
+   "name": "Creatine",
+   "outcome": "Greater strength gains from resistance training",
+   "population": "Adults doing resistance training (evidence is strongest in men under 50)",
+   "grade": "A",
+   "why": "Several independent meta-analyses agree that creatine adds to strength gained from resistance training, but the added effect is small to moderate and was not significant in women.",
+   "effect_plain": "In 23 trials of adults under 50, creatine plus resistance training added about 4 kg to upper-body and 11 kg to lower-body strength compared with training alone.",
+   "limits": "It does little without training, results in women and for some lifts in older adults were not statistically significant, and most trials are small.",
+   "eu_claim": "Authorised (Reg. 432/2012): 'Creatine increases physical performance in successive bursts of short-term, high intensity exercise' (3 g/day). A later claim on creatine with resistance training in adults over 55 exists (wording not verified).",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "39519498",
+     "author": "Wang Z",
+     "year": 2024,
+     "journal": "Nutrients",
+     "title": "Effects of Creatine Supplementation and Resistance Training on Muscle Strength Gains in Adults <50 Years of Age: A Systematic Review and Meta-Analysis.",
+     "trials": 23,
+     "participants": 509,
+     "result": "Upper-body strength WMD +4.43 kg and lower-body strength WMD +11.35 kg vs placebo (both p < 0.001; CIs not in abstract); no significant gains in females. Participants summed from abstract (460 men, 49 women).",
+     "doi": "10.3390/nu16213665"
+    },
+    {
+     "pmid": "29138605",
+     "author": "Chilibeck PD",
+     "year": 2017,
+     "journal": "Open Access J Sports Med",
+     "title": "Effect of creatine supplementation during resistance training on lean tissue mass and muscular strength in older adults: a meta-analysis.",
+     "trials": 22,
+     "participants": 721,
+     "result": "Older adults: chest press SMD 0.35 (95% CI 0.16 to 0.53); leg press SMD 0.24 (95% CI 0.05 to 0.43); lean tissue mass MD +1.37 kg (95% CI 0.97 to 1.76).",
+     "doi": "10.2147/OAJSM.S123529"
+    },
+    {
+     "pmid": "27328852",
+     "author": "Lanhers C",
+     "year": 2017,
+     "journal": "Sports Med",
+     "title": "Creatine Supplementation and Upper Limb Strength Performance: A Systematic Review and Meta-Analysis.",
+     "trials": 53,
+     "participants": 1138,
+     "result": "Global upper-limb strength effect size 0.317 (95% CI 0.185 to 0.449); bench press 0.265 (95% CI 0.132 to 0.398).",
+     "doi": "10.1007/s40279-016-0571-4"
+    }
+   ]
+  },
+  {
+   "slug": "protein-powder-whey-2d3f0",
+   "name": "Protein Powder (Whey)",
+   "outcome": "Slightly greater gains in lean mass and strength from resistance training (evidence is for protein supplements in general)",
+   "population": "Healthy adults doing resistance training",
+   "grade": "B",
+   "why": "Meta-analyses agree on a real but small gain in lean mass, while the strength effect is small in one and not significant in another.",
+   "effect_plain": "In 49 trials, protein supplements added about 0.3 kg of lean mass and 2.5 kg to a one-rep-max lift over training alone.",
+   "limits": "No further gain was seen above a total protein intake of about 1.6 g per kg a day, and the benefit shrinks with age.",
+   "eu_claim": "Authorised (Reg. 432/2012): 'Protein contributes to a growth in muscle mass'.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "28698222",
+     "author": "Morton RW",
+     "year": 2018,
+     "journal": "Br J Sports Med",
+     "title": "A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength in healthy adults.",
+     "trials": 49,
+     "participants": 1863,
+     "result": "One-rep-max strength +2.49 kg (95% CI 0.64 to 4.33); fat-free mass +0.30 kg (95% CI 0.09 to 0.52); no further gain beyond 1.62 g/kg/day total protein.",
+     "doi": "10.1136/bjsports-2017-097608"
+    },
+    {
+     "pmid": "32232404",
+     "author": "Wirth J",
+     "year": 2020,
+     "journal": "J Nutr",
+     "title": "The Role of Protein Intake and its Timing on Body Composition and Muscle Function in Healthy Adults: A Systematic Review and Meta-Analysis of Randomized Controlled Trials.",
+     "trials": 65,
+     "participants": 2907,
+     "result": "Lean body mass +0.62 kg in adults (95% CI 0.36 to 0.88) and +0.46 kg in older adults (95% CI 0.23 to 0.70); leg press strength not significant (adults +5.80 kg, 95% CI -0.33 to 11.93).",
+     "doi": "10.1093/jn/nxaa049"
+    },
+    {
+     "pmid": "31041966",
+     "author": "Li M",
+     "year": 2019,
+     "journal": "Food Funct",
+     "title": "Effect of whey protein supplementation during resistance training sessions on body mass and muscular strength: a meta-analysis.",
+     "trials": 21,
+     "participants": 837,
+     "result": "Whey with resistance training in healthy individuals: lean mass MD +0.46 kg (95% CI -0.02 to 0.94); muscular strength SMD 0.25 (95% CI 0.11 to 0.38).",
+     "doi": "10.1039/c9fo00182d"
+    }
+   ]
+  },
+  {
+   "slug": "potassium-131fa",
+   "name": "Potassium",
+   "outcome": "Lower blood pressure",
+   "population": "Adults with raised blood pressure",
+   "grade": "B",
+   "why": "Three meta-analyses agree on a fall in blood pressure, but it is seen in people with hypertension and not in those without, and very high intakes may reverse it.",
+   "effect_plain": "In 22 trials, more potassium lowered systolic blood pressure by about 3.5 mmHg on average, with the effect seen in people who had high blood pressure.",
+   "limits": "No effect was shown in people with normal blood pressure, and a dose-response analysis warns against excessive supplementation.",
+   "eu_claim": "Authorised (Reg. 432/2012): 'Potassium contributes to the maintenance of normal blood pressure'.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "23558164",
+     "author": "Aburto NJ",
+     "year": 2013,
+     "journal": "BMJ",
+     "title": "Effect of increased potassium intake on cardiovascular risk factors and disease: systematic review and meta-analyses.",
+     "trials": 22,
+     "participants": 1606,
+     "result": "Systolic BP -3.49 mmHg (95% CI 1.82 to 5.15) and diastolic -1.96 mmHg (95% CI 0.86 to 3.06) in adults; seen in people with hypertension but not in those without.",
+     "doi": "10.1136/bmj.f1378"
+    },
+    {
+     "pmid": "26039623",
+     "author": "Binia A",
+     "year": 2015,
+     "journal": "J Hypertens",
+     "title": "Daily potassium intake and sodium-to-potassium ratio in the reduction of blood pressure: a meta-analysis of randomized controlled trials.",
+     "trials": 15,
+     "participants": 917,
+     "result": "Systolic BP -4.7 mmHg (95% CI 2.4 to 7.0); in hypertensive patients -6.8 mmHg (95% CI 4.3 to 9.3).",
+     "doi": "10.1097/HJH.0000000000000611"
+    },
+    {
+     "pmid": "32500831",
+     "author": "Filippini T",
+     "year": 2020,
+     "journal": "J Am Heart Assoc",
+     "title": "Potassium Intake and Blood Pressure: A Dose-Response Meta-Analysis of Randomized Controlled Trials.",
+     "trials": 32,
+     "participants": null,
+     "result": "U-shaped dose-response: BP-lowering weakens above a 30 mmol/day difference in excretion and BP rises above about 80 mmol/day; stronger effects in hypertension (no single pooled size in abstract).",
+     "doi": "10.1161/JAHA.119.015719"
+    }
+   ]
+  },
+  {
+   "slug": "cranberry-supplements-ab277",
+   "name": "Cranberry Supplements",
+   "outcome": "Fewer urinary tract infections",
+   "population": "Women with recurrent UTIs, children, and people made susceptible by a medical intervention",
+   "grade": "B",
+   "why": "A Cochrane review (moderate certainty) and two other meta-analyses find about 30% fewer UTIs, but the benefit is confined to certain groups and the confidence interval for women with recurrent UTIs almost reaches no effect.",
+   "effect_plain": "In 26 pooled trials, cranberry products cut the risk of a confirmed urinary tract infection by about 30% overall and by about a quarter in women who get them repeatedly.",
+   "limits": "Little or no benefit was found in elderly people in care homes, pregnant women or people with bladder-emptying problems, and it is not a treatment for an existing infection.",
+   "eu_claim": "None known.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "37947276",
+     "author": "Williams G",
+     "year": 2023,
+     "journal": "Cochrane Database Syst Rev",
+     "title": "Cranberries for preventing urinary tract infections.",
+     "trials": 50,
+     "participants": 8857,
+     "result": "Symptomatic culture-verified UTI RR 0.70 (95% CI 0.58 to 0.84; 26 studies, 6211 participants; moderate certainty); women with recurrent UTIs RR 0.74 (95% CI 0.55 to 0.99); elderly institutionalised RR 0.93 (95% CI 0.67 to 1.30); pregnant women RR 1.06 (95% CI 0.75 to 1.50).",
+     "doi": "10.1002/14651858.CD001321.pub7"
+    },
+    {
+     "pmid": "34473789",
+     "author": "Xia JY",
+     "year": 2021,
+     "journal": "PLoS One",
+     "title": "Consumption of cranberry as adjuvant therapy for urinary tract infections in susceptible populations: A systematic review and meta-analysis with trial sequential analysis.",
+     "trials": 23,
+     "participants": 3979,
+     "result": "UTI incidence RR 0.70 (95% CI 0.59 to 0.83); women with recurrent UTIs RR 0.68 (95% CI 0.56 to 0.81).",
+     "doi": "10.1371/journal.pone.0256992"
+    },
+    {
+     "pmid": "39030132",
+     "author": "Moro C",
+     "year": 2024,
+     "journal": "Eur Urol Focus",
+     "title": "Cranberry Juice, Cranberry Tablets, or Liquid Therapies for Urinary Tract Infection: A Systematic Review and Network Meta-analysis.",
+     "trials": 20,
+     "participants": 3091,
+     "result": "Cranberry juice: 54% lower UTI rate than no treatment and 27% lower than placebo liquid (18 studies); moderate to low certainty.",
+     "doi": "10.1016/j.euf.2024.07.002"
+    }
+   ]
+  },
+  {
+   "slug": "melatonin",
+   "name": "Melatonin",
+   "outcome": "Falling asleep sooner",
+   "population": "People with sleep-onset problems or primary sleep disorders",
+   "grade": "B",
+   "why": "The effect is real in pooled trials but small (about 7 minutes), and a later meta-analysis found no significant effect in adults with chronic insomnia.",
+   "effect_plain": "In 19 trials, people taking melatonin fell asleep about 7 minutes sooner and slept about 8 minutes longer than those on placebo.",
+   "limits": "A 2022 meta-analysis found the benefit in children and adolescents but not in adults with chronic insomnia.",
+   "eu_claim": "Authorised (Reg. 432/2012): 'Melatonin contributes to the reduction of time taken to fall asleep' (1 mg close to bedtime); a jet-lag claim is also authorised.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "23691095",
+     "author": "Ferracioli-Oda E",
+     "year": 2013,
+     "journal": "PLoS One",
+     "title": "Meta-analysis: melatonin for the treatment of primary sleep disorders.",
+     "trials": 19,
+     "participants": 1683,
+     "result": "Sleep latency WMD -7.06 minutes (95% CI 4.37 to 9.75); total sleep time +8.25 minutes (95% CI 1.74 to 14.75); sleep quality SMD 0.22 (95% CI 0.12 to 0.32).",
+     "doi": "10.1371/journal.pone.0063773"
+    },
+    {
+     "pmid": "36179487",
+     "author": "Choi K",
+     "year": 2022,
+     "journal": "Sleep Med Rev",
+     "title": "Efficacy of melatonin for chronic insomnia: Systematic reviews and meta-analyses.",
+     "trials": 24,
+     "participants": null,
+     "result": "In non-comorbid chronic insomnia, melatonin significantly improved sleep onset latency and total sleep time only in children and adolescents; not significant in adults (no pooled sizes in abstract).",
+     "doi": "10.1016/j.smrv.2022.101692"
+    },
+    {
+     "pmid": "38888087",
+     "author": "Cruz-Sanabria F",
+     "year": 2024,
+     "journal": "J Pineal Res",
+     "title": "Optimizing the Time and Dose of Melatonin as a Sleep-Promoting Drug: A Systematic Review of Randomized Controlled Trials and Dose-Response Meta-Analysis.",
+     "trials": 26,
+     "participants": null,
+     "result": "Dose-response: sleep onset latency falls and total sleep time rises with dose, peaking at 4 mg/day; earlier timing (3 h before bedtime) predicted a larger effect (abstract reports 1689 observations, no pooled minutes).",
+     "doi": "10.1111/jpi.12985"
+    }
+   ]
+  },
+  {
+   "slug": "magnesium-32aa0",
+   "name": "Magnesium",
+   "outcome": "Slightly lower blood pressure",
+   "population": "Adults, mainly those with hypertension or low magnesium",
+   "grade": "B",
+   "why": "Three meta-analyses agree on a fall of about 2-3 mmHg, but heterogeneity is high and the 2025 analysis found no significant effect in people with normal blood pressure.",
+   "effect_plain": "In 38 trials, magnesium lowered systolic blood pressure by about 2.8 mmHg on average, with larger falls in people with hypertension on medication or low magnesium.",
+   "limits": "The effect was not significant in people with normal blood pressure, and no dose-response was found.",
+   "eu_claim": "None known for blood pressure (magnesium has authorised claims for other functions, e.g. reduction of tiredness and fatigue).",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "41000008",
+     "author": "Argeros Z",
+     "year": 2025,
+     "journal": "Hypertension",
+     "title": "Magnesium Supplementation and Blood Pressure: A Systematic Review and Meta-Analysis of Randomized Controlled Trials.",
+     "trials": 38,
+     "participants": 2709,
+     "result": "Systolic BP -2.81 mmHg (95% CI -4.32 to -1.29); diastolic -2.05 mmHg (95% CI -3.23 to -0.88); not significant in normotensive groups; high heterogeneity.",
+     "doi": "10.1161/HYPERTENSIONAHA.125.25129"
+    },
+    {
+     "pmid": "27402922",
+     "author": "Zhang X",
+     "year": 2016,
+     "journal": "Hypertension",
+     "title": "Effects of Magnesium Supplementation on Blood Pressure: A Meta-Analysis of Randomized Double-Blind Placebo-Controlled Trials.",
+     "trials": 34,
+     "participants": 2028,
+     "result": "Systolic BP -2.00 mmHg (95% CI 0.43 to 3.58); diastolic -1.78 mmHg (95% CI 0.73 to 2.82) at a median 368 mg/day for 3 months.",
+     "doi": "10.1161/HYPERTENSIONAHA.116.07664"
+    },
+    {
+     "pmid": "22318649",
+     "author": "Kass L",
+     "year": 2012,
+     "journal": "Eur J Clin Nutr",
+     "title": "Effect of magnesium supplementation on blood pressure: a meta-analysis.",
+     "trials": 22,
+     "participants": 1173,
+     "result": "Effect size 0.32 for systolic BP (95% CI 0.23 to 0.41) and 0.36 for diastolic (95% CI 0.27 to 0.44); described as a 3-4 mmHg systolic and 2-3 mmHg diastolic decrease.",
+     "doi": "10.1038/ejcn.2012.4"
+    }
+   ]
+  },
+  {
+   "slug": "red-yeast-rice",
+   "name": "Red Yeast Rice",
+   "outcome": "Lower LDL cholesterol",
+   "population": "Adults with raised cholesterol",
+   "grade": "B",
+   "why": "Three meta-analyses agree on a large LDL reduction, but the trials tested products with a known monacolin K (lovastatin-like) content, safety assessment was poor, and the effect cannot be assumed for products with little monacolin.",
+   "effect_plain": "In 20 trials, red yeast rice with a known monacolin K content lowered LDL cholesterol by about 1 mmol/L, similar to a statin.",
+   "limits": "The active substance acts like a statin drug, safety reporting in the trials was weak, and products vary widely in how much of it they contain.",
+   "eu_claim": "A monacolin K cholesterol claim was authorised under Reg. 432/2012; later EU limits on monacolins in supplements may have affected it (wording and current status not verified).",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "25897793",
+     "author": "Gerards MC",
+     "year": 2015,
+     "journal": "Atherosclerosis",
+     "title": "Traditional Chinese lipid-lowering agent red yeast rice results in significant LDL reduction but safety is uncertain - a systematic review and meta-analysis.",
+     "trials": 20,
+     "participants": null,
+     "result": "LDL cholesterol -1.02 mmol/L vs placebo (95% CI -1.20 to -0.83); no difference from statin therapy (0.03 mmol/L, -0.36 to 0.41); quality of safety assessment low in most studies.",
+     "doi": "10.1016/j.atherosclerosis.2015.04.004"
+    },
+    {
+     "pmid": "24897342",
+     "author": "Li Y",
+     "year": 2014,
+     "journal": "PLoS One",
+     "title": "A meta-analysis of red yeast rice: an effective and relatively safe alternative approach for dyslipidemia.",
+     "trials": 13,
+     "participants": 804,
+     "result": "LDL cholesterol WMD -0.87 mmol/L (95% CI -1.03 to -0.71); total cholesterol -0.97 mmol/L (95% CI -1.13 to -0.80).",
+     "doi": "10.1371/journal.pone.0098611"
+    },
+    {
+     "pmid": "38794691",
+     "author": "Trogkanis E",
+     "year": 2024,
+     "journal": "Nutrients",
+     "title": "Safety and Efficacy of the Consumption of the Nutraceutical \"Red Yeast Rice Extract\" for the Reduction of Hypercholesterolemia in Humans: A Systematic Review and Meta-Analysis.",
+     "trials": 14,
+     "participants": null,
+     "result": "LDL cholesterol mean reduction 35.82 mg/dL (95% CI -43.36 to -28.29); total cholesterol 37.43 mg/dL.",
+     "doi": "10.3390/nu16101453"
+    }
+   ]
+  },
+  {
+   "slug": "calcium-31e0e",
+   "name": "Calcium",
+   "outcome": "Small increase in bone mineral density",
+   "population": "Older adults, mostly postmenopausal women",
+   "grade": "B",
+   "why": "Bone density rises consistently but by only 0.7-1.8% and does not keep rising, and a 2026 meta-analysis found little to no effect on fractures.",
+   "effect_plain": "In 51 trials, calcium supplements raised bone density by about 1-2%, a gain that did not grow with longer use.",
+   "limits": "The bone density gain has not translated into a meaningful reduction in fractures (PMID 42161415).",
+   "eu_claim": "Authorised (Reg. 432/2012): 'Calcium is needed for the maintenance of normal bones'.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "26420598",
+     "author": "Tai V",
+     "year": 2015,
+     "journal": "BMJ",
+     "title": "Calcium intake and bone mineral density: systematic review and meta-analysis.",
+     "trials": 51,
+     "participants": 12257,
+     "result": "Calcium supplements increased BMD by 0.7-1.8% at all five skeletal sites at one, two and over two and a half years, with no further increase after year one (51 supplement trials of 59 included).",
+     "doi": "10.1136/bmj.h4183"
+    },
+    {
+     "pmid": "42161415",
+     "author": "Massé O",
+     "year": 2026,
+     "journal": "BMJ",
+     "title": "Calcium, vitamin D, or combined supplementation to prevent fractures and falls: systematic review and meta-analysis.",
+     "trials": 69,
+     "participants": 153902,
+     "result": "Any fracture: calcium RR 0.91 (95% CI 0.81 to 1.01; 11 trials, 9067 participants); vitamin D RR 1.00 (95% CI 0.95 to 1.06; 36 trials, 92,045); combined RR 0.91 (95% CI 0.84 to 0.99; 15 trials, 51,126); judged little to no benefit.",
+     "doi": "10.1136/bmj-2025-088050"
+    }
+   ]
+  },
+  {
+   "slug": "vitamin-c-76157",
+   "name": "Vitamin C",
+   "outcome": "Slightly shorter colds when taken regularly",
+   "population": "General population; a larger preventive effect only in people under heavy short-term physical stress",
+   "grade": "B",
+   "why": "A Cochrane review shows a consistent but small shortening of colds with regular use, no prevention in the general population, and no consistent effect when started after symptoms begin.",
+   "effect_plain": "In trials covering 9745 colds, people taking vitamin C every day had colds about 8% shorter (adults), but were no less likely to catch one.",
+   "limits": "It did not prevent colds in the general population (risk ratio 0.97) and did not reliably help when started after symptoms began.",
+   "eu_claim": "Authorised (Reg. 432/2012): 'Vitamin C contributes to the normal function of the immune system'; none known specific to colds.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "23440782",
+     "author": "Hemilä H",
+     "year": 2013,
+     "journal": "Cochrane Database Syst Rev",
+     "title": "Vitamin C for preventing and treating the common cold.",
+     "trials": 29,
+     "participants": 11306,
+     "result": "Cold incidence in the general community RR 0.97 (95% CI 0.94 to 1.00; 10,708 participants); in marathon runners, skiers and soldiers RR 0.48 (95% CI 0.35 to 0.64; 5 trials, 598); duration reduced by 8% (3% to 12%) in adults and 14% (7% to 21%) in children (31 comparisons, 9745 episodes). Trials counted as 29 trial comparisons.",
+     "doi": "10.1002/14651858.CD000980.pub4"
+    }
+   ]
+  },
+  {
+   "slug": "zinc-fe1df",
+   "name": "Zinc",
+   "outcome": "Shorter colds when taken once a cold has started",
+   "population": "Adults and children with a common cold (mostly lozenge trials)",
+   "grade": "B",
+   "why": "A 2024 Cochrane review finds colds may be about two days shorter, but the evidence is low-certainty with very high heterogeneity, and there is little or no preventive effect.",
+   "effect_plain": "In 8 trials, zinc taken during a cold shortened it by about 2 days on average, but the trials disagreed widely.",
+   "limits": "Zinc probably does not prevent colds, and it increased non-serious side effects by about a third.",
+   "eu_claim": "Authorised (Reg. 432/2012): 'Zinc contributes to the normal function of the immune system'; none known specific to colds.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "38719213",
+     "author": "Nault D",
+     "year": 2024,
+     "journal": "Cochrane Database Syst Rev",
+     "title": "Zinc for prevention and treatment of the common cold.",
+     "trials": 34,
+     "participants": 8526,
+     "result": "Treatment: cold duration MD -2.37 days (95% CI -4.21 to -0.53; I2 = 97%; 8 studies, 972 participants; low certainty). Prevention: risk of a cold RR 0.93 (95% CI 0.85 to 1.01; 9 studies, 1449). Non-serious adverse events with treatment RR 1.34 (95% CI 1.15 to 1.55).",
+     "doi": "10.1002/14651858.CD014914.pub2"
+    },
+    {
+     "pmid": "32342851",
+     "author": "Wang MX",
+     "year": 2020,
+     "journal": "Am J Trop Med Hyg",
+     "title": "Zinc Supplementation Reduces Common Cold Duration among Healthy Adults: A Systematic Review of Randomized Controlled Trials with Micronutrients Supplementation.",
+     "trials": 10,
+     "participants": null,
+     "result": "Zinc given singly reduced cold duration by 2.25 days (95% CI -3.39 to -1.12) in healthy adults (10 zinc studies among 20 included).",
+     "doi": "10.4269/ajtmh.19-0718"
+    }
+   ]
+  },
+  {
+   "slug": "beta-alanine-fe8b4",
+   "name": "Beta-Alanine",
+   "outcome": "Slightly better capacity in hard efforts lasting about 30 seconds to 10 minutes",
+   "population": "Healthy, mostly young and active adults",
+   "grade": "B",
+   "why": "Two meta-analyses by overlapping research groups find a small overall effect that shows up in exercise-capacity tests but not clearly in performance tests.",
+   "effect_plain": "In 40 studies the overall effect was small (effect size 0.18), and an earlier analysis put the median improvement at about 3%.",
+   "limits": "Performance (time-trial type) measures did not improve significantly, and efforts under 60 seconds showed no benefit.",
+   "eu_claim": "None known.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "27797728",
+     "author": "Saunders B",
+     "year": 2017,
+     "journal": "Br J Sports Med",
+     "title": "β-alanine supplementation to improve exercise capacity and performance: a systematic review and meta-analysis.",
+     "trials": 40,
+     "participants": 1461,
+     "result": "Overall effect size 0.18 (95% CI 0.08 to 0.28); within 0.5-10 min exercise, capacity 0.4998 (95% CI 0.246 to 0.753) vs performance 0.1078 (95% CI -0.201 to 0.416).",
+     "doi": "10.1136/bjsports-2016-096396"
+    },
+    {
+     "pmid": "22270875",
+     "author": "Hobson RM",
+     "year": 2012,
+     "journal": "Amino Acids",
+     "title": "Effects of β-alanine supplementation on exercise performance: a meta-analysis.",
+     "trials": 15,
+     "participants": 360,
+     "result": "Median improvement 2.85% (-0.37 to 10.49%); exercise capacity improved (P = 0.013) but performance did not (P = 0.204); no benefit for exercise under 60 s.",
+     "doi": "10.1007/s00726-011-1200-z"
+    }
+   ]
+  },
+  {
+   "slug": "vitamin-b12",
+   "name": "Vitamin B12",
+   "outcome": "Restoring B12 levels in people who are deficient (a deficiency-correction outcome)",
+   "population": "Adults with diagnosed vitamin B12 deficiency",
+   "grade": "B",
+   "why": "A Cochrane review finds high-dose oral B12 normalises blood levels about as well as injections, but on only three small trials with low-quality evidence.",
+   "effect_plain": "In three small trials (153 people), high-dose B12 tablets raised blood B12 about as well as injections.",
+   "limits": "This is about correcting a deficiency; the trials did not measure symptoms, and nothing here shows a benefit for people with normal B12.",
+   "eu_claim": "Authorised (Reg. 432/2012): 'Vitamin B12 contributes to normal red blood cell formation'.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "29543316",
+     "author": "Wang H",
+     "year": 2018,
+     "journal": "Cochrane Database Syst Rev",
+     "title": "Oral vitamin B(12) versus intramuscular vitamin B(12) for vitamin B(12) deficiency.",
+     "trials": 3,
+     "participants": 153,
+     "result": "Oral 1000 ug/day: no clinically relevant difference in serum B12 vs intramuscular (2 trials); oral 2000 ug/day: MD 680 pg/mL in favour of oral (95% CI 392.7 to 967.3; 1 trial); low-quality evidence; no trial reported clinical symptoms.",
+     "doi": "10.1002/14651858.CD004655.pub3"
+    }
+   ]
+  },
+  {
+   "slug": "ginger-da075",
+   "name": "Ginger",
+   "outcome": "Less nausea in early pregnancy",
+   "population": "Pregnant women with nausea and vomiting",
+   "grade": "B",
+   "why": "Two meta-analyses agree ginger eases nausea compared with placebo, but neither found a significant effect on vomiting and the trials are small and low quality.",
+   "effect_plain": "In 12 trials of pregnant women, ginger improved nausea scores compared with placebo but did not significantly reduce vomiting.",
+   "limits": "Evidence quality is low, vomiting was not reduced, and safety data in pregnancy come from small trials.",
+   "eu_claim": "None known (botanical claims largely not authorised).",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "24642205",
+     "author": "Viljoen E",
+     "year": 2014,
+     "journal": "Nutr J",
+     "title": "A systematic review and meta-analysis of the effect and safety of ginger in the treatment of pregnancy-associated nausea and vomiting.",
+     "trials": 12,
+     "participants": 1278,
+     "result": "Nausea improved vs placebo, MD 1.20 (95% CI 0.56 to 1.84); vomiting episodes not significantly reduced, MD 0.72 (95% CI -0.03 to 1.46).",
+     "doi": "10.1186/1475-2891-13-20"
+    },
+    {
+     "pmid": "31937153",
+     "author": "Hu Y",
+     "year": 2022,
+     "journal": "J Matern Fetal Neonatal Med",
+     "title": "Effect of ginger in the treatment of nausea and vomiting compared with vitamin B6 and placebo during pregnancy: a meta-analysis.",
+     "trials": 13,
+     "participants": 1174,
+     "result": "Nausea severity SMD 0.821 (95% CI 0.585 to 1.056) vs placebo; vomiting SMD 0.549 (95% CI -0.268 to 1.365), not significant.",
+     "doi": "10.1080/14767058.2020.1712714"
+    }
+   ]
+  },
+  {
+   "slug": "ashwagandha-9c08a",
+   "name": "Ashwagandha",
+   "outcome": "Lower self-rated stress and anxiety",
+   "population": "Adults reporting stress or anxiety",
+   "grade": "B",
+   "why": "Two meta-analyses find reductions, but they rest on a dozen or fewer small trials with very high heterogeneity and low-certainty evidence.",
+   "effect_plain": "In 9 trials (558 people), ashwagandha lowered Perceived Stress Scale scores by about 4.7 points compared with placebo.",
+   "limits": "Certainty is rated low, trial results vary widely, and long-term safety is not established.",
+   "eu_claim": "None known (botanical claims largely not authorised).",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "36017529",
+     "author": "Akhgarjand C",
+     "year": 2022,
+     "journal": "Phytother Res",
+     "title": "Does Ashwagandha supplementation have a beneficial effect on the management of anxiety and stress? A systematic review and meta-analysis of randomized controlled trials.",
+     "trials": 12,
+     "participants": 1002,
+     "result": "Anxiety SMD -1.55 (95% CI -2.37 to -0.74; I2 = 93.8%); stress SMD -1.75 (95% CI -2.29 to -1.22; I2 = 83.1%); certainty low.",
+     "doi": "10.1002/ptr.7598"
+    },
+    {
+     "pmid": "39348746",
+     "author": "Arumugam V",
+     "year": 2024,
+     "journal": "Explore (NY)",
+     "title": "Effects of Ashwagandha (Withania Somnifera) on stress and anxiety: A systematic review and meta-analysis.",
+     "trials": 9,
+     "participants": 558,
+     "result": "Perceived Stress Scale MD -4.72 (95% CI -8.45 to -0.99); Hamilton Anxiety Scale MD -2.19 (95% CI -3.83 to -0.55); serum cortisol MD -2.58 (95% CI -4.99 to -0.16).",
+     "doi": "10.1016/j.explore.2024.103062"
+    }
+   ]
+  },
+  {
+   "slug": "saffron-extracts-814f4",
+   "name": "Saffron Extracts",
+   "outcome": "Lower self-reported depressive symptoms",
+   "population": "Adults with mild to moderate depressive symptoms",
+   "grade": "B",
+   "why": "Meta-analyses find an effect on self-rated scales, but it was not seen on clinician-rated scales, heterogeneity is very high, and this is treatment of a condition.",
+   "effect_plain": "In 14 trials (817 people), saffron lowered self-rated depression scores by about 4.4 points on the Beck inventory.",
+   "limits": "No significant effect was seen on clinician-rated depression scales, and it is not a substitute for treatment of depression.",
+   "eu_claim": "None known (botanical claims largely not authorised).",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "41693488",
+     "author": "Mahmoudi R",
+     "year": 2026,
+     "journal": "Nutr Neurosci",
+     "title": "Effect of saffron on depression, anxiety and mood disorder: a GRADE assessed systematic review and meta-analysis of 34 randomized controlled trials.",
+     "trials": 34,
+     "participants": 1769,
+     "result": "Beck Depression Inventory WMD -4.39 (95% CI -6.64 to -2.15; 14 trials, 817 participants; I2 = 92.3%); no significant effect on HDRS, HARS or POMS.",
+     "doi": "10.1080/1028415X.2025.2602153"
+    },
+    {
+     "pmid": "30036891",
+     "author": "Tóth B",
+     "year": 2019,
+     "journal": "Planta Med",
+     "title": "The Efficacy of Saffron in the Treatment of Mild to Moderate Depression: A Meta-analysis.",
+     "trials": 9,
+     "participants": null,
+     "result": "Saffron vs placebo Hedges' g = 0.891 (95% CI 0.369 to 1.412) (9 trials pooled of 11 included).",
+     "doi": "10.1055/a-0660-9565"
+    }
+   ]
+  },
+  {
+   "slug": "curcumin-ad864",
+   "name": "Curcumin",
+   "outcome": "Less knee osteoarthritis pain",
+   "population": "Adults with knee osteoarthritis",
+   "grade": "B",
+   "why": "Meta-analyses report pain relief over placebo, but the trials are small and low quality and the authors say the evidence is inadequate for practice recommendations.",
+   "effect_plain": "In 15 trials (1621 people), curcumin or turmeric extract reduced osteoarthritis pain scores compared with placebo; the abstracts do not give the size.",
+   "limits": "This is treatment of a disease, most trials had fewer than 100 people, and no benefit is shown for healthy joints.",
+   "eu_claim": "None known (botanical claims largely not authorised).",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "34017975",
+     "author": "Zeng L",
+     "year": 2021,
+     "journal": "Biosci Rep",
+     "title": "The efficacy and safety of Curcuma longa extract and curcumin supplements on osteoarthritis: a systematic review and meta-analysis.",
+     "trials": 15,
+     "participants": 1621,
+     "result": "Decreased VAS and WOMAC pain, function and stiffness scores vs placebo; similar to NSAIDs (no effect sizes stated in abstract).",
+     "doi": "10.1042/BSR20210817"
+    },
+    {
+     "pmid": "29622343",
+     "author": "Bannuru RR",
+     "year": 2018,
+     "journal": "Semin Arthritis Rheum",
+     "title": "Efficacy of curcumin and Boswellia for knee osteoarthritis: Systematic review and meta-analysis.",
+     "trials": 11,
+     "participants": 1009,
+     "result": "Curcuminoid and boswellia formulations significantly better than placebo for pain and function (no sizes in abstract); study quality low overall; trial count covers both curcumin and boswellia.",
+     "doi": "10.1016/j.semarthrit.2018.03.001"
+    }
+   ]
+  },
+  {
+   "slug": "berberine",
+   "name": "Berberine",
+   "outcome": "Lower blood sugar measures in type 2 diabetes",
+   "population": "Adults with type 2 diabetes, mostly as an add-on to standard treatment",
+   "grade": "B",
+   "why": "Meta-analyses agree on lower HbA1c and fasting glucose, but this is treatment of a disease, mostly as an add-on, and the effect faded in longer trials and older patients.",
+   "effect_plain": "In 28 trials (2313 people with type 2 diabetes), berberine lowered fasting glucose by about 0.5 mmol/L more than control.",
+   "limits": "This is disease treatment that belongs with a doctor; the effect was unremarkable beyond 90 days and in people over 60, and nothing shows a benefit in healthy people.",
+   "eu_claim": "None known (botanical claims largely not authorised).",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "30393248",
+     "author": "Liang Y",
+     "year": 2019,
+     "journal": "Endocr J",
+     "title": "Effects of berberine on blood glucose in patients with type 2 diabetes mellitus: a systematic literature review and a meta-analysis.",
+     "trials": 28,
+     "participants": 2313,
+     "result": "Fasting plasma glucose WMD -0.54 mmol/L (95% CI -0.77 to -0.30); HbA1c WMD -0.54 (95% CI -0.93 to -0.15; unit given as mmol/L in abstract); effects unremarkable beyond 90 days of treatment.",
+     "doi": "10.1507/endocrj.EJ18-0109"
+    },
+    {
+     "pmid": "34956436",
+     "author": "Guo J",
+     "year": 2021,
+     "journal": "Oxid Med Cell Longev",
+     "title": "The Effect of Berberine on Metabolic Profiles in Type 2 Diabetic Patients: A Systematic Review and Meta-Analysis of Randomized Controlled Trials.",
+     "trials": 46,
+     "participants": null,
+     "result": "HbA1c MD -0.73 (95% CI -0.97 to -0.51); fasting plasma glucose MD -0.86 (95% CI -1.10 to -0.62), berberine alone or with standard therapy vs control.",
+     "doi": "10.1155/2021/2074610"
+    },
+    {
+     "pmid": "25498346",
+     "author": "Lan J",
+     "year": 2015,
+     "journal": "J Ethnopharmacol",
+     "title": "Meta-analysis of the effect and safety of berberine in the treatment of type 2 diabetes mellitus, hyperlipemia and hypertension.",
+     "trials": 27,
+     "participants": 2569,
+     "result": "Berberine with lifestyle intervention tended to lower FPG, PPG and HbA1c more than lifestyle alone or placebo; no significant difference vs oral hypoglycaemics (no sizes in abstract excerpt).",
+     "doi": "10.1016/j.jep.2014.09.049"
+    }
+   ]
+  },
+  {
+   "slug": "garlic-f50b0",
+   "name": "Garlic",
+   "outcome": "Lower blood pressure",
+   "population": "Adults with high blood pressure",
+   "grade": "B",
+   "why": "Two meta-analyses find a fall in blood pressure, but it is seen in hypertensive and not normotensive people and comes from small trials.",
+   "effect_plain": "In 17 trials, garlic lowered systolic blood pressure by about 3.75 mmHg, with the effect seen in people who had high blood pressure.",
+   "limits": "No significant effect in people with normal blood pressure, and there are no long-term trials on heart attacks or strokes.",
+   "eu_claim": "None known (botanical claims largely not authorised).",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "25557383",
+     "author": "Wang HP",
+     "year": 2015,
+     "journal": "J Clin Hypertens (Greenwich)",
+     "title": "Effect of garlic on blood pressure: a meta-analysis.",
+     "trials": 17,
+     "participants": null,
+     "result": "Systolic BP -3.75 mmHg (95% CI -5.04 to -2.45); in hypertensive patients -4.4 mmHg (95% CI -7.37 to -1.42); not significant in normotensive patients.",
+     "doi": "10.1111/jch.12473"
+    },
+    {
+     "pmid": "26764326",
+     "author": "Ried K",
+     "year": 2016,
+     "journal": "J Nutr",
+     "title": "Garlic Lowers Blood Pressure in Hypertensive Individuals, Regulates Serum Cholesterol, and Stimulates Immunity: An Updated Meta-analysis and Review.",
+     "trials": 20,
+     "participants": 970,
+     "result": "Systolic BP -5.1 +/- 2.2 mmHg and diastolic -2.5 +/- 1.6 mmHg (mean +/- SE); in hypertensive subjects systolic -8.7 +/- 2.2 mmHg.",
+     "doi": "10.3945/jn.114.202192"
+    }
+   ]
+  },
+  {
+   "slug": "vitamin-d3-a0118",
+   "name": "Vitamin D3",
+   "outcome": "Fewer acute respiratory infections",
+   "population": "General population of all ages",
+   "grade": "C",
+   "why": "Earlier meta-analyses found a small protective effect, but the 2025 update with the largest dataset no longer finds a statistically significant one.",
+   "effect_plain": "Pooling 40 trials (61,589 people), vitamin D did not significantly reduce respiratory infections (odds ratio 0.94, with a range that includes no effect).",
+   "limits": "A 2026 meta-analysis of 69 trials also found little to no effect on fractures or falls in mostly community-dwelling adults (PMID 42161415); benefits are most plausible in people who are deficient.",
+   "eu_claim": "Authorised (Reg. 432/2012): 'Vitamin D contributes to the normal function of the immune system'.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "39993397",
+     "author": "Jolliffe DA",
+     "year": 2025,
+     "journal": "Lancet Diabetes Endocrinol",
+     "title": "Vitamin D supplementation to prevent acute respiratory infections: systematic review and meta-analysis of stratified aggregate data.",
+     "trials": 40,
+     "participants": 61589,
+     "result": "OR 0.94 (95% CI 0.88 to 1.00; p = 0.057), not statistically significant; no effect modification by age, baseline status, dosing frequency or dose; funnel plot asymmetry.",
+     "doi": "10.1016/S2213-8587(24)00348-6"
+    },
+    {
+     "pmid": "33798465",
+     "author": "Jolliffe DA",
+     "year": 2021,
+     "journal": "Lancet Diabetes Endocrinol",
+     "title": "Vitamin D supplementation to prevent acute respiratory infections: a systematic review and meta-analysis of aggregate data from randomised controlled trials.",
+     "trials": 46,
+     "participants": 75541,
+     "result": "OR 0.92 (95% CI 0.86 to 0.99; 37 studies); protection seen with daily doses of 400-1000 IU (OR 0.70, 95% CI 0.55 to 0.89).",
+     "doi": "10.1016/S2213-8587(21)00051-6"
+    },
+    {
+     "pmid": "28202713",
+     "author": "Martineau AR",
+     "year": 2017,
+     "journal": "BMJ",
+     "title": "Vitamin D supplementation to prevent acute respiratory tract infections: systematic review and meta-analysis of individual participant data.",
+     "trials": 25,
+     "participants": 11321,
+     "result": "Adjusted OR 0.88 (95% CI 0.81 to 0.96); with daily or weekly dosing and baseline 25(OH)D < 25 nmol/L, adjusted OR 0.30 (95% CI 0.17 to 0.53).",
+     "doi": "10.1136/bmj.i6583"
+    }
+   ]
+  },
+  {
+   "slug": "collagen-c8ddc",
+   "name": "Collagen",
+   "outcome": "Better skin hydration and elasticity on instrument measures",
+   "population": "Adults, mostly women aged 20-70",
+   "grade": "C",
+   "why": "Several meta-analyses report improved hydration and elasticity, but a 2026 re-analysis (PMID 43047302) found data errors in earlier meta-analyses and no evidence of benefit, and wrinkle effects did not survive sensitivity analysis.",
+   "effect_plain": "One 2026 analysis of 35 trials found small-to-moderate gains in measured skin hydration and elasticity, while another 2026 re-analysis found no evidence of benefit.",
+   "limits": "Effects on visible wrinkles were judged statistical artefacts, and many trials carry bias.",
+   "eu_claim": "None known.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "43047141",
+     "author": "Batool A",
+     "year": 2026,
+     "journal": "J Cosmet Dermatol",
+     "title": "Oral Collagen Peptides and Skin Rejuvenation: A Systematic Review and an Updated Meta-Analysis of Randomized Controlled Trials.",
+     "trials": 35,
+     "participants": 2534,
+     "result": "Skin hydration SMD 0.44 (95% CI 0.15 to 0.73); elasticity SMD 0.62 (95% CI 0.15 to 1.10); apparent improvements in wrinkles, roughness and dermal density were artefacts of outliers and heterogeneity.",
+     "doi": "10.1111/jocd.71041"
+    },
+    {
+     "pmid": "37432180",
+     "author": "Pu SY",
+     "year": 2023,
+     "journal": "Nutrients",
+     "title": "Effects of Oral Collagen for Skin Anti-Aging: A Systematic Review and Meta-Analysis.",
+     "trials": 26,
+     "participants": 1721,
+     "result": "Hydration (Z = 4.94, p < 0.00001) and elasticity (Z = 4.49, p < 0.00001) improved vs placebo; several biases identified (no effect sizes in abstract).",
+     "doi": "10.3390/nu15092080"
+    },
+    {
+     "pmid": "33742704",
+     "author": "de Miranda RB",
+     "year": 2021,
+     "journal": "Int J Dermatol",
+     "title": "Effects of hydrolyzed collagen supplementation on skin aging: a systematic review and meta-analysis.",
+     "trials": 19,
+     "participants": 1125,
+     "result": "Favourable results for skin hydration, elasticity and wrinkles vs placebo (no effect sizes in abstract).",
+     "doi": "10.1111/ijd.15518"
+    }
+   ]
+  },
+  {
+   "slug": "citrulline-606c9",
+   "name": "Citrulline",
+   "outcome": "Slightly better exercise performance",
+   "population": "Healthy, mostly young and trained adults",
+   "grade": "C",
+   "why": "One meta-analysis finds a small benefit for strength and power, one finds none for endurance, and the largest finds a small overall effect at low to very low certainty.",
+   "effect_plain": "In 30 trials (644 people), citrulline malate gave a small overall improvement in exercise performance (effect size 0.16), with uncertain evidence.",
+   "limits": "No effect on endurance performance in a 9-study analysis, and subgroup findings were not robust.",
+   "eu_claim": "None known.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "42356270",
+     "author": "Wang X",
+     "year": 2026,
+     "journal": "Nutrients",
+     "title": "Effects of Citrulline Malate Supplementation on Exercise Performance: A Systematic Review and Three-Level Meta-Analysis.",
+     "trials": 30,
+     "participants": 644,
+     "result": "Overall exercise performance g = 0.16 (p = 0.01; CI not in abstract); perceived exertion not significant; GRADE low to very low.",
+     "doi": "10.3390/nu18121881"
+    },
+    {
+     "pmid": "30895562",
+     "author": "Trexler ET",
+     "year": 2019,
+     "journal": "Sports Med",
+     "title": "Acute Effects of Citrulline Supplementation on High-Intensity Strength and Power Performance: A Systematic Review and Meta-Analysis.",
+     "trials": 12,
+     "participants": 198,
+     "result": "SMD 0.20 (95% CI 0.01 to 0.39); confidence intervals of every individual study crossed zero.",
+     "doi": "10.1007/s40279-019-01091-z"
+    },
+    {
+     "pmid": "37155582",
+     "author": "Harnden CS",
+     "year": 2023,
+     "journal": "J Int Soc Sports Nutr",
+     "title": "Effects of citrulline on endurance performance in young healthy adults: a systematic review and meta-analysis.",
+     "trials": 9,
+     "participants": 158,
+     "result": "No significant difference: time to exhaustion SMD 0.03 (-0.27 to 0.33); time to completion SMD -0.07 (-0.50 to 0.15).",
+     "doi": "10.1080/15502783.2023.2209056"
+    }
+   ]
+  },
+  {
+   "slug": "coenzyme-q10-33ce3",
+   "name": "Coenzyme Q10",
+   "outcome": "Lower blood pressure",
+   "population": "Adults with hypertension or cardiometabolic disease",
+   "grade": "C",
+   "why": "A Cochrane review concludes there is no clinically significant effect in primary hypertension, while a later meta-analysis in people with cardiometabolic disease finds a fall of about 5 mmHg.",
+   "effect_plain": "A Cochrane review found no significant change in blood pressure, while a 26-trial analysis in people with cardiometabolic disease found systolic pressure about 4.8 mmHg lower.",
+   "limits": "The Cochrane pooled analysis had only 50 participants, and nothing here applies to healthy adults.",
+   "eu_claim": "None known.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "26935713",
+     "author": "Ho MJ",
+     "year": 2016,
+     "journal": "Cochrane Database Syst Rev",
+     "title": "Blood pressure lowering efficacy of coenzyme Q10 for primary hypertension.",
+     "trials": 2,
+     "participants": 50,
+     "result": "No significant change: systolic BP -3.68 mmHg (95% CI -8.86 to 1.49); diastolic -2.03 mmHg (95% CI -4.86 to 0.81) (2 of 3 included trials pooled).",
+     "doi": "10.1002/14651858.CD007435.pub3"
+    },
+    {
+     "pmid": "36130103",
+     "author": "Zhao D",
+     "year": 2022,
+     "journal": "Adv Nutr",
+     "title": "Dose-Response Effect of Coenzyme Q10 Supplementation on Blood Pressure among Patients with Cardiometabolic Disorders: A Grading of Recommendations Assessment, Development, and Evaluation (GRADE)-Assessed Systematic Review and Meta-Analysis of Randomized Controlled Trials.",
+     "trials": 26,
+     "participants": 1831,
+     "result": "Systolic BP -4.77 mmHg (95% CI -6.57 to -2.97) in patients with cardiometabolic diseases; U-shaped dose-response with 100-200 mg/day most effective.",
+     "doi": "10.1093/advances/nmac100"
+    }
+   ]
+  },
+  {
+   "slug": "vitamin-k-8e985",
+   "name": "Vitamin K",
+   "outcome": "Fewer fractures and better bone density",
+   "population": "Postmenopausal women or people with osteoporosis",
+   "grade": "C",
+   "why": "One meta-analysis finds fewer clinical fractures, but the effect loses significance in low-risk-of-bias trials, vertebral fractures are unchanged, and bone density gains disappear when weak trials are removed.",
+   "effect_plain": "In postmenopausal or osteoporotic patients, vitamin K was linked to fewer clinical fractures (odds ratio 0.72), but not once weaker trials were excluded.",
+   "limits": "The authors conclude there is no evidence of an effect on bone density or vertebral fractures, and too few trials in other groups.",
+   "eu_claim": "Authorised (Reg. 432/2012): 'Vitamin K contributes to the maintenance of normal bones'.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "31076817",
+     "author": "Mott A",
+     "year": 2019,
+     "journal": "Osteoporos Int",
+     "title": "Effect of vitamin K on bone mineral density and fractures in adults: an updated systematic review and meta-analysis of randomised controlled trials.",
+     "trials": 36,
+     "participants": null,
+     "result": "Any clinical fracture OR 0.72 (95% CI 0.55 to 0.95), 0.76 (0.58 to 1.01) in low-risk-of-bias trials; vertebral fractures OR 0.96 (95% CI 0.83 to 1.11); lumbar spine BMD at 2 years MD 1.63% (95% CI 0.10 to 3.16), not significant after removing high-risk-of-bias trials.",
+     "doi": "10.1007/s00198-019-04949-0"
+    }
+   ]
+  },
+  {
+   "slug": "glucosamine-1a4e0",
+   "name": "Glucosamine",
+   "outcome": "Less osteoarthritis pain",
+   "population": "Adults with knee or hip osteoarthritis",
+   "grade": "D",
+   "why": "An individual-patient-data meta-analysis of industry-independent trials found glucosamine no better than placebo for pain or function, and a broad meta-analysis rated its effect small and of unclear clinical importance.",
+   "effect_plain": "In pooled data from five independent trials (1625 people), glucosamine was no better than placebo for pain or function at 3 months or 2 years.",
+   "limits": "No subgroup was found that benefits, and there is no trial evidence for protecting healthy joints.",
+   "eu_claim": "None known.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "28754801",
+     "author": "Runhaar J",
+     "year": 2017,
+     "journal": "Ann Rheum Dis",
+     "title": "Subgroup analyses of the effectiveness of oral glucosamine for knee and hip osteoarthritis: a systematic review and individual patient data meta-analysis from the OA trial bank.",
+     "trials": 6,
+     "participants": 1663,
+     "result": "Glucosamine no better than placebo for pain or function at 3 months and 24 months, nor in any predefined subgroup (5 placebo-controlled trials, n = 1625; 6 of 21 eligible studies shared data).",
+     "doi": "10.1136/annrheumdis-2017-211149"
+    },
+    {
+     "pmid": "29018060",
+     "author": "Liu X",
+     "year": 2018,
+     "journal": "Br J Sports Med",
+     "title": "Dietary supplements for treating osteoarthritis: a systematic review and meta-analysis.",
+     "trials": 69,
+     "participants": null,
+     "result": "Glucosamine and chondroitin statistically significant for pain but of unclear clinical importance, described as ineffective or small; trial count covers all 20 supplements studied.",
+     "doi": "10.1136/bjsports-2016-097333"
+    }
+   ]
+  },
+  {
+   "slug": "iodine-8c905",
+   "name": "Iodine",
+   "outcome": "Better thyroid and pregnancy outcomes from supplements taken around pregnancy",
+   "population": "Women before, during and after pregnancy in mild to moderate iodine deficiency settings",
+   "grade": "D",
+   "why": "The Cochrane review found too few trials and low-quality evidence, with no clear differences for most maternal and infant outcomes.",
+   "effect_plain": "In 11 trials (over 2700 women), iodine supplements around pregnancy showed no clear effect on most outcomes, apart from fewer cases of postpartum overactive thyroid in three trials.",
+   "limits": "This does not test correcting severe deficiency through iodised salt; it only shows that trial evidence for supplements in pregnancy is thin.",
+   "eu_claim": "Authorised (Reg. 432/2012): 'Iodine contributes to normal thyroid function'.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "28260263",
+     "author": "Harding KB",
+     "year": 2017,
+     "journal": "Cochrane Database Syst Rev",
+     "title": "Iodine supplementation for women during the preconception, pregnancy and postpartum period.",
+     "trials": 14,
+     "participants": 2700,
+     "result": "Postpartum hyperthyroidism RR 0.32 (95% CI 0.11 to 0.91; 3 trials, 543 women; low quality); no clear difference for hypothyroidism in pregnancy (RR 1.90, 95% CI 0.57 to 6.38) or preterm birth (RR 0.71, 95% CI 0.30 to 1.66). 14 studies included, 11 contributed data ('over 2700 women').",
+     "doi": "10.1002/14651858.CD011761.pub2"
+    }
+   ]
+  },
+  {
+   "slug": "selenium-b2365",
+   "name": "Selenium",
+   "outcome": "Prevention of cardiovascular disease",
+   "population": "Adults, general population or at raised cardiovascular risk",
+   "grade": "D",
+   "why": "A Cochrane review of 12 trials with nearly 20,000 participants found no effect on deaths or cardiovascular events.",
+   "effect_plain": "In trials with 19,715 people, selenium supplements did not reduce deaths or cardiovascular events.",
+   "limits": "The review also reported more hair loss and dermatitis with selenium, and a non-significant rise in type 2 diabetes.",
+   "eu_claim": "Authorised (Reg. 432/2012): 'Selenium contributes to the normal function of the immune system'; none known for cardiovascular health.",
+   "nih": null,
+   "refs": [
+    {
+     "pmid": "23440843",
+     "author": "Rees K",
+     "year": 2013,
+     "journal": "Cochrane Database Syst Rev",
+     "title": "Selenium supplementation for the primary prevention of cardiovascular disease.",
+     "trials": 12,
+     "participants": 19715,
+     "result": "All-cause mortality RR 0.97 (95% CI 0.88 to 1.08); all CVD events RR 1.03 (95% CI 0.95 to 1.11); type 2 diabetes RR 1.06 (95% CI 0.97 to 1.15); alopecia RR 1.28 (95% CI 1.01 to 1.62).",
+     "doi": "10.1002/14651858.CD009671.pub2"
+    }
+   ]
+  }
+ ],
+ "order_a": [
+  "iron-f14ff",
+  "folic-acid-7f343",
+  "probiotics-823e4",
+  "fiber-supplements-10200",
+  "omega-3-fatty-acids-95158",
+  "creatine-ce673"
+ ],
+ "order_a_reasons": {
+  "iron-f14ff": "Two Cochrane reviews agree, the haemoglobin result is high quality across 51 trials, and the effect on anaemia is large (RR 0.39).",
+  "folic-acid-7f343": "Largest effect of all (RR 0.31) with high-quality evidence and consistency across comparisons, but only five trials, all old.",
+  "probiotics-823e4": "Four independent syntheses agree on a large reduction (RR 0.45-0.63) across more than 11,000 participants, held below the top two by moderate certainty and strain-to-strain variation.",
+  "fiber-supplements-10200": "Two meta-analyses of about 28 trials agree closely (LDL -0.33 and -0.35 mmol/L), but the effect is moderate, graded moderate quality, and is on a blood marker.",
+  "omega-3-fatty-acids-95158": "High-certainty Cochrane evidence from very large trials, but the effect is modest (about 15%) and on a marker that did not translate into fewer cardiovascular events.",
+  "creatine-ce673": "Many meta-analyses point the same way, but effects are small to moderate, trials are small, and results were not significant in women or for some lifts in older adults."
+ },
+ "unverified": [
+  "NIH Office of Dietary Supplements positions: every ods.od.nih.gov request returned HTTP 403, so 'nih' is null for all supplements.",
+  "EU health claim wording and status were not checked against the EU register in this session (no permitted source); quoted wordings are from recall and should be confirmed before publication, especially the folic acid risk-reduction claim, the creatine over-55 claim, the melatonin jet-lag claim and the current status of the red yeast rice (monacolin K) claim and EU monacolin limits.",
+  "All trial counts, participant numbers and effect sizes come from PubMed abstracts only; full texts were not read, so risk-of-bias detail and subgroup numbers beyond the abstract are unchecked.",
+  "PMID 39519498 (creatine): the abstract gives participants by sex only; 509 is the sum of those figures.",
+  "PMID 30393248 (berberine): the abstract gives the HbA1c difference with the unit 'mmol/L', which looks like a typographical error for %; reported as written.",
+  "PMIDs 28698222, 39993397 and 31076817 have published errata (PMIDs 32943392, 40388951, 32965511) that were not reviewed.",
+  "Curcumin (PMIDs 34017975, 29622343) and two collagen references (37432180, 33742704): abstracts state direction but no effect size.",
+  "PMID 43047302 (Grimes 2026, cited in the collagen grade reason) is a critical re-analysis, not indexed as a meta-analysis; its abstract gives no trial count.",
+  "Caffeine, nitrate/beetroot, plant sterols, peppermint oil have no matching catalogue entry and were skipped; L-theanine, glycine and NAC were not assessed.",
+  "Catalogue mapping: protein evidence is for protein supplements generally (filed under protein-powder-whey-2d3f0), fibre evidence is for psyllium only (fiber-supplements-10200), and garlic evidence covers garlic preparations generally (garlic-f50b0)."
+ ]
+}

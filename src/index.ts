@@ -1233,7 +1233,7 @@ app.get('/api/admin/articles/draft', async (c) => {
   const topic = (c.req.query('topic') ?? '').replace(/\s+/g, ' ').trim().slice(0, 300);
   const slug = (c.req.query('slug') ?? '').trim().toLowerCase();
   if (!topic && !slug) return c.json({ error: 'topic (or slug of an existing article) is required' }, 400);
-  const req = { topic, kind: asKind(c.req.query('kind'), guessKind(topic || slug)), slug: slug || undefined, notes: (c.req.query('notes') ?? '').trim().slice(0, 2000) };
+  const req = { topic, kind: asKind(c.req.query('kind'), guessKind(topic || slug)), slug: slug || undefined, notes: (c.req.query('notes') ?? '').trim().slice(0, 12000) };
   try {
     const { row, action } = await enqueueArticle(c.env, req);
     if (c.req.query('now') === '1') {

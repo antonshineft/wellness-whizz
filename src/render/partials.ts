@@ -3,6 +3,7 @@ import type { FdaStatus, FormType, Product, SafetyStatus, Supplement } from '../
 import { structureAlt } from '../structures';
 import { STRUCTURES_3D } from '../structures3d';
 import { doseBlank, doseFor, doseLimits, doseScale, type DoseCheck } from '../dose';
+import { EVIDENCE } from '../evidence';
 import { escapeHtml } from '../html';
 import { primaryProduct, shopUrl, type LinkEnv } from '../links';
 
@@ -129,6 +130,25 @@ const SAFETY_TAGS: Record<SafetyStatus, { glyph: string; label: string }> = {
   prescription: { glyph: '!', label: 'Prescription' },
 };
 
+/** The slug of the published ranking the evidence tags link to; empty until the owner has published it. */
+const EVIDENCE_ARTICLE = '';
+
+const GRADE_WORDS: Record<string, string> = { A: 'strong', B: 'good', C: 'mixed', D: 'weak' };
+
+/**
+ * The evidence grade of a graded supplement as a tag, and its place in the top ten (src/evidence.ts). The grade is for
+ * one named outcome, said in the tag's title. Once EVIDENCE_ARTICLE names the published ranking, the tags link to it.
+ */
+export function evidenceTags(slug: string, article = EVIDENCE_ARTICLE): string {
+  const e = EVIDENCE[slug];
+  if (!e) return '';
+  const title = escapeHtml(`Evidence grade ${e.grade} (${GRADE_WORDS[e.grade]}) for: ${e.outcome}. ${e.effect}`);
+  const wrap = (inner: string, hash: string) => (article ? `<a href="/blog/${escapeHtml(article)}${hash}" style="text-decoration:none">${inner}</a>` : inner);
+  const grade = `<span class="ww-tag${e.grade === 'A' ? ' ww-tag-good' : ''}" title="${title}"><b>${e.grade}</b>Evidence: ${GRADE_WORDS[e.grade]}</span>`;
+  const top = e.rank ? `<span class="ww-tag ww-tag-dark" title="Number ${e.rank} of the ten supplements with the strongest evidence"><b>${e.rank}</b>Top 10 by evidence</span>` : '';
+  return wrap(grade, '#how-we-grade') + (top ? wrap(top, '') : '');
+}
+
 /** Header tags on supplement pages: category, safety and FDA as uniform text tags (same size as result-card tags). */
 export function headerTags(sup: Supplement): string {
   const fda = FDA_TAGS[sup.fda_status];
@@ -137,7 +157,8 @@ export function headerTags(sup: Supplement): string {
   return (
     `<span class="ww-tag">${escapeHtml(sup.category)}</span>` +
     `<span class="ww-tag${safetyCls}"><b>${safety.glyph}</b>${escapeHtml(safety.label)}</span>` +
-    `<span class="ww-tag ww-tag-dark"><b>${fda.glyph}</b>${escapeHtml(fda.label)}</span>`
+    `<span class="ww-tag ww-tag-dark"><b>${fda.glyph}</b>${escapeHtml(fda.label)}</span>` +
+    evidenceTags(sup.slug)
   );
 }
 
