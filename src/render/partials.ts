@@ -130,8 +130,8 @@ const SAFETY_TAGS: Record<SafetyStatus, { glyph: string; label: string }> = {
   prescription: { glyph: '!', label: 'Prescription' },
 };
 
-/** The slug of the published ranking the evidence tags link to; empty until the owner has published it. */
-const EVIDENCE_ARTICLE = '';
+/** The slug of the published ranking the evidence tags link to (the owner published it on 21 Nov 2026); empty: no link. */
+const EVIDENCE_ARTICLE = 'supplements-strongest-evidence-ranked';
 
 const GRADE_WORDS: Record<string, string> = { A: 'strong', B: 'good', C: 'mixed', D: 'weak' };
 
@@ -146,7 +146,7 @@ export function evidenceTags(slug: string, article = EVIDENCE_ARTICLE): string {
   const wrap = (inner: string, hash: string) => (article ? `<a href="/blog/${escapeHtml(article)}${hash}" style="text-decoration:none">${inner}</a>` : inner);
   const grade = `<span class="ww-tag${e.grade === 'A' ? ' ww-tag-good' : ''}" title="${title}"><b>${e.grade}</b>Evidence: ${GRADE_WORDS[e.grade]}</span>`;
   const top = e.rank ? `<span class="ww-tag ww-tag-dark" title="Number ${e.rank} of the ten supplements with the strongest evidence"><b>${e.rank}</b>Top 10 by evidence</span>` : '';
-  return wrap(grade, '#how-we-grade') + (top ? wrap(top, '') : '');
+  return wrap(grade, '') + (top ? wrap(top, '') : '');  // the article's headings carry no anchors, so both lead to its top
 }
 
 /** Header tags on supplement pages: category, safety and FDA as uniform text tags (same size as result-card tags). */
