@@ -1999,7 +1999,7 @@ app.post('/api/admin/trials/:slug/write', async (c) => {
   try {
     if (c.req.query('style')) {
       // ?style=felt: one more test, the whole reel remade in another look
-      const st = await addStyleTest(c.env, c.req.param('slug') ?? '', c.req.query('style') ?? '');
+      const st = await addStyleTest(c.env, c.req.param('slug') ?? '', c.req.query('style') ?? '', c.req.query('ending') ?? '');
       return st.ok ? c.json(st) : c.json({ ok: false, error: st.message }, 400);
     }
     // ?tests=1: the three tests of the daily batch (a new opening shot, the Google voice, a short cut) instead of one-line trials

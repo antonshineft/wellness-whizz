@@ -325,15 +325,25 @@ export async function trialJobs(env: VideoEnv, slug: string): Promise<{ n: numbe
 }
 
 /** Add one test that remakes the whole reel in another look (nine clips are generated: about the cost of a new reel). */
-export async function addStyleTest(env: VideoEnv, slug: string, style: string): Promise<{ ok: true; trial: TrialRow } | { ok: false; message: string }> {
+export async function addStyleTest(env: VideoEnv, slug: string, style: string, ending = ''): Promise<{ ok: true; trial: TrialRow } | { ok: false; message: string }> {
   if (style !== 'felt') return { ok: false, message: 'the only other look so far is "felt"' };
   const video = await getVideo(env.DB, slug);
   if (!video || !parseScript(video.script_json) || !video.video_url) return { ok: false, message: `no rendered video "${slug}"` };
   const already = await listTrials(env.DB, slug);
-  if (already.some((r) => r.kind === 'style' && trialData(r).style === style)) return { ok: false, message: 'this video already has that test' };
+  const mine = already.find((r) => r.kind === 'style' && trialData(r).style === style);
+  if (mine) {
+    // already there and not yet rendered: only its ending can still be chosen
+    if (mine.status === 'written' && (FOLLOW_ENDINGS as readonly string[]).includes(ending)) {
+      await env.DB.prepare('UPDATE video_trials SET ending = ? WHERE id = ?').bind(ending, mine.id).run();
+      return { ok: true, trial: (await getTrial(env.DB, slug, mine.n))! };
+    }
+    return { ok: false, message: 'this video already has that test' };
+  }
   const n = already.reduce((m, r) => Math.max(m, r.n), 0) + 1;
   await env.DB.prepare("INSERT INTO video_trials (slug, n, kind, format, line, why, data, status, created_at, updated_at) VALUES (?, ?, 'style', ?, ?, ?, ?, 'written', datetime('now'), datetime('now'))")
     .bind(slug, n, `${style} stop-motion`, 'The same script and voice, every picture remade as felt stop-motion.', 'Tests the look: felt miniatures against the hand-drawn style.', JSON.stringify({ style })).run();
+  // the owner may name the ending ("card": the follow button); otherwise the rotation gives it one
+  if ((FOLLOW_ENDINGS as readonly string[]).includes(ending)) await env.DB.prepare('UPDATE video_trials SET ending = ? WHERE slug = ? AND n = ?').bind(ending, slug, n).run();
   return { ok: true, trial: (await getTrial(env.DB, slug, n))! };
 }
 
