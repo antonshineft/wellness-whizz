@@ -159,7 +159,7 @@ export function certifiedTag(url: string): string {
   const c = CERTIFIED[url];
   if (!c) return '';
   const title = escapeHtml(`Listed by ${c.mark} as "${c.listed}" (checked ${CERTIFIED_ON}). Certification covers the listed product; sizes, flavours and lots can differ.`);
-  return `<a href="${escapeHtml(c.source)}" target="_blank" rel="noopener nofollow" style="display:block;font-size:12px;line-height:16px;font-weight:500;color:#2f7a3a;text-decoration:none;margin:2px 0 4px" title="${title}">✓ Independently tested · ${escapeHtml(c.mark)}</a>`;
+  return `<a href="${escapeHtml(c.source)}" target="_blank" rel="noopener nofollow" style="display:block;font-size:12px;line-height:16px;font-weight:500;color:#2f7a3a;text-decoration:underline;text-decoration-color:#87d581;text-underline-offset:3px;margin:2px 0 4px" title="${title}"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><path d="M2 6.4 4.8 9 10 3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Independently tested · ${escapeHtml(c.mark)}</a>`;
 }
 
 /**

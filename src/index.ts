@@ -415,10 +415,16 @@ pageRoute('/supplement/:slug', async (c, lang) => {
 
 // ---------- editorial pages ----------
 
-/** How many supplements are graded and how many shown picks carry the tested or the studied line (for /how-it-works). */
-async function checkCounts(c: Context<AppContext>): Promise<{ graded: number; tested: number; studied: number }> {
-  const picks = (await listSupplements(c.env.DB, 500, curatedOnly(c.env))).flatMap((s) => s.products.slice(0, MAX_PICKS));
-  return { graded: Object.keys(EVIDENCE).length, tested: picks.filter((p) => CERTIFIED[p.url]).length, studied: picks.filter((p) => STUDIED[p.url]).length };
+/** The numbers quoted in "How we check": graded supplements, and the products and supplements that carry each line. */
+async function checkCounts(c: Context<AppContext>): Promise<{ graded: number; gradedAB: number; testedPicks: number; testedSups: number; studiedPicks: number; studiedSups: number }> {
+  const sups = (await listSupplements(c.env.DB, 500, curatedOnly(c.env))).map((s) => s.products.slice(0, MAX_PICKS));
+  const urls = (has: (url: string) => boolean) => new Set(sups.flat().filter((p) => has(p.url)).map((p) => p.url)).size;
+  const grades = Object.values(EVIDENCE).map((e) => e.grade);
+  return {
+    graded: grades.length, gradedAB: grades.filter((g) => g === 'A' || g === 'B').length,
+    testedPicks: urls((u) => !!CERTIFIED[u]), testedSups: sups.filter((ps) => ps.some((p) => CERTIFIED[p.url])).length,
+    studiedPicks: urls((u) => !!STUDIED[u]), studiedSups: sups.filter((ps) => ps.some((p) => STUDIED[p.url])).length,
+  };
 }
 
 app.get('/how-we-check', (c) => c.redirect('/how-it-works#how-we-check', 301));

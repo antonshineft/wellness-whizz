@@ -65,7 +65,9 @@ const HOW_FAQ = [
   { q: 'What if the advisor suggests something that is not in the catalogue?', a: 'When your answers call for a supplement we have not profiled yet, the advisor writes a new profile with the same structure, ratings and warnings as the rest of the catalogue, and it joins the catalogue for everyone.' },
 ];
 
-export function renderHowItWorks(catalogueSize: number, origin: string, counts: { graded: number; tested: number; studied: number }): string {
+const CHECK_ICON = '<svg viewBox="0 0 12 12" width="14" height="14" aria-hidden="true"><path d="M2 6.4 4.8 9 10 3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+export function renderHowItWorks(catalogueSize: number, origin: string, counts: { graded: number; gradedAB: number; testedPicks: number; testedSups: number; studiedPicks: number; studiedSups: number }): string {
   const n = catalogueSize >= 50 ? `${Math.floor(catalogueSize / 10) * 10}+` : 'our';
   const body = `
       <section class="ww-steps">
@@ -74,8 +76,9 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
         <div class="ww-step"><b>3</b><h3>You get a short, explained list</h3><p>Instead of a hundred options you get three to five. Each comes with a one-paragraph reason written for your answers, product picks, and a link to the full supplement page.</p></div>
         <div class="ww-step"><b>4</b><h3>Buy with confidence</h3><p>Every recommendation links to matching products on iHerb, a retailer that ships worldwide and publishes third-party testing. We earn a small commission on purchases made through our links; you pay the same price.</p></div>
       </section>
-      <section class="ww-prose">
-        <h2>What every supplement page tells you</h2>
+      <section class="ww-prose is-how">
+        <p class="ww-toc">On this page: <a href="#page-tells">What a page tells you</a><a href="#how-we-rate">How we rate</a><a href="#how-we-check">How we check</a><a href="#who">Who we are</a></p>
+        <h2 id="page-tells">What every supplement page tells you</h2>
         <p>Each supplement in the catalogue has its own page, written to answer the questions people actually have before they buy:</p>
         <ul>
           <li><strong>Benefits and contraindications</strong>: what the supplement is used for, and who should avoid it or ask a doctor first.</li>
@@ -85,7 +88,7 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
           <li><strong>Relevant studies</strong>: links to the peer-reviewed research behind the claims, so you can read the evidence yourself.</li>
           <li><strong>Product picks</strong>: a short list of well-reviewed products on iHerb, with photos and direct links.</li>
         </ul>
-        <h2>How we rate</h2>
+        <h2 id="how-we-rate">How we rate</h2>
         <h3>Effectivity (1 to 5)</h3>
         <p>How strong and consistent the evidence is for the supplement's main uses. A 5 means several good-quality human trials or meta-analyses point the same way (creatine for strength, for example). A 1 or 2 means the evidence is early, mixed or mostly from animal studies. The score describes the research, not how you personally will respond. On supplements we have graded against the published trials, an evidence grade (A to D) replaces this score; see <a href="#how-we-check">How we check</a> below.</p>
         <h3>Safety (1 to 5)</h3>
@@ -93,24 +96,38 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
         <h3>FDA status</h3>
         <p>Whether the ingredient is approved or generally recognised as safe by the US Food and Drug Administration, is on the market without a specific approval, or has been the subject of an FDA warning. Dietary supplements are regulated differently from medicines, so "not approved" does not automatically mean unsafe, and "approved" does not mean effective. We show it because it is a useful, verifiable signal.</p>
         <h2 id="how-we-check">How we check</h2>
-        <p>Four checks sit behind a supplement page and its picks. Each says where it comes from and what it does not prove. Where we have not checked something, the page shows nothing rather than a guess.</p>
-        <h3>1. Evidence grade (A to D)</h3>
-        <p>${counts.graded} supplements carry a grade so far. Each grade is for one named outcome, the one with the best human trial evidence, and comes from published meta-analyses and randomised trials that we looked up on PubMed.</p>
-        <ul>
-          <li><strong>A, strong</strong>: several good trials or meta-analyses agree.</li>
-          <li><strong>B, good</strong>: the effect shows up in trials, with gaps or a small size.</li>
-          <li><strong>C, mixed</strong>: trials disagree, or the effect is small and uncertain.</li>
-          <li><strong>D, weak</strong>: good trials mostly found nothing.</li>
-        </ul>
-        <p>A grade describes the research on one outcome. It does not say the supplement will work for you, and it says nothing about other uses. The ten best-supported are in <a href="/blog/${EVIDENCE_ARTICLE}">our evidence ranking</a>. Supplements without a grade still show the older effectivity score, which is an editorial estimate.</p>
-        <h3>2. Dose check</h3>
-        <p>For vitamins and minerals with an official daily need and safe upper limit, we read the Supplement Facts label of each pick and show where one serving sits: below the need, within range, or above the ceiling. The limits are the published reference values, not ours. For ingredients with no official range we say so and do not rate the dose.</p>
-        <h3>3. Independently tested</h3>
-        <p>A pick carries this line only when that exact product name is on the certifier's own published list: NSF Contents Certified, NSF Certified for Sport, Informed Choice or IFOS. ${counts.tested} picks carry it today, and each line links to the list so you can check it yourself. <a href="/supplements?filter=tested">See the supplements with a tested pick</a>.</p>
-        <p>What it does not mean: the mark is for the listed product, and sizes, flavours and production lots can differ. It is never given to a whole brand. We could not read the USP list automatically, so a pick without the line only means we found no listing, not that the product failed a test.</p>
-        <h3>4. Studied ingredient</h3>
-        <p>Some products are built on a branded ingredient that has its own human trials, such as Pycnogenol pine bark or affron saffron. ${counts.studied} picks carry a line naming the ingredient, with a link to its trials on PubMed. We add it only when at least three human trials name that ingredient and it is the product's main active, not a small part of a blend.</p>
-        <p>What it does not mean: the trials tested the ingredient, usually paid for by its maker, and not the finished product you buy. The dose in a product can differ from the dose in a trial.</p>
+        <p>Four checks sit behind a supplement page and its products. Each block shows the mark as you see it on the site, where it comes from, and what it does not prove. Where we have not checked something, the page shows nothing rather than a guess.</p>
+      </section>
+      <section class="ww-checks">
+        <article class="ww-check">
+          <div class="ww-check-sample"><b class="ww-grade">A</b>Strong evidence</div>
+          <h3>Evidence grade</h3>
+          <p>${counts.graded} supplements are graded so far, ${counts.gradedAB} of them A or B. A grade is for one named outcome and comes from published meta-analyses and randomised trials on PubMed: A strong, B good, C mixed, D weak. The ten best-supported are in <a href="/blog/${EVIDENCE_ARTICLE}">our evidence ranking</a>.</p>
+          <p class="ww-check-limit"><strong>What it does not prove</strong>That the supplement will work for you, or anything about its other uses. Ungraded supplements still show the older 1 to 5 score.</p>
+          <a href="/supplements?filter=evidence">See the ${counts.gradedAB} graded A or B</a>
+        </article>
+        <article class="ww-check">
+          <div class="ww-check-sample">Above the daily need, under the safe ceiling</div>
+          <h3>Dose check</h3>
+          <p>For vitamins and minerals with an official daily need and safe upper limit, we read the Supplement Facts label of each product and show where one serving sits: below the need, in range, or above the ceiling. The limits are the published reference values, not ours.</p>
+          <p class="ww-check-limit"><strong>What it does not prove</strong>That the dose is right for you. Ingredients with no official range are not rated at all.</p>
+        </article>
+        <article class="ww-check">
+          <div class="ww-check-sample is-good">${CHECK_ICON}Independently tested · NSF Contents Certified</div>
+          <h3>Lab-tested product</h3>
+          <p>${counts.testedPicks} products across ${counts.testedSups} supplements carry this line. A product gets it only when that exact product name is on the certifier's own list: NSF Contents Certified, NSF Certified for Sport, Informed Choice or IFOS. The line links to the list so you can check it.</p>
+          <p class="ww-check-limit"><strong>What it does not prove</strong>Sizes, flavours and production lots can differ from the listed one. It is never given to a whole brand, and no line only means we found no listing.</p>
+          <a href="/supplements?filter=tested">See the ${counts.testedSups} supplements with one</a>
+        </article>
+        <article class="ww-check">
+          <div class="ww-check-sample">Contains Pycnogenol · studied in human trials</div>
+          <h3>Clinically studied ingredient</h3>
+          <p>${counts.studiedPicks} products across ${counts.studiedSups} supplements are built on a branded ingredient with its own human trials, such as Pycnogenol pine bark or affron saffron. We add the line only when at least three trials name the ingredient and it is the product's main active. It links to the trials.</p>
+          <p class="ww-check-limit"><strong>What it does not prove</strong>The trials tested the ingredient, usually paid for by its maker, not the finished product. The dose can differ from the trial dose.</p>
+          <a href="/supplements?filter=studied">See the ${counts.studiedSups} supplements with one</a>
+        </article>
+      </section>
+      <section class="ww-prose is-how">
         <h3>What we do not do</h3>
         <ul>
           <li>We do not test products in a laboratory ourselves.</li>
@@ -119,7 +136,7 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
         </ul>
         <h2>What we are not</h2>
         <p>Wellness Whizz is an information tool. It is not a medical service, the advisor is not a doctor, and nothing on this site is a diagnosis or a treatment plan. Artificial intelligence can be confidently wrong. Please read the contraindications on each page, check your medication with a pharmacist, and talk to a doctor before starting anything new if you are pregnant or breastfeeding, under 18, or managing a health condition. Who we are and how every page is drafted, reviewed and corrected is on the <a href="/about">About page</a>.</p>
-        <h2>Who is behind Wellness Whizz</h2>
+        <h2 id="who">Who is behind Wellness Whizz</h2>
         <p>A small independent team, not a supplement company. Every guide and article is drafted from cited studies, read by a member of the editorial team before it goes live, and carries the date of its last review. The <a href="/about">About page</a> explains the editorial process, the medical disclaimer, how the site is funded and how to report a mistake.</p>
         <h2>Your privacy</h2>
         <p>There is no account. Your quiz answers are stored so your results page keeps working, without your name or email. We keep a hashed version of your IP address for a short time to prevent abuse, and we count page views and outbound clicks without personal identifiers. The full picture is in our <a href="/terms">Terms and Conditions</a>.</p>
