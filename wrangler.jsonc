@@ -69,9 +69,10 @@
     // with ?brands=preview) or "false".
     "BRAND_PAGES": "true",
     "TRIALS_AUTO": "true",
-    // "tests": a new opening shot, the Google voice and a short cut (approved by the owner on 18 Nov after the Moderna
-    // batch). "lines": two opening lines and one ending, the first kind of trial.
-    "TRIALS_MODE": "tests",
+    // "shot": the reel as it went out beside ONE change, a new opening shot, at 21:00 (the owner, 23 Nov, for two weeks:
+    // until about 7 Dec, then the next idea). "tests": new opening shot, Google voice and short cut. "lines": two opening
+    // lines and one ending.
+    "TRIALS_MODE": "shot",
     "TRIALS_SKIP": "glycine-three-am-clock,saffron-price-tag",
     "VIDEO_APPROVAL": "true",
     // "false": a newly published article no longer gets video scripts written for it (the owner found them repetitive;

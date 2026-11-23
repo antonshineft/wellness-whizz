@@ -18,8 +18,9 @@ import { MAX_SCENE_WORDS, getVideo, parseScript, type VideoEnv, type VideoScript
 import { createPost, deletePost, getPost, listAccounts, postAnalytics, recentPublished, uploadVideo, type ZernioEnv } from './zernio';
 
 /** hook, ending: one spoken line changed (the first kind of trial). shot, voice, short: the three tests of a daily batch since 19 Nov 2026.
- *  style: the whole reel remade in another look (every clip is generated again), added by hand for a round. */
-export type TrialKind = 'hook' | 'ending' | 'shot' | 'voice' | 'short' | 'style';
+ *  style: the whole reel remade in another look (every clip is generated again), added by hand for a round.
+ *  control: the reel exactly as it went out, posted beside one change so the two meet the same viewers at the same hour. */
+export type TrialKind = 'hook' | 'ending' | 'shot' | 'voice' | 'short' | 'style' | 'control';
 
 export interface TrialRow {
   id: number;
@@ -201,6 +202,7 @@ export function trialJob(script: VideoScript, caption: string, row: TrialRow): T
     return { ...base, script: { ...script, scenes }, new_opening: true };
   }
   if (row.kind === 'voice') return { ...base, script, voice: 'google' };
+  if (row.kind === 'control') return { ...base, script };
   if (row.kind === 'style') return { ...base, script, style: data.style || 'felt' };
   if (row.kind === 'short') {
     const scenes = (data.scenes ?? []).filter((k) => script.scenes[k.scene - 1]).map((k) => ({ ...script.scenes[k.scene - 1], narration: k.narration, clip: k.scene }));
@@ -267,7 +269,7 @@ const testsSchema = {
  * The three tests of a rendered video (the owner, 18 Nov 2026): a new opening shot, the Google voice, a short cut.
  * One call to the Claude API writes the new opening and the cut; the voice test needs no writing.
  */
-export async function writeTests(env: VideoEnv, slug: string): Promise<{ ok: true; trials: TrialRow[] } | { ok: false; message: string }> {
+export async function writeTests(env: VideoEnv, slug: string, only: 'all' | 'shot' = 'all'): Promise<{ ok: true; trials: TrialRow[] } | { ok: false; message: string }> {
   const video = await getVideo(env.DB, slug);
   const script = video ? parseScript(video.script_json) : null;
   if (!video || !script) return { ok: false, message: `no video script for "${slug}"` };
@@ -283,14 +285,19 @@ export async function writeTests(env: VideoEnv, slug: string): Promise<{ ok: tru
   const kept = (out.short?.scenes ?? []).map((k) => ({ scene: Math.round(Number(k.scene)), narration: clean(k.narration) })).filter((k) => k.scene >= 1 && k.scene <= last).sort((a, b) => a.scene - b.scene);
   const numbers = kept.map((k) => k.scene);
   if (wordsIn(line) > MAX_SCENE_WORDS || wordsIn(line) < 8 || visual.length < 80) return { ok: false, message: 'the new opening came back unusable; ask again' };
-  if (kept.length < 4 || kept.length > 7 || new Set(numbers).size !== numbers.length || numbers[0] !== 1 || numbers[numbers.length - 1] !== last || kept.some((k) => wordsIn(k.narration) > RENDER_MAX_WORDS || wordsIn(k.narration) < 6)) {
+  if (only === 'all' && (kept.length < 4 || kept.length > 7 || new Set(numbers).size !== numbers.length || numbers[0] !== 1 || numbers[numbers.length - 1] !== last || kept.some((k) => wordsIn(k.narration) > RENDER_MAX_WORDS || wordsIn(k.narration) < 6))) {
     return { ok: false, message: `the short cut came back unusable (scenes ${numbers.join(',') || 'none'} of ${last}; words ${kept.map((k) => wordsIn(k.narration)).join(',')}; limit ${RENDER_MAX_WORDS}); ask again` };
   }
-  const rows: { kind: TrialKind; format: string; line: string; why: string; data: TrialData }[] = [
-    { kind: 'shot', format: 'new opening shot', line, why: clean(out.shot.why).slice(0, 300), data: { visual } },
-    { kind: 'voice', format: 'google voice', line: 'The same script and pictures, spoken by the Google voice.', why: 'Tests the narrator: a warm Google voice against the house voice.', data: {} },
-    { kind: 'short', format: `short cut, ${kept.length} scenes`, line: kept[0].narration, why: clean(out.short.why).slice(0, 300), data: { scenes: kept } },
-  ];
+  type Row = { kind: TrialKind; format: string; line: string; why: string; data: TrialData };
+  const shot: Row = { kind: 'shot', format: 'new opening shot', line, why: clean(out.shot.why).slice(0, 300), data: { visual } };
+  // The owner, 23 Nov 2026: one change at a time, against the reel as it went out, for two weeks; the new opening shot first.
+  const rows: Row[] = only === 'shot'
+    ? [{ kind: 'control', format: 'original', line: script.scenes[0].narration, why: 'The reel as it went out, for comparison at the same hour.', data: {} }, shot]
+    : [
+        shot,
+        { kind: 'voice', format: 'google voice', line: 'The same script and pictures, spoken by the Google voice.', why: 'Tests the narrator: a warm Google voice against the house voice.', data: {} },
+        { kind: 'short', format: `short cut, ${kept.length} scenes`, line: kept[0].narration, why: clean(out.short.why).slice(0, 300), data: { scenes: kept } },
+      ];
   let n = already.reduce((m, r) => Math.max(m, r.n), 0);
   for (const t of rows) {
     n += 1;
@@ -310,7 +317,9 @@ async function assignEndings(db: D1Database, slug: string): Promise<void> {
   if (!waiting.length) return;
   const batches = (await db.prepare("SELECT COUNT(DISTINCT slug) AS c FROM video_trials WHERE ending != '' AND slug != ?").bind(slug).first<{ c: number }>())?.c ?? 0;
   for (const r of waiting) {
-    const ending = FOLLOW_ENDINGS[(batches + r.n - 1) % FOLLOW_ENDINGS.length];
+    // a control and the one change it is compared with share an ending, so the ending is not a second difference
+    const paired = waiting.some((w) => w.kind === 'control');
+    const ending = FOLLOW_ENDINGS[(batches + (paired ? 0 : r.n - 1)) % FOLLOW_ENDINGS.length];
     await db.prepare("UPDATE video_trials SET ending = ?, updated_at = datetime('now') WHERE id = ?").bind(ending, r.id).run();
   }
 }
@@ -446,8 +455,8 @@ export async function resetTrial(env: VideoEnv, slug: string, n: number): Promis
 
 const madridDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 const madridClock = (d: Date) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
-/** When a batch goes out, Madrid time. The owner, 19 Nov 2026: 18:00 did not work, post the tests at 08:00. */
-const TRIAL_TIME = '08:00';
+/** When a batch goes out, Madrid time. The owner, 23 Nov 2026: 21:00, the hour at which tests reached about ten times the viewers of 08:00 or 18:00. */
+const TRIAL_TIME = '21:00';
 
 type TrialAutoEnv = VideoEnv & { TRIALS_AUTO?: string; TRIALS_SKIP?: string; TRIALS_MODE?: string };
 
@@ -469,21 +478,21 @@ export async function nextTrialBatch(env: TrialAutoEnv): Promise<{ slug: string 
   if ((env.TRIALS_SKIP ?? '').split(',').map((s) => s.trim()).includes(slug)) return { slug, reason: 'this video is on the skip list (its raw clips are not clean)', jobs: [] };
   const existing = await listTrials(env.DB, slug);
   if (!existing.length) {
-    // TRIALS_MODE "tests": the three tests (new opening shot, Google voice, short cut). Anything else: two openings and one ending, as before.
-    const written = env.TRIALS_MODE === 'tests' ? await writeTests(env, slug) : await writeTrials(env, slug, 2, 1);
+    // TRIALS_MODE "shot": the original beside a new opening shot. "tests": new opening shot, Google voice, short cut. Anything else: two openings and one ending.
+    const written = env.TRIALS_MODE === 'shot' ? await writeTests(env, slug, 'shot') : env.TRIALS_MODE === 'tests' ? await writeTests(env, slug) : await writeTrials(env, slug, 2, 1);
     if (!written.ok) return { slug, reason: `writing failed: ${written.message}`, jobs: [] };
   }
   const jobs = await trialJobs(env, slug);
   return { slug, reason: jobs.length ? 'render these' : 'this video already has its trials', jobs };
 }
 
-/** Schedule every rendered ("ready") trial of a video for the next 08:00 (Madrid), two minutes apart. */
+/** Schedule every rendered ("ready") trial of a video for the next 21:00 (Madrid), two minutes apart. */
 export async function autoPostTrials(env: TrialAutoEnv, slug: string): Promise<{ ok: boolean; posted: { n: number; when: string }[]; errors: string[] }> {
   if (env.TRIALS_AUTO !== 'true') return { ok: false, posted: [], errors: ['TRIALS_AUTO is not "true"'] };
   const ready = (await listTrials(env.DB, slug)).filter((r) => r.status === 'ready');
   if (!ready.length) return { ok: false, posted: [], errors: ['nothing rendered is waiting'] };
   const now = new Date();
-  // today when 08:00 is still at least a quarter of an hour away, otherwise tomorrow
+  // today when that hour is still at least a quarter of an hour away, otherwise tomorrow
   const day = madridClock(new Date(now.getTime() + 15 * 60_000)) < TRIAL_TIME && madridDay(new Date(now.getTime() + 15 * 60_000)) === madridDay(now) ? madridDay(now) : madridDay(new Date(now.getTime() + 24 * 3600_000));
   const [h, m] = TRIAL_TIME.split(':').map(Number);
   const posted: { n: number; when: string }[] = [];
