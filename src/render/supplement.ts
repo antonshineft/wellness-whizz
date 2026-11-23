@@ -10,6 +10,7 @@ import { reviewedLine } from './pages';
 import {
   EFFECTIVITY_LABELS, SAFETY_LABELS, WF_PAGE_IDS, blendAttr, cardImage, detailImage, exploreSection, footer, headerTags, navbar,
   AFFILIATE_NOTE, productPicks, ratingImage, relatedSection, stickyBuyBar,
+  certifiedTag,
 } from './partials';
 
 const PRODUCT_CARD_IDS = [
@@ -164,6 +165,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandP
               <div class="ww-top-photo">${image}</div>
               <div class="ww-top-name">${escapeHtml(p.name)}</div>
               <div class="ww-top-meta">${brandLabel(p.brand, brandPath)}${r.d && dose ? `${p.brand ? ' · ' : ''}${doseLine(dose, r.d)}` : ''}</div>
+              ${certifiedTag(p.url)}
               ${r.d && dose ? doseScale(dose, r.d) : doseLimits(dose, p.url) ?? doseBlank(dose, false, sup.name)}
               <a href="${escapeHtml(shopUrl(env, sup, p))}" target="_blank" rel="noopener nofollow sponsored" class="outbutton w-button" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}" data-product="${escapeHtml(p.name)}">Buy on iHerb</a>
             </article>`;

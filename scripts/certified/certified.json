@@ -1,0 +1,230 @@
+{
+ "checked": "2026-11-23",
+ "note": "Each entry was matched by product name against the certifier's own published list on the checked date. Certification is for the listed product; sizes, flavours and lots can differ.",
+ "products": {
+  "https://www.iherb.com/pr/thorne-5-hydroxytryptophan-90-capsules/18506": {
+   "brand": "Thorne",
+   "product": "5-Hydroxytryptophan",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne 5-HTP"
+  },
+  "https://www.iherb.com/pr/thorne-alpha-lipoic-acid-60-capsules-300-mg-per-capsule/18734": {
+   "brand": "Thorne",
+   "product": "Alpha-Lipoic Acid",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne Alpha-Lipoic Acid"
+  },
+  "https://www.iherb.com/pr/thorne-boswellia-phytosome-60-capsules-350-mg-per-capsule/70004": {
+   "brand": "Thorne",
+   "product": "Boswellia Phytosome",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne Boswellia Phytosome"
+  },
+  "https://iherb.co/8kUyHzEo": {
+   "brand": "Dymatize",
+   "product": "Elite Casein",
+   "mark": "Informed Choice",
+   "source": "https://choice.wetestyoutrust.com/sites/default/files/generated-pdf/file.pdf",
+   "listed_as": "Elite Casein (USA)"
+  },
+  "https://iherb.co/FSeUbmAd": {
+   "brand": "Optimum Nutrition",
+   "product": "Gold Standard Casein",
+   "mark": "Informed Choice",
+   "source": "https://choice.wetestyoutrust.com/sites/default/files/generated-pdf/file.pdf",
+   "listed_as": "ON Gold Standard 100% Casein (USA)"
+  },
+  "https://www.iherb.com/pr/thorne-glucosamine-chondroitin-90-capsules/18565": {
+   "brand": "Thorne",
+   "product": "Glucosamine & Chondroitin",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne Glucosamine & Chondroitin"
+  },
+  "https://iherb.co/T9bQRMT2": {
+   "brand": "Sports Research",
+   "product": "Collagen Peptides",
+   "mark": "Informed Choice",
+   "source": "https://choice.wetestyoutrust.com/sites/default/files/generated-pdf/file.pdf",
+   "listed_as": "Collagen Peptides Powder"
+  },
+  "https://iherb.co/HPp2HWpd": {
+   "brand": "Optimum Nutrition",
+   "product": "Micronized Creatine Powder",
+   "mark": "Informed Choice",
+   "source": "https://choice.wetestyoutrust.com/sites/default/files/generated-pdf/file.pdf",
+   "listed_as": "Micronized Creatine Powder"
+  },
+  "https://iherb.co/EDTboeiX": {
+   "brand": "Nuun",
+   "product": "Sport Effervescent Electrolyte Supplement",
+   "mark": "Informed Choice",
+   "source": "https://choice.wetestyoutrust.com/sites/default/files/generated-pdf/file.pdf",
+   "listed_as": "Nuun Hydration Sport"
+  },
+  "https://www.iherb.com/pr/dripdrop-electrolyte-drink-mix-watermelon-8-sticks-0-35-oz-10-g-each/157494": {
+   "brand": "DripDrop",
+   "product": "Electrolyte Drink Mix Watermelon",
+   "mark": "NSF Certified for Sport",
+   "source": "https://www.nsfsport.com/certified-products/listing-detail.php?id=1204217",
+   "listed_as": "DripDrop Watermelon"
+  },
+  "https://www.iherb.com/pr/thorne-pharmagaba-100-60-capsules-100-mg-per-capsule/18741": {
+   "brand": "Thorne",
+   "product": "PharmaGABA-100",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne PharmaGABA-100"
+  },
+  "https://iherb.co/7eJCoQoP": {
+   "brand": "Thorne",
+   "product": "L-Glutamine Powder",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne L-Glutamine Powder"
+  },
+  "https://iherb.co/wBxD1s9B": {
+   "brand": "Thorne",
+   "product": "Trace Minerals",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne Trace Minerals"
+  },
+  "https://iherb.co/T52Kh1Jt": {
+   "brand": "Sports Research",
+   "product": "Organic Mct Oil",
+   "mark": "Informed Choice",
+   "source": "https://choice.wetestyoutrust.com/sites/default/files/generated-pdf/file.pdf",
+   "listed_as": "MCT Oil Organic C8 C10 C12"
+  },
+  "https://iherb.co/VYWC2dQN": {
+   "brand": "Garden of Life",
+   "product": "Raw Organic Protein",
+   "mark": "Informed Choice",
+   "source": "https://choice.wetestyoutrust.com/sites/default/files/generated-pdf/file.pdf",
+   "listed_as": "Raw Organic Protein"
+  },
+  "https://iherb.co/qSC22BJU": {
+   "brand": "Thorne",
+   "product": "Basic Nutrients 2/Day",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne Basic Nutrients 2/Day"
+  },
+  "https://iherb.co/aF2vWvxU": {
+   "brand": "Sports Research",
+   "product": "Omega-3 Fish Oil Triple",
+   "mark": "IFOS",
+   "source": "https://certifications.nutrasource.ca/certified-products/product?id=SPRT0002",
+   "listed_as": "Omega-3 Fish Oil AlaskOmega 1250 mg"
+  },
+  "https://iherb.co/scAxYMHY": {
+   "brand": "Optimum Nutrition",
+   "product": "Gold Standard Whey",
+   "mark": "Informed Choice",
+   "source": "https://choice.wetestyoutrust.com/sites/default/files/generated-pdf/file.pdf",
+   "listed_as": "ON Gold Standard 100% Whey"
+  },
+  "https://iherb.co/G6qtKVvG": {
+   "brand": "Thorne",
+   "product": "Basic Prenatal",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne Basic Prenatal"
+  },
+  "https://www.iherb.com/pr/dymatize-elite-casein-protein-powder-cookies-cream-4-lbs-1-8-kg/87271": {
+   "brand": "Dymatize",
+   "product": "Elite Casein Cookies & Cream",
+   "mark": "Informed Choice",
+   "source": "https://choice.wetestyoutrust.com/sites/default/files/generated-pdf/file.pdf",
+   "listed_as": "Elite Casein (USA)"
+  },
+  "https://iherb.co/2F5Snb5g": {
+   "brand": "Dymatize",
+   "product": "Iso100 Hydrolyzed",
+   "mark": "Informed Choice",
+   "source": "https://choice.wetestyoutrust.com/sites/default/files/generated-pdf/file.pdf",
+   "listed_as": "ISO100 Hydrolyzed Protein Powder (USA)"
+  },
+  "https://iherb.co/jpK9pvYe": {
+   "brand": "Animal",
+   "product": "Whey Protein Strawberry",
+   "mark": "Informed Choice",
+   "source": "https://choice.wetestyoutrust.com/sites/default/files/generated-pdf/file.pdf",
+   "listed_as": "Animal Whey"
+  },
+  "https://www.iherb.com/pr/legion-athletics-whey-whey-protein-powder-french-vanilla-1-8-lbs-816-g/142101": {
+   "brand": "Legion Athletics",
+   "product": "Whey+ Whey Protein Powder French Vanilla",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Legion",
+   "listed_as": "Legion Whey+ Grass-Fed Whey Isolate French Vanilla"
+  },
+  "https://iherb.co/7zMmwVQy": {
+   "brand": "Thorne",
+   "product": "Quercetin Phytosome",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne Quercetin Phytosome"
+  },
+  "https://www.iherb.com/pr/thorne-rhodiola-60-capsules-100-mg-per-capsule/18583": {
+   "brand": "Thorne",
+   "product": "Rhodiola 100 mg",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne Rhodiola"
+  },
+  "https://www.iherb.com/pr/thorne-riboflavin-5-phosphate-36-5-mg-60-capsules/18434": {
+   "brand": "Thorne",
+   "product": "Riboflavin 5' Phosphate 36.5 mg",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne Riboflavin 5' Phosphate"
+  },
+  "https://iherb.co/JsHTpxDX": {
+   "brand": "Thorne",
+   "product": "Selenium 200 mcg",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne Selenium"
+  },
+  "https://iherb.co/5uZTNeHd": {
+   "brand": "Thorne",
+   "product": "Vitamin K",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne Vitamin K"
+  },
+  "https://iherb.co/o86bnybp": {
+   "brand": "Optimum Nutrition",
+   "product": "Gold Standard Whey",
+   "mark": "Informed Choice",
+   "source": "https://choice.wetestyoutrust.com/sites/default/files/generated-pdf/file.pdf",
+   "listed_as": "ON Gold Standard 100% Whey"
+  },
+  "https://www.iherb.com/pr/dymatize-iso100-hydrolyzed-100-whey-protein-isolate-gourmet-chocolate-1-43-lb-650-g/114524": {
+   "brand": "Dymatize",
+   "product": "ISO100 Hydrolyzed 100% Whey Protein Isolate",
+   "mark": "Informed Choice",
+   "source": "https://choice.wetestyoutrust.com/sites/default/files/generated-pdf/file.pdf",
+   "listed_as": "ISO100 Hydrolyzed Protein Powder (USA)"
+  },
+  "https://iherb.co/TXrtTnUS": {
+   "brand": "21st Century",
+   "product": "One Daily Women's",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=21st+Century",
+   "listed_as": "21st Century ONE DAILY Women's"
+  },
+  "https://www.iherb.com/pr/thorne-zinc-picolinate-15-mg-60-capsules/18476": {
+   "brand": "Thorne",
+   "product": "Zinc Picolinate 15 mg",
+   "mark": "NSF Contents Certified",
+   "source": "https://info.nsf.org/Certified/Dietary/Listings.asp?CompanyName=Thorne",
+   "listed_as": "Thorne Zinc Picolinate 15 mg"
+  }
+ }
+}

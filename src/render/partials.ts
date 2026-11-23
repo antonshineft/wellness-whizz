@@ -1,4 +1,5 @@
 /** Reusable fragments that mirror the exported Webflow markup (same classes, so the exported CSS applies). */
+import { CERTIFIED, CERTIFIED_ON } from '../certified';
 import type { FdaStatus, FormType, Product, SafetyStatus, Supplement } from '../db';
 import { structureAlt } from '../structures';
 import { STRUCTURES_3D } from '../structures3d';
@@ -147,6 +148,17 @@ export function evidenceTags(slug: string, article = EVIDENCE_ARTICLE): string {
   const grade = `<span class="ww-tag${e.grade === 'A' ? ' ww-tag-good' : ''}" title="${title}"><b>${e.grade}</b>Evidence: ${GRADE_WORDS[e.grade]}</span>`;
   const top = e.rank ? `<span class="ww-tag ww-tag-dark" title="Number ${e.rank} of the ten supplements with the strongest evidence"><b>${e.rank}</b>Top 10 by evidence</span>` : '';
   return wrap(grade, '') + (top ? wrap(top, '') : '');  // the article's headings carry no anchors, so both lead to its top
+}
+
+/**
+ * A mark on a pick that is on an independent certifier's own published list (src/certified.ts). It names the certifier
+ * and links to the list, so the reader can check it; no mark means only that no listing was found.
+ */
+export function certifiedTag(url: string): string {
+  const c = CERTIFIED[url];
+  if (!c) return '';
+  const title = escapeHtml(`Listed by ${c.mark} as "${c.listed}" (checked ${CERTIFIED_ON}). Certification covers the listed product; sizes, flavours and lots can differ.`);
+  return `<a href="${escapeHtml(c.source)}" target="_blank" rel="noopener nofollow" class="ww-tag ww-tag-good" style="text-decoration:none;align-self:flex-start;margin:6px 0" title="${title}"><b>✓</b>Independently tested · ${escapeHtml(c.mark)}</a>`;
 }
 
 /** Header tags on supplement pages: category, safety and FDA as uniform text tags (same size as result-card tags). */
