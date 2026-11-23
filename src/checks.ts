@@ -283,6 +283,9 @@ export async function stepChecks(env: CheckEnv): Promise<{ step: string; left: n
 
 // ---------- what the site shows, and what the owner reads ----------
 
+/** iHerb's rating of each pick, from the last shop check: what a product card may quote. */
+export const SHOP: Record<string, { rating: number; ratings: number }> = {};
+
 let loadedAt = 0;
 const seed = { ...CERTIFIED };
 /** Bring the marks the pages show (the CERTIFIED map) in line with the database: at most every ten minutes per isolate. */
@@ -295,6 +298,10 @@ export async function loadMarks(db: D1Database): Promise<void> {
     Object.assign(CERTIFIED, seed);
     for (const r of rows.filter((x) => x.state === 'off')) if (CERTIFIED[r.url]?.mark === SOURCE.get(r.source)?.mark) delete CERTIFIED[r.url];
     for (const r of rows.filter((x) => x.state === 'on')) if (!CERTIFIED[r.url] && SOURCE.get(r.source)) CERTIFIED[r.url] = { mark: SOURCE.get(r.source)!.mark, source: r.link || SOURCE.get(r.source)!.home, listed: r.listed };
+    for (const r of (await db.prepare('SELECT url, json FROM pick_shop').all<{ url: string; json: string }>()).results) {
+      const j = JSON.parse(r.json) as { rating?: number; ratings?: number };
+      SHOP[r.url] = { rating: j.rating ?? 0, ratings: j.ratings ?? 0 };
+    }
   } catch {
     /* the tables do not exist yet: the seed stands */
   }

@@ -78,7 +78,7 @@ const SAFETY_BADGES: Record<SafetyStatus, { src: string; alt: string; width: num
 };
 
 export const EFFECTIVITY_LABELS = ['Possible', 'Supportive', 'Reasonable', 'Potent', 'Clinically Proven'] as const;
-export const SAFETY_LABELS = ['Cautionary', 'Mild Risk', 'Secure', 'Safe', 'Proven Safe'] as const;
+export const SAFETY_LABELS = ['Cautionary', 'Mild Risk', 'Secure', 'Safe', 'Well tolerated'] as const;
 
 /** Path of the image the result card shows: the supplement's own picture, else the illustration for its form. */
 export function cardImageSrc(sup: Supplement): string {
@@ -126,7 +126,7 @@ const FDA_TAGS: Record<FdaStatus, { glyph: string; label: string }> = {
   not_approved: { glyph: '−', label: 'Not FDA approved' },
 };
 const SAFETY_TAGS: Record<SafetyStatus, { glyph: string; label: string }> = {
-  safe: { glyph: '✓', label: 'Safe' },
+  safe: { glyph: '✓', label: 'Well tolerated' },
   ok: { glyph: '?', label: 'Mostly safe' },
   not_safe: { glyph: '−', label: 'Not safe' },
   prescription: { glyph: '!', label: 'Prescription' },
@@ -159,7 +159,7 @@ export function certifiedTag(url: string): string {
   const c = CERTIFIED[url];
   if (!c) return '';
   const title = escapeHtml(`Listed by ${c.mark} as "${c.listed}" (checked ${CERTIFIED_ON}). Certification covers the listed product; sizes, flavours and lots can differ.`);
-  return `<a href="${escapeHtml(c.source)}" target="_blank" rel="noopener nofollow" style="display:block;font-size:12px;line-height:16px;font-weight:500;color:#2f7a3a;text-decoration:underline;text-decoration-color:#87d581;text-underline-offset:3px;margin:2px 0 4px" title="${title}"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><path d="M2 6.4 4.8 9 10 3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Independently tested · ${escapeHtml(c.mark)}</a>`;
+  return `<a href="${escapeHtml(c.source)}" target="_blank" rel="noopener nofollow" style="display:block;font-size:12px;line-height:16px;font-weight:500;color:#2f7a3a;text-decoration:underline;text-decoration-color:#87d581;text-underline-offset:3px;padding:6px 0;margin:-2px 0" title="${title}"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><path d="M2 6.4 4.8 9 10 3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Independently tested · ${escapeHtml(c.mark)}</a>`;
 }
 
 /**
@@ -353,11 +353,16 @@ export function productPicks(env: LinkEnv, sup: Supplement): string {
     </section>`;
 }
 
-/** Sticky "buy" bar shown on small screens. */
+/**
+ * Sticky "buy" bar on small screens. It names the product it opens, and stays out of the way while a product list
+ * (the strip under the header or the ranked picks) is on screen, so it never covers the buttons it repeats.
+ */
 export function stickyBuyBar(env: LinkEnv, sup: Supplement): string {
   const product = primaryProduct(sup);
+  const what = product ? [product.brand, product.name].filter(Boolean).join(' ') : sup.name;
   return `
-  <div class="ww-sticky"><span>Buy <strong>${escapeHtml(sup.name)}</strong> on iHerb</span><a href="${escapeHtml(shopUrl(env, sup, product))}" ${OUTBOUND_ATTRS} class="outbutton w-button" ${trackAttrs(sup, product)}>Buy now</a></div>`;
+  <div class="ww-sticky is-off" id="ww-sticky"><span><strong>${escapeHtml(what)}</strong></span><a href="${escapeHtml(shopUrl(env, sup, product))}" ${OUTBOUND_ATTRS} class="outbutton w-button" ${trackAttrs(sup, product)}>Buy on iHerb</a></div>
+  <script>(function(){var bar=document.getElementById('ww-sticky'),lists=document.querySelectorAll('.ww-strip-wrap,.ww-top,.gallery-scroll-2,footer,.footer');if(!bar||!('IntersectionObserver' in window)){if(bar)bar.classList.remove('is-off');return}var seen=new Set();var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)seen.add(e.target);else seen.delete(e.target)});bar.classList.toggle('is-off',seen.size>0||window.scrollY<300)});lists.forEach(function(l){io.observe(l)});window.addEventListener('scroll',function(){bar.classList.toggle('is-off',seen.size>0||window.scrollY<300)},{passive:true})})();</script>`;
 }
 
 export const AFFILIATE_NOTE = 'As an iHerb affiliate, Wellness Whizz earns from qualifying purchases at no extra cost to you. Prices and availability are shown on iHerb.';

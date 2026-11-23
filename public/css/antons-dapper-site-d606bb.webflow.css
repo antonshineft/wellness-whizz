@@ -3285,7 +3285,7 @@ a {
   -webkit-text-fill-color: inherit;
   object-fit: fill;
   background-color: #000;
-  background-image: linear-gradient(#1d272d00, #1d272d 92%), url('../images/Wellnnessback.png');
+  background-image: linear-gradient(#1d272d00, #1d272d 92%), url('../images/Wellnnessback.jpg');
   background-position: 0 0, 50% 0;
   background-size: auto, cover;
   background-clip: border-box;

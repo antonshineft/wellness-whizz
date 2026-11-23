@@ -962,3 +962,19 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-check-limit strong { display: block; font-size: 13px; letter-spacing: .02em; margin-bottom: 2px; }
 .ww-check > a { font-size: 15px; font-weight: 500; color: #1d272d; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #87d581; text-decoration-thickness: 2px; }
 .ww-prose.is-how { max-width: 700px; }
+
+/* Supplement page, from the design review: the sticky bar keeps away from the product lists, lists do not break mid-item. */
+@media (max-width: 767px) {
+  .ww-sticky { transition: transform .25s cubic-bezier(.16, 1, .3, 1), opacity .25s; }
+  .ww-sticky.is-off { transform: translateY(140%); opacity: 0; pointer-events: none; }
+  .ww-sticky span { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+}
+.frame-207, .frame-208 { min-width: 0; max-width: 100%; }
+.rich-text-block-2.two-columns { max-width: calc(100% + 20px); box-sizing: border-box; }
+.rich-text-block-2.two-columns ol, .rich-text-block-2.two-columns ul { column-count: 1 !important; box-sizing: border-box; width: 100%; min-width: 0; overflow: visible; }
+.rich-text-block-2.two-columns li { break-inside: avoid; overflow-wrap: break-word; }
+.ww-top-how { font-family: Aeonik, sans-serif; font-size: 14px; line-height: 20px; color: #4a5a63; margin: 8px 0 0; }
+.ww-top-how a { color: #1d272d; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #87d581; text-decoration-thickness: 2px; }
+.ww-all-link { text-align: center; margin: 8px auto 56px; font-family: Aeonik, sans-serif; font-size: 18px; font-weight: 500; }
+.ww-all-link a { color: #1d272d; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #87d581; text-decoration-thickness: 2px; }
+.info.ww-info-early { margin-bottom: 24px; }

@@ -4,6 +4,7 @@ import type { Supplement } from '../db';
 import { MAX_PICKS, STATE_RANK, doseBlank, doseFor, doseLimits, doseLine, doseScale, type DoseCheck } from '../dose';
 import { escapeHtml } from '../html';
 import { EVIDENCE } from '../evidence';
+import { SHOP } from '../checks';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
 import { noteLabel, notePath, type ResearchNote } from '../research';
@@ -63,6 +64,12 @@ function ratingBlock(title: string, labels: readonly string[], value: number, sa
               </div>`;
 }
 
+/** What iHerb's buyers say, from the weekly product check (src/checks.ts): shown once a product has a real number of ratings. */
+function ratingLine(url: string): string {
+  const r = SHOP[url];
+  return r && r.ratings >= 50 && r.rating > 0 ? `<div style="font-size:12px;line-height:16px;font-weight:500;color:#4a5a63;margin:2px 0 4px">Rated ${r.rating.toFixed(1)} of 5 by ${r.ratings.toLocaleString('en-US')} iHerb buyers</div>` : '';
+}
+
 /** On a graded supplement the evidence grade stands where the old effectivity bars were (src/evidence.ts). */
 function evidenceBlock(slug: string): string {
   const e = EVIDENCE[slug];
@@ -79,7 +86,7 @@ function evidenceBlock(slug: string): string {
                   <div class="frame-187">
                     <div class="frame-188">
                       <div class="frame-189">
-                        <div class="text-39"><strong>${word}</strong></div>
+                        <div class="text-39"><strong>${word}</strong><span style="display:block;font-size:12px;line-height:16px;font-weight:500;opacity:.85;margin-top:2px">for ${escapeHtml(e.outcome.charAt(0).toLowerCase() + e.outcome.slice(1))}</span></div>
                       </div>
                     </div>
                     <a href="/how-it-works#how-we-check" class="frame-190" style="text-decoration:none" title="${escapeHtml(`Evidence grade ${e.grade} (${word.toLowerCase()}) for: ${e.outcome}`)}"><span style="display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;border:3px solid #1d272d;color:#1d272d;font-family:Aeonik,sans-serif;font-size:30px;line-height:1;font-weight:700">${e.grade}</span></a>
@@ -191,7 +198,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandP
               <div class="ww-top-photo">${image}</div>
               <div class="ww-top-name">${escapeHtml(p.name)}</div>
               <div class="ww-top-meta">${brandLabel(p.brand, brandPath)}${r.d && dose ? `${p.brand ? ' · ' : ''}${doseLine(dose, r.d)}` : ''}</div>
-              ${certifiedTag(p.url)}${studiedTag(p.url)}
+              ${certifiedTag(p.url)}${studiedTag(p.url)}${ratingLine(p.url)}
               ${r.d && dose ? doseScale(dose, r.d) : doseLimits(dose, p.url) ?? doseBlank(dose, false, sup.name)}
               <a href="${escapeHtml(shopUrl(env, sup, p))}" target="_blank" rel="noopener nofollow sponsored" class="outbutton w-button" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}" data-product="${escapeHtml(p.name)}">Buy on iHerb</a>
             </article>`;
@@ -200,7 +207,8 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandP
   return `
     <section class="ww-top" aria-label="Top picks">
       <div class="ww-top-side">
-        <h3 class="heading-3">${escapeHtml(picksHeading(sup).replace('Top 5 Picks', `Top ${products.length} Picks`))}</h3>
+        <h2 class="heading-3">${escapeHtml(picksHeading(sup).replace('Top 5 Picks', `Top ${products.length} Picks`))}</h2>
+        <p class="ww-top-how">${dose ? 'Ranked by how well one serving fits the reference range. Where that ties, our editors\' order stands.' : 'In our editors\' order.'} <a href="/how-it-works#how-we-check">How we check</a></p>
         <ol class="ww-top-list">
             ${list}
         </ol>
@@ -240,7 +248,7 @@ function insightsSection(sup: Supplement): string {
   const why = sup.why_consider
     ? `
       <div data-w-id="a6669be3-1761-c7e4-ff8a-36b268ed4aac" style="opacity:0" class="frame-209">
-        <h3 class="heading-green">Why You Should Consider to take it? </h3>
+        <h3 class="heading-green">Why consider ${escapeHtml(sup.name)}?</h3>
         <div class="regular-on-green">${escapeHtml(sup.why_consider)}</div>
       </div>
       <div class="div-block-15"></div>`
@@ -248,7 +256,7 @@ function insightsSection(sup: Supplement): string {
   const holistic = sup.holistic_html
     ? `
       <div data-w-id="73d1e791-d515-c74d-e8a9-59ee0ec00260" style="opacity:0" class="frame-209">
-        <h3 class="heading-green">Holistic Highlights</h3>
+        <h3 class="heading-green">The full guide</h3>
         <div>
           <div class="rich-text-block-4 w-richtext">${sup.holistic_html}</div>
         </div>
@@ -493,22 +501,27 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
       </div>${infoColumn({
         title: 'Benefits',
         icon: '<img src="/images/Vectors-Wrapper_5.svg" loading="lazy" width="36" height="36" alt="Benefit Smiley Face" class="vectors-wrapper-36">',
-        tagline: 'Empowering your journey towards optimal Well-being',
+        tagline: 'What trials found, strongest evidence first',
         safe: false,
         rating: EVIDENCE[sup.slug] ? evidenceBlock(sup.slug) : ratingBlock('EFFECTIVITY', EFFECTIVITY_LABELS, sup.effectivity, false),
         html: sup.benefits_html,
       })}${infoColumn({
         title: 'Contraindications',
         icon: '<img src="/images/Frame-96.svg" loading="lazy" width="40" height="36" alt="Caution Warning" class="vectors-wrapper-36">',
-        tagline: 'Navigate safely: Awareness for healthier decisions',
+        tagline: 'Who should skip it or ask a doctor first',
         safe: true,
         rating: ratingBlock('SAFETY', SAFETY_LABELS, sup.safety, true),
         html: sup.contraindications_html,
       })}
-    </div>${extras.dose === undefined ? productCards(env, sup) : picksGrid(env, sup, extras.dose, extras.brandPath)}
+    </div>
   </div>
-  <section class="info">${synergySection(sup)}${insightsSection(sup)}${studiesSection(sup)}${researchSection(extras.notes ?? [])}${faqSection(sup)}
-  </section>${relatedSection(extras.related ?? [])}${exploreSection(explore)}${extras.brandStrip ?? ''}${footer()}${stickyBuyBar(env, sup)}`;
+  <section class="info ww-info-early">${synergySection(sup)}
+  </section>
+  <div class="ww-picks-late">${extras.dose === undefined ? productCards(env, sup) : picksGrid(env, sup, extras.dose, extras.brandPath)}
+  </div>
+  <section class="info">${insightsSection(sup)}${studiesSection(sup)}${researchSection(extras.notes ?? [])}${faqSection(sup)}
+  </section>${relatedSection(extras.related ?? [])}
+  <p class="ww-all-link"><a href="/supplements">Browse all ${explore.length || ''} supplements</a></p>${extras.brandStrip ?? ''}${footer()}${stickyBuyBar(env, sup)}`;
 
   return page({
     title: seoTitle(sup),

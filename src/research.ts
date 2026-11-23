@@ -446,5 +446,7 @@ export function pubmedUrl(pmid: string): string {
 }
 
 export function noteLabel(n: ResearchNote): string {
-  return escapeHtml([n.journal, n.pub_date].filter(Boolean).join(', '));
+  // An issue dated ahead of today (a journal's cover date) shows its year only: a future day reads as a mistake.
+  const ahead = n.pub_date && Date.parse(n.pub_date) > Date.now();
+  return escapeHtml([n.journal, ahead ? n.pub_date!.slice(0, 4) : n.pub_date].filter(Boolean).join(', '));
 }

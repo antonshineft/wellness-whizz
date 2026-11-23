@@ -84,7 +84,7 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
           <li><strong>Benefits and contraindications</strong>: what the supplement is used for, and who should avoid it or ask a doctor first.</li>
           <li><strong>Effectivity and safety ratings</strong>: two five-point scales, explained below, plus the FDA status of the ingredient.</li>
           <li><strong>How it works with other supplements</strong>: combinations that enhance each other and combinations that interact.</li>
-          <li><strong>Holistic Highlights</strong>: a longer article on how it works, who benefits most, how to take it and how it fits into sleep, diet and training.</li>
+          <li><strong>The full guide</strong>: a longer article on how it works, who benefits most, how to take it and how it fits into sleep, diet and training.</li>
           <li><strong>Relevant studies</strong>: links to the peer-reviewed research behind the claims, so you can read the evidence yourself.</li>
           <li><strong>Product picks</strong>: a short list of well-reviewed products on iHerb, with photos and direct links.</li>
         </ul>
@@ -92,7 +92,7 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
         <h3>Effectivity (1 to 5)</h3>
         <p>How strong and consistent the evidence is for the supplement's main uses. A 5 means several good-quality human trials or meta-analyses point the same way (creatine for strength, for example). A 1 or 2 means the evidence is early, mixed or mostly from animal studies. The score describes the research, not how you personally will respond. On supplements we have graded against the published trials, an evidence grade (A to D) replaces this score; see <a href="#how-we-check">How we check</a> below.</p>
         <h3>Safety (1 to 5)</h3>
-        <p>How much caution the supplement calls for at typical doses in healthy adults. A 5 ("safe") has a long record of use and few interactions. Lower scores mean there are meaningful interactions, side effects at common doses, or groups of people who should not take it. Supplements marked "prescription" are not sold over the counter in most countries.</p>
+        <p>How much caution the supplement calls for at typical doses in healthy adults. A 5 ("well tolerated") has a long record of use and few interactions in healthy adults; the page still lists who should avoid it. Lower scores mean there are meaningful interactions, side effects at common doses, or groups of people who should not take it. Supplements marked "prescription" are not sold over the counter in most countries.</p>
         <h3>FDA status</h3>
         <p>Whether the ingredient is approved or generally recognised as safe by the US Food and Drug Administration, is on the market without a specific approval, or has been the subject of an FDA warning. Dietary supplements are regulated differently from medicines, so "not approved" does not automatically mean unsafe, and "approved" does not mean effective. We show it because it is a useful, verifiable signal.</p>
         <h2 id="how-we-check">How we check</h2>
