@@ -30,7 +30,7 @@ function tile(sup: Supplement): string {
   const c = checksOf(sup);
   const marks =
     (c.grade ? `<span class="ww-tile-mark"><b class="ww-grade">${c.grade}</b>${GRADE_WORD[c.grade]}</span>` : '') +
-    (c.tested.length ? `<span class="ww-tile-mark is-good">${CHECK}Lab-tested product: ${escapeHtml(c.tested.join(', '))}</span>` : '') +
+    (c.tested.length ? `<span class="ww-tile-mark is-good">${CHECK}Lab-tested product</span>` : '') +
     (c.studied.length ? `<span class="ww-tile-mark">${CHECK}Studied: ${escapeHtml(c.studied.slice(0, 2).join(', '))}${c.studied.length > 2 ? ` +${c.studied.length - 2}` : ''}</span>` : '');
   return `
         <a href="/supplement/${escapeHtml(sup.slug)}" class="ww-related-tile" data-checks="${c.keys.join(' ')}" data-name="${escapeHtml(`${sup.name} ${sup.category}`.toLowerCase())}">
