@@ -513,13 +513,9 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
         rating: ratingBlock('SAFETY', SAFETY_LABELS, sup.safety, true),
         html: sup.contraindications_html,
       })}
-    </div>
+    </div>${extras.dose === undefined ? productCards(env, sup) : picksGrid(env, sup, extras.dose, extras.brandPath)}
   </div>
-  <section class="info ww-info-early">${synergySection(sup)}
-  </section>
-  <div class="ww-picks-late">${extras.dose === undefined ? productCards(env, sup) : picksGrid(env, sup, extras.dose, extras.brandPath)}
-  </div>
-  <section class="info">${insightsSection(sup)}${studiesSection(sup)}${researchSection(extras.notes ?? [])}${faqSection(sup)}
+  <section class="info">${synergySection(sup)}${insightsSection(sup)}${studiesSection(sup)}${researchSection(extras.notes ?? [])}${faqSection(sup)}
   </section>${relatedSection(extras.related ?? [])}
   <p class="ww-all-link"><a href="/supplements">Browse all ${explore.length || ''} supplements</a></p>${extras.brandStrip ?? ''}${footer()}${stickyBuyBar(env, sup)}`;
 

@@ -977,15 +977,9 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-top-how a { color: #1d272d; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #87d581; text-decoration-thickness: 2px; }
 .ww-all-link { text-align: center; margin: 8px auto 56px; font-family: Aeonik, sans-serif; font-size: 18px; font-weight: 500; }
 .ww-all-link a { color: #1d272d; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #87d581; text-decoration-thickness: 2px; }
-/* The interactions band sits on its own above the picks; the guide below them opens with room above its title. */
-.info.ww-info-early { margin-bottom: 0; padding-bottom: 0; }
-.ww-picks-late { padding-bottom: 8px; }
-.ww-picks-late + .info { padding-top: 72px; }
+/* On a phone the two interaction lists are stacked and can be taller than the photo band: the band grows with them. */
 @media (max-width: 767px) {
-  .ww-picks-late + .info { padding-top: 40px; }
-  /* The two lists are stacked on a phone and can be taller than the photo band: let the band grow with them. */
-  .info.ww-info-early { padding-bottom: 28px; }
-  .ww-info-early .frame-203 { height: auto; }
-  .ww-info-early .frame-204 { position: relative; height: auto; }
-  .ww-info-early .div-block { height: auto; padding-bottom: 16px; }
+  .info .frame-203 { height: auto; }
+  .info .frame-204 { position: relative; height: auto; }
+  .info .frame-204 > .div-block { height: auto; padding-bottom: 16px; }
 }
