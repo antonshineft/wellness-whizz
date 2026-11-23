@@ -79,10 +79,10 @@ function evidenceBlock(slug: string): string {
                   <div class="frame-187">
                     <div class="frame-188">
                       <div class="frame-189">
-                        <div class="text-39"><strong>Grade ${e.grade}</strong> · ${word}</div>
+                        <div class="text-39"><strong>${word}</strong></div>
                       </div>
                     </div>
-                    <div style="font-size:14px;line-height:20px;margin-top:6px">For: ${escapeHtml(e.outcome)}. <a href="/how-we-check" style="color:inherit">How we grade</a></div>
+                    <a href="/how-it-works#how-we-check" class="frame-190" style="text-decoration:none" title="${escapeHtml(`Evidence grade ${e.grade} (${word.toLowerCase()}) for: ${e.outcome}`)}"><span style="display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;border:3px solid #fff;color:#fff;font-family:Aeonik,sans-serif;font-size:30px;line-height:1;font-weight:700">${e.grade}</span></a>
                   </div>
                 </div>
               </div>`;

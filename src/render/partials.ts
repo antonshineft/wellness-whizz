@@ -272,8 +272,6 @@ export function footer(): string {
           <a href="/blog" class="text-58 ww-footer-link">Blog</a>
           <a href="/research" class="text-58 ww-footer-link">Research</a>
           <a href="/how-it-works" class="text-58 ww-footer-link">How it works</a>
-          <a href="/how-we-check" class="text-58 ww-footer-link">How we check</a>
-          <a href="/tested-products" class="text-58 ww-footer-link">Tested products</a>
           <a href="/about" class="text-58 ww-footer-link">About</a>
           <a href="/terms" class="text-58 ww-footer-link">Terms and Conditions</a>
         </div>

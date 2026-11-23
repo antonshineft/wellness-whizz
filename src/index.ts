@@ -74,9 +74,8 @@ import { exportToken, sheetCounts, sheetLastSync, sheetRows, sheetUrl, syncSheet
 import PostalMime from 'postal-mime';
 import { renderBlogIndex, renderBlogPost } from './render/blog';
 import { fetchAsset, renderHome } from './render/home';
-import { renderAbout, renderHowItWorks, renderHowWeCheck, renderTerms, renderTestedProducts, type CheckedPick } from './render/pages';
+import { renderAbout, renderHowItWorks, renderTerms } from './render/pages';
 import { CERTIFIED } from './certified';
-import { shopUrl } from './links';
 import { STUDIED } from './studied';
 import { EVIDENCE } from './evidence';
 import { renderFailedPage, renderPendingPage, renderResultPage } from './render/result';
@@ -416,30 +415,19 @@ pageRoute('/supplement/:slug', async (c, lang) => {
 
 // ---------- editorial pages ----------
 
-/** The picks that carry the tested or the studied line, as shown on supplement pages (the first MAX_PICKS of each). */
-async function checkedPicks(c: Context<AppContext>): Promise<CheckedPick[]> {
-  const sups = await listSupplements(c.env.DB, 500, curatedOnly(c.env));
-  return sups.flatMap((s) => s.products.slice(0, MAX_PICKS).filter((p) => CERTIFIED[p.url] || STUDIED[p.url]).map((p) => ({ sup: s.name, slug: s.slug, brand: p.brand ?? '', name: p.name, url: p.url, shop: shopUrl(c.env, s, p) })));
+/** How many supplements are graded and how many shown picks carry the tested or the studied line (for /how-it-works). */
+async function checkCounts(c: Context<AppContext>): Promise<{ graded: number; tested: number; studied: number }> {
+  const picks = (await listSupplements(c.env.DB, 500, curatedOnly(c.env))).flatMap((s) => s.products.slice(0, MAX_PICKS));
+  return { graded: Object.keys(EVIDENCE).length, tested: picks.filter((p) => CERTIFIED[p.url]).length, studied: picks.filter((p) => STUDIED[p.url]).length };
 }
 
-// English only: these two pages are not translated, so they are not registered under /es/.
-app.get('/how-we-check', async (c) => {
-  const lang: Lang = 'en';
-  const picks = await checkedPicks(c);
-  track(c, { type: 'page_view', page: '/how-we-check' });
-  return sendPage(c, renderHowWeCheck(new URL(c.req.url).origin, { graded: Object.keys(EVIDENCE).length, tested: picks.filter((p) => CERTIFIED[p.url]).length, studied: picks.filter((p) => STUDIED[p.url]).length }), lang, '/how-we-check', 'public, max-age=600', false);
-});
-
-app.get('/tested-products', async (c) => {
-  const lang: Lang = 'en';
-  track(c, { type: 'page_view', page: '/tested-products' });
-  return sendPage(c, renderTestedProducts(new URL(c.req.url).origin, await checkedPicks(c)), lang, '/tested-products', 'public, max-age=600', false);
-});
+app.get('/how-we-check', (c) => c.redirect('/how-it-works#how-we-check', 301));
+app.get('/tested-products', (c) => c.redirect('/supplements?filter=tested', 301));
 
 pageRoute('/how-it-works', async (c, lang) => {
   const n = await countSupplements(c.env.DB);
   track(c, { type: 'page_view', page: '/how-it-works' });
-  return sendPage(c, renderHowItWorks(n, new URL(c.req.url).origin), lang, '/how-it-works', 'public, max-age=600');
+  return sendPage(c, renderHowItWorks(n, new URL(c.req.url).origin, await checkCounts(c)), lang, '/how-it-works', 'public, max-age=600');
 });
 
 // Brand profiles (src/brands.ts). The Spanish pages are the English ones with their text looked up in src/i18n/es.json.
@@ -549,8 +537,6 @@ app.get('/llms.txt', async (c) => {
     '## Start here',
     line('Take the quiz', '/', 'A personalised supplement plan in about two minutes.'),
     line('How it works', '/how-it-works', 'How the recommendation engine scores supplements.'),
-    line('How we check', '/how-we-check', 'The four checks behind a pick: evidence grades, label doses, independent testing lists and studied ingredients, with their limits.'),
-    line('Tested products', '/tested-products', 'Picks that are on an independent certifier\'s own list (NSF, Informed Choice, IFOS).'),
     line('About', '/about', 'Who runs the site, how content is drafted and reviewed, the medical disclaimer and how the site is funded.'),
     line('All supplements', '/supplements', `Index of all ${supplements.length} supplement guides, grouped by category.`),
     line('Blog', '/blog', 'Evidence-first guides to choosing supplements.'),
