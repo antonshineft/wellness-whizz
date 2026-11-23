@@ -7,6 +7,7 @@
  * refreshes the rows when they differ. Supplements created by the quiz (source = 'ai') are never touched.
  * Everything here is idempotent and runs once per isolate.
  */
+import { CHECK_SQL } from './checks';
 import schemaSql from '../migrations/0001_init.sql';
 import { PROSPECT_SQL } from './backlinks';
 import { GSC_SQL } from './gsc';
@@ -53,6 +54,7 @@ const TABLES = ['supplements', 'sessions', 'session_supplements', 'meta', 'event
 /** Columns added after the first release; created on databases that predate them. */
 /** CREATE TABLE IF NOT EXISTS statements for tables that arrived after the first release (same SQL as the migration). */
 const LATER_TABLES: string[] = [
+  ...CHECK_SQL,
   ...PROSPECT_SQL,
   ...GSC_SQL,
   `CREATE TABLE IF NOT EXISTS videos (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL UNIQUE, status TEXT NOT NULL, script_json TEXT NOT NULL DEFAULT '', caption TEXT NOT NULL DEFAULT '', video_url TEXT NOT NULL DEFAULT '', duration REAL NOT NULL DEFAULT 0, set_index INTEGER NOT NULL DEFAULT 0, publish_id TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT '', attempts INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, rendered_at TEXT)`,

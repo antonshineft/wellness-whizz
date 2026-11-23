@@ -400,7 +400,7 @@ img.ww-opaque { mix-blend-mode: multiply; }
 .ww-related-tile:hover { transform: translateY(-3px); box-shadow: 0 10px 30px #1d272d1f; }
 .ww-related-media { width: 100%; height: 170px; background: #fdf1cf; border-radius: 18px; display: flex; align-items: center; justify-content: center; padding: 14px; box-sizing: border-box; }
 .ww-related-media img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
-.ww-related-name { font-size: 18px; line-height: 24px; font-weight: 700; text-align: center; overflow-wrap: anywhere; max-width: 100%; }
+.ww-related-name { font-size: 18px; line-height: 24px; font-weight: 700; text-align: center; overflow-wrap: break-word; hyphens: auto; max-width: 100%; }
 @media (max-width: 767px) {
   .ww-related-wrap { padding: 40px 10px 0; }
   .ww-related-title { font-size: 32px; line-height: 36px; }
@@ -901,28 +901,50 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
   .heading.heading--s, .heading.heading--long { font-size: 7ch; }
 }
 
-/* Catalogue filter (src/render/supplements-index.ts): what a tile passed, the two labelled chip rows, the result line. */
-.ww-catalog-nav { align-items: center; }
-.ww-catalog-nav.ww-filter { margin-bottom: 10px; }
-.ww-catalog-nav button.ww-tag { cursor: pointer; border: 0; font-family: Aeonik, sans-serif; }
-.ww-catalog-nav .ww-tag:focus-visible, .ww-filter-status button:focus-visible { outline: 3px solid #2f7a3a; outline-offset: 2px; }
-.ww-catalog-nav .ww-tag.is-empty { opacity: .4; pointer-events: none; }
-.ww-row-label { font-family: Aeonik, sans-serif; font-size: 14px; font-weight: 500; color: #4a5a63; margin-right: 4px; }
-.ww-filter-status { font-family: Aeonik, sans-serif; font-size: 15px; line-height: 22px; text-align: center; color: #1d272d; margin: 0 auto 22px; max-width: 640px; text-wrap: balance; }
-.ww-filter-status a, .ww-filter-status button { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #87d581; text-decoration-thickness: 2px; }
-.ww-filter-status button { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
-.ww-related-tile[hidden], .ww-catalog-section[hidden] { display: none; }
+/* Catalogue as a shop (src/render/supplements-index.ts): filters in a side column, results beside it, marks on each tile. */
+.ww-browse { display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: 36px; align-items: start; max-width: 1200px; margin: 0 auto; font-family: Aeonik, sans-serif; color: #1d272d; text-align: left; }
+.ww-browse-side { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: #1d272d33 transparent; }
+.ww-browse-filter { background: #ecf3f6; border-radius: 24px; padding: 20px; }
+.ww-browse-filter > summary { list-style: none; font-size: 20px; line-height: 26px; font-weight: 700; cursor: default; pointer-events: none; }
+.ww-browse-filter > summary::-webkit-details-marker { display: none; }
+.ww-browse-form { display: flex; flex-direction: column; gap: 20px; margin-top: 16px; }
+.ww-browse-form fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; }
+.ww-browse-form legend, .ww-browse-search > span { padding: 0; margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #4a5a63; display: block; }
+.ww-browse-search input { width: 100%; box-sizing: border-box; height: 44px; border: 1.5px solid #1d272d2e; border-radius: 12px; background: #fff; padding: 0 12px; font: 500 16px/1 Aeonik, sans-serif; color: #1d272d; }
+.ww-browse-search input::placeholder { color: #5c6a72; }
+.ww-browse-search input:focus-visible, .ww-opt input:focus-visible, .ww-filter-status button:focus-visible, .ww-browse-filter > summary:focus-visible { outline: 3px solid #2f7a3a; outline-offset: 2px; }
+.ww-opt { display: flex; align-items: center; gap: 10px; min-height: 36px; font-size: 15px; line-height: 20px; font-weight: 500; cursor: pointer; border-radius: 10px; padding: 0 6px; margin: 0 -6px; }
+.ww-opt:hover { background: #1d272d0f; }
+.ww-opt input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: #1d272d; }
+.ww-opt span { flex: 1; min-width: 0; }
+.ww-opt b { flex: none; font-size: 13px; font-weight: 500; color: #4a5a63; font-variant-numeric: tabular-nums; }
+.ww-opt.is-empty { opacity: .45; }
+.ww-opt:has(input:checked) span { font-weight: 700; }
+.ww-browse-help { margin-top: 8px; font-size: 14px; color: #1d272d; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #87d581; text-decoration-thickness: 2px; }
+.ww-browse-main { min-width: 0; }
+.ww-browse-main .ww-catalog-section { max-width: none; margin: 0 0 36px; }
+.ww-browse-main .ww-catalog-section h2 { font-size: 24px; line-height: 30px; margin: 0 0 12px; }
+.ww-browse-main .ww-related-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.ww-filter-status { font-family: Aeonik, sans-serif; font-size: 16px; line-height: 24px; color: #1d272d; margin: 0 0 20px; min-height: 24px; text-align: left; }
+.ww-filter-status button { background: none; border: 0; padding: 0; margin-left: 10px; font: inherit; cursor: pointer; color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #87d581; text-decoration-thickness: 2px; }
+.ww-related-tile[hidden], .ww-catalog-section[hidden], .ww-filter-status button[hidden] { display: none; }
 .ww-tile-marks { display: flex; flex-direction: column; align-items: center; gap: 3px; margin-top: 2px; }
 .ww-tile-mark { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; line-height: 16px; font-weight: 500; color: #4a5a63; text-align: left; }
 .ww-tile-mark.is-good { color: #2f7a3a; }
 .ww-tile-mark svg { flex: none; }
 .ww-grade { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid currentColor; font-size: 11px; line-height: 1; font-weight: 700; color: #1d272d; }
-@media (max-width: 767px) {
-  .ww-catalog-nav .ww-tag { height: 44px; padding: 8px 16px; }
-  .ww-catalog-nav.ww-cats { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; margin-left: -10px; margin-right: -10px; padding: 0 10px 4px; }
-  .ww-catalog-nav.ww-cats::-webkit-scrollbar { display: none; }
-  .ww-catalog-nav.ww-cats > * { flex: none; }
-  .ww-catalog-nav.ww-filter .ww-row-label { flex-basis: 100%; text-align: center; margin: 0; }
+@media (max-width: 991px) {
+  .ww-browse-main .ww-related-name { font-size: 16px; line-height: 21px; }
+  .ww-browse { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .ww-browse-side { position: sticky; top: 8px; z-index: 5; max-height: none; overflow: visible; }
+  .ww-browse-filter { padding: 0; background: #1d272d; color: #fff; border-radius: 16px; box-shadow: 0 8px 24px #1d272d2e; }
+  .ww-browse-filter > summary { pointer-events: auto; cursor: pointer; font-size: 16px; line-height: 48px; padding: 0 18px; display: flex; justify-content: space-between; }
+  .ww-browse-filter > summary::after { content: 'Show'; font-weight: 500; opacity: .8; }
+  .ww-browse-filter[open] > summary::after { content: 'Hide'; }
+  .ww-browse-filter[open] { background: #ecf3f6; color: #1d272d; max-height: calc(100vh - 16px); overflow-y: auto; }
+  .ww-browse-form { margin: 0; padding: 4px 18px 18px; }
+  .ww-opt { min-height: 44px; }
+  .ww-browse-main .ww-related-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* How we check (src/render/pages.ts): contents line, and one block per check that leads with the mark as readers see it. */

@@ -76,6 +76,7 @@ import { renderBlogIndex, renderBlogPost } from './render/blog';
 import { fetchAsset, renderHome } from './render/home';
 import { renderAbout, renderHowItWorks, renderTerms } from './render/pages';
 import { CERTIFIED } from './certified';
+import { checksReportLines, loadMarks, startChecks, stepChecks } from './checks';
 import { STUDIED } from './studied';
 import { EVIDENCE } from './evidence';
 import { renderFailedPage, renderPendingPage, renderResultPage } from './render/result';
@@ -268,6 +269,12 @@ app.use('*', async (c, next) => {
   res.headers.set('referrer-policy', 'strict-origin-when-cross-origin');
   res.headers.set('x-frame-options', 'SAMEORIGIN');
   c.res = res;
+});
+
+// The tested lines the weekly check has confirmed or withdrawn (src/checks.ts), refreshed at most every ten minutes.
+app.use('*', async (c, next) => {
+  if (c.req.method === 'GET' && !c.req.path.startsWith('/api/')) await loadMarks(c.env.DB);
+  await next();
 });
 
 // ---------- pages (English, and Spanish under /es/: src/i18n.ts) ----------
@@ -1001,7 +1008,8 @@ function parseMeta(value: string | null): unknown {
 /** The Monday numbers email for the current week. */
 async function weeklyReport(env: Bindings): Promise<{ subject: string; html: string; text: string }> {
   const [numbers, content, submitium] = await Promise.all([weeklyNumbers(env.DB), contentProgress(env.DB, MIN_ARTICLE_LENGTH), submitiumReportLine(env).catch(() => '')]);
-  return weeklyReportEmail(siteOrigin(env), numbers, content, [submitium].filter(Boolean));
+  const checks = await checksReportLines(env.DB).catch(() => [] as string[]);
+  return weeklyReportEmail(siteOrigin(env), numbers, content, [submitium, ...checks].filter(Boolean));
 }
 
 /**
@@ -1679,6 +1687,35 @@ app.post('/api/admin/videos/:slug/schedule', async (c) => {
 
 // ---- Dose check (src/dose.ts): each product pick's daily amount against the official or studied range ----
 /** Owner-only: every supplement with its picks, which have a stored label, and which are checked (for the label collector). */
+// The weekly product check (src/checks.ts): start a run, take one step by hand, read its state, answer a near match.
+app.post('/api/admin/checks/start', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const run = await startChecks(c.env);
+  return c.json({ started: run.started, steps_queued: run.queue.length });
+});
+app.post('/api/admin/checks/step', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  return c.json({ step: await stepChecks(c.env) });
+});
+app.get('/api/admin/checks', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const marks = (await c.env.DB.prepare('SELECT url, source, state, listed, why, checked_at FROM pick_marks ORDER BY state, source').all()).results;
+  const counts = (await c.env.DB.prepare('SELECT source, COUNT(*) AS n FROM cert_listings GROUP BY source').all()).results;
+  return c.json({ run: JSON.parse((await getMeta(c.env.DB, 'checks:run')) ?? 'null'), last: JSON.parse((await getMeta(c.env.DB, 'checks:last')) ?? 'null'), lists: counts, marks, report: await checksReportLines(c.env.DB) });
+});
+app.post('/api/admin/checks/decide', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  const b = await c.req.json<{ url: string; source: string; yes: boolean }>();
+  const r = await c.env.DB.prepare("UPDATE pick_marks SET state = ? WHERE url = ? AND source = ? AND state = 'review'").bind(b.yes ? 'on' : 'rejected', b.url, b.source).run();
+  return c.json({ changed: r.meta.changes });
+});
+
 app.get('/api/admin/dose/products', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;
@@ -2532,6 +2569,14 @@ export default {
   },
   /** Cron trigger (see wrangler.jsonc): writes a few missing articles per run until the catalogue is complete. */
   async scheduled(event: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {
+    if (event.cron === '*/5 * * * *') {
+      // The weekly product check takes one small step per tick while a run is active (src/checks.ts).
+      ctx.waitUntil(ensureDatabase(env.DB).then(() => stepChecks(env)).then((r) => { if (r) console.log(`product check: ${r.step}, ${r.left} left`); }).catch((err) => console.error(`product check step failed: ${String(err)}`)));
+    }
+    if (event.cron === '0 * * * *' && new Date(event.scheduledTime).getUTCDay() === 0 && new Date(event.scheduledTime).getUTCHours() === 4) {
+      // Sunday 04:00 UTC: queue the week's run, so it is finished long before Monday's email.
+      ctx.waitUntil(ensureDatabase(env.DB).then(() => startChecks(env)).then(() => console.log('product check queued')).catch((err) => console.error(`product check start failed: ${String(err)}`)));
+    }
     if (event.cron === '0 * * * *') {
       // Hourly: build the X queue from the site's own content and send what is due.
       ctx.waitUntil(

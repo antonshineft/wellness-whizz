@@ -33,7 +33,7 @@ function tile(sup: Supplement): string {
     (c.tested.length ? `<span class="ww-tile-mark is-good">${CHECK}Lab-tested product: ${escapeHtml(c.tested.join(', '))}</span>` : '') +
     (c.studied.length ? `<span class="ww-tile-mark">${CHECK}Studied: ${escapeHtml(c.studied.slice(0, 2).join(', '))}${c.studied.length > 2 ? ` +${c.studied.length - 2}` : ''}</span>` : '');
   return `
-        <a href="/supplement/${escapeHtml(sup.slug)}" class="ww-related-tile" data-checks="${c.keys.join(' ')}">
+        <a href="/supplement/${escapeHtml(sup.slug)}" class="ww-related-tile" data-checks="${c.keys.join(' ')}" data-name="${escapeHtml(`${sup.name} ${sup.category}`.toLowerCase())}">
           <div class="ww-related-media">${photo}</div>
           <div class="ww-related-name">${escapeHtml(sup.name)}</div>
           <span class="ww-tag">${escapeHtml(sup.category)}</span>${marks ? `\n          <span class="ww-tile-marks">${marks}</span>` : ''}
@@ -48,27 +48,53 @@ export function renderSupplementsIndex(supplements: Supplement[], origin: string
     byCategory.set(s.category, list);
   }
   const categories = [...byCategory.keys()].sort((a, b) => a.localeCompare(b));
-  const nav = categories.map((c) => `<a href="#${escapeHtml(c.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}" class="ww-tag" data-cat>${escapeHtml(c)} <b>${byCategory.get(c)!.length}</b></a>`).join('');
+  const idOf = (c: string) => c.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   const sections = categories
     .map(
       (c) => `
-      <section class="ww-catalog-section" id="${escapeHtml(c.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}">
-        <h2>${escapeHtml(c)}</h2>
-        <div class="ww-related-grid">${byCategory.get(c)!.map(tile).join('')}
-        </div>
-      </section>`,
+        <section class="ww-catalog-section" id="${escapeHtml(idOf(c))}">
+          <h2>${escapeHtml(c)}</h2>
+          <div class="ww-related-grid">${byCategory.get(c)!.map(tile).join('')}
+          </div>
+        </section>`,
     )
     .join('');
   const count = (k: string) => supplements.filter((x) => checksOf(x).keys.includes(k)).length;
-  const chip = (k: string, label: string, n: number) => `<button type="button" class="ww-tag${k ? '' : ' ww-tag-dark'}" data-filter="${k}" data-what="${escapeHtml(label.toLowerCase())}" aria-pressed="${k ? 'false' : 'true'}">${label} <b>${n}</b></button>`;
-  const filters = `
-      <div class="ww-catalog-nav ww-filter" id="ww-filter" role="group" aria-label="Show only"><span class="ww-row-label">Show only</span>${chip('', 'All', supplements.length)}${chip('tested', 'Lab-tested product', count('tested'))}${chip('studied', 'Clinically studied ingredient', count('studied'))}${chip('evidence', 'Strong evidence (A or B)', count('evidence'))}</div>
-      <p class="ww-filter-status" id="ww-filter-status" role="status" aria-live="polite"><a href="/how-it-works#how-we-check">What these checks mean</a></p>`;
-  // The filter: hides tiles and empty sections, corrects the category counts, and says what is shown.
+  const check = (k: string, label: string) => `<label class="ww-opt"><input type="checkbox" name="check" value="${k}"><span>${label}</span><b>${count(k)}</b></label>`;
+  const cat = (id: string, label: string, n: number, on = false) => `<label class="ww-opt"><input type="radio" name="cat" value="${escapeHtml(id)}"${on ? ' checked' : ''}><span>${escapeHtml(label)}</span><b data-n="${escapeHtml(id)}">${n}</b></label>`;
+  // The side column of a shop: search, the checks a supplement passes, the categories. On a phone it folds into one "Filter" bar.
+  const side = `
+      <aside class="ww-browse-side" aria-label="Filter the catalogue">
+        <details class="ww-browse-filter" id="ww-filter" open>
+          <summary>Filter<span id="ww-filter-n"></span></summary>
+          <form class="ww-browse-form" onsubmit="return false">
+            <label class="ww-browse-search"><span>Search</span><input type="search" name="q" placeholder="Magnesium, sleep, creatine" autocomplete="off"></label>
+            <fieldset><legend>Show only</legend>${check('tested', 'Lab-tested product')}${check('studied', 'Clinically studied ingredient')}${check('evidence', 'Strong evidence (A or B)')}
+              <a class="ww-browse-help" href="/how-it-works#how-we-check">What these checks mean</a>
+            </fieldset>
+            <fieldset><legend>Category</legend>${cat('', 'All categories', supplements.length, true)}${categories.map((c) => cat(idOf(c), c, byCategory.get(c)!.length)).join('')}
+            </fieldset>
+          </form>
+        </details>
+      </aside>`;
   const script = `
-      <script>(function(){var box=document.getElementById('ww-filter'),st=document.getElementById('ww-filter-status');if(!box||!st)return;var total=${supplements.length},help=st.innerHTML;function apply(k,user){var shown=0,what='';box.querySelectorAll('button').forEach(function(b){var on=b.dataset.filter===k;b.setAttribute('aria-pressed',on);b.classList.toggle('ww-tag-dark',on);if(on)what=b.dataset.what});document.querySelectorAll('.ww-catalog-section').forEach(function(s){var n=0;s.querySelectorAll('.ww-related-tile').forEach(function(t){var show=!k||(' '+t.dataset.checks+' ').indexOf(' '+k+' ')>=0;t.hidden=!show;if(show)n++});s.hidden=!n;shown+=n;var a=document.querySelector('.ww-catalog-nav a[href="#'+s.id+'"]');if(a){a.querySelector('b').textContent=n;a.classList.toggle('is-empty',!n);if(n)a.removeAttribute('aria-disabled');else a.setAttribute('aria-disabled','true')}});st.innerHTML=k?'Showing <strong>'+shown+' of '+total+'</strong> supplements with a '+what.replace(' (a or b)',' grade, A or B')+'. <a href="/how-it-works#how-we-check">What this means</a> · <button type="button" data-filter="">Show all</button>':help;try{history.replaceState(null,'',k?'?filter='+k:location.pathname)}catch(e){}if(user&&k&&window.innerWidth<768)box.scrollIntoView({behavior:'smooth',block:'start'})}document.addEventListener('click',function(e){var b=e.target.closest('button[data-filter]');if(b)apply(b.dataset.filter,true);var d=e.target.closest('a[aria-disabled]');if(d)e.preventDefault()});var q=new URLSearchParams(location.search).get('filter')||'';if(['tested','studied','evidence'].indexOf(q)>=0)apply(q,false)})();</script>`;
-  const body = `${filters}
-      <nav class="ww-catalog-nav ww-cats" aria-label="Jump to a category"><span class="ww-row-label">Jump to</span>${nav}</nav>${sections}${script}${quizCta('Not sure where to start?', 'Answer five questions and the advisor narrows these down to the three to five that fit you.')}`;
+      <script>(function(){var f=document.querySelector('.ww-browse-form'),st=document.getElementById('ww-filter-status'),box=document.getElementById('ww-filter');if(!f||!st)return;var total=${supplements.length};if(window.innerWidth<992)box.open=false;
+function state(){return{q:f.q.value.trim().toLowerCase(),cat:f.cat.value,checks:[].slice.call(f.querySelectorAll('input[name=check]:checked')).map(function(i){return i.value})}}
+function apply(user){var s=state(),shown=0,per={};document.querySelectorAll('.ww-catalog-section').forEach(function(sec){var n=0,m=0;sec.querySelectorAll('.ww-related-tile').forEach(function(t){var ok=s.checks.every(function(k){return(' '+t.dataset.checks+' ').indexOf(' '+k+' ')>=0})&&(!s.q||t.dataset.name.indexOf(s.q)>=0);if(ok)m++;var show=ok&&(!s.cat||s.cat===sec.id);t.hidden=!show;if(show)n++});per[sec.id]=m;sec.hidden=!n;shown+=n});
+var all=0;Object.keys(per).forEach(function(id){all+=per[id];var b=f.querySelector('b[data-n="'+id+'"]');if(b){b.textContent=per[id];b.parentNode.classList.toggle('is-empty',!per[id]&&s.cat!==id)}});var ball=f.querySelector('b[data-n=""]');if(ball)ball.textContent=all;
+var active=s.checks.length+(s.cat?1:0)+(s.q?1:0);document.getElementById('ww-filter-n').textContent=active?' ('+active+')':'';
+document.getElementById('ww-count').innerHTML=shown?'Showing <strong>'+shown+' of '+total+'</strong> supplements':'<strong>Nothing matches these filters.</strong>';document.getElementById('ww-clear').hidden=!active;
+try{history.replaceState(null,'',s.checks.length===1&&!s.cat&&!s.q?'?filter='+s.checks[0]:location.pathname)}catch(e){}
+if(user&&window.innerWidth<992){box.open=false;st.scrollIntoView({behavior:'smooth',block:'start'})}}
+f.addEventListener('change',function(e){if(e.target.name!=='q')apply(true)});f.q.addEventListener('input',function(){apply(false)});
+document.addEventListener('click',function(e){if(e.target.id==='ww-clear'){f.q.value='';f.querySelectorAll('input[name=check]').forEach(function(i){i.checked=false});f.querySelector('input[name=cat]').checked=true;apply(false)}});
+var q=new URLSearchParams(location.search).get('filter')||'';var pre=f.querySelector('input[name=check][value="'+q+'"]');if(pre)pre.checked=true;apply(false)})();</script>`;
+  const body = `
+      <div class="ww-browse">${side}
+        <div class="ww-browse-main">
+          <p class="ww-filter-status" id="ww-filter-status" role="status" aria-live="polite"><span id="ww-count">Showing <strong>${supplements.length} of ${supplements.length}</strong> supplements</span><button type="button" id="ww-clear" hidden>Clear filters</button></p>${sections}
+        </div>
+      </div>${script}${quizCta('Not sure where to start?', 'Answer five questions and the advisor narrows these down to the three to five that fit you.')}`;
   const shell = pageShell({
     eyebrow: 'Supplements',
     title: `${supplements.length} supplements, one honest profile each`,
