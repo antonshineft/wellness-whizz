@@ -1667,6 +1667,8 @@ app.get('/api/admin/dose/products', async (c) => {
   await ensureDatabase(c.env.DB);
   const sups = await listSupplements(c.env.DB, 500, false);
   const have = new Set((await c.env.DB.prepare('SELECT url FROM dose_labels').all<{ url: string }>()).results.map((r) => r.url));
+  // ?labels=1 hands back the stored shop titles and label texts as well (used to scan picks for branded ingredients).
+  if (c.req.query('labels')) return c.json({ labels: (await c.env.DB.prepare('SELECT url, title, label FROM dose_labels').all<{ url: string; title: string; label: string }>()).results });
   // A page counts as checked only when its stored check covers every pick it has now.
   const covered = new Map((await listDoseChecks(c.env.DB)).map((d) => [d.slug, new Set(d.products.map((p) => p.url))]));
   return c.json({ supplements: sups.map((s) => ({ slug: s.slug, name: s.name, category: s.category, official: !!nutrientFor(s), checked: !!covered.get(s.slug) && s.products.slice(0, MAX_PICKS).every((p) => covered.get(s.slug)!.has(p.url)), products: s.products.slice(0, MAX_PICKS).map((p) => ({ name: p.name, brand: p.brand, url: p.url, label: have.has(p.url), image: p.image, opaque: !!p.opaque })) })) });
