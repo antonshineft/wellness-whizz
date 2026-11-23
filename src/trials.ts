@@ -201,7 +201,11 @@ export function trialJob(script: VideoScript, caption: string, row: TrialRow): T
     const scenes = script.scenes.map((s, i) => (i === 0 ? { ...s, narration: row.line, visual: data.visual || s.visual } : s));
     return { ...base, script: { ...script, scenes }, new_opening: true };
   }
-  if (row.kind === 'voice') return { ...base, script, voice: 'google' };
+  if (row.kind === 'voice') {
+    // with scenes: the Google voice on a short cut; without: on the whole script
+    const cut = (data.scenes ?? []).filter((k) => script.scenes[k.scene - 1]).map((k) => ({ ...script.scenes[k.scene - 1], narration: k.narration, clip: k.scene }));
+    return { ...base, script: cut.length ? { ...script, scenes: cut } : script, voice: 'google' };
+  }
   if (row.kind === 'control') return { ...base, script };
   if (row.kind === 'style') return { ...base, script, style: data.style || 'felt' };
   if (row.kind === 'short') {
@@ -285,14 +289,19 @@ export async function writeTests(env: VideoEnv, slug: string, only: 'all' | 'sho
   const kept = (out.short?.scenes ?? []).map((k) => ({ scene: Math.round(Number(k.scene)), narration: clean(k.narration) })).filter((k) => k.scene >= 1 && k.scene <= last).sort((a, b) => a.scene - b.scene);
   const numbers = kept.map((k) => k.scene);
   if (wordsIn(line) > MAX_SCENE_WORDS || wordsIn(line) < 8 || visual.length < 80) return { ok: false, message: 'the new opening came back unusable; ask again' };
-  if (only === 'all' && (kept.length < 4 || kept.length > 7 || new Set(numbers).size !== numbers.length || numbers[0] !== 1 || numbers[numbers.length - 1] !== last || kept.some((k) => wordsIn(k.narration) > RENDER_MAX_WORDS || wordsIn(k.narration) < 6))) {
+  if (kept.length < 4 || kept.length > 7 || new Set(numbers).size !== numbers.length || numbers[0] !== 1 || numbers[numbers.length - 1] !== last || kept.some((k) => wordsIn(k.narration) > RENDER_MAX_WORDS || wordsIn(k.narration) < 6)) {
     return { ok: false, message: `the short cut came back unusable (scenes ${numbers.join(',') || 'none'} of ${last}; words ${kept.map((k) => wordsIn(k.narration)).join(',')}; limit ${RENDER_MAX_WORDS}); ask again` };
   }
   type Row = { kind: TrialKind; format: string; line: string; why: string; data: TrialData };
   const shot: Row = { kind: 'shot', format: 'new opening shot', line, why: clean(out.shot.why).slice(0, 300), data: { visual } };
-  // The owner, 23 Nov 2026: one change at a time, against the reel as it went out, for two weeks; the new opening shot first.
+  // The owner, 23 Nov 2026: against the reel as it went out, for two weeks: the new opening shot, and a shorter cut in the Google voice.
   const rows: Row[] = only === 'shot'
-    ? [{ kind: 'control', format: 'original', line: script.scenes[0].narration, why: 'The reel as it went out, for comparison at the same hour.', data: {} }, shot]
+    ? [
+        { kind: 'control', format: 'original', line: script.scenes[0].narration, why: 'The reel as it went out, for comparison at the same hour.', data: {} },
+        shot,
+        // the owner kept a Google-voice version in the batch, and let it be the shorter one (23 Nov 2026)
+        { kind: 'voice', format: `google voice, short cut of ${kept.length} scenes`, line: kept[0].narration, why: `The Google voice on a shorter cut. ${clean(out.short.why)}`.slice(0, 300), data: { scenes: kept } },
+      ]
     : [
         shot,
         { kind: 'voice', format: 'google voice', line: 'The same script and pictures, spoken by the Google voice.', why: 'Tests the narrator: a warm Google voice against the house voice.', data: {} },

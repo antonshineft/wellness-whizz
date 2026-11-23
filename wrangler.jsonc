@@ -69,8 +69,8 @@
     // with ?brands=preview) or "false".
     "BRAND_PAGES": "true",
     "TRIALS_AUTO": "true",
-    // "shot": the reel as it went out beside ONE change, a new opening shot, at 21:00 (the owner, 23 Nov, for two weeks:
-    // until about 7 Dec, then the next idea). "tests": new opening shot, Google voice and short cut. "lines": two opening
+    // "shot": the reel as it went out beside a new opening shot and a shorter cut in the Google voice, at 21:00 (the
+    // owner, 23 Nov, for two weeks: until about 7 Dec, then the next idea). "tests": new opening shot, Google voice and short cut. "lines": two opening
     // lines and one ending.
     "TRIALS_MODE": "shot",
     "TRIALS_SKIP": "glycine-three-am-clock,saffron-price-tag",
