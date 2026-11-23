@@ -77,6 +77,7 @@ import { fetchAsset, renderHome } from './render/home';
 import { renderAbout, renderHowItWorks, renderTerms } from './render/pages';
 import { CERTIFIED } from './certified';
 import { checksReportLines, loadMarks, startChecks, stepChecks } from './checks';
+import { plainText, restoreText } from './plain';
 import { STUDIED } from './studied';
 import { EVIDENCE } from './evidence';
 import { renderFailedPage, renderPendingPage, renderResultPage } from './render/result';
@@ -1687,6 +1688,23 @@ app.post('/api/admin/videos/:slug/schedule', async (c) => {
 
 // ---- Dose check (src/dose.ts): each product pick's daily amount against the official or studied range ----
 /** Owner-only: every supplement with its picks, which have a stored label, and which are checked (for the label collector). */
+// Plain-words pass over a supplement's text (src/plain.ts): ?save=1 stores it (the original is backed up), DELETE restores.
+app.post('/api/admin/plain/:slug', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  try {
+    return c.json(await plainText(c.env, c.req.param('slug'), c.req.query('save') === '1'));
+  } catch (err) {
+    return c.json({ error: String(err instanceof Error ? err.message : err) }, 500);
+  }
+});
+app.delete('/api/admin/plain/:slug', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  return c.json({ restored: await restoreText(c.env.DB, c.req.param('slug')) });
+});
+
 // The weekly product check (src/checks.ts): start a run, take one step by hand, read its state, answer a near match.
 app.post('/api/admin/checks/start', async (c) => {
   const denied = authorized(c);
