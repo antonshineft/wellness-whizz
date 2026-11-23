@@ -158,7 +158,7 @@ export function certifiedTag(url: string): string {
   const c = CERTIFIED[url];
   if (!c) return '';
   const title = escapeHtml(`Listed by ${c.mark} as "${c.listed}" (checked ${CERTIFIED_ON}). Certification covers the listed product; sizes, flavours and lots can differ.`);
-  return `<a href="${escapeHtml(c.source)}" target="_blank" rel="noopener nofollow" class="ww-tag ww-tag-good" style="text-decoration:none;align-self:flex-start;margin:6px 0" title="${title}"><b>✓</b>Independently tested · ${escapeHtml(c.mark)}</a>`;
+  return `<a href="${escapeHtml(c.source)}" target="_blank" rel="noopener nofollow" style="display:block;font-size:12px;line-height:16px;font-weight:500;color:#2f7a3a;text-decoration:none;margin:2px 0 4px" title="${title}">✓ Independently tested · ${escapeHtml(c.mark)}</a>`;
 }
 
 /** Header tags on supplement pages: category, safety and FDA as uniform text tags (same size as result-card tags). */
