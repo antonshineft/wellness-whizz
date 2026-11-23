@@ -215,10 +215,15 @@ export async function stepChecks(env: CheckEnv): Promise<{ step: string; left: n
     } else if (kind === 'plan') {
       // Which brand of ours appears on which list: one matching step for each such pair, then the rest of the run.
       const picks = await allPicks(env.DB);
-      const brands = [...new Set(picks.map((p) => p.brand))];
+      const brands = [...new Set(picks.map((p) => p.brand))].map((b) => ({ b, n: norm(b) }));
       for (const s of SOURCES) {
-        const listed = (await env.DB.prepare('SELECT brand, product FROM cert_listings WHERE source = ?').bind(s.key).all<{ brand: string; product: string }>()).results;
-        for (const b of brands) if (listed.some((l) => ofBrand(b, l))) run.queue.push(`match:${s.key}:${encodeURIComponent(b)}`);
+        // Normalised once per list: the distinct company names, and the product names for the "starts with the brand" rule.
+        const rows = (await env.DB.prepare('SELECT brand, product FROM cert_listings WHERE source = ?').bind(s.key).all<{ brand: string; product: string }>()).results;
+        const companies = [...new Set(rows.map((r) => r.brand))];
+        const products = rows.map((r) => norm(r.product));
+        for (const { b, n } of brands) {
+          if (companies.some((c) => sameBrand(b, c)) || (n.length >= 5 && products.some((p) => p.startsWith(n)))) run.queue.push(`match:${s.key}:${encodeURIComponent(b)}`);
+        }
       }
       for (let i = 0; i < picks.length; i += 40) run.queue.push(`shop:${i}`);
       run.queue.push('recalls', 'swaps', 'done');
