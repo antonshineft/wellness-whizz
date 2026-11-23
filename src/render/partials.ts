@@ -1,5 +1,6 @@
 /** Reusable fragments that mirror the exported Webflow markup (same classes, so the exported CSS applies). */
 import { CERTIFIED, CERTIFIED_ON } from '../certified';
+import { STUDIED } from '../studied';
 import type { FdaStatus, FormType, Product, SafetyStatus, Supplement } from '../db';
 import { structureAlt } from '../structures';
 import { STRUCTURES_3D } from '../structures3d';
@@ -132,7 +133,7 @@ const SAFETY_TAGS: Record<SafetyStatus, { glyph: string; label: string }> = {
 };
 
 /** The slug of the published ranking the evidence tags link to (the owner published it on 21 Nov 2026); empty: no link. */
-const EVIDENCE_ARTICLE = 'supplements-strongest-evidence-ranked';
+export const EVIDENCE_ARTICLE = 'supplements-strongest-evidence-ranked';
 
 const GRADE_WORDS: Record<string, string> = { A: 'strong', B: 'good', C: 'mixed', D: 'weak' };
 
@@ -161,6 +162,17 @@ export function certifiedTag(url: string): string {
   return `<a href="${escapeHtml(c.source)}" target="_blank" rel="noopener nofollow" style="display:block;font-size:12px;line-height:16px;font-weight:500;color:#2f7a3a;text-decoration:none;margin:2px 0 4px" title="${title}">✓ Independently tested · ${escapeHtml(c.mark)}</a>`;
 }
 
+/**
+ * A line on a pick whose main active is a branded ingredient with its own human trials (src/studied.ts). It names the
+ * ingredient and links to the trials on PubMed. The trials tested the ingredient, not this finished product.
+ */
+export function studiedTag(url: string): string {
+  const list = STUDIED[url];
+  if (!list?.length) return '';
+  const links = list.map((i) => `<a href="${escapeHtml(i.trials)}" target="_blank" rel="noopener nofollow" style="color:inherit" title="Human trials of ${escapeHtml(i.name)} on PubMed. The trials tested the ingredient, not this product.">${escapeHtml(i.name)}</a>`).join(', ');
+  return `<div style="font-size:12px;line-height:16px;font-weight:500;color:#4a5a63;margin:2px 0 4px">Contains ${links} · studied in human trials</div>`;
+}
+
 /** Header tags on supplement pages: category, safety and FDA as uniform text tags (same size as result-card tags). */
 export function headerTags(sup: Supplement): string {
   const fda = FDA_TAGS[sup.fda_status];
@@ -185,7 +197,7 @@ export function cardTags(sup: Supplement, formLabel: string): string {
     `<span class="ww-tag"><b>${safety.glyph}</b>${escapeHtml(safety.label)}</span>` +
     `<span class="ww-tag">${escapeHtml(sup.category)}</span>` +
     (formLabel ? `<span class="ww-tag">${escapeHtml(formLabel)}</span>` : '') +
-    `<span class="ww-tag ww-tag-dark" title="Effectivity ${n} of 5">Effectivity<span class="ww-bars">${bars}</span>${n}/5</span>`
+    (EVIDENCE[sup.slug] ? evidenceTags(sup.slug, '') : `<span class="ww-tag ww-tag-dark" title="Effectivity ${n} of 5">Effectivity<span class="ww-bars">${bars}</span>${n}/5</span>`)
   );
 }
 
@@ -260,6 +272,8 @@ export function footer(): string {
           <a href="/blog" class="text-58 ww-footer-link">Blog</a>
           <a href="/research" class="text-58 ww-footer-link">Research</a>
           <a href="/how-it-works" class="text-58 ww-footer-link">How it works</a>
+          <a href="/how-we-check" class="text-58 ww-footer-link">How we check</a>
+          <a href="/tested-products" class="text-58 ww-footer-link">Tested products</a>
           <a href="/about" class="text-58 ww-footer-link">About</a>
           <a href="/terms" class="text-58 ww-footer-link">Terms and Conditions</a>
         </div>

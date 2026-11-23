@@ -132,6 +132,8 @@ export async function sitemapEntries(db: D1Database, curatedOnly: boolean, langs
     { loc: '/supplements', lastmod: latestSupplement, priority: '0.8' },
     { loc: '/research', lastmod: day(noteAt), priority: '0.7' },
     { loc: '/how-it-works', priority: '0.6' },
+    { loc: '/how-we-check', priority: '0.6' },
+    { loc: '/tested-products', priority: '0.7' },
     { loc: '/about', priority: '0.5' },
     { loc: '/terms', priority: '0.2' },
   ];
@@ -145,7 +147,7 @@ export async function sitemapEntries(db: D1Database, curatedOnly: boolean, langs
       if (sup) return sups.has(sup[1]);
       const post = /^\/blog\/(.+)$/.exec(loc);
       if (post) return articles.has(post[1]);
-      if (loc.startsWith('/research/')) return false; // research notes are English only
+      if (loc.startsWith('/research/') || loc === '/how-we-check' || loc === '/tested-products') return false; // research notes and the two check pages are English only
       return true;
     };
     const english = entries.filter((e) => !/^\/es(\/|$)/.test(e.loc));

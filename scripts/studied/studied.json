@@ -1,0 +1,720 @@
+{
+ "checked": "2026-11-24",
+ "rule": "An ingredient is listed when a PubMed search for its trade name (title or abstract, clinical trials only) returns at least three human trials on that ingredient, read by title. A pick is marked only when the ingredient is its main active, not a minor part of a blend.",
+ "ingredients": {
+  "CarnoSyn beta-alanine": {
+   "query": "(CarnoSyn)[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 6,
+   "checked_titles": [
+    [
+     "22102056",
+     "Exercise-induced oxidative stress: the effects of β-alanine supplementation in women."
+    ],
+    [
+     "16554972",
+     "The absorption of orally supplied beta-alanine and its effect on muscle carnosine synthesis in "
+    ],
+    [
+     "22797003",
+     "High-velocity intermittent running: effects of beta-alanine supplementation."
+    ],
+    [
+     "17136505",
+     "Effects of beta-alanine supplementation on the onset of neuromuscular fatigue and ventilatory t"
+    ],
+    [
+     "22143432",
+     "Beta-alanine (Carnosyn™) supplementation in elderly subjects (60-80 years): effects on muscle c"
+    ],
+    [
+     "38971131",
+     "β-Alanine supplementation improves fractional anisotropy scores in the hippocampus and amygdala"
+    ]
+   ]
+  },
+  "Casperome boswellia": {
+   "query": "(Casperome)[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 5,
+   "checked_titles": [
+    [
+     "38958698",
+     "The role of nutraceuticals in the management of temporomandibular disorders."
+    ],
+    [
+     "26502867",
+     "Functional study on Boswellia phytosome as complementary intervention in asthmatic patients."
+    ],
+    [
+     "39929877",
+     "Randomized controlled trial of bromelain and alpha-lipoic acid in breast conservative surgery."
+    ],
+    [
+     "38918956",
+     "A Nutraceutical Combination of Bromelain and Boswellia Serrata Casperome® in Siben®: Effects on"
+    ],
+    [
+     "30676012",
+     "Oral administration of a lecithin-based delivery form of boswellic acids (Casperome®) for the p"
+    ]
+   ]
+  },
+  "Curcumin C3 Complex": {
+   "query": "(\"C3 Complex\")[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 6,
+   "checked_titles": [
+    [
+     "36155119",
+     "Curcumin supplementation reduces blood glucose and serum lipids of Brazilian women with high wa"
+    ],
+    [
+     "36946712",
+     "Effects of Curcumin C3 Complex® on Physical Function in Moderately Functioning Older Adults wit"
+    ],
+    [
+     "25440375",
+     "Lipid-modifying effects of adjunctive therapy with curcuminoids-piperine combination in patient"
+    ],
+    [
+     "18249471",
+     "Oral curcumin in the treatment of moderate to severe psoriasis vulgaris: A prospective clinical"
+    ],
+    [
+     "23233733",
+     "Prolonged biologically active colonic tissue levels of curcumin achieved after oral administrat"
+    ],
+    [
+     "25872567",
+     "Combining curcumin (C3-complex, Sabinsa) with standard care FOLFOX chemotherapy in patients wit"
+    ]
+   ]
+  },
+  "CurQfen curcumin": {
+   "query": "(CurQfen)[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 3,
+   "checked_titles": [
+    [
+     "33210408",
+     "Influence of a low-dose supplementation of curcumagalactomannoside complex (CurQfen) in knee os"
+    ],
+    [
+     "30889454",
+     "Influence of enhanced bioavailable curcumin on obesity-associated cardiovascular disease risk f"
+    ],
+    [
+     "27043120",
+     "Safety, Tolerance, and Enhanced Efficacy of a Bioavailable Formulation of Curcumin With Fenugre"
+    ]
+   ]
+  },
+  "Aged Garlic Extract": {
+   "query": "(\"aged garlic extract\")[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 42,
+   "checked_titles": [
+    [
+     "37686723",
+     "Antihypertensive Effects of an Optimized Aged Garlic Extract in Subjects with Grade I Hypertens"
+    ],
+    [
+     "11977538",
+     "[Cancer prevention in familial cancer]."
+    ],
+    [
+     "35276764",
+     "Effects of an Optimized Aged Garlic Extract on Cardiovascular Disease Risk Factors in Moderate "
+    ],
+    [
+     "26764332",
+     "Aged Garlic Extract Modifies Human Immunity."
+    ],
+    [
+     "35505122",
+     "Improved microvascular reactivity after aged garlic extract intake is not mediated by hydrogen "
+    ],
+    [
+     "16484568",
+     "Aged garlic extract is a potential therapy for sickle-cell anemia."
+    ]
+   ]
+  },
+  "BetaTOR free-acid HMB": {
+   "query": "(BetaTOR OR \"HMB free acid\")[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 7,
+   "checked_titles": [
+    [
+     "42084797",
+     "Effects of acute HMB-FA supplementation on antioxidant status and muscle damage in Elite Judoka"
+    ],
+    [
+     "42441818",
+     "HMB supplementation combined with high-intensity functional exercise supports aerobic capacity "
+    ],
+    [
+     "23908318",
+     "β-Hydroxy-β-methylbutyrate (HMB)-free acid attenuates circulating TNF-α and TNFR1 expression po"
+    ],
+    [
+     "30360984",
+     "A double-blind placebo controlled trial into the impacts of HMB supplementation and exercise on"
+    ],
+    [
+     "21134325",
+     "Free acid gel form of β-hydroxy-β-methylbutyrate (HMB) improves HMB clearance from plasma in hu"
+    ],
+    [
+     "24599749",
+     "The effects of 12 weeks of beta-hydroxy-beta-methylbutyrate free acid supplementation on muscle"
+    ]
+   ]
+  },
+  "Ferrochel iron": {
+   "query": "(Ferrochel)[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 10,
+   "checked_titles": [
+    [
+     "9550463",
+     "Repleting hemoglobin in iron deficiency anemia in young children through liquid milk fortificat"
+    ],
+    [
+     "12198002",
+     "Iron bis-glycine chelate competes for the nonheme-iron absorption pathway."
+    ],
+    [
+     "10958812",
+     "Iron bioavailability in humans from breakfasts enriched with iron bis-glycine chelate, phytates"
+    ],
+    [
+     "18194390",
+     "The effect of a standardized protocol for iron supplementation to blood donors low in hemoglobi"
+    ],
+    [
+     "18499399",
+     "Comparison of ferrous sulfate and ferrous glycinate chelate for the treatment of iron deficienc"
+    ],
+    [
+     "11688082",
+     "The use of sweet rolls fortified with iron bis-glycinate chelate in the prevention of iron defi"
+    ]
+   ]
+  },
+  "5-Loxin boswellia": {
+   "query": "(\"5-Loxin\" OR Aflapin)[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 5,
+   "checked_titles": [
+    [
+     "35512759",
+     "Efficacy and Safety of Aflapin®, a Novel Boswellia Serrata Extract, in the Treatment of Osteoar"
+    ],
+    [
+     "39700461",
+     "A Standardized Boswellia serrata Extract Improves Knee Joint Function and Cartilage Morphology "
+    ],
+    [
+     "21060724",
+     "Comparative efficacy and tolerability of 5-Loxin and AflapinAgainst osteoarthritis of the knee:"
+    ],
+    [
+     "18667054",
+     "A double blind, randomized, placebo controlled study of the efficacy and safety of 5-Loxin for "
+    ],
+    [
+     "22022214",
+     "A double blind, randomized, placebo controlled clinical study evaluates the early efficacy of a"
+    ]
+   ]
+  },
+  "FloraGLO lutein": {
+   "query": "(FloraGLO)[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 3,
+   "checked_titles": [
+    [
+     "29151374",
+     "Mono- and diglycerides improve lutein absorption in healthy adults: a randomised, double-blind,"
+    ],
+    [
+     "26451726",
+     "Changes in Macular Pigment Optical Density and Serum Lutein Concentration in Japanese Subjects "
+    ],
+    [
+     "23052623",
+     "Effects of formulation on the bioavailability of lutein and zeaxanthin: a randomized, double-bl"
+    ]
+   ]
+  },
+  "Lyc-O-Mato lycopene": {
+   "query": "(\"Lyc-O-Mato\")[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 8,
+   "checked_titles": [
+    [
+     "14564460",
+     "Synthetic and tomato-based lycopene have identical bioavailability in humans."
+    ],
+    [
+     "11117277",
+     "Reduction of exercise-induced asthma oxidative stress by lycopene, a natural antioxidant."
+    ],
+    [
+     "17571945",
+     "A randomized trial of lycopene supplementation in Tobago men with high prostate cancer risk."
+    ],
+    [
+     "16368299",
+     "Natural antioxidants from tomato extract reduce blood pressure in patients with grade-1 hyperte"
+    ],
+    [
+     "16569044",
+     "Effect of a tomato-based drink on markers of inflammation, immunomodulation, and oxidative stre"
+    ],
+    [
+     "15705230",
+     "Daily intake of a formulated tomato drink affects carotenoid plasma and lymphocyte concentratio"
+    ]
+   ]
+  },
+  "OptiMSM": {
+   "query": "(OptiMSM)[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 4,
+   "checked_titles": [
+    [
+     "29214616",
+     "A randomized controlled trial evaluating methylsulfonylmethane versus placebo to prevent knee p"
+    ],
+    [
+     "31331587",
+     "Methylsulfonylmethane for treatment of low back pain: A safety analysis of a randomized, contro"
+    ],
+    [
+     "28736511",
+     "Effects of Methylsulfonylmethane (MSM) on exercise-induced oxidative stress, muscle damage, and"
+    ],
+    [
+     "34684621",
+     "The Effect of Daily Methylsulfonylmethane (MSM) Consumption on High-Density Lipoprotein Cholest"
+    ]
+   ]
+  },
+  "Metafolin folate": {
+   "query": "(Metafolin)[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 7,
+   "checked_titles": [
+    [
+     "22002941",
+     "A therapeutic trial of pro-methylation dietary supplements in Angelman syndrome."
+    ],
+    [
+     "30030584",
+     "A phase I/II study of GLIF combination chemotherapy for taxane/platinum-refractory/resistant en"
+    ],
+    [
+     "22067790",
+     "Folate status and homocysteine levels during a 24-week oral administration of a folate-containi"
+    ],
+    [
+     "22067789",
+     "Bioequivalence study of an oral contraceptive containing ethinylestradiol/drospirenone/levomefo"
+    ],
+    [
+     "22909145",
+     "Bioequivalence evaluation of a folate-supplemented oral contraceptive containing ethinylestradi"
+    ],
+    [
+     "33255787",
+     "Pharmacokinetics of Sodium and Calcium Salts of (6S)-5-Methyltetrahydrofolic Acid Compared to F"
+    ]
+   ]
+  },
+  "Pycnogenol": {
+   "query": "(Pycnogenol)[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 101,
+   "checked_titles": [
+    [
+     "16521117",
+     "Pycnogenol alleviates pain associated with pregnancy."
+    ],
+    [
+     "10844161",
+     "Pycnogenol in chronic venous insufficiency."
+    ],
+    [
+     "22390677",
+     "A randomized controlled trial investigating the effect of Pycnogenol and Bacopa CDRI08 herbal m"
+    ],
+    [
+     "40362854",
+     "Impact of a Dietary Supplementation with French Maritime Pine Bark Extract Pycnogenol(®) on Sal"
+    ],
+    [
+     "11081989",
+     "PYCNOGENOL in chronic venous insufficiency."
+    ],
+    [
+     "22108478",
+     "Pycnogenol® improvements in asthma management."
+    ]
+   ]
+  },
+  "Quercetin Phytosome": {
+   "query": "(\"quercetin phytosome\" OR Quercefit)[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 6,
+   "checked_titles": [
+    [
+     "35776034",
+     "Effects of repeated oral intake of a quercetin-containing supplement on allergic reaction: a ra"
+    ],
+    [
+     "30226032",
+     "Interaction study between antiplatelet agents, anticoagulants, diabetic therapy and a novel del"
+    ],
+    [
+     "30328058",
+     "Improved Oral Absorption of Quercetin from Quercetin Phytosome®, a New Delivery System Based on"
+    ],
+    [
+     "37716119",
+     "Two-month period of 500 mg lecithin-based delivery form of quercetin daily dietary supplementat"
+    ],
+    [
+     "34194240",
+     "Potential Clinical Benefits of Quercetin in the Early Stage of COVID-19: Results of a Second, P"
+    ],
+    [
+     "34135619",
+     "Possible Therapeutic Effects of Adjuvant Quercetin Supplementation Against Early-Stage COVID-19"
+    ]
+   ]
+  },
+  "affron saffron": {
+   "query": "(affron)[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 10,
+   "checked_titles": [
+    [
+     "40414301",
+     "An Examination into the Effects of a Saffron Extract (Affron) on Mood and General Wellbeing in "
+    ],
+    [
+     "28735826",
+     "affron(®) a novel saffron extract (Crocus sativus L.) improves mood in healthy adults over 4 we"
+    ],
+    [
+     "34438361",
+     "An investigation into an evening intake of a saffron extract (affron®) on sleep quality, cortis"
+    ],
+    [
+     "42389708",
+     "The effects of a saffron extract (Affron®) on mood, sleep, self-esteem, and exploratory measure"
+    ],
+    [
+     "29510352",
+     "affron(®), a standardised extract from saffron (Crocus sativus L.) for the treatment of youth a"
+    ],
+    [
+     "35813851",
+     "An examination into the mental and physical effects of a saffron extract (affron®) in recreatio"
+    ]
+   ]
+  },
+  "Shoden ashwagandha": {
+   "query": "(Shoden)[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 3,
+   "checked_titles": [
+    [
+     "31517876",
+     "An investigation into the stress-relieving and pharmacological actions of an ashwagandha (Witha"
+    ],
+    [
+     "30854916",
+     "A Randomized, Double-Blind, Placebo-Controlled, Crossover Study Examining the Hormonal and Vita"
+    ],
+    [
+     "32540634",
+     "A randomized, double blind, placebo controlled study to evaluate the effects of ashwagandha (Wi"
+    ]
+   ]
+  },
+  "Suntheanine": {
+   "query": "(Suntheanine)[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 90,
+   "checked_titles": [
+    [
+     "31623400",
+     "Effects of L-Theanine Administration on Stress-Related Symptoms and Cognitive Functions in Heal"
+    ],
+    [
+     "18681988",
+     "The combined effects of L-theanine and caffeine on cognitive performance and mood."
+    ],
+    [
+     "18296328",
+     "L-theanine, a natural constituent in tea, and its effect on mental state."
+    ],
+    [
+     "16930802",
+     "L-Theanine reduces psychological and physiological stress responses."
+    ],
+    [
+     "21040626",
+     "The combination of L-theanine and caffeine improves cognitive performance and increases subject"
+    ],
+    [
+     "39213264",
+     "Effect of matcha green tea on cognitive functions and sleep quality in older adults with cognit"
+    ]
+   ]
+  },
+  "PepZin GI zinc carnosine": {
+   "query": "(PepZin OR polaprezinc OR \"zinc carnosine\")[tiab] AND (randomized controlled trial[pt] OR clinical trial[pt])",
+   "trials_found": 40,
+   "checked_titles": [
+    [
+     "42093671",
+     "Zinc-L-Carnosine (Polaprezinc) in managing infant regurgitation: a two-center randomized contro"
+    ],
+    [
+     "38112867",
+     "A randomised trial of topical polaprezinc to prevent oral mucositis in patients undergoing haem"
+    ],
+    [
+     "35999163",
+     "Efficacy and safety of polaprezinc in the treatment of gastric ulcer: A multicenter, randomized"
+    ],
+    [
+     "25988769",
+     "Oral zinc supplementation reduces the erythropoietin responsiveness index in patients on hemodi"
+    ],
+    [
+     "11555194",
+     "Zinc supplementation enhances the response to interferon therapy in patients with chronic hepat"
+    ],
+    [
+     "24286534",
+     "Efficacy of zinc-carnosine chelate compound, Polaprezinc, enemas in patients with ulcerative co"
+    ]
+   ]
+  }
+ },
+ "products": {
+  "https://iherb.co/4U9fzcz3": [
+   {
+    "name": "CarnoSyn beta-alanine",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28CarnoSyn%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/dbHrpPzT": [
+   {
+    "name": "CarnoSyn beta-alanine",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28CarnoSyn%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/z2R77mos": [
+   {
+    "name": "CarnoSyn beta-alanine",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28CarnoSyn%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/thorne-boswellia-phytosome-60-capsules-350-mg-per-capsule/70004": [
+   {
+    "name": "Casperome boswellia",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28Casperome%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/bRLFgyRf": [
+   {
+    "name": "Curcumin C3 Complex",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28%22C3%20Complex%22%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/life-extension-curcumin-elite-turmeric-extract-60-vegetarian-capsules/97643": [
+   {
+    "name": "CurQfen curcumin",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28CurQfen%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/exeRZqk5": [
+   {
+    "name": "Aged Garlic Extract",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28%22aged%20garlic%20extract%22%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/1EkWg4oH": [
+   {
+    "name": "Aged Garlic Extract",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28%22aged%20garlic%20extract%22%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/ASwxdvgy": [
+   {
+    "name": "Aged Garlic Extract",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28%22aged%20garlic%20extract%22%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/J4s8QMkr": [
+   {
+    "name": "Aged Garlic Extract",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28%22aged%20garlic%20extract%22%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/zMPVqp27": [
+   {
+    "name": "Aged Garlic Extract",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28%22aged%20garlic%20extract%22%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/muscletech-clear-muscle-liquid-hmb-84-liquid-softgels/104333": [
+   {
+    "name": "BetaTOR free-acid HMB",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28BetaTOR%20OR%20%22HMB%20free%20acid%22%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/qXnMnVQZ": [
+   {
+    "name": "Ferrochel iron",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28Ferrochel%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/now-foods-iron-36-mg-90-veg-capsules/54089": [
+   {
+    "name": "Ferrochel iron",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28Ferrochel%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/oUYd6sZ": [
+   {
+    "name": "5-Loxin boswellia",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28%225-Loxin%22%20OR%20Aflapin%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/3dJgcQZy": [
+   {
+    "name": "5-Loxin boswellia",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28%225-Loxin%22%20OR%20Aflapin%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/2mecB9EA": [
+   {
+    "name": "FloraGLO lutein",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28FloraGLO%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/oPj13oyz": [
+   {
+    "name": "Lyc-O-Mato lycopene",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28%22Lyc-O-Mato%22%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/Brw1pYPM": [
+   {
+    "name": "Lyc-O-Mato lycopene",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28%22Lyc-O-Mato%22%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/MFTTn4Tt": [
+   {
+    "name": "OptiMSM",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28OptiMSM%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/solgar-msm-methylsulfonylmethane-1-000-mg-120-tablets/15570": [
+   {
+    "name": "OptiMSM",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28OptiMSM%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/doctor-s-best-msm-with-optimsm-1-500-mg-120-tablets/3": [
+   {
+    "name": "OptiMSM",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28OptiMSM%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/california-gold-nutrition-optimsm-flakes-35-oz-992-g/96328": [
+   {
+    "name": "OptiMSM",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28OptiMSM%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/g33JD1aG": [
+   {
+    "name": "Metafolin folate",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28Metafolin%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/now-foods-pycnogenol-60-veg-capsules/37070": [
+   {
+    "name": "Pycnogenol",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28Pycnogenol%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/life-extension-pycnogenol-french-maritime-pine-bark-extract-100-mg-60-vegetarian-capsules/43981": [
+   {
+    "name": "Pycnogenol",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28Pycnogenol%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/swanson-vitamins-pycnogenol-50-mg-50-capsules/117736": [
+   {
+    "name": "Pycnogenol",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28Pycnogenol%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/source-naturals-pycnogenol-100-mg-60-tablets/1402": [
+   {
+    "name": "Pycnogenol",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28Pycnogenol%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/nutrachamps-pycnogenol-60-vegan-capsules/114584": [
+   {
+    "name": "Pycnogenol",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28Pycnogenol%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/vitacost-root2-pycnogenol-pine-bark-extract-50-mg-90-capsules/158555": [
+   {
+    "name": "Pycnogenol",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28Pycnogenol%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/7zMmwVQy": [
+   {
+    "name": "Quercetin Phytosome",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28%22quercetin%20phytosome%22%20OR%20Quercefit%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/california-gold-nutrition-quercetin-phytosome-quercefit-250-mg-60-veggie-capsules/137787": [
+   {
+    "name": "Quercetin Phytosome",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28%22quercetin%20phytosome%22%20OR%20Quercefit%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/zgK52Cmm": [
+   {
+    "name": "affron saffron",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28affron%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/8Cu4fkRh": [
+   {
+    "name": "affron saffron",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28affron%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://www.iherb.com/pr/ritual-stress-relief-citrus-30-vegan-capsules/162473": [
+   {
+    "name": "affron saffron",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28affron%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   },
+   {
+    "name": "Shoden ashwagandha",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28Shoden%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   },
+   {
+    "name": "Suntheanine",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28Suntheanine%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ],
+  "https://iherb.co/DH4T1c1A": [
+   {
+    "name": "PepZin GI zinc carnosine",
+    "trials": "https://pubmed.ncbi.nlm.nih.gov/?term=%28PepZin%20OR%20polaprezinc%20OR%20%22zinc%20carnosine%22%29%5Btiab%5D&filter=pubt.clinicaltrial&filter=pubt.randomizedcontrolledtrial"
+   }
+  ]
+ }
+}

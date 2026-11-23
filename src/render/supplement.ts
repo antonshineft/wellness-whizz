@@ -3,6 +3,7 @@ import { OG_IMAGES } from '../og';
 import type { Supplement } from '../db';
 import { MAX_PICKS, STATE_RANK, doseBlank, doseFor, doseLimits, doseLine, doseScale, type DoseCheck } from '../dose';
 import { escapeHtml } from '../html';
+import { EVIDENCE } from '../evidence';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
 import { noteLabel, notePath, type ResearchNote } from '../research';
@@ -10,7 +11,7 @@ import { reviewedLine } from './pages';
 import {
   EFFECTIVITY_LABELS, SAFETY_LABELS, WF_PAGE_IDS, blendAttr, cardImage, detailImage, exploreSection, footer, headerTags, navbar,
   AFFILIATE_NOTE, productPicks, ratingImage, relatedSection, stickyBuyBar,
-  certifiedTag,
+  certifiedTag, studiedTag,
 } from './partials';
 
 const PRODUCT_CARD_IDS = [
@@ -57,6 +58,31 @@ function ratingBlock(title: string, labels: readonly string[], value: number, sa
                       </div>
                     </div>
                     <div class="frame-190${safe ? ' safe' : ''}">${ratingImage(n, 'vectors-wrapper-58', 'height="40.672607421875" width="129.5"')}</div>
+                  </div>
+                </div>
+              </div>`;
+}
+
+/** On a graded supplement the evidence grade stands where the old effectivity bars were (src/evidence.ts). */
+function evidenceBlock(slug: string): string {
+  const e = EVIDENCE[slug];
+  const word = { A: 'Strong', B: 'Good', C: 'Mixed', D: 'Weak' }[e.grade] ?? '';
+  return `
+              <div class="frame-170">
+                <div class="title">
+                  <div class="frame-185">
+                    <div class="frame-186"><img src="/images/Vectors-Wrapper_7.svg" loading="lazy" width="8" height="8" alt="" class="vectors-wrapper-56"><img src="/images/Vectors-Wrapper_8.svg" loading="lazy" width="2.305000066757202" height="3.560000419616699" alt="" class="vectors-wrapper-57"></div>
+                    <div class="text-38">EVIDENCE</div>
+                  </div>
+                </div>
+                <div class="_2">
+                  <div class="frame-187">
+                    <div class="frame-188">
+                      <div class="frame-189">
+                        <div class="text-39"><strong>Grade ${e.grade}</strong> · ${word}</div>
+                      </div>
+                    </div>
+                    <div style="font-size:14px;line-height:20px;margin-top:6px">For: ${escapeHtml(e.outcome)}. <a href="/how-we-check" style="color:inherit">How we grade</a></div>
                   </div>
                 </div>
               </div>`;
@@ -165,7 +191,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandP
               <div class="ww-top-photo">${image}</div>
               <div class="ww-top-name">${escapeHtml(p.name)}</div>
               <div class="ww-top-meta">${brandLabel(p.brand, brandPath)}${r.d && dose ? `${p.brand ? ' · ' : ''}${doseLine(dose, r.d)}` : ''}</div>
-              ${certifiedTag(p.url)}
+              ${certifiedTag(p.url)}${studiedTag(p.url)}
               ${r.d && dose ? doseScale(dose, r.d) : doseLimits(dose, p.url) ?? doseBlank(dose, false, sup.name)}
               <a href="${escapeHtml(shopUrl(env, sup, p))}" target="_blank" rel="noopener nofollow sponsored" class="outbutton w-button" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}" data-product="${escapeHtml(p.name)}">Buy on iHerb</a>
             </article>`;
@@ -416,7 +442,7 @@ function seoDescription(sup: Supplement): string {
   const effectivity = Math.min(5, Math.max(1, Math.round(sup.effectivity)));
   const safety = Math.min(5, Math.max(1, Math.round(sup.safety)));
   const base = (sup.summary || `${sup.name}: benefits, contraindications, interactions and research.`).trim();
-  const tail = ` Effectivity ${effectivity}/5, safety ${safety}/5, with contraindications, interactions, studies and ${sup.products.length ? `${sup.products.length} products to buy on iHerb` : 'where to buy on iHerb'}.`;
+  const tail = ` ${EVIDENCE[sup.slug] ? `Evidence grade ${EVIDENCE[sup.slug].grade}` : `Effectivity ${effectivity}/5`}, safety ${safety}/5, with contraindications, interactions, studies and ${sup.products.length ? `${sup.products.length} products to buy on iHerb` : 'where to buy on iHerb'}.`;
   const text = base.length + tail.length <= 300 ? base + tail : base.slice(0, 300 - tail.length).replace(/\s+\S*$/, '') + tail;
   return text.slice(0, 300);
 }
@@ -469,7 +495,7 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
         icon: '<img src="/images/Vectors-Wrapper_5.svg" loading="lazy" width="36" height="36" alt="Benefit Smiley Face" class="vectors-wrapper-36">',
         tagline: 'Empowering your journey towards optimal Well-being',
         safe: false,
-        rating: ratingBlock('EFFECTIVITY', EFFECTIVITY_LABELS, sup.effectivity, false),
+        rating: EVIDENCE[sup.slug] ? evidenceBlock(sup.slug) : ratingBlock('EFFECTIVITY', EFFECTIVITY_LABELS, sup.effectivity, false),
         html: sup.benefits_html,
       })}${infoColumn({
         title: 'Contraindications',
