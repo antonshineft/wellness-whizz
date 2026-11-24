@@ -74,23 +74,24 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
         <div class="ww-step"><b>1</b><h3>Tell us about you</h3><p>Answer a few questions about your goals, diet, lifestyle, health conditions and the supplements you already take. It takes about two minutes and you do not need an account.</p></div>
         <div class="ww-step"><b>2</b><h3>The advisor checks the catalogue</h3><p>Your answers are compared with a curated catalogue of ${escapeHtml(n)} supplements. Every entry carries a safety rating, FDA status, an effectivity score and notes on interactions, so the advisor can rule out what does not fit before it ranks what does.</p></div>
         <div class="ww-step"><b>3</b><h3>You get a short, explained list</h3><p>Instead of a hundred options you get three to five. Each comes with a one-paragraph reason written for your answers, product picks, and a link to the full supplement page.</p></div>
-        <div class="ww-step"><b>4</b><h3>Buy with confidence</h3><p>Every recommendation links to matching products on iHerb, a retailer that ships worldwide and publishes third-party testing. We earn a small commission on purchases made through our links; you pay the same price.</p></div>
+        <div class="ww-step"><b>4</b><h3>See what was checked, then buy</h3><p>Every product pick shows what stands behind it: where its dose sits against the reference range, whether an independent body tested it, and iHerb's own batch report where one exists. Links go to iHerb; we earn a small commission and you pay the same price.</p></div>
       </section>
       <section class="ww-prose is-how">
-        <p class="ww-toc">On this page: <a href="#page-tells">What a page tells you</a><a href="#how-we-rate">How we rate</a><a href="#how-we-check">How we check</a><a href="#who">Who we are</a></p>
+        <p class="ww-toc">On this page: <a href="#page-tells">What a page tells you</a><a href="#how-we-rate">How we rate</a><a href="#how-we-check">How we check</a><a href="#kept-current">How picks stay current</a><a href="#who">Who we are</a></p>
         <h2 id="page-tells">What every supplement page tells you</h2>
         <p>Each supplement in the catalogue has its own page, written to answer the questions people actually have before they buy:</p>
         <ul>
           <li><strong>Benefits and contraindications</strong>: what the supplement is used for, and who should avoid it or ask a doctor first.</li>
-          <li><strong>Effectivity and safety ratings</strong>: two five-point scales, explained below, plus the FDA status of the ingredient.</li>
+          <li><strong>Evidence and safety</strong>: an evidence grade or score and a safety score, explained below, plus the FDA status of the ingredient.</li>
           <li><strong>How it works with other supplements</strong>: combinations that enhance each other and combinations that interact.</li>
           <li><strong>The full guide</strong>: a longer article on how it works, who benefits most, how to take it and how it fits into sleep, diet and training.</li>
           <li><strong>Relevant studies</strong>: links to the peer-reviewed research behind the claims, so you can read the evidence yourself.</li>
-          <li><strong>Product picks</strong>: a short list of well-reviewed products on iHerb, with photos and direct links.</li>
+          <li><strong>Product picks</strong>: a short list of products on iHerb, each with its dose check and any independent testing we could confirm.</li>
         </ul>
         <h2 id="how-we-rate">How we rate</h2>
-        <h3>Effectivity (1 to 5)</h3>
-        <p>How strong and consistent the evidence is for the supplement's main uses. A 5 means several good-quality human trials or meta-analyses point the same way (creatine for strength, for example). A 1 or 2 means the evidence is early, mixed or mostly from animal studies. The score describes the research, not how you personally will respond. On supplements we have graded against the published trials, an evidence grade (A to D) replaces this score; see <a href="#how-we-check">How we check</a> below.</p>
+        <h3>Evidence: a grade from A to D, or a score from 1 to 5</h3>
+        <p>Where we have gone through the published trials, a supplement carries an evidence grade for its best-supported use: A strong, B good, C mixed, D weak. The grade says how good the research is, not how you personally will respond. The details are under <a href="#how-we-check">How we check</a>.</p>
+        <p>Supplements we have not graded yet still show an older "effectivity" score from 1 to 5. It is an editorial estimate of the same thing, made before the trial review, and each one is replaced by a grade as we get to it.</p>
         <h3>Safety (1 to 5)</h3>
         <p>How much caution the supplement calls for at typical doses in healthy adults. A 5 ("well tolerated") has a long record of use and few interactions in healthy adults; the page still lists who should avoid it. Lower scores mean there are meaningful interactions, side effects at common doses, or groups of people who should not take it. Supplements marked "prescription" are not sold over the counter in most countries.</p>
         <h3>FDA status</h3>
@@ -136,6 +137,16 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
           <li>We do not show a reviewer who did not review the page.</li>
           <li>We do not accept payment from brands to be picked. The site earns a commission from iHerb when you buy through a link, whichever product you choose.</li>
         </ul>
+        <h2 id="kept-current">How picks are chosen and kept current</h2>
+        <p>Product picks are not fixed. Every week an automatic check goes through all of them:</p>
+        <ul>
+          <li><strong>Testing lists are read again.</strong> The certifiers' published lists are downloaded, and a product keeps its "independently tested" line only while it is still on a list.</li>
+          <li><strong>The shop is checked.</strong> A product that is discontinued or no longer sold on iHerb is taken off the page.</li>
+          <li><strong>Tested products take the place of untested ones</strong> where the same supplement, in a sensible dose, is available. At most two picks on a page change at a time.</li>
+          <li><strong>Products that failed an independent test are dropped.</strong> We do not name them or publish the result; they simply stop being recommended.</li>
+          <li><strong>The dose check has the last word.</strong> A tested product whose serving is over the safe ceiling for that page is not shown, however good its certificate.</li>
+        </ul>
+        <p>No brand pays to be picked, and a brand that certifies many products can still hold only part of a page.</p>
         <h2>What we are not</h2>
         <p>Wellness Whizz is an information tool. It is not a medical service, the advisor is not a doctor, and nothing on this site is a diagnosis or a treatment plan. Artificial intelligence can be confidently wrong. Please read the contraindications on each page, check your medication with a pharmacist, and talk to a doctor before starting anything new if you are pregnant or breastfeeding, under 18, or managing a health condition. Who we are and how every page is drafted, reviewed and corrected is on the <a href="/about">About page</a>.</p>
         <h2 id="who">Who is behind Wellness Whizz</h2>
