@@ -22,7 +22,7 @@ import type { IherbProduct } from './products';
 import { STUDIED } from './studied';
 
 type SwapEnv = ClaudeEnv & { DB: D1Database };
-const CONTENT = new Set(['usp', 'nsf-173', 'nsf-sport', 'ifos', 'ikos', 'iaos', 'ipro', 'nutrastrong']);
+const CONTENT = new Set(['paid', 'usp', 'nsf-173', 'nsf-sport', 'ifos', 'ikos', 'iaos', 'ipro', 'nutrastrong']);
 const SPORTS_PAGE = /creatine|protein|whey|casein|bcaa|amino|pre-?workout|electrolyte|beta-?alanine|hmb|citrulline|glutamine|carnitine|arginine|nitric|collagen|mct|beet/i;
 const norm = (s: string) => s.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '');
 const MARK = new Map(SOURCES.map((s) => [s.key, s.mark]));
@@ -67,7 +67,7 @@ export async function planSwaps(env: SwapEnv, slug: string, supplied?: Supplied[
     .filter((l) => (CONTENT.has(l.source) || sports) && norm(l.product).includes(key));
   // One candidate a brand: content programmes first, then brands the site already picks from (so known to be on iHerb).
   const siteBrands = new Set((await listSupplements(env.DB, 500, false)).flatMap((x) => x.products.map((p) => norm(p.brand ?? ''))));
-  const score = (l: Listing) => (CONTENT.has(l.source) ? 0 : 2) + (siteBrands.has(norm(l.brand)) ? 0 : 1) + l.product.length / 1000;
+  const score = (l: Listing) => (l.source === 'paid' ? 0.5 : 0) + (CONTENT.has(l.source) ? 0 : 2) + (siteBrands.has(norm(l.brand)) ? 0 : 1) + l.product.length / 1000;
   const byBrand = new Map<string, Listing>();
   for (const l of rows.sort((a, b) => score(a) - score(b))) if (!byBrand.has(norm(l.brand)) && !have.has(norm(`${l.brand} ${l.product}`))) byBrand.set(norm(l.brand), l);
   const candidates = [...byBrand.values()].slice(0, 7);

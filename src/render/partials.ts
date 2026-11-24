@@ -1,5 +1,5 @@
 /** Reusable fragments that mirror the exported Webflow markup (same classes, so the exported CSS applies). */
-import { CERTIFIED, CERTIFIED_ON } from '../certified';
+import { CERTIFIED, CERTIFIED_ON, PAID_MARK } from '../certified';
 import { STUDIED } from '../studied';
 import type { FdaStatus, FormType, Product, SafetyStatus, Supplement } from '../db';
 import { structureAlt } from '../structures';
@@ -158,6 +158,8 @@ export function evidenceTags(slug: string, article = EVIDENCE_ARTICLE): string {
 export function certifiedTag(url: string): string {
   const c = CERTIFIED[url];
   if (!c) return '';
+  // The weaker tier: no certifier to name and no list to link, so the line is plain, grey, and points at its footnote.
+  if (c.mark === PAID_MARK) return `<a href="/how-it-works#paid-tests" style="display:block;font-size:12px;line-height:16px;font-weight:500;color:#4a5a63;text-decoration:underline;text-decoration-color:#1d272d33;text-underline-offset:3px;padding:6px 0;margin:-2px 0" title="Passed a paid testing service's test. Its report cannot be published or linked.">Passed an independent lab test*</a>`;
   const title = escapeHtml(`Listed by ${c.mark} as "${c.listed}" (checked ${CERTIFIED_ON}). Certification covers the listed product; sizes, flavours and lots can differ.`);
   return `<a href="${escapeHtml(c.source)}" target="_blank" rel="noopener nofollow" style="display:block;font-size:12px;line-height:16px;font-weight:500;color:#2f7a3a;text-decoration:underline;text-decoration-color:#87d581;text-underline-offset:3px;padding:6px 0;margin:-2px 0" title="${title}"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><path d="M2 6.4 4.8 9 10 3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Independently tested · ${escapeHtml(c.mark)}</a>`;
 }

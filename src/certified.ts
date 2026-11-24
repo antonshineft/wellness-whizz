@@ -1,4 +1,9 @@
 /** Picks found on an independent certifier's own published list (scripts/certified/certified.json, built by hand-checked matching). Keyed by product link. */
+/**
+ * The mark of the second, weaker tier: a product that passed a paid consumer testing service's test. Its reports may not
+ * be republished, so this line carries no certifier name and no link to a list, and says so in a footnote.
+ */
+export const PAID_MARK = 'an independent lab';
 export const CERTIFIED_ON = '2026-11-23';
 export const CERTIFIED: Record<string, { mark: string; source: string; listed: string }> = {
   "https://www.iherb.com/pr/thorne-5-hydroxytryptophan-90-capsules/18506": {

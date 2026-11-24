@@ -118,6 +118,7 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
           <p>${counts.testedPicks} products across ${counts.testedSups} supplements carry this line. A product gets it only when that exact product name is on the certifier's own list: NSF Contents Certified, NSF Certified for Sport, Informed Choice or IFOS. The line links to the list so you can check it.</p>
           <p class="ww-check-limit"><strong>What it does not prove</strong>Sizes, flavours and production lots can differ from the listed one. It is never given to a whole brand, and no line only means we found no listing.</p>
           <a href="/supplements?filter=tested">See the ${counts.testedSups} supplements with one</a>
+          <p id="paid-tests" style="margin:14px 0 0;font-size:14px;line-height:20px;color:#4a5a63"><strong>*Passed an independent lab test.</strong> Some products carry this plainer line instead. They passed a test by a paid consumer testing service that buys products in shops and measures what is in them. We may not publish its reports, so the line names no source and has no link: you cannot check it yourself, and it is weaker than a named certifier. A test covers the batch that was bought, and some tests are several years old. We also use these reports to drop products that failed.</p>
         </article>
         <article class="ww-check">
           <div class="ww-check-sample">Contains Pycnogenol · studied in human trials</div>

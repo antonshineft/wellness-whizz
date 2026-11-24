@@ -13,7 +13,7 @@
  * five-minute cron so no single invocation does much. State lives in meta under "checks:run"; the finished summary
  * in "checks:last" feeds the Monday email (src/report.ts).
  */
-import { CERTIFIED } from './certified';
+import { CERTIFIED, PAID_MARK } from './certified';
 import { claudeJson, type ClaudeEnv } from './claude';
 import { getMeta, listSupplements, setMeta, type Supplement } from './db';
 import { MAX_PICKS } from './dose';
@@ -99,6 +99,8 @@ export const SOURCES: Source[] = [
   { key: 'nutrastrong', mark: 'NutraStrong', home: 'https://certifications.nutrasource.ca', load: nutrasource('NutraStrong', 'nutrastrong') },
   // USP's site refuses automated reading: its list is uploaded by hand (POST /api/admin/checks/listings) and kept between runs.
   { key: 'usp', mark: 'USP Verified', home: 'https://www.quality-supplements.org/usp_verified_products', load: async () => { throw new Error('uploaded by hand'); } },
+  // Results of a paid testing service, uploaded by hand and kept private: they choose picks and earn the footnoted line only.
+  { key: 'paid', mark: PAID_MARK, home: '/how-it-works#paid-tests', load: async () => { throw new Error('uploaded by hand'); } },
 ];
 const SOURCE = new Map(SOURCES.map((s) => [s.key, s]));
 
@@ -181,9 +183,21 @@ interface RunLog { added: string[]; review: string[]; removed: string[]; sources
 interface Run { started: string; queue: string[]; log: RunLog; steps: number }
 const emptyLog = (): RunLog => ({ added: [], review: [], removed: [], sources: [], shop: [], recalls: [], swaps: [], errors: [] });
 
+/** Queue the matching of one source against every brand it lists (after a hand upload), into the running check or a new one. */
+export async function queueSource(env: CheckEnv, key: string): Promise<number> {
+  const raw = await getMeta(env.DB, 'checks:run');
+  const run: Run = raw ? (JSON.parse(raw) as Run) : { started: new Date().toISOString(), queue: ['done'], log: emptyLog(), steps: 0 };
+  const rows = (await env.DB.prepare('SELECT brand, product FROM cert_listings WHERE source = ?').bind(key).all<{ brand: string; product: string }>()).results;
+  const companies = [...new Set(rows.map((r) => r.brand))];
+  const steps = [...new Set((await allPicks(env.DB)).map((p) => p.brand))].filter((b) => companies.some((c) => sameBrand(b, c))).map((b) => `match:${key}:${encodeURIComponent(b)}`);
+  run.queue = [...steps, ...run.queue.filter((q) => !steps.includes(q))];
+  await setMeta(env.DB, 'checks:run', JSON.stringify(run));
+  return steps.length;
+}
+
 /** Queue a full run: every list, then matching, the shop check, recalls and swap ideas. */
 export async function startChecks(env: CheckEnv): Promise<Run> {
-  const run: Run = { started: new Date().toISOString(), queue: [...SOURCES.filter((s) => s.key !== 'usp').map((s) => `fetch:${s.key}`), 'plan'], log: emptyLog(), steps: 0 };
+  const run: Run = { started: new Date().toISOString(), queue: [...SOURCES.filter((s) => s.key !== 'usp' && s.key !== 'paid').map((s) => `fetch:${s.key}`), 'plan'], log: emptyLog(), steps: 0 };
   await setMeta(env.DB, 'checks:run', JSON.stringify(run));
   return run;
 }
@@ -299,7 +313,7 @@ export async function loadMarks(db: D1Database): Promise<void> {
     for (const k of Object.keys(CERTIFIED)) delete CERTIFIED[k];
     Object.assign(CERTIFIED, seed);
     for (const r of rows.filter((x) => x.state === 'off')) if (CERTIFIED[r.url]?.mark === SOURCE.get(r.source)?.mark) delete CERTIFIED[r.url];
-    for (const r of rows.filter((x) => x.state === 'on')) if (!CERTIFIED[r.url] && SOURCE.get(r.source)) CERTIFIED[r.url] = { mark: SOURCE.get(r.source)!.mark, source: r.link || SOURCE.get(r.source)!.home, listed: r.listed };
+    for (const r of rows.filter((x) => x.state === 'on').sort((x, y) => Number(x.source === 'paid') - Number(y.source === 'paid'))) if (!CERTIFIED[r.url] && SOURCE.get(r.source)) CERTIFIED[r.url] = { mark: SOURCE.get(r.source)!.mark, source: r.link || SOURCE.get(r.source)!.home, listed: r.listed };
     for (const r of (await db.prepare('SELECT url, json FROM pick_shop').all<{ url: string; json: string }>()).results) {
       const j = JSON.parse(r.json) as { rating?: number; ratings?: number };
       SHOP[r.url] = { rating: j.rating ?? 0, ratings: j.ratings ?? 0 };

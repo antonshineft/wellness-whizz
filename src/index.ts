@@ -75,8 +75,8 @@ import PostalMime from 'postal-mime';
 import { renderBlogIndex, renderBlogPost } from './render/blog';
 import { fetchAsset, renderHome } from './render/home';
 import { renderAbout, renderHowItWorks, renderTerms } from './render/pages';
-import { CERTIFIED } from './certified';
-import { checksReportLines, loadMarks, startChecks, stepChecks, storeListings } from './checks';
+import { CERTIFIED, PAID_MARK } from './certified';
+import { checksReportLines, loadMarks, queueSource, startChecks, stepChecks, storeListings } from './checks';
 import { planSwaps, type Supplied } from './swaps';
 import { plainText, restoreText } from './plain';
 import { STUDIED } from './studied';
@@ -431,7 +431,7 @@ async function checkCounts(c: Context<AppContext>): Promise<{ graded: number; gr
   const grades = Object.values(EVIDENCE).map((e) => e.grade);
   return {
     graded: grades.length, gradedAB: grades.filter((g) => g === 'A' || g === 'B').length,
-    testedPicks: urls((u) => !!CERTIFIED[u]), testedSups: sups.filter((ps) => ps.some((p) => CERTIFIED[p.url])).length,
+    testedPicks: urls((u) => !!CERTIFIED[u] && CERTIFIED[u].mark !== PAID_MARK), testedSups: sups.filter((ps) => ps.some((p) => CERTIFIED[p.url] && CERTIFIED[p.url].mark !== PAID_MARK)).length,
     studiedPicks: urls((u) => !!STUDIED[u]), studiedSups: sups.filter((ps) => ps.some((p) => STUDIED[p.url])).length,
   };
 }
@@ -1738,6 +1738,12 @@ app.post('/api/admin/checks/listings', async (c) => {
   } catch (err) {
     return c.json({ error: String(err instanceof Error ? err.message : err) }, 400);
   }
+});
+// After a hand upload: compare that list with the picks of every brand on it (steps join the running check).
+app.post('/api/admin/checks/queue', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  return c.json({ queued: await queueSource(c.env, c.req.query('source') ?? '') });
 });
 // Swap plan for one page (src/swaps.ts): proposes tested products for untested picks. It changes nothing on the site.
 app.post('/api/admin/swaps/:slug/plan', async (c) => {

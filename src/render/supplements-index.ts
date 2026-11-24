@@ -4,7 +4,7 @@ import { escapeHtml } from '../html';
 import { page } from './layout';
 import { pageShell, quizCta } from './pages';
 import { WF_PAGE_IDS, blendAttr, cardImage } from './partials';
-import { CERTIFIED } from '../certified';
+import { CERTIFIED, PAID_MARK } from '../certified';
 import { STUDIED } from '../studied';
 import { EVIDENCE } from '../evidence';
 import { MAX_PICKS } from '../dose';
@@ -17,7 +17,7 @@ function checksOf(sup: Supplement): { keys: string[]; grade?: string; tested: st
   const picks = sup.products.slice(0, MAX_PICKS);
   const grade = EVIDENCE[sup.slug]?.grade;
   const short = (mark: string) => (mark.startsWith('NSF') ? 'NSF' : mark);
-  const tested = [...new Set(picks.map((p) => CERTIFIED[p.url]?.mark).filter(Boolean).map((m) => short(m!)))];
+  const tested = [...new Set(picks.map((p) => CERTIFIED[p.url]?.mark).filter((m) => m && m !== PAID_MARK).map((m) => short(m!)))];
   const studied = [...new Set(picks.flatMap((p) => STUDIED[p.url] ?? []).map((i) => i.name))];
   return { keys: [grade === 'A' || grade === 'B' ? 'evidence' : '', tested.length ? 'tested' : '', studied.length ? 'studied' : ''].filter(Boolean), grade, tested, studied };
 }
