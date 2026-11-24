@@ -76,7 +76,8 @@ import { renderBlogIndex, renderBlogPost } from './render/blog';
 import { fetchAsset, renderHome } from './render/home';
 import { renderAbout, renderHowItWorks, renderTerms } from './render/pages';
 import { CERTIFIED } from './certified';
-import { checksReportLines, loadMarks, startChecks, stepChecks } from './checks';
+import { checksReportLines, loadMarks, startChecks, stepChecks, storeListings } from './checks';
+import { planSwaps } from './swaps';
 import { plainText, restoreText } from './plain';
 import { STUDIED } from './studied';
 import { EVIDENCE } from './evidence';
@@ -1726,6 +1727,30 @@ app.get('/api/admin/checks', async (c) => {
   const counts = (await c.env.DB.prepare('SELECT source, COUNT(*) AS n FROM cert_listings GROUP BY source').all()).results;
   return c.json({ run: JSON.parse((await getMeta(c.env.DB, 'checks:run')) ?? 'null'), last: JSON.parse((await getMeta(c.env.DB, 'checks:last')) ?? 'null'), lists: counts, marks, report: await checksReportLines(c.env.DB) });
 });
+// A list that cannot be downloaded (USP) is uploaded by hand: { source, rows: [{ brand, product, link }] }.
+app.post('/api/admin/checks/listings', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const b = await c.req.json<{ source: string; rows: { brand: string; product: string; link?: string }[] }>();
+  try {
+    return c.json({ stored: await storeListings(c.env.DB, b.source, b.rows.map((r) => ({ source: b.source, brand: r.brand, product: r.product, link: r.link ?? '' }))) });
+  } catch (err) {
+    return c.json({ error: String(err instanceof Error ? err.message : err) }, 400);
+  }
+});
+// Swap plan for one page (src/swaps.ts): proposes tested products for untested picks. It changes nothing on the site.
+app.post('/api/admin/swaps/:slug/plan', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  try {
+    return c.json(await planSwaps(c.env, c.req.param('slug')));
+  } catch (err) {
+    return c.json({ error: String(err instanceof Error ? err.message : err) }, 500);
+  }
+});
+
 app.post('/api/admin/checks/decide', async (c) => {
   const denied = authorized(c);
   if (denied) return denied;

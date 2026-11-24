@@ -97,6 +97,8 @@ export const SOURCES: Source[] = [
   { key: 'iaos', mark: 'IAOS', home: 'https://certifications.nutrasource.ca', load: nutrasource('IAOS', 'iaos') },
   { key: 'ipro', mark: 'IPRO', home: 'https://certifications.nutrasource.ca', load: nutrasource('IPRO', 'ipro') },
   { key: 'nutrastrong', mark: 'NutraStrong', home: 'https://certifications.nutrasource.ca', load: nutrasource('NutraStrong', 'nutrastrong') },
+  // USP's site refuses automated reading: its list is uploaded by hand (POST /api/admin/checks/listings) and kept between runs.
+  { key: 'usp', mark: 'USP Verified', home: 'https://www.quality-supplements.org/usp_verified_products', load: async () => { throw new Error('uploaded by hand'); } },
 ];
 const SOURCE = new Map(SOURCES.map((s) => [s.key, s]));
 
@@ -181,12 +183,12 @@ const emptyLog = (): RunLog => ({ added: [], review: [], removed: [], sources: [
 
 /** Queue a full run: every list, then matching, the shop check, recalls and swap ideas. */
 export async function startChecks(env: CheckEnv): Promise<Run> {
-  const run: Run = { started: new Date().toISOString(), queue: [...SOURCES.map((s) => `fetch:${s.key}`), 'plan'], log: emptyLog(), steps: 0 };
+  const run: Run = { started: new Date().toISOString(), queue: [...SOURCES.filter((s) => s.key !== 'usp').map((s) => `fetch:${s.key}`), 'plan'], log: emptyLog(), steps: 0 };
   await setMeta(env.DB, 'checks:run', JSON.stringify(run));
   return run;
 }
 
-async function storeListings(db: D1Database, key: string, rows: Listing[]): Promise<string> {
+export async function storeListings(db: D1Database, key: string, rows: Listing[]): Promise<string> {
   const before = (await db.prepare('SELECT COUNT(*) AS n FROM cert_listings WHERE source = ?').bind(key).first<{ n: number }>())?.n ?? 0;
   // A list that suddenly lost most of its entries is a broken download, not a mass delisting: keep last week's.
   if (rows.length < 5 || rows.length < before * 0.5) throw new Error(`${key}: only ${rows.length} entries read (had ${before}); kept the earlier list`);
