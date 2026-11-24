@@ -35,6 +35,7 @@ const SYSTEM = `You help a supplement site replace untested product picks with i
 For each candidate decide:
 - fits: the listed product is the SAME KIND of supplement as the page (same active ingredient as the page's subject, sold mainly for it, in a normal form for it). A blend where the page's subject is a minor ingredient, a product for children or pets, a bar or a drink when the page is about a supplement, or a different ingredient does not fit.
 - result: the index of the iHerb search result that is THE SAME PRODUCT as the listed one (same brand, same product line, same form, same strength where stated; another flavour or pack size is fine), or -1 if none is. Never pick a result of another brand or another product of the same brand.
+A different chemical form that is sold as its own supplement does not fit (acetyl-L-carnitine on an L-carnitine page, niacinamide on a niacin page). A combination does not fit: a name with "+", "plus", "complex", "with <another active>", or a branded formula built around several ingredients, unless the page itself is about that combination.
 Be strict: when unsure, answer fits false or result -1. Give one short plain reason.`;
 const SCHEMA = { type: 'object', additionalProperties: false, required: ['candidates'], properties: { candidates: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['n', 'fits', 'result', 'why'], properties: { n: { type: 'integer' }, fits: { type: 'boolean' }, result: { type: 'integer' }, why: { type: 'string' } } } } } };
 
@@ -66,7 +67,9 @@ export async function planSwaps(env: SwapEnv, slug: string, supplied?: Supplied[
   const sports = SPORTS_PAGE.test(sup.name) || /protein/i.test(sup.category);
   const have = new Set(picks.map((p) => norm(`${p.brand} ${p.name}`)));
   const rows = (await env.DB.prepare('SELECT source, brand, product, link FROM cert_listings').all<Listing>()).results
-    .filter((l) => (CONTENT.has(l.source) || sports) && norm(l.product).includes(key));
+    .filter((l) => (CONTENT.has(l.source) || sports) && norm(l.product).includes(key))
+    // A privately sourced test older than five years earns no line, so it is no reason to bring a product in.
+    .filter((l) => l.source !== 'paid' || Math.max(0, ...(l.link.match(/(19|20)\d\d/g) ?? []).map(Number)) >= new Date().getUTCFullYear() - 5);
   // One candidate a brand: content programmes first, then brands the site already picks from (so known to be on iHerb).
   const siteBrands = new Set((await listSupplements(env.DB, 500, false)).flatMap((x) => x.products.map((p) => norm(p.brand ?? ''))));
   const score = (l: Listing) => (l.source === 'paid' ? 0.5 : 0) + (CONTENT.has(l.source) ? 0 : 2) + (siteBrands.has(norm(l.brand)) ? 0 : 1) + l.product.length / 1000;
