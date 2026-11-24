@@ -9,8 +9,8 @@
  *     on sports pages.
  *  3. At most two swaps a page, and a pick that already carries a tested or studied line is never replaced.
  *
- * planSwaps only proposes: it finds listed products whose name carries the page's subject, looks each up on iHerb,
- * asks the Claude API which iHerb result is that listed product and whether it fits the page, and stores the plan in
+ * planSwaps only proposes: it finds listed products whose name carries the page's subject, takes the iHerb pages
+ * found for each (from iHerb's product sitemap), asks the Claude API which iHerb result is that listed product and whether it fits the page, and stores the plan in
  * meta under "swap:<slug>". Nothing on the site changes here.
  */
 import { CERTIFIED } from './certified';
@@ -18,7 +18,7 @@ import { SOURCES, type Listing } from './checks';
 import { claudeJson, type ClaudeEnv } from './claude';
 import { getSupplementBySlug, listSupplements, setMeta } from './db';
 import { MAX_PICKS, STATE_RANK, doseFor, getDoseCheck } from './dose';
-import { searchIherb, type IherbProduct } from './products';
+import type { IherbProduct } from './products';
 import { STUDIED } from './studied';
 
 type SwapEnv = ClaudeEnv & { DB: D1Database };
@@ -28,7 +28,7 @@ const norm = (s: string) => s.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0
 const MARK = new Map(SOURCES.map((s) => [s.key, s.mark]));
 
 export interface SwapProposal { out: { url: string; brand: string; name: string }; in: { url: string; brand: string; name: string; image: string }; mark: string; listed: string; link: string; why: string; stock: string; rating: number; ratings: number }
-export interface SwapPlan { slug: string; name: string; at: string; tested_now: number; candidates: number; searched: number; proposals: SwapProposal[]; note?: string }
+export interface SwapPlan { lookups?: { key: string; source: string; brand: string; product: string }[]; slug: string; name: string; at: string; tested_now: number; candidates: number; searched: number; proposals: SwapProposal[]; note?: string }
 
 const SYSTEM = `You help a supplement site replace untested product picks with independently tested ones. You get one supplement page, and a numbered list of candidates. Each candidate is a product on a certifier's list, with the search results iHerb returned for it.
 For each candidate decide:
@@ -37,7 +37,15 @@ For each candidate decide:
 Be strict: when unsure, answer fits false or result -1. Give one short plain reason.`;
 const SCHEMA = { type: 'object', additionalProperties: false, required: ['candidates'], properties: { candidates: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['n', 'fits', 'result', 'why'], properties: { n: { type: 'integer' }, fits: { type: 'boolean' }, result: { type: 'integer' }, why: { type: 'string' } } } } } };
 
-export async function planSwaps(env: SwapEnv, slug: string): Promise<SwapPlan> {
+/** What the caller found for a candidate on iHerb. iHerb refuses search requests, so its public product sitemap is read outside the Worker and the matches are handed in. */
+export interface Supplied { key: string; results: IherbProduct[] }
+export const candidateKey = (l: Listing) => `${l.source}|${l.brand}|${l.product}`;
+
+/**
+ * Without `supplied` this returns the candidates to look up (plan.lookups) and stops. With it, the plan is made from
+ * the iHerb pages the caller found for each candidate.
+ */
+export async function planSwaps(env: SwapEnv, slug: string, supplied?: Supplied[]): Promise<SwapPlan> {
   const sup = await getSupplementBySlug(env.DB, slug);
   if (!sup) throw new Error(`no supplement ${slug}`);
   const picks = sup.products.slice(0, MAX_PICKS);
@@ -65,18 +73,11 @@ export async function planSwaps(env: SwapEnv, slug: string): Promise<SwapPlan> {
   plan.candidates = rows.length;
   if (!candidates.length) { plan.note = 'no listed product carries this page\'s subject in its name'; return done(); }
 
-  const found: { l: Listing; results: IherbProduct[] }[] = [];
-  for (const l of candidates) {
-    try {
-      const results = await searchIherb(`${l.brand} ${l.product}`.replace(/[®™]/g, '').slice(0, 90), 4);
-      plan.searched += 1;
-      if (results.length) found.push({ l, results });
-    } catch (err) {
-      plan.note = `iHerb search failed: ${String(err instanceof Error ? err.message : err).slice(0, 80)}`;
-      break;
-    }
-  }
-  if (!found.length) { plan.note ??= 'iHerb returned nothing for the listed products'; return done(); }
+  if (!supplied) { plan.lookups = candidates.map((l) => ({ key: candidateKey(l), source: l.source, brand: l.brand, product: l.product })); return plan; }
+  const given = new Map(supplied.map((x) => [x.key, x.results]));
+  const found: { l: Listing; results: IherbProduct[] }[] = candidates.map((l) => ({ l, results: (given.get(candidateKey(l)) ?? []).slice(0, 5) })).filter((f) => f.results.length);
+  plan.searched = found.length;
+  if (!found.length) { plan.note = 'none of the listed products was found on iHerb'; return done(); }
 
   const user = `PAGE: ${sup.name} (${sup.category})\nCurrent picks: ${picks.map((p) => `${p.brand} ${p.name}`).join('; ')}\n\nCANDIDATES\n${found.map((f, n) => `${n}. Listed by ${MARK.get(f.l.source)}: ${f.l.brand} — ${f.l.product}\n${f.results.map((r, i) => `   result ${i}: ${r.brand} | ${r.name}`).join('\n')}`).join('\n')}`;
   const out = await claudeJson<{ candidates: { n: number; fits: boolean; result: number; why: string }[] }>(env, SYSTEM, user, SCHEMA, { maxTokens: 3000 });

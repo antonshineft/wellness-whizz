@@ -77,7 +77,7 @@ import { fetchAsset, renderHome } from './render/home';
 import { renderAbout, renderHowItWorks, renderTerms } from './render/pages';
 import { CERTIFIED } from './certified';
 import { checksReportLines, loadMarks, startChecks, stepChecks, storeListings } from './checks';
-import { planSwaps } from './swaps';
+import { planSwaps, type Supplied } from './swaps';
 import { plainText, restoreText } from './plain';
 import { STUDIED } from './studied';
 import { EVIDENCE } from './evidence';
@@ -1745,7 +1745,8 @@ app.post('/api/admin/swaps/:slug/plan', async (c) => {
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
   try {
-    return c.json(await planSwaps(c.env, c.req.param('slug')));
+    const body = await c.req.json<{ supplied?: Supplied[] }>().catch(() => ({} as { supplied?: Supplied[] }));
+    return c.json(await planSwaps(c.env, c.req.param('slug'), body.supplied));
   } catch (err) {
     return c.json({ error: String(err instanceof Error ? err.message : err) }, 500);
   }
