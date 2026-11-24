@@ -1,10 +1,10 @@
 /** Reusable fragments that mirror the exported Webflow markup (same classes, so the exported CSS applies). */
-import { CERTIFIED, CERTIFIED_ON, PAID_MARK } from '../certified';
+import { CERTIFIED, CERTIFIED_ON, PAID_MARK, PAID_TOP } from '../certified';
 import { STUDIED } from '../studied';
 import type { FdaStatus, FormType, Product, SafetyStatus, Supplement } from '../db';
 import { structureAlt } from '../structures';
 import { STRUCTURES_3D } from '../structures3d';
-import { doseBlank, doseFor, doseLimits, doseScale, type DoseCheck } from '../dose';
+import { MAX_PICKS, doseBlank, doseFor, doseLimits, doseScale, type DoseCheck } from '../dose';
 import { EVIDENCE } from '../evidence';
 import { escapeHtml } from '../html';
 import { primaryProduct, shopUrl, type LinkEnv } from '../links';
@@ -179,6 +179,31 @@ export function studiedTag(url: string): string {
   if (!list?.length) return '';
   const links = list.map((i) => `<a href="${escapeHtml(i.trials)}" target="_blank" rel="noopener nofollow" style="color:inherit" title="Human trials of ${escapeHtml(i.name)} on PubMed. The trials tested the ingredient, not this product.">${escapeHtml(i.name)}</a>`).join(', ');
   return `<div style="font-size:12px;line-height:16px;font-weight:500;color:#4a5a63;margin:2px 0 4px">Contains ${links} · studied in human trials</div>`;
+}
+
+const THUMB = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 10v10H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1h3Zm0 0 4.2-6.6a1.6 1.6 0 0 1 2.9 1.2L13.4 9H19a2 2 0 0 1 2 2.4l-1.3 6.9A2 2 0 0 1 17.7 20H7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+/**
+ * The page's top pick: one product, ours to name. It must carry a test status (a named certifier counts more than the
+ * footnoted tier), and its dose must not be over the page's range; a dose inside the range counts for it, and among
+ * equals the one a test report also singled out goes first. A page with no tested pick has no top pick.
+ */
+export function topPickUrl(sup: Supplement, dose?: DoseCheck | null): string {
+  let best = '';
+  let bestScore = 0;
+  for (const p of sup.products.slice(0, MAX_PICKS)) {
+    const c = CERTIFIED[p.url];
+    if (!c) continue;
+    const state = doseFor(dose, p.url)?.state;
+    if (state === 'over' || state === 'beyond' || state === 'more') continue;
+    const score = (c.mark === PAID_MARK ? 1 : 2) + (PAID_TOP.has(p.url) ? 0.5 : 0) + (state === 'in' || state === 'within' ? 1 : 0);
+    if (score > bestScore) { best = p.url; bestScore = score; }
+  }
+  return best;
+}
+
+export function topPickBadge(): string {
+  return `<span class="ww-top-badge" title="Our top pick on this page: independently tested, with a dose that fits">${THUMB}Top pick</span>`;
 }
 
 /** iHerb publishes a batch test for some products: the lab, the lot, the date and the measured amounts. Public, so it is linked. */
@@ -407,7 +432,10 @@ export function exploreSection(supplements: Supplement[]): string {
  * `dose` undefined leaves the dose teaser out; null (no check, or no official range) shows it greyed out.
  */
 export function homeCard(sup: Supplement, dose?: DoseCheck | null): string {
-  const product = sup.products.find((p) => p.image);
+  // The pictured product is the page's top pick when it has one: a tested product, not just the first in the list.
+  const top = topPickUrl(sup, dose);
+  const product = sup.products.find((p) => p.image && p.url === top) ?? sup.products.find((p) => p.image);
+  const tested = !!product && !!CERTIFIED[product.url];
   // The teaser: the scale of the pictured pick only, in its barest form.
   const pick = product && dose ? doseFor(dose, product.url) : null;
   const image = product
@@ -418,7 +446,7 @@ export function homeCard(sup: Supplement, dose?: DoseCheck | null): string {
   <div class="imagecard">${image}
     <div class="frame-256">
       <div class="text-75">${escapeHtml(sup.name)}</div>
-      <div class="frame-257">${headerBadges(sup)}</div>${dose === undefined || !product ? '' : `\n      ${pick && dose ? doseScale(dose, pick, true) : doseLimits(dose, product.url, true) ?? doseBlank(dose, true)}`}
+      <div class="frame-257">${headerBadges(sup)}</div>${tested ? `\n      <div class="ww-slider-tested"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2 6.4 4.8 9 10 3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Lab-tested pick</div>` : ''}${dose === undefined || !product ? '' : `\n      ${pick && dose ? doseScale(dose, pick, true) : doseLimits(dose, product.url, true) ?? doseBlank(dose, true)}`}
     </div>
   </div>
 </div>`;

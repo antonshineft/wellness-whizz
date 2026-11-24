@@ -12,7 +12,7 @@ import { reviewedLine } from './pages';
 import {
   EFFECTIVITY_LABELS, SAFETY_LABELS, WF_PAGE_IDS, blendAttr, cardImage, detailImage, exploreSection, footer, headerTags, navbar,
   AFFILIATE_NOTE, productPicks, ratingImage, relatedSection, stickyBuyBar,
-  batchTag, certifiedTag, studiedTag,
+  batchTag, certifiedTag, studiedTag, topPickBadge, topPickUrl,
 } from './partials';
 
 const PRODUCT_CARD_IDS = [
@@ -174,9 +174,11 @@ function brandLabel(brand: string | undefined, brandPath?: (brand: string) => st
 function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandPath?: (brand: string) => string | null): string {
   const products = sup.products.slice(0, MAX_PICKS);
   if (!products.length) return '';
+  // The top pick leads; the rest follow by how well the dose fits, then in the editors' order.
+  const top = topPickUrl(sup, dose);
   const ranked = products
     .map((p, i) => ({ p, i, d: doseFor(dose, p.url) }))
-    .sort((a, b) => (a.d ? STATE_RANK[a.d.state] : STATE_RANK.unknown) - (b.d ? STATE_RANK[b.d.state] : STATE_RANK.unknown) || a.i - b.i);
+    .sort((a, b) => Number(b.p.url === top) - Number(a.p.url === top) || (a.d ? STATE_RANK[a.d.state] : STATE_RANK.unknown) - (b.d ? STATE_RANK[b.d.state] : STATE_RANK.unknown) || a.i - b.i);
   const list = ranked
     .map((r, n) => `<li><a href="#pick-${n + 1}"><span class="ww-top-n">${n + 1}</span><span class="ww-top-brand">${escapeHtml(r.p.brand || r.p.name)}</span></a></li>`)
     .join('\n            ');
@@ -189,7 +191,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandP
       return `
             <article class="ww-top-card" id="pick-${n + 1}">
               <span class="ww-top-n" aria-hidden="true">${n + 1}</span>
-              <div class="ww-top-photo">${image}</div>
+              <div class="ww-top-photo">${image}${p.url === top ? topPickBadge() : ''}</div>
               <div class="ww-top-name">${escapeHtml(p.name)}</div>
               <div class="ww-top-meta">${brandLabel(p.brand, brandPath)}${r.d && dose ? `${p.brand ? ' · ' : ''}${doseLine(dose, r.d)}` : ''}</div>
               ${certifiedTag(p.url)}${batchTag(SHOP[p.url]?.report)}${studiedTag(p.url)}
@@ -202,7 +204,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandP
     <section class="ww-top" aria-label="Top picks">
       <div class="ww-top-side">
         <h2 class="heading-3">${escapeHtml(picksHeading(sup).replace('Top 5 Picks', `Top ${products.length} Picks`))}</h2>
-        <p class="ww-top-how">${dose ? 'Ranked by how well one serving fits the reference range. Where that ties, our editors\' order stands.' : 'In our editors\' order.'} <a href="/how-it-works#how-we-check">How we check</a></p>
+        <p class="ww-top-how">${dose ? 'Our top pick first: it is independently tested and its dose fits. The rest follow by how well one serving fits the reference range.' : 'In our editors\' order.'} <a href="/how-it-works#how-we-check">How we check</a></p>
         <ol class="ww-top-list">
             ${list}
         </ol>

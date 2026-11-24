@@ -146,6 +146,7 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
           <li><strong>Products that failed an independent test are dropped.</strong> We do not name them or publish the result; they simply stop being recommended.</li>
           <li><strong>The dose check has the last word.</strong> A tested product whose serving is over the safe ceiling for that page is not shown, however good its certificate.</li>
         </ul>
+        <p><strong>Top pick.</strong> One product on a page may carry this badge. It is our choice, made by fixed rules: the product must be independently tested and its dose must fit the page's range. A page with no tested product has no top pick.</p>
         <p>No brand pays to be picked, and a brand that certifies many products can still hold only part of a page.</p>
         <h2>What we are not</h2>
         <p>Wellness Whizz is an information tool. It is not a medical service, the advisor is not a doctor, and nothing on this site is a diagnosis or a treatment plan. Artificial intelligence can be confidently wrong. Please read the contraindications on each page, check your medication with a pharmacist, and talk to a doctor before starting anything new if you are pregnant or breastfeeding, under 18, or managing a health condition. Who we are and how every page is drafted, reviewed and corrected is on the <a href="/about">About page</a>.</p>

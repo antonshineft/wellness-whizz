@@ -4,6 +4,8 @@
  * be republished, so this line carries no certifier name and no link to a list, and says so in a footnote.
  */
 export const PAID_MARK = 'an independent lab';
+/** Picks the private test list also singles out as a best choice: a silent tie-breaker when a page's top pick is chosen. */
+export const PAID_TOP = new Set<string>();
 export const CERTIFIED_ON = '2026-11-23';
 export const CERTIFIED: Record<string, { mark: string; source: string; listed: string }> = {
   "https://www.iherb.com/pr/thorne-5-hydroxytryptophan-90-capsules/18506": {

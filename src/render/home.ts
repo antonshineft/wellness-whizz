@@ -2,6 +2,8 @@
  * Home page: the static index.html from the export, with the two Webflow collection lists filled from D1
  * (the carousel cards and the "Explore manually" links) using HTMLRewriter.
  */
+import { MAX_PICKS } from '../dose';
+import { CERTIFIED } from '../certified';
 import { allPosts } from '../blog/store';
 import type { Lang } from '../i18n';
 import { localizePosts, localizeSupplements } from '../translate';
@@ -26,7 +28,7 @@ export async function renderHome(
   const posts = await localizePosts(env.DB, lang, (await allPosts(env.DB)).slice(0, 3));
   const [assetResponse, candidatesEn, exploreEn, postSupplements] = await Promise.all([
     fetchAsset(env.ASSETS, request, '/'),
-    randomSupplements(env.DB, 18, curatedOnly),
+    randomSupplements(env.DB, 40, curatedOnly),
     listSupplements(env.DB, 200, curatedOnly),
     getSupplementsBySlugs(env.DB, posts.map((p) => p.heroSupplement)),
   ]);
@@ -34,8 +36,10 @@ export async function renderHome(
   const blogCtx = { env, origin: new URL(request.url).origin, supplements: postSupplements };
   if (!assetResponse.ok) return assetResponse;
   // Carousel cards: supplements with real product photos first. The browser script loops them seamlessly.
+  // Supplements with a tested product come first (the card pictures that product), then any with a photo.
   const withPhoto = candidates.filter((s) => s.products.some((p) => p.image));
-  const cards = [...withPhoto, ...candidates.filter((s) => !withPhoto.includes(s))].slice(0, 10);
+  const tested = withPhoto.filter((s) => s.products.slice(0, MAX_PICKS).some((p) => p.image && CERTIFIED[p.url]));
+  const cards = [...tested, ...withPhoto.filter((s) => !tested.includes(s)), ...candidates.filter((s) => !withPhoto.includes(s))].slice(0, 10);
 
   const doses = new Map<string, DoseCheck>();
   if (doseOn) for (const s of cards) { const d = visibleCheck(await getDoseCheck(env.DB, s.slug), studiedOn); if (d) doses.set(s.slug, d); }

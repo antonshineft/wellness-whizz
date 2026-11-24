@@ -13,7 +13,7 @@
  * five-minute cron so no single invocation does much. State lives in meta under "checks:run"; the finished summary
  * in "checks:last" feeds the Monday email (src/report.ts).
  */
-import { CERTIFIED, PAID_MARK } from './certified';
+import { CERTIFIED, PAID_MARK, PAID_TOP } from './certified';
 import { claudeJson, type ClaudeEnv } from './claude';
 import { getMeta, listSupplements, setMeta, type Supplement } from './db';
 import { MAX_PICKS } from './dose';
@@ -335,6 +335,8 @@ export async function loadMarks(db: D1Database): Promise<void> {
   try {
     const rows = (await db.prepare("SELECT url, source, state, listed, link FROM pick_marks WHERE state IN ('on', 'off')").all<{ url: string; source: string; state: string; listed: string; link: string }>()).results;
     for (const k of Object.keys(CERTIFIED)) delete CERTIFIED[k];
+    PAID_TOP.clear();
+    for (const r of rows) if (r.source === 'paid' && r.state === 'on' && r.link.includes('|top')) PAID_TOP.add(r.url);
     Object.assign(CERTIFIED, seed);
     for (const r of rows.filter((x) => x.state === 'off')) if (CERTIFIED[r.url]?.mark === SOURCE.get(r.source)?.mark) delete CERTIFIED[r.url];
     for (const r of rows.filter((x) => x.state === 'on').sort((x, y) => Number(x.source === 'paid') - Number(y.source === 'paid'))) if (!CERTIFIED[r.url] && SOURCE.get(r.source)) CERTIFIED[r.url] = r.source === 'paid' ? { mark: PAID_MARK, source: SOURCE.get('paid')!.home, listed: r.link } : { mark: SOURCE.get(r.source)!.mark, source: r.link || SOURCE.get(r.source)!.home, listed: r.listed };
