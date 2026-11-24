@@ -159,7 +159,13 @@ export function certifiedTag(url: string): string {
   const c = CERTIFIED[url];
   if (!c) return '';
   // The weaker tier: no certifier to name and no list to link, so the line is plain, grey, and points at its footnote.
-  if (c.mark === PAID_MARK) return `<a href="/how-it-works#paid-tests" style="display:block;font-size:12px;line-height:16px;font-weight:500;color:#4a5a63;text-decoration:underline;text-decoration-color:#1d272d33;text-underline-offset:3px;padding:6px 0;margin:-2px 0" title="Passed a paid testing service's test. Its report cannot be published or linked.">Passed an independent lab test*</a>`;
+  if (c.mark === PAID_MARK) {
+    // The year of the test is all that may be said about it. A test older than five years is not shown at all.
+    const years = (c.listed.match(/(19|20)\d\d/g) ?? []).map(Number);
+    if (!years.length || Math.max(...years) < new Date().getUTCFullYear() - 5) return '';
+    const when = Math.min(...years) === Math.max(...years) ? `${Math.max(...years)}` : `${Math.min(...years)} to ${Math.max(...years)}`;
+    return `<a href="/how-it-works#paid-tests" style="display:block;font-size:12px;line-height:16px;font-weight:500;color:#4a5a63;text-decoration:underline;text-decoration-color:#1d272d33;text-underline-offset:3px;padding:6px 0;margin:-2px 0" title="Passed a test by an independent US testing service. Its report cannot be published or linked.">Passed independent US lab testing, ${when}*</a>`;
+  }
   const title = escapeHtml(`Listed by ${c.mark} as "${c.listed}" (checked ${CERTIFIED_ON}). Certification covers the listed product; sizes, flavours and lots can differ.`);
   return `<a href="${escapeHtml(c.source)}" target="_blank" rel="noopener nofollow" style="display:block;font-size:12px;line-height:16px;font-weight:500;color:#2f7a3a;text-decoration:underline;text-decoration-color:#87d581;text-underline-offset:3px;padding:6px 0;margin:-2px 0" title="${title}"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><path d="M2 6.4 4.8 9 10 3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Independently tested · ${escapeHtml(c.mark)}</a>`;
 }
@@ -173,6 +179,11 @@ export function studiedTag(url: string): string {
   if (!list?.length) return '';
   const links = list.map((i) => `<a href="${escapeHtml(i.trials)}" target="_blank" rel="noopener nofollow" style="color:inherit" title="Human trials of ${escapeHtml(i.name)} on PubMed. The trials tested the ingredient, not this product.">${escapeHtml(i.name)}</a>`).join(', ');
   return `<div style="font-size:12px;line-height:16px;font-weight:500;color:#4a5a63;margin:2px 0 4px">Contains ${links} · studied in human trials</div>`;
+}
+
+/** iHerb publishes a batch test for some products: the lab, the lot, the date and the measured amounts. Public, so it is linked. */
+export function batchTag(report: string | undefined): string {
+  return report ? `<a href="${escapeHtml(report)}" target="_blank" rel="noopener nofollow" style="display:block;font-size:12px;line-height:16px;font-weight:500;color:#4a5a63;text-decoration:underline;text-decoration-color:#87d581;text-underline-offset:3px;padding:6px 0;margin:-2px 0" title="A batch test report published by iHerb for this product: lab, lot, test date and measured amounts.">Batch test report published by iHerb</a>` : '';
 }
 
 /** Header tags on supplement pages: category, safety and FDA as uniform text tags (same size as result-card tags). */

@@ -183,6 +183,30 @@ interface RunLog { added: string[]; review: string[]; removed: string[]; sources
 interface Run { started: string; queue: string[]; log: RunLog; steps: number }
 const emptyLog = (): RunLog => ({ added: [], review: [], removed: [], sources: [], shop: [], recalls: [], swaps: [], errors: [] });
 
+/** After the private list is uploaded again: bring the test year of each matched pick in line with it. */
+export async function refreshPaidYears(env: CheckEnv): Promise<number> {
+  const listed = (await env.DB.prepare("SELECT brand, product, link FROM cert_listings WHERE source = 'paid'").all<{ brand: string; product: string; link: string }>()).results;
+  const brandOf = new Map((await allPicks(env.DB)).map((p) => [p.url, p.brand]));
+  const marks = (await env.DB.prepare("SELECT url, listed FROM pick_marks WHERE source = 'paid'").all<{ url: string; listed: string }>()).results;
+  let n = 0;
+  for (const m of marks) {
+    const row = listed.find((l) => l.product === m.listed && sameBrand(brandOf.get(m.url) ?? '', l.brand));
+    if (!row) continue;
+    await env.DB.prepare("UPDATE pick_marks SET link = ? WHERE url = ? AND source = 'paid'").bind(row.link, m.url).run();
+    n += 1;
+  }
+  return n;
+}
+
+/** What iHerb says about picks, collected outside the Worker (iHerb answers the Worker with 403) and stored for the pages. */
+export async function storeShop(db: D1Database, rows: { url: string; shop: Record<string, unknown> }[]): Promise<number> {
+  const now = new Date().toISOString();
+  for (let i = 0; i < rows.length; i += 50) {
+    await db.batch(rows.slice(i, i + 50).map((r) => db.prepare('INSERT INTO pick_shop (url, json, checked_at) VALUES (?, ?, ?) ON CONFLICT (url) DO UPDATE SET json = excluded.json, checked_at = excluded.checked_at').bind(r.url, JSON.stringify(r.shop), now)));
+  }
+  return rows.length;
+}
+
 /** Queue the matching of one source against every brand it lists (after a hand upload), into the running check or a new one. */
 export async function queueSource(env: CheckEnv, key: string): Promise<number> {
   const raw = await getMeta(env.DB, 'checks:run');
@@ -300,7 +324,7 @@ export async function stepChecks(env: CheckEnv): Promise<{ step: string; left: n
 // ---------- what the site shows, and what the owner reads ----------
 
 /** iHerb's rating of each pick, from the last shop check: what a product card may quote. */
-export const SHOP: Record<string, { rating: number; ratings: number }> = {};
+export const SHOP: Record<string, { rating: number; ratings: number; report?: string; lab?: string }> = {};
 
 let loadedAt = 0;
 const seed = { ...CERTIFIED };
@@ -313,10 +337,10 @@ export async function loadMarks(db: D1Database): Promise<void> {
     for (const k of Object.keys(CERTIFIED)) delete CERTIFIED[k];
     Object.assign(CERTIFIED, seed);
     for (const r of rows.filter((x) => x.state === 'off')) if (CERTIFIED[r.url]?.mark === SOURCE.get(r.source)?.mark) delete CERTIFIED[r.url];
-    for (const r of rows.filter((x) => x.state === 'on').sort((x, y) => Number(x.source === 'paid') - Number(y.source === 'paid'))) if (!CERTIFIED[r.url] && SOURCE.get(r.source)) CERTIFIED[r.url] = { mark: SOURCE.get(r.source)!.mark, source: r.link || SOURCE.get(r.source)!.home, listed: r.listed };
+    for (const r of rows.filter((x) => x.state === 'on').sort((x, y) => Number(x.source === 'paid') - Number(y.source === 'paid'))) if (!CERTIFIED[r.url] && SOURCE.get(r.source)) CERTIFIED[r.url] = r.source === 'paid' ? { mark: PAID_MARK, source: SOURCE.get('paid')!.home, listed: r.link } : { mark: SOURCE.get(r.source)!.mark, source: r.link || SOURCE.get(r.source)!.home, listed: r.listed };
     for (const r of (await db.prepare('SELECT url, json FROM pick_shop').all<{ url: string; json: string }>()).results) {
-      const j = JSON.parse(r.json) as { rating?: number; ratings?: number };
-      SHOP[r.url] = { rating: j.rating ?? 0, ratings: j.ratings ?? 0 };
+      const j = JSON.parse(r.json) as { rating?: number; ratings?: number; report?: string };
+      SHOP[r.url] = { rating: j.rating ?? 0, ratings: j.ratings ?? 0, report: j.report || undefined };
     }
   } catch {
     /* the tables do not exist yet: the seed stands */

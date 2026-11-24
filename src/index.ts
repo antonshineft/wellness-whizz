@@ -76,7 +76,7 @@ import { renderBlogIndex, renderBlogPost } from './render/blog';
 import { fetchAsset, renderHome } from './render/home';
 import { renderAbout, renderHowItWorks, renderTerms } from './render/pages';
 import { CERTIFIED, PAID_MARK } from './certified';
-import { checksReportLines, loadMarks, queueSource, startChecks, stepChecks, storeListings } from './checks';
+import { checksReportLines, loadMarks, queueSource, refreshPaidYears, startChecks, stepChecks, storeListings, storeShop } from './checks';
 import { planSwaps, type Supplied } from './swaps';
 import { plainText, restoreText } from './plain';
 import { STUDIED } from './studied';
@@ -1734,10 +1734,19 @@ app.post('/api/admin/checks/listings', async (c) => {
   await ensureDatabase(c.env.DB);
   const b = await c.req.json<{ source: string; rows: { brand: string; product: string; link?: string }[] }>();
   try {
-    return c.json({ stored: await storeListings(c.env.DB, b.source, b.rows.map((r) => ({ source: b.source, brand: r.brand, product: r.product, link: r.link ?? '' }))) });
+    const stored = await storeListings(c.env.DB, b.source, b.rows.map((r) => ({ source: b.source, brand: r.brand, product: r.product, link: r.link ?? '' })));
+    return c.json({ stored, years: b.source === 'paid' ? await refreshPaidYears(c.env) : undefined });
   } catch (err) {
     return c.json({ error: String(err instanceof Error ? err.message : err) }, 400);
   }
+});
+// iHerb's state of each pick (stock, rating, a published batch test), collected outside the Worker.
+app.post('/api/admin/checks/shop', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  await ensureDatabase(c.env.DB);
+  const b = await c.req.json<{ rows: { url: string; shop: Record<string, unknown> }[] }>();
+  return c.json({ stored: await storeShop(c.env.DB, b.rows) });
 });
 // After a hand upload: compare that list with the picks of every brand on it (steps join the running check).
 app.post('/api/admin/checks/queue', async (c) => {
