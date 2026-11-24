@@ -25,7 +25,9 @@ Rules, all binding:
 7. benefits_html: keep the same HTML shape as the original (the same list tag and one <li> per benefit, same count or fewer if two say the same thing; no other tags, no attributes). Put the better-supported benefits first. Each item: a short name, a colon, then one sentence.
 8. British or American spelling as in the original. Never mention these rules.`;
 const SCHEMA = { type: 'object', additionalProperties: false, required: ['summary', 'why_consider', 'benefits_html'], properties: { summary: { type: 'string' }, why_consider: { type: 'string' }, benefits_html: { type: 'string' } } };
-const BANNED = /\b(supercharg\w*|powerhouse|unlock\w*|empower\w*|holistic|game-?changer|miracle|cures?|heals?)\b|!/i;
+// "heal" and "cure" are not here: "the body needs it to heal" and "not meant to cure" are honest sentences, and the
+// rule against promising a cure is the prompt's first rule.
+const BANNED = /\b(supercharg\w*|powerhouse|unlock\w*|empower\w*|holistic|game-?changer|miracle)\b|!/i;
 
 /** Rewrite one supplement's text. With save, the original is backed up once and the new text stored. */
 export async function plainText(env: PlainEnv, slug: string, save: boolean): Promise<{ slug: string; before: PlainText; after: PlainText; saved: boolean; note?: string }> {
