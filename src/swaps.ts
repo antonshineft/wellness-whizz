@@ -28,7 +28,8 @@ const norm = (s: string) => s.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0
 const MARK = new Map(SOURCES.map((s) => [s.key, s.mark]));
 
 export interface SwapProposal { out: { url: string; brand: string; name: string }; in: { url: string; brand: string; name: string; image: string }; mark: string; listed: string; link: string; why: string; stock: string; rating: number; ratings: number }
-export interface SwapPlan { lookups?: { key: string; source: string; brand: string; product: string }[]; slug: string; name: string; at: string; tested_now: number; candidates: number; searched: number; proposals: SwapProposal[]; note?: string }
+interface Shop { isDiscontinued?: boolean; isAvailableToPurchase?: boolean; stockStatusMessage?: string; averageRating?: number; totalRatingCount?: number }
+export interface SwapPlan { skipped?: string[]; lookups?: { key: string; source: string; brand: string; product: string }[]; slug: string; name: string; at: string; tested_now: number; candidates: number; searched: number; proposals: SwapProposal[]; note?: string }
 
 const SYSTEM = `You help a supplement site replace untested product picks with independently tested ones. You get one supplement page, and a numbered list of candidates. Each candidate is a product on a certifier's list, with the search results iHerb returned for it.
 For each candidate decide:
@@ -85,19 +86,24 @@ export async function planSwaps(env: SwapEnv, slug: string, supplied?: Supplied[
   // Who leaves: the untested, unstudied pick that ranks last on the page (worst dose verdict, then lowest place).
   const leaving = picks.map((p, i) => ({ p, i, rank: STATE_RANK[doseFor(dose, p.url)?.state ?? 'unknown'] })).filter((x) => !tested.has(x.p.url) && !STUDIED[x.p.url]).sort((a, b) => b.rank - a.rank || b.i - a.i);
   const taken = new Set(picks.map((p) => p.url));
+  const skipped: string[] = [];
   for (const c of out.candidates) {
     if (plan.proposals.length >= room) break;
     const f = found[c.n];
     const r = f && c.fits && c.result >= 0 ? f.results[c.result] : undefined;
+    if (f && (!c.fits || c.result < 0)) skipped.push(`${f.l.brand} ${f.l.product}: ${c.why}`);
+    if (f && r && taken.has(r.url)) skipped.push(`${f.l.brand} ${f.l.product}: already a pick on this page`);
     if (!f || !r || taken.has(r.url) || norm(r.brand) !== norm(f.l.brand) && !norm(r.brand).startsWith(norm(f.l.brand).slice(0, 5))) continue;
-    const id = /\/(\d+)(?:\?.*)?$/.exec(r.url)?.[1];
-    const shop = id ? await fetch(`https://catalog.app.iherb.com/product/${id}`, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; WellnessWhizz-listing-check/1.0)' } }).then((x) => (x.ok ? (x.json() as Promise<{ isDiscontinued?: boolean; isAvailableToPurchase?: boolean; stockStatusMessage?: string; averageRating?: number; totalRatingCount?: number }>) : null)).catch(() => null) : null;
-    if (!shop || shop.isDiscontinued || shop.isAvailableToPurchase === false) continue; // rule 1: iHerb sells it now
+    // Rule 1, "iHerb sells it now": the stock state comes with the page the caller found (iHerb answers the Worker with 403).
+    const shop = (r as IherbProduct & { shop?: Shop }).shop;
+    if (!shop) { skipped.push(`${f.l.brand} ${f.l.product}: no stock information`); continue; }
+    if (shop.isDiscontinued || shop.isAvailableToPurchase === false) { skipped.push(`${f.l.brand} ${f.l.product}: ${shop.stockStatusMessage || 'not available'}`); continue; }
     const gone = leaving[plan.proposals.length];
     if (!gone) break;
     taken.add(r.url);
     plan.proposals.push({ out: { url: gone.p.url, brand: gone.p.brand ?? '', name: gone.p.name }, in: { url: r.url, brand: r.brand, name: r.name, image: r.image }, mark: MARK.get(f.l.source) ?? f.l.source, listed: f.l.product, link: f.l.link, why: c.why, stock: shop.stockStatusMessage ?? '', rating: shop.averageRating ?? 0, ratings: shop.totalRatingCount ?? 0 });
   }
+  plan.skipped = skipped;
   if (!plan.proposals.length) plan.note ??= 'no listed product was both on iHerb in stock and a fit for the page';
   return done();
 }
