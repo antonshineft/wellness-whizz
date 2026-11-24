@@ -2578,6 +2578,10 @@ app.notFound((c) => (c.req.path.startsWith('/api/') ? c.json({ error: 'Not found
 app.onError((err, c) => {
   console.error(`${c.req.method} ${c.req.path} failed: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
   if (c.req.path.startsWith('/api/')) return c.json({ error: 'Internal error' }, 500);
+  // The database's daily allowance is used up: say so kindly and tell crawlers to come back, instead of a bare error.
+  if (/exceeded D1|row read limit/i.test(String(err instanceof Error ? err.message : err))) {
+    return c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Back shortly · Wellness Whizz</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#ecf3f6;color:#1d272d;font-family:Aeonik,system-ui,sans-serif;padding:24px;box-sizing:border-box}main{max-width:460px;background:#fff;border-radius:28px;padding:36px}h1{font-size:30px;line-height:36px;font-weight:500;margin:0 0 12px}p{font-size:17px;line-height:26px;margin:0 0 10px}</style></head><body><main><h1>We are back shortly</h1><p>Wellness Whizz is having a short technical pause. Nothing is lost, and the site returns by itself within a few hours.</p><p>Thank you for your patience.</p></main></body></html>`, 503, { 'retry-after': '3600', 'cache-control': 'no-store' });
+  }
   return c.body('Internal error', 500, { 'content-type': 'text/plain; charset=utf-8' });
 });
 
