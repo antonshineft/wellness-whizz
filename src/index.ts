@@ -1748,6 +1748,14 @@ app.post('/api/admin/checks/shop', async (c) => {
   const b = await c.req.json<{ rows: { url: string; shop: Record<string, unknown> }[] }>();
   return c.json({ stored: await storeShop(c.env.DB, b.rows) });
 });
+// A swap brings in a product already confirmed against a list: its line is recorded at once instead of waiting for Sunday.
+app.post('/api/admin/checks/mark', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  const b = await c.req.json<{ url: string; source: string; listed: string; link?: string }>();
+  await c.env.DB.prepare("INSERT INTO pick_marks (url, source, state, listed, link, why, checked_at) VALUES (?, ?, 'on', ?, ?, 'confirmed when the pick was swapped in', ?) ON CONFLICT (url, source) DO UPDATE SET state = 'on', listed = excluded.listed, link = excluded.link, checked_at = excluded.checked_at").bind(b.url, b.source, b.listed, b.link ?? '', new Date().toISOString()).run();
+  return c.json({ ok: true });
+});
 // After a hand upload: compare that list with the picks of every brand on it (steps join the running check).
 app.post('/api/admin/checks/queue', async (c) => {
   const denied = authorized(c);
@@ -1760,8 +1768,8 @@ app.post('/api/admin/swaps/:slug/plan', async (c) => {
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
   try {
-    const body = await c.req.json<{ supplied?: Supplied[] }>().catch(() => ({} as { supplied?: Supplied[] }));
-    return c.json(await planSwaps(c.env, c.req.param('slug'), body.supplied));
+    const body = await c.req.json<{ supplied?: Supplied[]; forced?: string[] }>().catch(() => ({} as { supplied?: Supplied[]; forced?: string[] }));
+    return c.json(await planSwaps(c.env, c.req.param('slug'), body.supplied, body.forced ?? []));
   } catch (err) {
     return c.json({ error: String(err instanceof Error ? err.message : err) }, 500);
   }

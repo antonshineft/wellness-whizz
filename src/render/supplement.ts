@@ -64,12 +64,6 @@ function ratingBlock(title: string, labels: readonly string[], value: number, sa
               </div>`;
 }
 
-/** What iHerb's buyers say, from the weekly product check (src/checks.ts): shown once a product has a real number of ratings. */
-function ratingLine(url: string): string {
-  const r = SHOP[url];
-  return r && r.ratings >= 50 && r.rating > 0 ? `<div style="font-size:12px;line-height:16px;font-weight:500;color:#4a5a63;margin:2px 0 4px">Rated ${r.rating.toFixed(1)} of 5 by ${r.ratings.toLocaleString('en-US')} iHerb buyers</div>` : '';
-}
-
 /** On a graded supplement the evidence grade stands where the old effectivity bars were (src/evidence.ts). */
 function evidenceBlock(slug: string): string {
   const e = EVIDENCE[slug];
@@ -198,7 +192,7 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandP
               <div class="ww-top-photo">${image}</div>
               <div class="ww-top-name">${escapeHtml(p.name)}</div>
               <div class="ww-top-meta">${brandLabel(p.brand, brandPath)}${r.d && dose ? `${p.brand ? ' · ' : ''}${doseLine(dose, r.d)}` : ''}</div>
-              ${certifiedTag(p.url)}${batchTag(SHOP[p.url]?.report)}${studiedTag(p.url)}${ratingLine(p.url)}
+              ${certifiedTag(p.url)}${batchTag(SHOP[p.url]?.report)}${studiedTag(p.url)}
               ${r.d && dose ? doseScale(dose, r.d) : doseLimits(dose, p.url) ?? doseBlank(dose, false, sup.name)}
               <a href="${escapeHtml(shopUrl(env, sup, p))}" target="_blank" rel="noopener nofollow sponsored" class="outbutton w-button" data-track="outbound_click" data-slug="${escapeHtml(sup.slug)}" data-product="${escapeHtml(p.name)}">Buy on iHerb</a>
             </article>`;
