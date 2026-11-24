@@ -76,7 +76,7 @@ import { renderBlogIndex, renderBlogPost } from './render/blog';
 import { fetchAsset, renderHome } from './render/home';
 import { renderAbout, renderHowItWorks, renderTerms } from './render/pages';
 import { CERTIFIED, PAID_MARK } from './certified';
-import { checksReportLines, loadMarks, queueSource, refreshPaidYears, startChecks, stepChecks, storeListings, storeShop } from './checks';
+import { type Listing, checksReportLines, loadMarks, queueSource, refreshPaidYears, startChecks, stepChecks, storeListings, storeShop } from './checks';
 import { planSwaps, type Supplied } from './swaps';
 import { plainText, restoreText } from './plain';
 import { STUDIED } from './studied';
@@ -1727,6 +1727,13 @@ app.get('/api/admin/checks', async (c) => {
   const counts = (await c.env.DB.prepare('SELECT source, COUNT(*) AS n FROM cert_listings GROUP BY source').all()).results;
   return c.json({ run: JSON.parse((await getMeta(c.env.DB, 'checks:run')) ?? 'null'), last: JSON.parse((await getMeta(c.env.DB, 'checks:last')) ?? 'null'), lists: counts, marks, report: await checksReportLines(c.env.DB) });
 });
+// Every stored listing in one answer: the swap runner downloads this once and filters it itself, so planning a page
+// costs the database a handful of rows instead of ten thousand.
+app.get('/api/admin/checks/listings', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  return c.json({ listings: (await c.env.DB.prepare('SELECT source, brand, product, link FROM cert_listings').all()).results });
+});
 // A list that cannot be downloaded (USP) is uploaded by hand: { source, rows: [{ brand, product, link }] }.
 app.post('/api/admin/checks/listings', async (c) => {
   const denied = authorized(c);
@@ -1768,8 +1775,8 @@ app.post('/api/admin/swaps/:slug/plan', async (c) => {
   if (denied) return denied;
   await ensureDatabase(c.env.DB);
   try {
-    const body = await c.req.json<{ supplied?: Supplied[]; forced?: string[] }>().catch(() => ({} as { supplied?: Supplied[]; forced?: string[] }));
-    return c.json(await planSwaps(c.env, c.req.param('slug'), body.supplied, body.forced ?? []));
+    const body = await c.req.json<{ supplied?: Supplied[]; forced?: string[]; listings?: Listing[] }>().catch(() => ({} as { supplied?: Supplied[]; forced?: string[]; listings?: Listing[] }));
+    return c.json(await planSwaps(c.env, c.req.param('slug'), body.supplied, body.forced ?? [], body.listings));
   } catch (err) {
     return c.json({ error: String(err instanceof Error ? err.message : err) }, 500);
   }

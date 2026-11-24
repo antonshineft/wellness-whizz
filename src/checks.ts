@@ -328,9 +328,11 @@ export const SHOP: Record<string, { rating: number; ratings: number; report?: st
 
 let loadedAt = 0;
 const seed = { ...CERTIFIED };
-/** Bring the marks the pages show (the CERTIFIED map) in line with the database: at most every ten minutes per isolate. */
+/** Bring the marks the pages show (the CERTIFIED map) in line with the database: at most once an hour per isolate. */
 export async function loadMarks(db: D1Database): Promise<void> {
-  if (Date.now() - loadedAt < 600_000) return;
+  // Once an hour for each isolate: these two tables are about a thousand rows, and every read counts against the
+  // database's daily allowance (the site went down on 24 November 2026 when that ran out).
+  if (Date.now() - loadedAt < 3_600_000) return;
   loadedAt = Date.now();
   try {
     const rows = (await db.prepare("SELECT url, source, state, listed, link FROM pick_marks WHERE state IN ('on', 'off')").all<{ url: string; source: string; state: string; listed: string; link: string }>()).results;

@@ -16,7 +16,7 @@
 import { CERTIFIED } from './certified';
 import { SOURCES, type Listing } from './checks';
 import { claudeJson, type ClaudeEnv } from './claude';
-import { getSupplementBySlug, listSupplements, setMeta } from './db';
+import { getSupplementBySlug, setMeta } from './db';
 import { MAX_PICKS, STATE_RANK, doseFor, getDoseCheck } from './dose';
 import type { IherbProduct } from './products';
 import { STUDIED } from './studied';
@@ -47,7 +47,7 @@ export const candidateKey = (l: Listing) => `${l.source}|${l.brand}|${l.product}
  * Without `supplied` this returns the candidates to look up (plan.lookups) and stops. With it, the plan is made from
  * the iHerb pages the caller found for each candidate.
  */
-export async function planSwaps(env: SwapEnv, slug: string, supplied?: Supplied[], forced: string[] = []): Promise<SwapPlan> {
+export async function planSwaps(env: SwapEnv, slug: string, supplied?: Supplied[], forced: string[] = [], listings?: Listing[]): Promise<SwapPlan> {
   const sup = await getSupplementBySlug(env.DB, slug);
   if (!sup) throw new Error(`no supplement ${slug}`);
   const picks = sup.products.slice(0, MAX_PICKS);
@@ -66,12 +66,15 @@ export async function planSwaps(env: SwapEnv, slug: string, supplied?: Supplied[
   if (key.length < 4) { plan.note = 'the page name is too short to match safely'; return done(); }
   const sports = SPORTS_PAGE.test(sup.name) || /protein/i.test(sup.category);
   const have = new Set(picks.map((p) => norm(`${p.brand} ${p.name}`)));
-  const rows = (await env.DB.prepare('SELECT source, brand, product, link FROM cert_listings').all<Listing>()).results
+  // The candidates come from the caller, who holds one downloaded copy of the lists. Reading all ten thousand
+  // listings here for every page is what used up the database's daily allowance on 24 November 2026.
+  if (!listings) { plan.note = 'the caller must supply the candidate listings (GET /api/admin/checks/listings once, then filter)'; return plan; }
+  const rows = listings
     .filter((l) => (CONTENT.has(l.source) || sports) && norm(l.product).includes(key))
     // A privately sourced test older than five years earns no line, so it is no reason to bring a product in.
     .filter((l) => l.source !== 'paid' || Math.max(0, ...(l.link.match(/(19|20)\d\d/g) ?? []).map(Number)) >= new Date().getUTCFullYear() - 5);
-  // One candidate a brand: content programmes first, then brands the site already picks from (so known to be on iHerb).
-  const siteBrands = new Set((await listSupplements(env.DB, 500, false)).flatMap((x) => x.products.map((p) => norm(p.brand ?? ''))));
+  // One candidate a brand: content programmes first, then brands this page already picks from.
+  const siteBrands = new Set(picks.map((p) => norm(p.brand ?? '')));
   const score = (l: Listing) => (l.source === 'paid' ? 0.5 : 0) + (CONTENT.has(l.source) ? 0 : 2) + (siteBrands.has(norm(l.brand)) ? 0 : 1) + l.product.length / 1000;
   const byBrand = new Map<string, Listing>();
   for (const l of rows.sort((a, b) => score(a) - score(b))) if (!byBrand.has(norm(l.brand)) && !have.has(norm(`${l.brand} ${l.product}`))) byBrand.set(norm(l.brand), l);
