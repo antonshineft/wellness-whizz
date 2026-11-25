@@ -1389,3 +1389,5 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 @media (max-width: 479px) { .ww-rl-seg { display: grid; } .ww-rl-seg label { padding: 0 12px; font-size: 15px; } }
 @media (prefers-reduced-motion: reduce) { .ww-rl-seg label { transition: none; } }
 .frame-202 > .div-block-15 { display: none; }
+/* Insight frames: a full line all the way round (no fade) */
+.frame-202 > .frame-209::before, .frame-209.recent.ww-rl::before { -webkit-mask-image: none; mask-image: none; border-color: #ffffff2e; }
