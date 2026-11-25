@@ -1361,3 +1361,4 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
   .ww-rs-note .ww-note-links { gap: 0 16px; }
 }
 .ww-rs-meta .ww-tag { min-height: 32px; display: inline-flex; align-items: center; }
+@media (min-width: 992px) { .ww-rs .ww-rfilter-row { align-items: stretch; } }
