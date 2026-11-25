@@ -473,7 +473,7 @@ export function captureBox(opts: { source: 'results' | 'newsletter'; sessionId?:
 }
 
 /** "Related supplements": same-category tiles shown above the explore list on supplement pages. */
-export function relatedSection(related: Supplement[]): string {
+export function relatedSection(related: Supplement[], browse = ''): string {
   if (!related.length) return '';
   const tiles = related
     .map((sup) => {
@@ -492,7 +492,10 @@ export function relatedSection(related: Supplement[]): string {
   return `
   <section class="ww-related-wrap">
     <div class="ww-related-inner">
-      <h3 class="ww-related-title">Related supplements</h3>
+      <div class="ww-related-head">
+        <h3 class="ww-related-title">Related supplements</h3>${browse ? `
+        <a href="/supplements" class="ww-related-all">${escapeHtml(browse)}</a>` : ''}
+      </div>
       <div class="ww-related-grid">${tiles}
       </div>
     </div>

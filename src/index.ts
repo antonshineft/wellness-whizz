@@ -407,7 +407,7 @@ pageRoute('/supplement/:slug', async (c, lang) => {
   const pending = lang !== 'en' && !translation;
   const [exploreEn, relatedEn, notes] = await Promise.all([
     listSupplements(c.env.DB, 200, curatedOnly(c.env)),
-    relatedSupplements(c.env.DB, supplement, 4, curatedOnly(c.env)),
+    relatedSupplements(c.env.DB, supplement, 5, curatedOnly(c.env)),
     // The research notes are English only, so the Spanish page does without the block.
     lang === 'en' ? notesForSupplement(c.env.DB, supplement.id, '', 5) : Promise.resolve([]),
   ]);

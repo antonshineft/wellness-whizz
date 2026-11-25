@@ -266,12 +266,57 @@ function insightsSection(sup: Supplement): string {
     </div>`;
 }
 
-function studiesSection(sup: Supplement): string {
-  if (!sup.studies_html) return '';
+/** One classic study from the stored list, as the same kind of row a research note gets: its title, then the journal and year. */
+function studyItems(html: string | undefined): string {
+  if (!html) return '';
+  return [...html.matchAll(/<a\s[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)]
+    .map((m) => {
+      const text = m[2].replace(/<[^>]+>/g, '').trim();
+      const cut = text.search(/\s[\u2014\u2013-]\s(?!.*\s[\u2014\u2013-]\s)/);
+      const title = cut > 0 ? text.slice(0, cut) : text;
+      const meta = cut > 0 ? text.slice(cut).replace(/^\s[\u2014\u2013-]\s/, '') : '';
+      return `
+          <li class="ww-rl-item">
+            <a href="${m[1]}" class="ww-rl-title" target="_blank" rel="noopener">${title}</a>${meta ? `
+            <span class="ww-rl-meta">${meta}</span>` : ''}
+          </li>`;
+    })
+    .join('');
+}
+
+/**
+ * "Research": one block for both kinds of source. The newest notes about this supplement come first, each linking its
+ * own page under /research/, then the classic studies the page was written from.
+ */
+function researchSection(sup: Supplement, notes: readonly ResearchNote[]): string {
+  const latest = notes
+    .map(
+      (n) => `
+          <li class="ww-rl-item">
+            <a href="${escapeHtml(notePath(n))}" class="ww-rl-title">${escapeHtml(n.title)}</a>
+            <span class="ww-rl-meta">${noteLabel(n)}${n.pub_type ? ` \u00b7 ${escapeHtml(n.pub_type)}` : ''}</span>${n.takeaway ? `
+            <p class="ww-rl-take">${escapeHtml(n.takeaway)}</p>` : ''}
+          </li>`,
+    )
+    .join('');
+  const classic = studyItems(sup.studies_html);
+  // A stored list this cannot read as links is shown as it was written.
+  const classicBlock = classic
+    ? `<ul class="ww-rl-list">${classic}
+        </ul>`
+    : sup.studies_html ? `<div class="w-richtext">${sup.studies_html}</div>` : '';
+  if (!latest && !classicBlock) return '';
   return `
-    <div data-w-id="d2583c6d-a801-58f2-5a58-efcac18e2fe2" style="opacity:0" class="frame-209 recent">
-      <h3 class="heading-green recent">Relevant Studies</h3>
-      <div class="rich-text-block-4 links w-richtext">${sup.studies_html}</div>
+    <div data-w-id="d2583c6d-a801-58f2-5a58-efcac18e2fe2" style="opacity:0" class="frame-209 recent ww-rl" id="research">
+      <h3 class="heading-green recent">Research</h3>
+      <div class="rich-text-block-4 links ww-rl-body">${latest ? `
+        <h4 class="ww-rl-group">New studies</h4>
+        <ul class="ww-rl-list">${latest}
+        </ul>
+        <p class="ww-rl-more"><a href="/research">All research notes</a></p>` : ''}${classicBlock ? `
+        <h4 class="ww-rl-group">Key studies</h4>
+        ${classicBlock}` : ''}
+      </div>
     </div>`;
 }
 
@@ -310,30 +355,6 @@ export interface SupplementPageExtras {
   brandStrip?: string;
   /** The path of a brand's profile page for a pick's brand name, or null when it has none: brand names then become links. */
   brandPath?: (brand: string) => string | null;
-}
-
-/** "Latest Research": the newest notes about this supplement, each linking its own page under /research/. */
-function researchSection(notes: readonly ResearchNote[]): string {
-  if (!notes.length) return '';
-  const items = notes
-    .map(
-      (n) => `
-          <li class="ww-rl-item">
-            <a href="${escapeHtml(notePath(n))}" class="ww-rl-title">${escapeHtml(n.title)}</a>
-            <span class="ww-rl-meta">${noteLabel(n)}${n.pub_type ? ` · ${escapeHtml(n.pub_type)}` : ''}</span>${n.takeaway ? `
-            <p class="ww-rl-take">${escapeHtml(n.takeaway)}</p>` : ''}
-          </li>`,
-    )
-    .join('');
-  return `
-    <div class="frame-209 recent ww-rl" id="research">
-      <h3 class="heading-green recent">Latest Research</h3>
-      <div class="rich-text-block-4 links ww-rl-body">
-        <ul class="ww-rl-list">${items}
-        </ul>
-        <p class="ww-rl-more"><a href="/research">All research notes</a></p>
-      </div>
-    </div>`;
 }
 
 function seoHead(sup: Supplement, origin: string): string {
@@ -480,9 +501,11 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
           <div class="frame-51">
             <div class="text-10">${escapeHtml(sup.summary || `${sup.name}: benefits, dosage, safety and where to buy.`)}</div>
           </div>
+        </div>
+        <div class="ww-hero-foot">
+          ${reviewedLine(sup.updated_at || sup.created_at, '', false)}
           <div class="frame-52">${headerTags(sup)}</div>
         </div>
-        ${reviewedLine(sup.updated_at || sup.created_at, '', false)}
       </div>
     </div>${productPicks(env, sup)}
     <div data-w-id="2841e5e2-b1d4-d414-f4f8-0c4efba35769" style="opacity:0.27;-webkit-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-moz-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-ms-transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);transform:translate3d(0, 50px, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0)" class="_3-columns">
@@ -511,9 +534,8 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
       })}
     </div>${extras.dose === undefined ? productCards(env, sup) : picksGrid(env, sup, extras.dose, extras.brandPath)}
   </div>
-  <section class="info">${synergySection(sup)}${insightsSection(sup)}${studiesSection(sup)}${researchSection(extras.notes ?? [])}${faqSection(sup)}
-  </section>${relatedSection(extras.related ?? [])}
-  <p class="ww-all-link"><a href="/supplements">Browse all ${explore.length || ''} supplements</a></p>${extras.brandStrip ?? ''}${footer()}${stickyBuyBar(env, sup)}`;
+  <section class="info">${synergySection(sup)}${insightsSection(sup)}${researchSection(sup, extras.notes ?? [])}${faqSection(sup)}
+  </section>${relatedSection(extras.related ?? [], `Browse all ${explore.length || ''} supplements`)}${extras.brandStrip ?? ''}${footer()}${stickyBuyBar(env, sup)}`;
 
   return page({
     title: seoTitle(sup),

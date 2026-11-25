@@ -989,3 +989,41 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-top-badge { position: absolute; top: 10px; right: 10px; display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 10px; border-radius: 15px; background: #1d272d; color: #87d581; font-family: Aeonik, sans-serif; font-size: 13px; line-height: 1; font-weight: 700; box-shadow: 0 4px 12px #1d272d33; }
 .ww-top-badge svg { flex: none; }
 .ww-slider-tested { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; font-family: Aeonik, sans-serif; font-size: 12px; line-height: 16px; font-weight: 500; color: #2f7a3a; }
+
+/* Supplement page polish: the hero's summary takes three quarters of the block and the reviewed line and tags sit
+   on one line at its bottom; the columns keep the same distance from the picks strip as the strip keeps from the hero. */
+.frame-49 .frame-50 { width: 100%; }
+.frame-49 .frame-51 { width: 75%; max-width: 75%; }
+.frame-49 .frame-51 .text-10 { width: 100%; max-width: none; }
+.ww-hero-foot { margin-top: auto; width: 100%; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 32px; }
+.ww-hero-foot .ww-reviewed { flex: 0 1 auto; }
+.ww-hero-foot .frame-52 { flex: 0 0 auto; flex-wrap: nowrap; justify-content: flex-end; width: auto; max-width: none; }
+.ww-hero-foot .frame-52 .ww-tag { white-space: nowrap; }
+.ww-strip-wrap + ._3-columns { margin-top: 40px; }
+@media (max-width: 1180px) {
+  .ww-hero-foot { flex-direction: column; align-items: flex-start; }
+  .ww-hero-foot .frame-52 { flex-wrap: wrap; justify-content: flex-start; order: -1; }
+}
+@media (max-width: 767px) {
+  .frame-49 .frame-51 { width: 100%; max-width: 100%; }
+  .ww-strip-wrap + ._3-columns { margin-top: 28px; }
+}
+/* Research: two groups in one block. */
+.ww-rl-body .ww-rl-group { margin: 0 0 14px; font-family: Aeonik, sans-serif; font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #87d581; }
+.ww-rl-body .ww-rl-more + .ww-rl-group { margin-top: 40px; }
+/* Common questions: each one in its own rounded box. */
+.ww-qa-list { border-top: 0; display: flex; flex-direction: column; gap: 12px; }
+.ww-qa-item { border: 1px solid #ffffff24; border-radius: 22px; background: #ffffff0a; padding: 0 26px; transition: background .2s, border-color .2s; }
+.ww-qa-item:hover { border-color: #87d58166; }
+.ww-qa-item[open] { background: #ffffff12; border-color: #87d58166; }
+.ww-qa-chevron { box-sizing: content-box; }
+@media (max-width: 767px) { .ww-qa-item { padding: 0 18px; border-radius: 18px; } .ww-qa-list { gap: 10px; } }
+/* Related: five across, with the link to the catalogue on the title's line. */
+.ww-related-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; margin: 0 0 20px; }
+.ww-related-head .ww-related-title { margin: 0; }
+.ww-related-all { font-size: 18px; font-weight: 500; color: #1d272d; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #87d581; text-decoration-thickness: 2px; white-space: nowrap; }
+.ww-related-wrap { padding-bottom: 56px; }
+@media (min-width: 992px) { .ww-related-head + .ww-related-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (max-width: 767px) { .ww-related-head + .ww-related-grid .ww-related-tile:nth-child(5) { display: none; } }
+@media (min-width: 1181px) { .ww-hero-foot .ww-reviewed { white-space: nowrap; } }
+.ww-qa .ww-qa-list { margin-top: 28px; }
