@@ -1121,3 +1121,6 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-qa-item { background: #ffffff0f; }
 .ww-qa-item:hover { background: #ffffff17; }
 .ww-qa-item[open] { background: #ffffff17; }
+/* The running line of brands: room above and below it. */
+.ww-brandstrip { margin-top: 72px; margin-bottom: 88px; }
+@media (max-width: 767px) { .ww-brandstrip { margin-top: 48px; margin-bottom: 56px; } }
