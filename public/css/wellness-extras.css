@@ -1438,3 +1438,27 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .frame-202.ww-stack > .ww-stack-card.is-guide { flex-direction: column; gap: 18px; }
 .ww-stack-card.is-guide .ww-fg-wrap { width: 100%; }
 @media (min-width: 992px) { .ww-stack-card.is-guide .ww-fg-card p { font-size: 17px; line-height: 27px; } }
+
+/* ---------- Health Insights stack, second pass: frames lock under the heading, text scrolls inside them ---------- */
+.frame-202.ww-stack { gap: 0; }
+.ww-stack-head { min-height: 118px; padding: 16px 0 0; background: linear-gradient(#1d272d 70px, #1d272d00 70px); box-sizing: border-box; }
+.frame-202.ww-stack > .ww-stack-card { box-shadow: none; padding: 0 36px; margin: 0 0 20px; overflow: hidden; flex-direction: row; gap: 58px; align-items: stretch; height: var(--stack-h, auto); }
+.frame-202.ww-stack > .ww-stack-card > .heading-green { padding-top: 34px; align-self: flex-start; }
+.ww-stack-clip { flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
+.ww-stack-scroll { padding: 34px 0 38px; will-change: transform; }
+.ww-stack-mark { display: block; height: 0; align-self: stretch; }
+.ww-stack-space { display: block; height: var(--stack-space, 0px); align-self: stretch; flex: none; }
+.frame-202.ww-stack > .ww-stack-card.is-guide { flex-direction: row; gap: 58px; }
+.ww-stack-card.is-guide .ww-fg-wrap { width: auto; }
+.ww-fg-grid { grid-template-columns: minmax(0, 1fr); }
+.ww-fg-card.is-take { grid-column: auto; }
+.ww-rl-body.ww-stack-scroll { margin: 0; }
+@media (max-width: 991px) {
+  .frame-202.ww-stack > .ww-stack-card, .frame-202.ww-stack > .ww-stack-card.is-guide { flex-direction: column; gap: 0; }
+  .frame-202.ww-stack > .ww-stack-card > .heading-green { padding: 24px 0 14px; min-width: 0; margin: 0; flex: none; }
+  .ww-stack-scroll { padding: 0 0 28px; }
+}
+@media (max-width: 767px) {
+  .ww-stack-head { min-height: 74px; padding-top: 10px; font-size: 36px; line-height: 40px; background: linear-gradient(#1d272d 50px, #1d272d00 50px); }
+  .frame-202.ww-stack > .ww-stack-card { padding: 0 20px; margin-bottom: 12px; }
+}

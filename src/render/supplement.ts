@@ -306,21 +306,25 @@ function guideCards(html: string): string {
 function insightsSection(sup: Supplement, research: string, origin: string): string {
   const why = sup.why_consider
     ? `
+      <i class="ww-stack-mark" aria-hidden="true"></i>
       <div class="frame-209 ww-stack-card">
         <h3 class="heading-green">Why consider ${escapeHtml(sup.name)}?</h3>
-        <div class="ww-why-body">
+        <div class="ww-stack-clip"><div class="ww-stack-scroll ww-why-body">
           <div class="regular-on-green">${escapeHtml(sup.why_consider)}</div>${insightShare(sup, origin)}
-        </div>
-      </div>`
+        </div></div>
+      </div>
+      <i class="ww-stack-space" aria-hidden="true"></i>`
     : '';
   const holistic = sup.holistic_html
     ? `
+      <i class="ww-stack-mark" aria-hidden="true"></i>
       <div class="frame-209 ww-stack-card is-guide">
         <h3 class="heading-green">The full guide</h3>
-        <div class="ww-fg-wrap">
+        <div class="ww-stack-clip"><div class="ww-stack-scroll ww-fg-wrap">
           ${guideCards(sup.holistic_html)}
-        </div>
-      </div>`
+        </div></div>
+      </div>
+      <i class="ww-stack-space" aria-hidden="true"></i>`
     : '';
   if (!why && !holistic && !research) return '';
   return `
@@ -370,9 +374,10 @@ function researchSection(sup: Supplement, notes: readonly ResearchNote[]): strin
     : sup.studies_html ? `<div class="w-richtext">${sup.studies_html}</div>` : '';
   if (!latest && !classicBlock) return '';
   return `
+    <i class="ww-stack-mark" aria-hidden="true"></i>
     <div class="frame-209 recent ww-rl ww-stack-card" id="research">
       <h3 class="heading-green recent">Research</h3>
-      <div class="rich-text-block-4 links ww-rl-body">${latest && classicBlock ? `
+      <div class="ww-stack-clip"><div class="ww-stack-scroll rich-text-block-4 links ww-rl-body">${latest && classicBlock ? `
         <div class="ww-rl-tabs">
           <input type="radio" name="ww-rl" id="ww-rl-new" class="ww-rl-radio" checked>
           <input type="radio" name="ww-rl" id="ww-rl-key" class="ww-rl-radio">
@@ -392,8 +397,9 @@ function researchSection(sup: Supplement, notes: readonly ResearchNote[]): strin
         <p class="ww-rl-more"><a href="/research">All research notes</a></p>` : ''}${classicBlock ? `
         <h4 class="ww-rl-group">Key studies</h4>
         ${classicBlock}` : ''}`}
-      </div>
-    </div>`;
+      </div></div>
+    </div>
+    <i class="ww-stack-space" aria-hidden="true"></i>`;
 }
 
 /** "Common Questions": the answers to what people search for about this supplement, as an accordion. */

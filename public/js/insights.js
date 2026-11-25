@@ -6,35 +6,54 @@
   var stack = document.querySelector('[data-ww-stack]');
   if (stack) {
     var head = stack.querySelector('.ww-stack-head');
-    var cards = [].slice.call(stack.querySelectorAll('.ww-stack-card'));
-    var place = function () {
+    var items = [].slice.call(stack.querySelectorAll('.ww-stack-card')).map(function (card) {
+      return { card: card, mark: card.previousElementSibling, space: card.nextElementSibling, scroll: card.querySelector('.ww-stack-scroll'), extra: 0, top: 0 };
+    });
+    var measure = function () {
       var vh = window.innerHeight;
       var phone = window.innerWidth < 768;
-      var headH = head ? head.getBoundingClientRect().height : 0;
+      var base = phone ? 56 : 78;
       var bottomPad = phone ? 96 : 24; // room for the buy bar on phones
-      cards.forEach(function (card, i) {
-        var top = headH + 8 + i * (phone ? 8 : 12);
-        var h = card.getBoundingClientRect().height;
-        if (h > vh - top - bottomPad) top = vh - h - bottomPad;
-        card.style.setProperty('--stack-top', Math.round(top) + 'px');
-        card.style.zIndex = String(i + 1);
+      items.forEach(function (it, i) {
+        it.top = base + i * (phone ? 6 : 10);
+        it.card.style.setProperty('--stack-top', it.top + 'px');
+        it.card.style.zIndex = String(i + 1);
+        it.card.style.setProperty('--stack-h', 'auto');
+        var natural = it.card.getBoundingClientRect().height;
+        var room = Math.max(260, vh - it.top - bottomPad);
+        it.extra = Math.max(0, Math.round(natural - room));
+        it.card.style.setProperty('--stack-h', it.extra ? room + 'px' : 'auto');
+        if (it.space) it.space.style.setProperty('--stack-space', it.extra + 'px');
       });
+      move();
+    };
+    var move = function () {
+      items.forEach(function (it) {
+        if (!it.scroll) return;
+        var past = it.mark ? it.top - it.mark.getBoundingClientRect().top : 0;
+        var y = it.extra ? Math.min(it.extra, Math.max(0, past)) : 0;
+        it.scroll.style.transform = y ? 'translate3d(0,' + -y + 'px,0)' : '';
+      });
+      if (head) head.classList.toggle('is-stuck', head.getBoundingClientRect().top <= 0.5 && stack.getBoundingClientRect().bottom > 80);
     };
     var tick = false;
-    var onScroll = function () {
+    window.addEventListener('scroll', function () {
       if (tick) return; tick = true;
-      requestAnimationFrame(function () {
-        tick = false;
-        if (!head) return;
-        var stuck = head.getBoundingClientRect().top <= 0.5 && stack.getBoundingClientRect().bottom > 80;
-        if (stuck !== head.classList.contains('is-stuck')) { head.classList.toggle('is-stuck', stuck); place(); }
-      });
-    };
-    place();
-    window.addEventListener('resize', place);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    if ('ResizeObserver' in window) { var ro = new ResizeObserver(place); cards.forEach(function (c) { ro.observe(c); }); }
-    if (head) head.addEventListener('transitionend', place);
+      requestAnimationFrame(function () { tick = false; move(); });
+    }, { passive: true });
+    window.addEventListener('resize', measure);
+    if ('ResizeObserver' in window) {
+      var ro = new ResizeObserver(measure);
+      items.forEach(function (it) { if (it.scroll) ro.observe(it.scroll); });
+    }
+    // keep keyboard users in view: a focused link inside a clipped card scrolls the page to it
+    stack.addEventListener('focusin', function (e) {
+      var r = e.target.getBoundingClientRect();
+      if (r.top < 120 || r.bottom > window.innerHeight - 110) window.scrollBy(0, r.top - window.innerHeight / 2);
+    });
+    measure();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+    window.addEventListener('load', measure);
   }
 
   var share = document.querySelector('[data-ishare]');
