@@ -1505,3 +1505,7 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-fg-plain { font-size: 17px; line-height: 27px; }
 .ww-fg-plain p { font-size: 17px; line-height: 27px; }
 .ww-fg-card ul, .ww-fg-card ol { margin: 0 0 12px; padding-left: 20px; font-size: 16px; line-height: 26px; }
+/* Research card: green heading like the other two, and the same space above its content */
+.frame-202.ww-stack > .ww-stack-card > .heading-green.recent { color: #87d581; }
+.ww-stack-card .ww-rl-body.ww-stack-scroll { padding: 34px 0 38px; }
+@media (max-width: 991px) { .ww-stack-card .ww-rl-body.ww-stack-scroll { padding: 0 0 28px; } }
