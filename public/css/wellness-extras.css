@@ -1362,3 +1362,7 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 }
 .ww-rs-meta .ww-tag { min-height: 32px; display: inline-flex; align-items: center; }
 @media (min-width: 992px) { .ww-rs .ww-rfilter-row { align-items: stretch; } }
+
+/* "From the blog": green glow from the top centre, fading out in every direction */
+.ww-teaser { background-image: radial-gradient(ellipse 75% 85% at 50% 0%, #bcffb7 0%, #bcffb799 34%, #bcffb700 100%); }
+@media (max-width: 767px) { .ww-teaser { background-image: radial-gradient(ellipse 130% 70% at 50% 0%, #bcffb7 0%, #bcffb799 34%, #bcffb700 100%); } }
