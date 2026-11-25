@@ -1513,3 +1513,14 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-grade-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 30px; padding: 0 10px; border-radius: 10px; font-family: Aeonik, sans-serif; font-size: 16px; line-height: 1; font-weight: 700; color: #1d272d; background: #ecf3f6; box-sizing: border-box; }
 .ww-grade-chip.is-a { background: #87d581; }
 .ww-grade-chip.is-b { background: #bcffb7; }
+/* Small laptops and tablets held sideways (992 to 1279px): three columns do not fit, so the image and the
+   disclaimer sit side by side above the two cards. */
+@media (min-width: 992px) and (max-width: 1279px) {
+  ._3-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; padding-left: 20px; padding-right: 20px; box-sizing: border-box; }
+  ._3-columns > * { min-width: 0; width: auto; max-width: none; }
+  ._3-columns > .column-5 { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: 16px; align-items: stretch; position: static; top: auto; }
+  ._3-columns > .column-5 .frame-226 { height: 220px; min-height: 0; }
+  ._3-columns > .column-5 .frame-226 img { max-height: 100%; width: auto; max-width: 100%; object-fit: contain; }
+  ._3-columns > .column-5 > * { min-width: 0; width: 100%; max-width: none; box-sizing: border-box; margin: 0; }
+  ._3-columns > .column-2 { align-self: stretch; }
+}
