@@ -1509,3 +1509,7 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .frame-202.ww-stack > .ww-stack-card > .heading-green.recent { color: #87d581; }
 .ww-stack-card .ww-rl-body.ww-stack-scroll { padding: 34px 0 38px; }
 @media (max-width: 991px) { .ww-stack-card .ww-rl-body.ww-stack-scroll { padding: 0 0 28px; } }
+/* Evidence grade chips in article tables: the colours of the A to D scale on How it works */
+.ww-grade-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 30px; padding: 0 10px; border-radius: 10px; font-family: Aeonik, sans-serif; font-size: 16px; line-height: 1; font-weight: 700; color: #1d272d; background: #ecf3f6; box-sizing: border-box; }
+.ww-grade-chip.is-a { background: #87d581; }
+.ww-grade-chip.is-b { background: #bcffb7; }

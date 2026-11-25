@@ -121,6 +121,10 @@ export function expandArticleHtml(ctx: BlogContext, post: BlogPost): string {
   );
   html = html.replace(/<ww-protein-calculator\s*>\s*<\/ww-protein-calculator>/g, () => proteinCalculator());
   html = html.replace(/<ww-caffeine-chart\s*>\s*<\/ww-caffeine-chart>/g, () => caffeineChart());
+  // Evidence grades in a table cell (a cell holding only A, B, C or D) get the same coloured chip as the scale on How it works.
+  html = html.replace(/<table[\s\S]*?<\/table>/g, (table) =>
+    /<th[^>]*>\s*Grade\s*<\/th>/i.test(table) ? table.replace(/<td>\s*([ABCD])\s*<\/td>/g, (_m, g: string) => `<td><span class="ww-grade-chip is-${g.toLowerCase()}">${g}</span></td>`) : table,
+  );
   html = html.replace(/<ww-quiz\s*>\s*<\/ww-quiz>/g, () => quizCta('Not sure which one is right for you?', 'The free two-minute quiz weighs your goals, diet and the supplements you already take, then explains its picks.'));
   return html;
 }
