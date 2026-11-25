@@ -1185,3 +1185,7 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-scan-back dd { font-size: 16px; line-height: 24px; }
 @media (max-width: 991px) { .ww-scan-back dl { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 16px; } }
 @media (max-width: 767px) { .ww-scan-back img { border-radius: 20px; margin-bottom: 12px; } .ww-scan-back dt { font-size: 17px; line-height: 22px; } .ww-scan-back dd { font-size: 15px; line-height: 22px; } }
+
+/* Health Insights band: thin inner line that fades out down the photo */
+.info .frame-203::after { content: ""; position: absolute; inset: 14px; border: 1px solid #ffffff59; border-radius: 22px; pointer-events: none; -webkit-mask-image: linear-gradient(#000 0%, #0000 62%); mask-image: linear-gradient(#000 0%, #0000 62%); }
+@media (max-width: 767px) { .info .frame-203::after { inset: 8px; border-radius: 16px; } }
