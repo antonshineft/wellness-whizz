@@ -1116,3 +1116,8 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .frame-52 .ww-tag b svg { display: block; width: 16px; height: 16px; }
 .frame-52 .ww-tag.ww-tag-warn { box-shadow: inset 0 0 0 1.5px #b3261e; }
 .frame-52 .ww-tag.ww-tag-warn b { background: #b3261e; }
+/* Common questions: filled boxes with no outline. */
+.ww-qa-item, .ww-qa-item:hover, .ww-qa-item[open] { border: 0; }
+.ww-qa-item { background: #ffffff0f; }
+.ww-qa-item:hover { background: #ffffff17; }
+.ww-qa-item[open] { background: #ffffff17; }
