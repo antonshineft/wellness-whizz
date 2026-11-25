@@ -23,6 +23,7 @@ export function renderShelfPage(origin: string): string {
     <form class="ww-scan-form" id="ww-shelf" novalidate>
       <div class="ww-scan-art" id="ww-scan-art">
         <canvas aria-hidden="true"></canvas>
+        <span class="ww-scan-blur" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
         <span class="ww-scan-grain" aria-hidden="true"></span>
         <input type="file" id="ww-shelf-files" name="photos" accept="image/*" multiple>
         <label class="ww-scan-hole" for="ww-shelf-files">

@@ -1091,3 +1091,14 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-scan-back dt { font-size: 20px; line-height: 26px; font-weight: 700; margin: 0 0 6px; }
 .ww-scan-back dd { margin: 0; font-size: 17px; line-height: 26px; color: #1d272dcc; }
 @media (max-width: 767px) { .ww-scan-back dl { grid-template-columns: 1fr; } }
+
+/* Shelf scan: the centre of the picture goes out of focus behind the words, more the closer to the middle. */
+.ww-scan-blur, .ww-scan-blur i { position: absolute; inset: 0; pointer-events: none; }
+.ww-scan-blur i { -webkit-mask-image: radial-gradient(ellipse var(--r) calc(var(--r) * .8) at 50% 40%, #000 35%, #0000 100%); mask-image: radial-gradient(ellipse var(--r) calc(var(--r) * .8) at 50% 40%, #000 35%, #0000 100%); -webkit-backdrop-filter: blur(var(--b)); backdrop-filter: blur(var(--b)); }
+.ww-scan-blur i:nth-child(1) { --r: min(46vw, 420px); --b: 2px; }
+.ww-scan-blur i:nth-child(2) { --r: min(38vw, 340px); --b: 5px; }
+.ww-scan-blur i:nth-child(3) { --r: min(30vw, 260px); --b: 10px; }
+.ww-scan-blur i:nth-child(4) { --r: min(22vw, 190px); --b: 18px; }
+@media (max-width: 767px) {
+  .ww-scan-blur i:nth-child(1) { --r: 62vw; } .ww-scan-blur i:nth-child(2) { --r: 52vw; } .ww-scan-blur i:nth-child(3) { --r: 42vw; } .ww-scan-blur i:nth-child(4) { --r: 32vw; }
+}
