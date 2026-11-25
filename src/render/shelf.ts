@@ -51,10 +51,10 @@ export function renderShelfPage(origin: string): string {
       <section class="ww-scan-back">
         <h2>What you get back</h2>
         <dl>
-          <div><dt>Every product recognised</dt><dd>With its dose per serving and a link to its profile.</dd></div>
-          <div><dt>Overlaps</dt><dd>The same ingredient coming from two bottles, and whether that matters.</dd></div>
-          <div><dt>What to take apart</dt><dd>Pairs that compete for absorption, and the best time of day for each.</dd></div>
-          <div><dt>What is missing</dt><dd>For your goal, with the evidence in one sentence and where to buy it.</dd></div>
+          <div><img src="/images/shelf/recognised.webp" alt="" width="640" height="640" loading="lazy"><dt>Every product recognised</dt><dd>With its dose per serving and a link to its profile.</dd></div>
+          <div><img src="/images/shelf/overlaps.webp" alt="" width="640" height="640" loading="lazy"><dt>Overlaps</dt><dd>The same ingredient coming from two bottles, and whether that matters.</dd></div>
+          <div><img src="/images/shelf/apart.webp" alt="" width="640" height="640" loading="lazy"><dt>What to take apart</dt><dd>Pairs that compete for absorption, and the best time of day for each.</dd></div>
+          <div><img src="/images/shelf/missing.webp" alt="" width="640" height="640" loading="lazy"><dt>What is missing</dt><dd>For your goal, with the evidence in one sentence and where to buy it.</dd></div>
         </dl>
       </section>${quizCta('Want a list built from scratch?', 'The two-minute quiz weighs your goals, diet and what you already take, then explains its picks.')}
     </div>

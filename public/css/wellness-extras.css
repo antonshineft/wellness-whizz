@@ -1175,3 +1175,13 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-scan-sheet .ww-scan-thumb button { background: #fff; color: #1d272d; }
 .ww-scan-sheet .ww-scan-chip:focus-visible, .ww-scan-sheet .ww-scan-go:focus-visible, .ww-scan-sheet .ww-scan-goal:focus-visible, .ww-scan-sheet .ww-scan-thumb button:focus-visible { outline-color: #bcffb7; }
 @media (max-width: 767px) { .ww-scan-sheet { padding: 34px 24px 30px; } .ww-scan-sheet::before { inset: 8px; border-radius: 20px; } }
+
+/* What you get back: one picture per point. */
+.ww-scan-back { max-width: 1132px; }
+.ww-scan-back dl { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+.ww-scan-back dl > div { border-top: 0; padding: 0; }
+.ww-scan-back img { display: block; width: 100%; height: auto; aspect-ratio: 1; border-radius: 28px; background: #fdf1cf; margin: 0 0 16px; }
+.ww-scan-back dt { font-size: 20px; line-height: 25px; }
+.ww-scan-back dd { font-size: 16px; line-height: 24px; }
+@media (max-width: 991px) { .ww-scan-back dl { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 16px; } }
+@media (max-width: 767px) { .ww-scan-back img { border-radius: 20px; margin-bottom: 12px; } .ww-scan-back dt { font-size: 17px; line-height: 22px; } .ww-scan-back dd { font-size: 15px; line-height: 22px; } }
