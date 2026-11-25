@@ -306,13 +306,34 @@ const ABOUT_FAQ = [
 ];
 
 export function renderAbout(origin: string): string {
-  const body = `
-      <section class="ww-prose">
-        <h2 id="team">Who we are</h2>
-        <p>Wellness Whizz is an independent website built and run by a small team based in Spain. There is no supplement company behind it, no brand sponsoring the rankings and no investor deciding what gets published. We started it because choosing a supplement usually means reading twenty contradictory pages, and a structured catalogue with a short, honest questionnaire seemed like a better way.</p>
+  const body = `${navbar('logo-left')}
+  <main class="ww-page-wrap ww-how">
+    <header class="ww-how-hero">
+      <div class="ww-eyebrow">About</div>
+      <h1 class="ww-page-title">Who is behind Wellness Whizz</h1>
+      <p class="ww-page-lead">A small independent team, a structured catalogue and an editorial process built to keep AI-assisted health content honest. How the site is made, reviewed and funded.</p>
+    </header>
+    <div class="ww-how-grid">
+      <nav class="ww-how-rail" id="ww-how-rail" aria-label="On this page">
+        <div class="ww-how-rail-in">
+          <a href="#team"><b>1</b><span>Who we are</span></a>
+          <a href="#editorial"><b>2</b><span>How the content is made</span></a>
+          <a href="#disclaimer"><b>3</b><span>Medical disclaimer</span></a>
+          <a href="#money"><b>4</b><span>How we make money</span></a>
+          <a href="#contact"><b>5</b><span>Contact</span></a>
+          <a href="#questions"><b>6</b><span>Questions</span></a>
+          <a href="/wellness-quiz" class="ww-how-rail-quiz">Start Quiz Now</a>
+        </div>
+      </nav>
+      <div class="ww-how-col">
+        <section class="ww-how-sec ww-prose" id="team">
+          <h2>Who we are</h2>
+          <p>Wellness Whizz is an independent website built and run by a small team based in Spain. There is no supplement company behind it, no brand sponsoring the rankings and no investor deciding what gets published. We started it because choosing a supplement usually means reading twenty contradictory pages, and a structured catalogue with a short, honest questionnaire seemed like a better way.</p>
         <p>We are not doctors, and we do not pretend to be. We are people who read the studies, keep a careful catalogue and write plainly about what the evidence does and does not show. That is also why every page on this site asks you to check with a pharmacist or doctor before you start anything new.</p>
-        <h2 id="editorial">How the content is made</h2>
-        <p>Every supplement guide and every article follows the same editorial process:</p>
+        </section>
+        <section class="ww-how-sec ww-prose" id="editorial">
+          <h2>How the content is made</h2>
+          <p>Every supplement guide and every article follows the same editorial process:</p>
         <ol>
           <li><strong>A fixed structure.</strong> Each supplement is described with the same fields: benefits, contraindications, interactions, an effectivity score, a safety score, FDA status, the studies behind the claims and a few product picks. The scales are explained on the <a href="/how-it-works">How it works</a> page.</li>
           <li><strong>AI-assisted drafting from primary sources.</strong> Drafts are written with the help of AI language models working from a brief that requires peer-reviewed studies, specific doses and forms, and honesty about weak or mixed evidence. The studies are linked on the page, so you can read them yourself.</li>
@@ -321,25 +342,29 @@ export function renderAbout(origin: string): string {
           <li><strong>Corrections.</strong> If you find an error, write to <a href="mailto:hello@aiww.io">hello@aiww.io</a> with the link. Factual mistakes are corrected within a few days.</li>
         </ol>
         <p>The weekly <a href="/research">research notes</a> are plain-language summaries of recent human trials and reviews written to the same brief. The advisor behind the quiz works only from the catalogue described above: it cannot recommend anything that has not been profiled.</p>
-        <h2 id="disclaimer">Medical disclaimer</h2>
-        <p>Wellness Whizz is an information website. Nothing on it, including the quiz results, the supplement guides, the articles and the research notes, is medical advice, a diagnosis or a treatment, and reading it does not create a relationship with a healthcare professional.</p>
+        </section>
+        <section class="ww-how-sec ww-prose" id="disclaimer">
+          <h2>Medical disclaimer</h2>
+          <p>Wellness Whizz is an information website. Nothing on it, including the quiz results, the supplement guides, the articles and the research notes, is medical advice, a diagnosis or a treatment, and reading it does not create a relationship with a healthcare professional.</p>
         <p>Dietary supplements can interact with medicines and with medical conditions, and the right choice depends on facts about you that a website cannot know. Before you start, stop or combine supplements, read the product label and talk to a pharmacist or doctor. That is especially important if you are pregnant or breastfeeding, under 18, take any medication or live with a chronic condition. In an emergency, contact your local emergency services.</p>
         <p>Much of the text on this site is drafted with the help of artificial intelligence and then reviewed by people. It can still contain errors or be out of date. Effectivity and safety ratings are editorial estimates, not guarantees. The full terms are in our <a href="/terms">Terms and Conditions</a>.</p>
-        <h2 id="money">How we make money</h2>
-        <p>Wellness Whizz is free and has no accounts, no paywall and no newsletter you did not ask for. It is funded by the iHerb referral programme: product links on this site carry our referral code, and iHerb pays us a small commission when you buy through them. You pay the same price as without the code.</p>
+        </section>
+        <section class="ww-how-sec ww-prose" id="money">
+          <h2>How we make money</h2>
+          <p>Wellness Whizz is free and has no accounts, no paywall and no newsletter you did not ask for. It is funded by the iHerb referral programme: product links on this site carry our referral code, and iHerb pays us a small commission when you buy through them. You pay the same price as without the code.</p>
         <p>Commissions do not influence what the advisor recommends or how a supplement is rated. No brand can pay for a place in the results, a guide or an article, and we do not sell or share your quiz answers. Our <a href="/terms#privacy">privacy practices</a> are described in the terms.</p>
-        <h2 id="contact">Contact</h2>
-        <p>Questions, corrections and requests to delete a results page: <a href="mailto:hello@aiww.io">hello@aiww.io</a>. We also post on <a href="https://www.instagram.com/aiww.io/" target="_blank" rel="noopener">Instagram</a>, <a href="https://www.tiktok.com/@theaiwellnesswhiz" target="_blank" rel="noopener">TikTok</a> and <a href="https://x.com/aiwwio" target="_blank" rel="noopener">X</a>.</p>
+        </section>
+        <section class="ww-how-sec ww-prose" id="contact">
+          <h2>Contact</h2>
+          <p>Questions, corrections and requests to delete a results page: <a href="mailto:hello@aiww.io">hello@aiww.io</a>. We also post on <a href="https://www.instagram.com/aiww.io/" target="_blank" rel="noopener">Instagram</a>, <a href="https://www.tiktok.com/@theaiwellnesswhiz" target="_blank" rel="noopener">TikTok</a> and <a href="https://x.com/aiwwio" target="_blank" rel="noopener">X</a>.</p>
         <p class="ww-legal-updated">Last updated: ${escapeHtml(formatDate(ABOUT_UPDATED))}</p>
-      </section>${quizCta()}${faqHtml(ABOUT_FAQ)}`;
+        </section>
+        <div class="ww-how-sec" id="questions">${faqHtml(ABOUT_FAQ)}${quizCta()}
+        </div>
+      </div>
+    </div>
+  </main>${footer()}`;
 
-  const shell = pageShell({
-    eyebrow: 'About',
-    title: 'Who is behind Wellness Whizz',
-    lead: 'A small independent team, a structured catalogue and an editorial process built to keep AI-assisted health content honest. How the site is made, reviewed and funded.',
-    body,
-    variant: 'plain',
-  });
   const safe = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
   const organization = {
     '@context': 'https://schema.org',
@@ -366,7 +391,8 @@ export function renderAbout(origin: string): string {
     pageId: WF_PAGE_IDS.supplement,
     bodyClass: 'body-2',
     head: `\n  <link rel="canonical" href="${escapeHtml(origin)}/about">\n  <script type="application/ld+json">${safe(organization)}</script>\n  <script type="application/ld+json">${safe(aboutPage)}</script>`,
-    body: shell,
+    body,
+    scripts: '  <script src="/js/how.js" defer></script>',
   });
 }
 

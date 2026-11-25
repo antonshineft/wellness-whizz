@@ -8,7 +8,7 @@ import { escapeHtml } from '../html';
 import { noteLabel, notePath, pubmedUrl, type ResearchNote } from '../research';
 import { page } from './layout';
 import { formatDate, pageShell, quizCta, reviewedLine } from './pages';
-import { WF_PAGE_IDS } from './partials';
+import { WF_PAGE_IDS, footer, navbar } from './partials';
 
 /** How many notes show before the first "Show more". */
 export const RESEARCH_PAGE_SIZE = 10;
@@ -42,30 +42,35 @@ export function renderResearchPage(notes: ResearchNote[], origin: string, query 
   }
   const categoryChips = [...categories.entries()].sort((a, b) => b[1].count - a[1].count || a[1].label.localeCompare(b[1].label));
 
+  const typeWord = (n: ResearchNote): string => {
+    const t = studyTypes(n);
+    return t.includes('review') ? 'Review' : t.includes('trial') ? 'Trial' : '';
+  };
   const items = notes.length
     ? notes
-        .map(
-          (n) => `
-        <article class="ww-note" id="pmid-${escapeHtml(n.pmid)}" data-category="${escapeHtml(slugify((n.supplement_category ?? '').trim() || 'Other'))}" data-types="${escapeHtml(studyTypes(n).join(' '))}">
-          <div class="ww-note-meta"><a class="ww-tag" href="/supplement/${escapeHtml(n.supplement_slug ?? '')}">${escapeHtml(n.supplement_name ?? '')}</a><span>${noteLabel(n)}</span>${n.pub_type ? `<span>${escapeHtml(n.pub_type)}</span>` : ''}</div>
-          <h2><a href="${escapeHtml(notePath(n))}">${escapeHtml(n.title)}</a></h2>
-          <p>${escapeHtml(n.summary)}</p>
-          ${n.takeaway ? `<p class="ww-note-takeaway"><strong>What it means:</strong> ${escapeHtml(n.takeaway)}</p>` : ''}
-          <p class="ww-note-links"><a href="${escapeHtml(notePath(n))}">Read the note</a> · <a href="${escapeHtml(pubmedUrl(n.pmid))}" target="_blank" rel="noopener">Read on PubMed</a> · <a href="/supplement/${escapeHtml(n.supplement_slug ?? '')}">${escapeHtml(n.supplement_name ?? '')} profile</a></p>
-        </article>`,
-        )
+        .map((n) => {
+          const sup = `/supplement/${escapeHtml(n.supplement_slug ?? '')}`;
+          const word = typeWord(n);
+          return `
+        <article class="ww-note ww-rs-note" id="pmid-${escapeHtml(n.pmid)}" data-category="${escapeHtml(slugify((n.supplement_category ?? '').trim() || 'Other'))}" data-types="${escapeHtml(studyTypes(n).join(' '))}">
+          <div class="ww-rs-meta"><a class="ww-tag" href="${sup}">${escapeHtml(n.supplement_name ?? '')}</a>${word ? `<span class="ww-rs-type">${word}</span>` : ''}<span class="ww-rs-src">${noteLabel(n)}</span></div>
+          ${n.takeaway ? `<p class="ww-rs-take">${escapeHtml(n.takeaway)}</p>` : ''}
+          <h2${n.takeaway ? '' : ' class="is-lead"'}><a href="${escapeHtml(notePath(n))}">${escapeHtml(n.title)}</a></h2>
+          <details class="ww-rs-more"><summary>The study in brief</summary><p>${escapeHtml(n.summary)}</p>${n.pub_type ? `<p class="ww-rs-kind">${escapeHtml(n.pub_type)}</p>` : ''}</details>
+          <p class="ww-note-links"><a href="${escapeHtml(notePath(n))}">Read the note</a><a href="${escapeHtml(pubmedUrl(n.pmid))}" target="_blank" rel="noopener">Read on PubMed</a><a href="${sup}">${escapeHtml(n.supplement_name ?? '')} profile</a></p>
+        </article>`;
+        })
         .join('')
     : query ? '' : '<p class="ww-blog-intro">The first notes appear as soon as the weekly PubMed check finds new trials or reviews about the supplements in our catalogue.</p>';
 
   const filters = notes.length
     ? `
-      <div class="ww-rfilter" data-research-filter data-page-size="${RESEARCH_PAGE_SIZE}">
-        <div class="ww-rfilter-row"><span class="ww-rfilter-label">Category</span><div class="ww-rfilter-chips">${chip('data-category', '', 'All', notes.length, true)}${categoryChips.map(([key, c]) => chip('data-category', key, c.label, c.count)).join('')}</div></div>
-        <div class="ww-rfilter-row"><span class="ww-rfilter-label">Study type</span><div class="ww-rfilter-chips">${chip('data-type', '', 'All', notes.length, true)}${STUDY_TYPES.map((t) => chip('data-type', t.key, t.label, typeCounts.get(t.key) ?? 0)).join('')}</div></div>
-        <p class="ww-rfilter-count" data-research-count aria-live="polite"></p>
-      </div>`
+        <div class="ww-rfilter" data-research-filter data-page-size="${RESEARCH_PAGE_SIZE}">
+          <div class="ww-rfilter-row"><span class="ww-rfilter-label">Study type</span><div class="ww-rfilter-chips">${chip('data-type', '', 'All', notes.length, true)}${STUDY_TYPES.map((t) => chip('data-type', t.key, t.label, typeCounts.get(t.key) ?? 0)).join('')}</div></div>
+          <div class="ww-rfilter-row"><span class="ww-rfilter-label">Category</span><div class="ww-rfilter-chips">${chip('data-category', '', 'All', notes.length, true)}${categoryChips.map(([key, c]) => chip('data-category', key, c.label, c.count)).join('')}</div></div>
+        </div>`
     : '';
-  const more = notes.length > RESEARCH_PAGE_SIZE ? `\n      <div class="ww-rmore"><button type="button" class="fakebutton ww-buy w-button" data-research-more hidden>Show more</button></div>` : '';
+  const more = notes.length > RESEARCH_PAGE_SIZE ? `\n        <div class="ww-rmore"><button type="button" class="fakebutton ww-buy w-button" data-research-more hidden>Show more</button></div>` : '';
 
   const search = `
       <form class="ww-rsearch" action="/research" method="get" role="search">
@@ -73,17 +78,25 @@ export function renderResearchPage(notes: ResearchNote[], origin: string, query 
         <button type="submit" class="fakebutton ww-buy w-button">Search</button>
       </form>${query ? `
       <p class="ww-rsearch-result">${notes.length ? `${notes.length} ${notes.length === 1 ? 'note' : 'notes'} on “${escapeHtml(query)}”.` : `No notes on “${escapeHtml(query)}” yet. A note is added when a new trial or review about a supplement appears.`} <a href="/research">Show all research</a></p>` : ''}`;
-  const body = `${search}
-      <p class="ww-research-intro">Every week we check PubMed for new randomised trials, meta-analyses and systematic reviews about the supplements in our catalogue and summarise them here in plain language. Summaries are written with AI from the published abstract and link to the original paper; they are information, not medical advice.</p>${filters}
-      <div class="ww-notes" data-research-list>${items}
-      </div>${more}${quizCta()}`;
-  const shell = pageShell({
-    eyebrow: 'Research notes',
-    title: 'What the latest studies say',
-    lead: 'New trials and reviews about the supplements we cover, summarised in plain language, with the original paper one click away.',
-    body,
-    variant: 'plain',
-  });
+  const shell = `${navbar('logo-left')}
+  <main class="ww-page-wrap ww-how ww-rs">
+    <header class="ww-how-hero">
+      <div class="ww-eyebrow">Research notes</div>
+      <h1 class="ww-page-title">What the latest studies say</h1>
+      <p class="ww-page-lead">New trials and reviews about the supplements we cover, summarised in plain language, with the original paper one click away.</p>${search}
+    </header>
+    <div class="ww-how-grid">
+      <aside class="ww-rs-side" aria-label="Filter the notes">${filters}
+        <p class="ww-research-intro">Every week we check PubMed for new randomised trials, meta-analyses and systematic reviews about the supplements in our catalogue and summarise them here in plain language. Summaries are written with AI from the published abstract and link to the original paper; they are information, not medical advice.</p>
+      </aside>
+      <div class="ww-how-col">
+        <p class="ww-rfilter-count" data-research-count aria-live="polite"></p>
+        <div class="ww-notes" data-research-list>${items}
+        </div>${more}
+        <p class="ww-rs-about">Every week we check PubMed for new randomised trials, meta-analyses and systematic reviews about the supplements in our catalogue and summarise them here in plain language. Summaries are written with AI from the published abstract and link to the original paper; they are information, not medical advice.</p>${quizCta()}
+      </div>
+    </div>
+  </main>${footer()}`;
   return page({
     title: 'Research notes',
     description: 'New randomised trials, meta-analyses and reviews about popular supplements, summarised in plain language with links to the original papers.',

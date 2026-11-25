@@ -7,7 +7,7 @@
   if (!root || !list) return;
   var notes = Array.prototype.slice.call(list.querySelectorAll('.ww-note'));
   var more = document.querySelector('[data-research-more]');
-  var count = root.querySelector('[data-research-count]');
+  var count = document.querySelector('[data-research-count]');
   var pageSize = parseInt(root.getAttribute('data-page-size'), 10) || 10;
   var params = new URLSearchParams(window.location.search);
   var state = { category: params.get('category') || '', type: params.get('type') || '', shown: pageSize };
