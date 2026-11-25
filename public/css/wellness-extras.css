@@ -1623,3 +1623,16 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
   .ww-qa-item:not([open]):hover { background: #ffffff12; }
 }
 @media (prefers-reduced-motion: reduce) { .outbutton, .ww-ishare-btn, .ww-top-photo img { transition: none; } .outbutton:hover, .outbutton:active, .ww-ishare-btn:active, .ww-top-card:hover .ww-top-photo img { transform: none; } }
+
+/* Supplement page: nothing fades or slides in because the page scrolled */
+.heading-3-columns[data-w-id], .heading-3-columns [data-w-id], ._3-columns[data-w-id], .info .div-block[data-w-id] { opacity: 1 !important; transform: none !important; }
+/* Phone: product cards under the picks heading follow each other down the page again; only the quick links swipe.
+   The small "Top picks on iHerb" strip becomes one row that swipes, two whole tiles per view. */
+@media (max-width: 767px) {
+  .ww-top-grid { display: grid; grid-template-columns: minmax(0, 1fr); overflow: visible; scroll-snap-type: none; border-radius: 0; }
+  .ww-top-grid > .ww-top-card { flex: none; scroll-margin-top: 76px; }
+  .ww-top-main > .ww-dots { display: none; }
+  .ww-strip { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .ww-strip::-webkit-scrollbar { display: none; }
+  .ww-strip > .ww-pick { flex: 0 0 calc(50% - 5px); box-sizing: border-box; min-width: 0; scroll-snap-align: start; }
+}

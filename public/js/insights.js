@@ -123,12 +123,13 @@
   function swipe(row, onChange) {
     if (!row || cards(row).length < 2) return;
     var dots = document.createElement('div'); dots.className = 'ww-dots'; dots.setAttribute('aria-hidden', 'true');
-    for (var i = 0; i < cards(row).length; i++) dots.appendChild(document.createElement('i'));
+    var per = Math.max(1, Math.round(row.clientWidth / cards(row)[0].offsetWidth)), pages = Math.ceil(cards(row).length / per);
+    for (var i = 0; i < pages; i++) dots.appendChild(document.createElement('i'));
     row.parentNode.insertBefore(dots, row.nextSibling);
     var cur = -1, tick = false;
     function paint() {
       tick = false;
-      var n = index(row); if (n === cur) return; cur = n;
+      var n = row.scrollLeft + row.clientWidth >= row.scrollWidth - 4 ? pages - 1 : Math.floor(index(row) / per); if (n === cur) return; cur = n;
       for (var j = 0; j < dots.children.length; j++) dots.children[j].classList.toggle('is-on', j === n);
       if (onChange) onChange(n);
     }
@@ -136,20 +137,15 @@
     paint();
   }
   swipe(document.querySelector('.info .frame-204 > .div-block'));
-  var grid = document.querySelector('.ww-top-grid'), list = document.querySelector('.ww-top-list');
-  var links = list ? list.querySelectorAll('a') : [];
-  swipe(grid, function (n) {
-    for (var i = 0; i < links.length; i++) links[i].classList.toggle('is-on', i === n);
-    var a = links[n];
-    if (a && list.scrollWidth > list.clientWidth) {
-      var li = a.parentNode;
-      list.scrollTo({ left: li.offsetLeft - list.offsetLeft - (list.clientWidth - li.offsetWidth) / 2, behavior: 'smooth' });
-    }
-  });
-  if (grid && list) list.addEventListener('click', function (e) {
+  var strip = document.querySelector('.ww-strip');
+  if (strip && window.innerWidth <= 767) swipe(strip);
+  var list = document.querySelector('.ww-top-list');
+  if (list) list.addEventListener('click', function (e) {
     var a = e.target.closest ? e.target.closest('a') : null;
-    if (!a || window.innerWidth > 767) return;
+    var card = a ? document.querySelector(a.getAttribute('href')) : null;
+    if (!card || window.innerWidth > 767) return;
     e.preventDefault(); e.stopPropagation();
-    go(grid, Array.prototype.indexOf.call(links, a));
+    var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: card.getBoundingClientRect().top + window.pageYOffset - 76, behavior: calm ? 'auto' : 'smooth' });
   }, true);
 })();
