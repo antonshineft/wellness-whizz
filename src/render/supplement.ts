@@ -245,29 +245,87 @@ function synergySection(sup: Supplement): string {
     </div>`;
 }
 
-function insightsSection(sup: Supplement): string {
+const INSIGHT_SHARE = {
+  x: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+  whatsapp: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.5 7.4L3 21l2.2-5.3A8.4 8.4 0 1 1 21 11.5z"/></svg>',
+  link: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1 0l3-3a5 5 0 0 0-7.1-7.1l-1.2 1.2"/><path d="M14 11a5 5 0 0 0-7.1 0l-3 3a5 5 0 0 0 7.1 7.1l1.2-1.2"/></svg>',
+};
+
+/** Share row under "Why consider …": the same round green buttons as the quiz result's share block. */
+function insightShare(sup: Supplement, origin: string): string {
+  const url = `${origin}/supplement/${sup.slug}`;
+  const text = `${sup.name}: what it does, who it suits and what the studies say`;
+  const xHref = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+  const waHref = `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`;
+  return `
+          <div class="ww-ishare" data-ishare data-url="${escapeHtml(url)}" data-title="${escapeHtml(text)}">
+            <span class="ww-ishare-label">Share</span>
+            <a class="ww-ishare-btn" href="${escapeHtml(xHref)}" target="_blank" rel="noopener"><span>${INSIGHT_SHARE.x}</span><b>Post</b></a>
+            <a class="ww-ishare-btn" href="${escapeHtml(waHref)}" target="_blank" rel="noopener"><span>${INSIGHT_SHARE.whatsapp}</span><b>WhatsApp</b></a>
+            <button class="ww-ishare-btn" type="button" data-ishare-copy><span>${INSIGHT_SHARE.link}</span><b>Copy link</b></button>
+          </div>`;
+}
+
+const GUIDE_TAGS: [RegExp, string][] = [
+  [/^\s*what\b/i, 'What'],
+  [/^\s*who\b/i, 'Who'],
+  [/^\s*how\b|dos(e|age)|safely/i, 'How'],
+  [/sleep|diet|training|habit|lifestyle|routine/i, 'Lifestyle'],
+];
+
+/**
+ * The stored guide (a title, an opening paragraph, then h4 chapters and a "Key takeaways" list) as cards: one per
+ * chapter with a one-word label, two side by side on desktop, the takeaways full width at the end.
+ * A guide without chapters is shown as it was written.
+ */
+function guideCards(html: string): string {
+  const parts = html.split(/<h4[^>]*>([\s\S]*?)<\/h4>/i);
+  if (parts.length < 3) return `<div class="rich-text-block-4 w-richtext">${html}</div>`;
+  const cards: string[] = [];
+  for (let i = 1; i < parts.length; i += 2) {
+    const heading = parts[i].trim();
+    const content = (parts[i + 1] ?? '').trim();
+    const plain = heading.replace(/<[^>]+>/g, '');
+    if (/takeaway/i.test(plain)) {
+      cards.push(`
+            <div class="ww-fg-card is-take"><h4>${heading}</h4>${content}</div>`);
+      continue;
+    }
+    const tag = GUIDE_TAGS.find(([re]) => re.test(plain))?.[1] ?? '';
+    cards.push(`
+            <div class="ww-fg-card">${tag ? `<span class="ww-fg-tag">${tag}</span>` : ''}<h4>${heading}</h4>${content}</div>`);
+  }
+  return `<div class="ww-fg">
+          <div class="ww-fg-intro rich-text-block-4 w-richtext">${parts[0]}</div>
+          <div class="ww-fg-grid">${cards.join('')}
+          </div>
+        </div>`;
+}
+
+/** "Health Insights": the why, the guide and the research as three cards that stack while the heading stays in view. */
+function insightsSection(sup: Supplement, research: string, origin: string): string {
   const why = sup.why_consider
     ? `
-      <div data-w-id="a6669be3-1761-c7e4-ff8a-36b268ed4aac" style="opacity:0" class="frame-209">
+      <div class="frame-209 ww-stack-card">
         <h3 class="heading-green">Why consider ${escapeHtml(sup.name)}?</h3>
-        <div class="regular-on-green">${escapeHtml(sup.why_consider)}</div>
-      </div>
-      <div class="div-block-15"></div>`
+        <div class="ww-why-body">
+          <div class="regular-on-green">${escapeHtml(sup.why_consider)}</div>${insightShare(sup, origin)}
+        </div>
+      </div>`
     : '';
   const holistic = sup.holistic_html
     ? `
-      <div data-w-id="73d1e791-d515-c74d-e8a9-59ee0ec00260" style="opacity:0" class="frame-209">
+      <div class="frame-209 ww-stack-card is-guide">
         <h3 class="heading-green">The full guide</h3>
-        <div>
-          <div class="rich-text-block-4 w-richtext">${sup.holistic_html}</div>
+        <div class="ww-fg-wrap">
+          ${guideCards(sup.holistic_html)}
         </div>
-      </div>
-      <div class="div-block-15"></div>`
+      </div>`
     : '';
-  if (!why && !holistic) return '';
+  if (!why && !holistic && !research) return '';
   return `
-    <div class="frame-202">
-      <h2 class="heading-2">Health Insights</h2>${why}${holistic}
+    <div class="frame-202 ww-stack" data-ww-stack>
+      <h2 class="heading-2 ww-stack-head">Health Insights</h2>${why}${holistic}${research}
     </div>`;
 }
 
@@ -312,7 +370,7 @@ function researchSection(sup: Supplement, notes: readonly ResearchNote[]): strin
     : sup.studies_html ? `<div class="w-richtext">${sup.studies_html}</div>` : '';
   if (!latest && !classicBlock) return '';
   return `
-    <div data-w-id="d2583c6d-a801-58f2-5a58-efcac18e2fe2" style="opacity:0" class="frame-209 recent ww-rl" id="research">
+    <div class="frame-209 recent ww-rl ww-stack-card" id="research">
       <h3 class="heading-green recent">Research</h3>
       <div class="rich-text-block-4 links ww-rl-body">${latest && classicBlock ? `
         <div class="ww-rl-tabs">
@@ -552,7 +610,7 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
       })}
     </div>${extras.dose === undefined ? productCards(env, sup) : picksGrid(env, sup, extras.dose, extras.brandPath)}
   </div>
-  <section class="info">${synergySection(sup)}${insightsSection(sup)}${researchSection(sup, extras.notes ?? [])}${faqSection(sup)}
+  <section class="info">${synergySection(sup)}${insightsSection(sup, researchSection(sup, extras.notes ?? []), extras.origin ?? 'https://aiww.io')}${faqSection(sup)}
   </section>${relatedSection(extras.related ?? [], `Browse all ${explore.length || ''} supplements`)}${extras.brandStrip ?? ''}${footer()}${stickyBuyBar(env, sup)}`;
 
   return page({
@@ -562,5 +620,6 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
     bodyClass: 'body-2 ww-has-sticky',
     head: HEAD_STYLES + (extras.origin ? seoHead(sup, extras.origin) : ''),
     body,
+    scripts: '  <script src="/js/insights.js" defer></script>',
   });
 }
