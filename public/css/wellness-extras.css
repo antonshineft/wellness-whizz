@@ -1124,3 +1124,28 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 /* The running line of brands: room above and below it. */
 .ww-brandstrip { margin-top: 72px; margin-bottom: 88px; }
 @media (max-width: 767px) { .ww-brandstrip { margin-top: 48px; margin-bottom: 56px; } }
+
+/* The home slider's tags follow the hero's. */
+.ww-slider-tags .ww-tag, .ww-slider-tags .ww-tag.ww-tag-good, .ww-slider-tags .ww-tag.ww-tag-dark { background: #ffffffb3; color: #1d272d; box-shadow: inset 0 0 0 1px #1d272d1a; gap: 8px; padding: 0 14px 0 8px; line-height: 1; }
+.ww-slider-tags .ww-tag:not(:has(b)) { padding-left: 14px; }
+.ww-slider-tags .ww-tag b, .ww-slider-tags .ww-tag.ww-tag-good b, .ww-slider-tags .ww-tag.ww-tag-dark b { flex: none; width: 18px; height: 18px; border-radius: 50%; background: #1d272d; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; letter-spacing: 0; text-align: center; display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+.ww-slider-tags .ww-tag b svg { display: block; width: 16px; height: 16px; }
+.ww-slider-tags .ww-tag.ww-tag-warn { box-shadow: inset 0 0 0 1.5px #b3261e; }
+.ww-slider-tags .ww-tag.ww-tag-warn b { background: #b3261e; }
+.ww-slider-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ww-slider-tags .ww-tag { height: 28px; font-size: 11px; margin: 0; white-space: nowrap; background: #fff; }
+.ww-slider-tags .ww-tag b { width: 16px; height: 16px; }
+.ww-slider-tags .ww-tag b svg { width: 14px; height: 14px; }
+
+/* Shelf scan, from the full review: readable small text, larger touch targets, a focus ring that shows, a tile to add a photo. */
+.ww-scan-hint, .ww-scan-note, .ww-scan-label { color: #1d272dc7; }
+.ww-scan-hole small { font-weight: 400; }
+.ww-scan-art input[type=file]:focus-visible + .ww-scan-hole { outline-offset: -8px; border-radius: 32px; }
+.ww-scan-chip { min-height: 44px; padding: 10px 18px; }
+.ww-scan-chips { gap: 10px; }
+.ww-scan-thumb button { width: 32px; height: 32px; top: -10px; right: -10px; font-size: 18px; }
+.ww-scan-thumb button::after { content: ""; position: absolute; inset: -6px; }
+.ww-scan-chip:focus-visible, .ww-scan-go:focus-visible, .ww-scan-goal:focus-visible, .ww-scan-thumb button:focus-visible { outline-color: #1d272d; }
+.ww-scan-add { width: 76px; height: 76px; box-sizing: border-box; border-radius: 16px; border: 1.5px dashed #1d272d80; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; line-height: 14px; font-weight: 500; color: #1d272d; cursor: pointer; margin: 0; }
+.ww-scan-add span { font-size: 24px; line-height: 22px; font-weight: 400; }
+.ww-scan-add:hover { border-color: #1d272d; background: #bcffb740; }

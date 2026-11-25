@@ -111,12 +111,14 @@ function withPrefix(srcset: string): string {
 }
 
 /** Badges as used in the home slider and supplement header (safety first, then FDA). */
+/** The two tags on a home slider card: the hero's tags in small, so the same marks mean the same thing on both. */
 export function headerBadges(sup: Supplement): string {
-  const safety = SAFETY_BADGES[sup.safety_status];
-  const fda = FDA_BADGES[sup.fda_status];
+  const fda = FDA_TAGS[sup.fda_status];
+  const safety = SAFETY_TAGS[sup.safety_status];
+  const warn = sup.safety_status === 'not_safe' || sup.safety_status === 'prescription' ? ' ww-tag-warn' : '';
   return (
-    `<img src="/images/${safety.src}" loading="lazy" width="${safety.width}" alt="${safety.alt}">` +
-    `<img src="/images/${fda.src}" loading="lazy" width="78" alt="${fda.alt}">`
+    `<span class="ww-tag${warn}">${tagIcon(safety.glyph)}${escapeHtml(safety.label)}</span>` +
+    `<span class="ww-tag">${tagIcon(fda.glyph)}${escapeHtml(fda.label)}</span>`
   );
 }
 
@@ -461,7 +463,7 @@ export function homeCard(sup: Supplement, dose?: DoseCheck | null): string {
   <div class="imagecard">${image}
     <div class="frame-256">
       <div class="text-75">${escapeHtml(sup.name)}</div>
-      <div class="frame-257">${headerBadges(sup)}</div>${tested ? `\n      <div class="ww-slider-tested"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2 6.4 4.8 9 10 3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Lab-tested pick</div>` : ''}${dose === undefined || !product ? '' : `\n      ${pick && dose ? doseScale(dose, pick, true) : doseLimits(dose, product.url, true) ?? doseBlank(dose, true)}`}
+      <div class="frame-257 ww-slider-tags">${headerBadges(sup)}</div>${tested ? `\n      <div class="ww-slider-tested"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2 6.4 4.8 9 10 3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Lab-tested pick</div>` : ''}${dose === undefined || !product ? '' : `\n      ${pick && dose ? doseScale(dose, pick, true) : doseLimits(dose, product.url, true) ?? doseBlank(dose, true)}`}
     </div>
   </div>
 </div>`;

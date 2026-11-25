@@ -5,8 +5,8 @@
   if (!form) return;
   var LANG = ((document.documentElement.getAttribute('lang') || 'en').slice(0, 2) === 'es') ? 'es' : 'en';
   var T = LANG === 'es'
-    ? { pick: 'Elige entre 1 y 3 fotos.', tooMany: 'Máximo 3 fotos; se usan las tres primeras.', sending: 'Leyendo las etiquetas. Suele tardar menos de un minuto.', done: 'Listo, abriendo el resultado…', failed: 'Algo salió mal. Inténtalo de nuevo.', notImage: 'Ese archivo no es una imagen.', drop: 'Suelta una foto', tap: 'o toca para elegir', of: ' de 3', more: 'toca para añadir otra', ready: 'listo para revisar', reading: 'Leyendo', wait: 'menos de un minuto', remove: 'Quitar la foto' }
-    : { pick: 'Choose 1 to 3 photos.', tooMany: 'At most 3 photos; the first three are used.', sending: 'Reading the labels. This usually takes under a minute.', done: 'All set, opening your result…', failed: 'Something went wrong. Please try again.', notImage: 'That file is not an image.', drop: 'Drop a photo', tap: 'or tap to choose', of: ' of 3', more: 'tap to add another', ready: 'ready to check', reading: 'Reading', wait: 'under a minute', remove: 'Remove photo' };
+    ? { pick: 'Elige entre 1 y 3 fotos.', tooMany: 'Máximo 3 fotos; se usan las tres primeras.', sending: 'Leyendo las etiquetas. Suele tardar menos de un minuto.', done: 'Listo, abriendo el resultado…', failed: 'Algo salió mal. Inténtalo de nuevo.', notImage: 'Ese archivo no es una imagen.', drop: 'Suelta una foto', tap: 'o toca para elegir', of: ' de 3', more: 'toca para añadir otra', ready: 'listo para revisar', reading: 'Leyendo', wait: 'menos de un minuto', remove: 'Quitar la foto', add: 'Añadir foto' }
+    : { pick: 'Choose 1 to 3 photos.', tooMany: 'At most 3 photos; the first three are used.', sending: 'Reading the labels. This usually takes under a minute.', done: 'All set, opening your result…', failed: 'Something went wrong. Please try again.', notImage: 'That file is not an image.', drop: 'Drop a photo', tap: 'or tap to choose', of: ' of 3', more: 'tap to add another', ready: 'ready to check', reading: 'Reading', wait: 'under a minute', remove: 'Remove photo', add: 'Add photo' };
   var input = document.getElementById('ww-shelf-files');
   var previews = document.getElementById('ww-shelf-previews');
   var submit = document.getElementById('ww-shelf-submit');
@@ -110,10 +110,10 @@
     else if (n) { holeTitle.textContent = n + T.of; holeSub.textContent = n < 3 ? T.more : T.ready; }
     else { holeTitle.textContent = T.drop; holeSub.textContent = T.tap; }
     art.classList.toggle('has-photos', n > 0 || busy);
-    next.hidden = !n; hint.hidden = !!n;
+    next.hidden = !n;
     previews.innerHTML = images.map(function (o, i) {
       return '<span class="ww-scan-thumb" style="background-image:url(' + o.preview + ')"><button type="button" data-i="' + i + '" aria-label="' + T.remove + '">×</button></span>';
-    }).join('');
+    }).join('') + (n && n < 3 && !busy ? '<label class="ww-scan-add" for="ww-shelf-files"><span aria-hidden="true">+</span>' + T.add + '</label>' : '');
     submit.disabled = busy || !n;
     target = busy ? 6 : 1;
   }
