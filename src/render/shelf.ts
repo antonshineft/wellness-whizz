@@ -5,24 +5,48 @@ import { primaryProduct, searchUrl, shopUrl, type LinkEnv } from '../links';
 import type { ShelfAnalysis, ShelfScan } from '../shelf';
 import { page } from './layout';
 import { pageShell, quizCta } from './pages';
-import { WF_PAGE_IDS, blendAttr, buyButton, cardImage } from './partials';
+import { WF_PAGE_IDS, blendAttr, buyButton, cardImage, footer, navbar } from './partials';
 
 const NOINDEX = '\n  <meta name="robots" content="noindex">';
 
+const GOALS = ['Better sleep', 'More energy', 'Joints', 'Immunity'];
+
+/**
+ * The upload page: the whole hero is a looping picture (public/js/shelf.js draws it) with a white opening in its
+ * centre that takes the photos, and a sheet over its lower edge that holds the title and, once a photo is in, the
+ * next steps.
+ */
 export function renderShelfPage(origin: string): string {
-  const body = `
-      <form class="ww-shelf" id="ww-shelf" novalidate>
-        <label class="ww-shelf-drop" for="ww-shelf-files">
-          <input type="file" id="ww-shelf-files" name="photos" accept="image/*" capture="environment" multiple>
-          <span class="ww-shelf-drop-title">Take a photo of your bottles</span>
-          <span class="ww-shelf-drop-text">Up to 3 photos. Labels facing the camera, good light. Photos are analysed and not stored.</span>
+  const chips = GOALS.map((g) => `<button type="button" class="ww-scan-chip" aria-pressed="false">${escapeHtml(g)}</button>`).join('');
+  const shell = `${navbar('logo-left')}
+  <main class="ww-page-wrap ww-scan">
+    <form class="ww-scan-form" id="ww-shelf" novalidate>
+      <div class="ww-scan-art" id="ww-scan-art">
+        <canvas aria-hidden="true"></canvas>
+        <span class="ww-scan-grain" aria-hidden="true"></span>
+        <input type="file" id="ww-shelf-files" name="photos" accept="image/*" multiple>
+        <label class="ww-scan-hole" for="ww-shelf-files">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V5M7.5 9.5 12 5l4.5 4.5M5 19h14"/></svg>
+          <b id="ww-scan-hole-title">Drop a photo</b>
+          <small id="ww-scan-hole-sub">or tap to choose</small>
         </label>
-        <div class="ww-shelf-previews" id="ww-shelf-previews" aria-live="polite"></div>
-        <label class="ww-shelf-field"><span>What are you taking them for? (optional)</span><input type="text" name="goal" maxlength="200" placeholder="e.g. better sleep, more energy, joint pain" autocomplete="off"></label>
-        <button type="submit" class="fakebutton ww-buy ww-shop-buy w-button ww-shelf-submit" id="ww-shelf-submit" disabled>Check my shelf</button>
+      </div>
+      <div class="ww-scan-sheet">
+        <h1 class="ww-scan-title">Scan your supplement shelf</h1>
+        <p class="ww-scan-lead">Photograph the bottles you already have. The advisor reads the labels and tells you what overlaps, what to take apart and what is missing for your goal.</p>
+        <p class="ww-scan-hint" id="ww-scan-hint">Up to 3 photos. Labels facing the camera, good light. Photos are analysed and not stored.</p>
+        <div class="ww-scan-next" id="ww-scan-next" hidden>
+          <div class="ww-scan-thumbs" id="ww-shelf-previews" aria-live="polite"></div>
+          <p class="ww-scan-label">What are you taking them for? (optional)</p>
+          <div class="ww-scan-chips" id="ww-scan-chips">${chips}</div>
+          <input type="text" class="ww-scan-goal" name="goal" maxlength="200" placeholder="or type your own" autocomplete="off" aria-label="What are you taking them for?">
+          <button type="submit" class="ww-scan-go" id="ww-shelf-submit">Check my shelf</button>
+        </div>
         <p class="ww-shelf-status" id="ww-shelf-status" aria-live="polite"></p>
-        <p class="ww-note">This is information, not medical advice. Keep taking prescribed medicines as directed and ask a pharmacist before combining them with supplements.</p>
-      </form>
+        <p class="ww-scan-note">This is information, not medical advice. Keep taking prescribed medicines as directed and ask a pharmacist before combining them with supplements.</p>
+      </div>
+    </form>
+    <div class="ww-page">
       <section class="ww-shelf-how">
         <h2>What you get back</h2>
         <ul>
@@ -31,13 +55,9 @@ export function renderShelfPage(origin: string): string {
           <li><strong>What to take apart</strong>: pairs that compete for absorption, and the best time of day for each.</li>
           <li><strong>What is missing</strong> for your goal, with the evidence in one sentence and where to buy it.</li>
         </ul>
-      </section>${quizCta('Want a list built from scratch?', 'The two-minute quiz weighs your goals, diet and what you already take, then explains its picks.')}`;
-  const shell = pageShell({
-    eyebrow: 'Shelf scan',
-    title: 'Scan your supplement shelf',
-    lead: 'Photograph the bottles you already have. The advisor reads the labels and tells you what overlaps, what to take apart and what is missing for your goal.',
-    body,
-  });
+      </section>${quizCta('Want a list built from scratch?', 'The two-minute quiz weighs your goals, diet and what you already take, then explains its picks.')}
+    </div>
+  </main>${footer()}`;
   return page({
     title: 'Scan your supplement shelf',
     description: 'Photograph your supplement bottles and get a free AI check: what overlaps, what to take apart, when to take each one, and what is missing for your goal.',

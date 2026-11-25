@@ -1027,3 +1027,46 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 @media (max-width: 767px) { .ww-related-head + .ww-related-grid .ww-related-tile:nth-child(5) { display: none; } }
 @media (min-width: 1181px) { .ww-hero-foot .ww-reviewed { white-space: nowrap; } }
 .ww-qa .ww-qa-list { margin-top: 28px; }
+
+/* Shelf scan: the hero is a looping picture with a white opening that takes the photos; a sheet overlaps its lower edge. */
+.ww-scan-form { margin: 0 10px; }
+.ww-scan-art { position: relative; height: clamp(440px, 60vw, 640px); border-radius: 40px; overflow: hidden; background: #b3ec6a; }
+.ww-scan-art canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.ww-scan-grain { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: soft-light; opacity: .9; }
+.ww-scan-art input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.ww-scan-hole { position: absolute; left: 50%; top: 40%; width: var(--hole-w, 180px); height: var(--hole-h, 120px); transform: translate(-50%, -50%); border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; cursor: pointer; color: #1d272d; font-family: Aeonik, sans-serif; margin: 0; z-index: 2; }
+.ww-scan-hole svg { width: 28px; height: 28px; margin-bottom: 4px; }
+.ww-scan-art.has-photos .ww-scan-hole svg { display: none; }
+.ww-scan-hole b { font-size: clamp(16px, 2vw, 22px); line-height: 1.15; font-weight: 700; }
+.ww-scan-hole small { font-size: 14px; line-height: 1.2; opacity: .75; }
+.ww-scan-art input[type=file]:focus-visible + .ww-scan-hole { outline: 3px solid #1d272d; outline-offset: 4px; }
+.ww-scan-fly { position: absolute; left: 50%; top: 40%; width: 96px; height: 96px; margin: -48px; border-radius: 18px; background: #fdf1cf center/cover; box-shadow: 0 10px 24px -8px #1d272d70; z-index: 3; pointer-events: none; animation: ww-scan-fly .9s cubic-bezier(.5, 0, .8, .3) forwards; }
+@keyframes ww-scan-fly { from { transform: translate(-30%, -190%) rotate(-14deg) scale(1); opacity: 1; } 70% { opacity: 1; } to { transform: translate(0, 0) rotate(240deg) scale(.05); opacity: 0; } }
+.ww-scan-sheet { position: relative; z-index: 2; background: #fff; border-radius: 32px; margin: -80px auto 0; padding: 32px 32px 28px; width: min(100% - 24px, 680px); box-sizing: border-box; box-shadow: 0 24px 50px -28px #1d272d66; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; font-family: Aeonik, sans-serif; color: #1d272d; }
+.ww-scan-title { margin: 0; font-family: Aeonik, sans-serif; font-size: clamp(32px, 4.4vw, 52px); line-height: 1.05; font-weight: 500; letter-spacing: -.02em; }
+.ww-scan-lead { margin: 0; font-size: 18px; line-height: 27px; max-width: 46ch; }
+.ww-scan-hint, .ww-scan-note { margin: 0; font-size: 14px; line-height: 21px; color: #1d272d99; max-width: 52ch; }
+.ww-scan-next { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+.ww-scan-next[hidden], .ww-scan-hint[hidden] { display: none; }
+.ww-scan-thumbs { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.ww-scan-thumb { position: relative; width: 76px; height: 76px; border-radius: 16px; background: #fdf1cf center/cover; border: 1px solid #1d272d22; }
+.ww-scan-thumb button { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; border-radius: 50%; border: 0; background: #1d272d; color: #fff; font-size: 16px; line-height: 1; cursor: pointer; padding: 0; }
+.ww-scan-label { margin: 6px 0 -4px; font-size: 15px; color: #1d272d99; }
+.ww-scan-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.ww-scan-chip { font: inherit; font-size: 15px; font-weight: 500; padding: 9px 16px; border-radius: 999px; border: 1px solid #1d272d33; background: #fff; color: #1d272d; cursor: pointer; }
+.ww-scan-chip[aria-pressed="true"] { background: #b9f26a; border-color: #1d272d; }
+.ww-scan-goal { width: min(100%, 360px); box-sizing: border-box; font: inherit; font-size: 16px; padding: 11px 16px; border: 1px solid #1d272d33; border-radius: 999px; text-align: center; }
+.ww-scan-go { font: inherit; font-size: 18px; font-weight: 700; background: #1d272d; color: #fff; border: 0; border-radius: 18px; padding: 16px 28px; min-width: 240px; cursor: pointer; }
+.ww-scan-go:hover { background: #2c3a41; }
+.ww-scan-go[disabled] { opacity: .5; cursor: default; }
+.ww-scan .ww-shelf-status:empty { display: none; }
+.ww-scan .ww-shelf-status { margin: 0; }
+.ww-scan .ww-page { padding-top: 48px; }
+.ww-scan .ww-shelf-how { margin-top: 0; }
+@media (max-width: 767px) {
+  .ww-scan-art { border-radius: 28px; height: 460px; }
+  .ww-scan-sheet { padding: 24px 18px 22px; border-radius: 26px; margin-top: -70px; }
+  .ww-scan-lead { font-size: 16px; line-height: 24px; }
+  .ww-scan .ww-page { padding-top: 32px; }
+}
+@media (prefers-reduced-motion: reduce) { .ww-scan-fly { display: none; } }
