@@ -1495,3 +1495,5 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-card-meta .ww-bars i { background: #1d272d33; }
 .ww-card-meta .ww-bars i.on { background: #1d272d; }
 @media (max-width: 767px) { .ww-card-meta .ww-tag { height: 28px; font-size: 12px; padding-right: 12px; } }
+/* "Top picks on iHerb" strip: same outer edges as the row below it on wide desktops */
+@media (min-width: 1280px) { .ww-strip-wrap { padding-left: 58px; padding-right: 58px; } }
