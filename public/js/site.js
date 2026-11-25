@@ -135,3 +135,32 @@
   });
   window.addEventListener('scroll', hide, { passive: true });
 })();
+
+/* Questions open and close slowly instead of snapping. */
+(function () {
+  if (!Element.prototype.animate) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  document.addEventListener('click', function (e) {
+    var sum = e.target.closest ? e.target.closest('summary') : null;
+    var d = sum ? sum.parentNode : null;
+    if (!d || !d.matches || !d.matches('details.ww-qa-item, .ww-faq details')) return;
+    e.preventDefault();
+    if (d._anim) { d._anim.cancel(); d._anim = null; }
+    var opening = !d.open || d._closing;
+    var from = d.offsetHeight;
+    d._closing = false;
+    if (opening) d.open = true; 
+    var cs = getComputedStyle(d);
+    var closed = sum.offsetHeight + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+    var prev = d.style.height; d.style.height = '';
+    var to = opening ? d.offsetHeight : closed;
+    d.style.height = prev;
+    d.style.overflow = 'hidden';
+    if (!opening) { d._closing = true; d.classList.add('is-closing'); }
+    var a = d._anim = d.animate({ height: [from + 'px', to + 'px'] }, { duration: opening ? 520 : 420, easing: 'cubic-bezier(.3, .7, .2, 1)' });
+    a.onfinish = function () {
+      if (!opening) d.open = false;
+      d._closing = false; d._anim = null; d.style.overflow = ''; d.classList.remove('is-closing');
+    };
+  });
+})();

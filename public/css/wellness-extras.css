@@ -1568,3 +1568,45 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 }
 @media (max-width: 767px) { ._3-columns .frame-226 { min-width: 0; width: 100%; box-sizing: border-box; } ._3-columns .frame-226 img { max-width: 100%; height: auto; } }
 @media (max-width: 767px) { .info .frame-204 > .div-block > .frame-206 { background-color: #26323a; border-radius: 22px; } }
+
+/* Phone, supplement page (pass 2): the photo sits flush at the top of the band with nothing over it; the two cards
+   sit under it, one whole card per view, swiped sideways. Picks: quick links and product cards swipe too. */
+@media (max-width: 767px) {
+  .info .frame-203, .info .frame-203.ww-insight { background-image: none; background-color: #1d272d; border-radius: 22px; overflow: hidden; }
+  .info .frame-203::after { display: none; }
+  .info .frame-204 { position: static; display: block; padding: 0 0 18px; min-height: 0; }
+  .info .frame-204::before { content: ''; display: block; height: 64vw; background-image: linear-gradient(#1d272d00 62%, #1d272d), var(--ww-insight-m, url('../images/Wellnnessback.jpg')); background-size: cover; background-position: 50% 0; background-repeat: no-repeat; }
+  .info .frame-204 > .div-block { gap: 14px; margin: 14px 14px 0; padding: 0; scroll-padding: 0; border-radius: 22px; }
+  .info .frame-204 > .div-block > .frame-206 { flex: 0 0 100%; overflow: hidden; padding: 30px 24px 24px; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .info .frame-206 .frame-207, .info .frame-206 .frame-208 { margin-top: 22px; }
+  .ww-dots { display: flex; justify-content: center; gap: 7px; padding: 14px 0 0; }
+  .ww-dots i { width: 7px; height: 7px; border-radius: 50%; background: #1d272d2e; transition: background-color .25s, width .25s; }
+  .ww-dots i.is-on { width: 20px; border-radius: 4px; background: #87d581; }
+  .info .ww-dots i { background: #ffffff3d; }
+  .info .ww-dots i.is-on { background: #87d581; }
+
+  .ww-top-side .ww-top-list { display: flex; gap: 8px; margin: 18px -16px 0; padding: 0 16px 2px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .ww-top-list::-webkit-scrollbar, .ww-top-grid::-webkit-scrollbar { display: none; }
+  .ww-top-list li { flex: 0 0 auto; }
+  .ww-top-list a { gap: 8px; padding: 6px 14px 6px 6px; border-radius: 999px; background: #fff; border: 1px solid #e3ebe1; white-space: nowrap; font-size: 14px; line-height: 20px; transition: background-color .25s, color .25s, border-color .25s; }
+  .ww-top-list a.is-on { background: #1d272d; border-color: #1d272d; color: #fff; }
+  .ww-top-list a.is-on .ww-top-n { background: #87d581; color: #1d272d; }
+  .ww-top-grid { display: flex; grid-template-columns: none; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; border-radius: 18px; }
+  .ww-top-grid > .ww-top-card { flex: 0 0 100%; box-sizing: border-box; scroll-snap-align: center; scroll-margin-top: 0; }
+}
+@media (min-width: 768px) { .ww-dots { display: none; } }
+
+/* Tabs: the highlight slides across and the list fades in */
+.ww-rl-seg { position: relative; }
+.ww-rl-seg::before { content: ''; position: absolute; top: 5px; bottom: 5px; left: 5px; width: calc(50% - 5px); border-radius: 999px; background: linear-gradient(90deg, #87d581, #bcffb7); transition: transform .45s cubic-bezier(.3, .8, .25, 1); }
+#ww-rl-key:checked ~ .ww-rl-seg::before { transform: translateX(100%); }
+.ww-rl-seg label { position: relative; z-index: 1; transition: color .35s ease; }
+#ww-rl-new:checked ~ .ww-rl-seg label[for="ww-rl-new"], #ww-rl-key:checked ~ .ww-rl-seg label[for="ww-rl-key"] { background: none; font-weight: 500; }
+#ww-rl-new:checked ~ .ww-rl-panel.is-new, #ww-rl-key:checked ~ .ww-rl-panel.is-key { animation: ww-rl-in .5s ease both; }
+@keyframes ww-rl-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.ww-qa-chevron, .ww-faq summary::after { transition: transform .4s ease, margin .4s ease; }
+@media (prefers-reduced-motion: reduce) { .ww-rl-seg::before { transition: none; } #ww-rl-new:checked ~ .ww-rl-panel.is-new, #ww-rl-key:checked ~ .ww-rl-panel.is-key { animation: none; } }
+.ww-qa-item.is-closing .ww-qa-chevron { transform: rotate(45deg); margin: 0 6px 6px 0; }
+.ww-faq details.is-closing summary::after { transform: rotate(45deg); margin-top: 6px; }
+@media (max-width: 767px) { .ww-top { grid-template-columns: minmax(0, 1fr); } .ww-top-side, .ww-top-main { min-width: 0; } }
+@media (max-width: 767px) { .info .frame-204 > .div-block > .frame-206 { position: relative; } }

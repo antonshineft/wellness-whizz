@@ -101,3 +101,55 @@
     }
   }
 })();
+
+/* Phone: rows that swipe sideways get dots, and the picks quick links follow the product cards. */
+(function () {
+  function cards(row) {
+    return Array.prototype.filter.call(row.children, function (k) { return k.offsetWidth > 40; });
+  }
+  function index(row) {
+    var kids = cards(row), mid = row.scrollLeft + row.clientWidth / 2, best = 0, d = Infinity;
+    for (var i = 0; i < kids.length; i++) {
+      var c = kids[i].offsetLeft - row.offsetLeft + kids[i].offsetWidth / 2, x = Math.abs(c - mid);
+      if (x < d) { d = x; best = i; }
+    }
+    return best;
+  }
+  function go(row, i) {
+    var k = cards(row)[i]; if (!k) return;
+    var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    row.scrollTo({ left: k.offsetLeft - row.offsetLeft, behavior: calm ? 'auto' : 'smooth' });
+  }
+  function swipe(row, onChange) {
+    if (!row || cards(row).length < 2) return;
+    var dots = document.createElement('div'); dots.className = 'ww-dots'; dots.setAttribute('aria-hidden', 'true');
+    for (var i = 0; i < cards(row).length; i++) dots.appendChild(document.createElement('i'));
+    row.parentNode.insertBefore(dots, row.nextSibling);
+    var cur = -1, tick = false;
+    function paint() {
+      tick = false;
+      var n = index(row); if (n === cur) return; cur = n;
+      for (var j = 0; j < dots.children.length; j++) dots.children[j].classList.toggle('is-on', j === n);
+      if (onChange) onChange(n);
+    }
+    row.addEventListener('scroll', function () { if (!tick) { tick = true; requestAnimationFrame(paint); } }, { passive: true });
+    paint();
+  }
+  swipe(document.querySelector('.info .frame-204 > .div-block'));
+  var grid = document.querySelector('.ww-top-grid'), list = document.querySelector('.ww-top-list');
+  var links = list ? list.querySelectorAll('a') : [];
+  swipe(grid, function (n) {
+    for (var i = 0; i < links.length; i++) links[i].classList.toggle('is-on', i === n);
+    var a = links[n];
+    if (a && list.scrollWidth > list.clientWidth) {
+      var li = a.parentNode;
+      list.scrollTo({ left: li.offsetLeft - list.offsetLeft - (list.clientWidth - li.offsetWidth) / 2, behavior: 'smooth' });
+    }
+  });
+  if (grid && list) list.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a') : null;
+    if (!a || window.innerWidth > 767) return;
+    e.preventDefault(); e.stopPropagation();
+    go(grid, Array.prototype.indexOf.call(links, a));
+  }, true);
+})();
