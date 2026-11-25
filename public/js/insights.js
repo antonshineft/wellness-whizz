@@ -44,6 +44,12 @@
         var past = it.mark ? it.top - it.mark.getBoundingClientRect().top : 0;
         var y = it.extra ? Math.min(it.extra, Math.max(0, past)) : 0;
         it.scroll.style.transform = y ? 'translate3d(0,' + -y + 'px,0)' : '';
+        var clip = it.scroll.parentElement;
+        if (clip) {
+          // fade grows with the distance scrolled, up to 40px, so text at rest is never dimmed
+          clip.style.setProperty('--fade-t', Math.min(40, y) + 'px');
+          clip.style.setProperty('--fade-b', Math.min(40, Math.max(0, it.extra - y)) + 'px');
+        }
       });
       if (head) {
         head.classList.toggle('is-stuck', head.getBoundingClientRect().top <= 0.5);

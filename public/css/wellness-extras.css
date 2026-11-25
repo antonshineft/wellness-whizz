@@ -1467,3 +1467,13 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-stack-head.is-gone { opacity: 0; pointer-events: none; }
 .frame-202.ww-stack > .ww-stack-card.is-last { position: relative; top: auto; margin-bottom: 0; }
 .frame-202.ww-stack > .ww-stack-card.is-last + .ww-stack-space { display: none; }
+
+/* Picks section: as wide as the band below it, cards lined up with the Enhancing / Interactions cards */
+.ww-top-side .heading-3 { font-weight: 500; }
+@media (min-width: 992px) {
+  .ww-top { max-width: none; width: auto; margin-left: 68px; margin-right: 68px; grid-template-columns: minmax(0, 1fr) calc(57.5vw - 100px); gap: 36px; }
+  .ww-top-side { max-width: 380px; }
+}
+/* Insight frames: text fades (40px at most) where it slides behind the frame edge */
+.ww-stack-clip { -webkit-mask-image: linear-gradient(#0000 0, #000 var(--fade-t, 0px), #000 calc(100% - var(--fade-b, 0px)), #0000 100%); mask-image: linear-gradient(#0000 0, #000 var(--fade-t, 0px), #000 calc(100% - var(--fade-b, 0px)), #0000 100%); }
+@media (min-width: 992px) { .ww-top { width: calc(100vw - 136px); margin-left: auto; margin-right: auto; box-sizing: border-box; } }
