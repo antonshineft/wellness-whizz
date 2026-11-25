@@ -1610,3 +1610,16 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-faq details.is-closing summary::after { transform: rotate(45deg); margin-top: 6px; }
 @media (max-width: 767px) { .ww-top { grid-template-columns: minmax(0, 1fr); } .ww-top-side, .ww-top-main { min-width: 0; } }
 @media (max-width: 767px) { .info .frame-204 > .div-block > .frame-206 { position: relative; } }
+
+/* Pointer feedback: buttons step and press, product photos ease in a touch, question rows answer the pointer */
+.outbutton, .ww-ishare-btn, .ww-top-list a { transition: transform .15s cubic-bezier(.2, .8, .2, 1), background-color .15s ease, color .15s ease, border-color .15s ease; }
+.outbutton:active, .ww-ishare-btn:active { transform: translateY(1px) scale(.985); transition-duration: .09s; }
+.ww-top-photo { overflow: hidden; }
+.ww-top-photo img { transition: transform .4s cubic-bezier(.2, .8, .2, 1); }
+.ww-qa-item { transition: background-color .2s ease; }
+@media (hover: hover) and (pointer: fine) {
+  .outbutton:hover { transform: translateY(-1px); }
+  .ww-top-card:hover .ww-top-photo img { transform: scale(1.03); transition-duration: .6s; }
+  .ww-qa-item:not([open]):hover { background: #ffffff12; }
+}
+@media (prefers-reduced-motion: reduce) { .outbutton, .ww-ishare-btn, .ww-top-photo img { transition: none; } .outbutton:hover, .outbutton:active, .ww-ishare-btn:active, .ww-top-card:hover .ww-top-photo img { transform: none; } }
