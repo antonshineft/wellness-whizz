@@ -1462,3 +1462,8 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
   .ww-stack-head { min-height: 74px; padding-top: 10px; font-size: 36px; line-height: 40px; background: linear-gradient(#1d272d 50px, #1d272d00 50px); }
   .frame-202.ww-stack > .ww-stack-card { padding: 0 20px; margin-bottom: 12px; }
 }
+/* Health Insights stack, third pass: one lock line for every frame; the last frame is free and the heading steps aside for it */
+.ww-stack-head { transition: font-size .2s, line-height .2s, opacity .15s; }
+.ww-stack-head.is-gone { opacity: 0; pointer-events: none; }
+.frame-202.ww-stack > .ww-stack-card.is-last { position: relative; top: auto; margin-bottom: 0; }
+.frame-202.ww-stack > .ww-stack-card.is-last + .ww-stack-space { display: none; }

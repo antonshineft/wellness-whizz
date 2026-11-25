@@ -9,20 +9,31 @@
     var items = [].slice.call(stack.querySelectorAll('.ww-stack-card')).map(function (card) {
       return { card: card, mark: card.previousElementSibling, space: card.nextElementSibling, scroll: card.querySelector('.ww-stack-scroll'), extra: 0, top: 0 };
     });
+    var lastItem = items[items.length - 1];
     var measure = function () {
       var vh = window.innerHeight;
       var phone = window.innerWidth < 768;
       var base = phone ? 56 : 78;
       var bottomPad = phone ? 96 : 24; // room for the buy bar on phones
+      var room = Math.max(260, vh - base - bottomPad);
       items.forEach(function (it, i) {
-        it.top = base + i * (phone ? 6 : 10);
+        var last = it === lastItem;
+        it.top = base; // every frame locks at the same line, so no edge of an earlier one shows
         it.card.style.setProperty('--stack-top', it.top + 'px');
         it.card.style.zIndex = String(i + 1);
+        it.card.classList.toggle('is-last', last);
         it.card.style.setProperty('--stack-h', 'auto');
-        var natural = it.card.getBoundingClientRect().height;
-        var room = Math.max(260, vh - it.top - bottomPad);
-        it.extra = Math.max(0, Math.round(natural - room));
-        it.card.style.setProperty('--stack-h', it.extra ? room + 'px' : 'auto');
+        it.card.style.minHeight = '';
+        if (last) {
+          // the last frame is not locked: it covers the ones before it, then scrolls away with the page
+          it.extra = 0;
+          // a little taller than the locked frames (by their bottom margin), so none of them shows above or below it
+          it.card.style.minHeight = (room + (phone ? 12 : 20)) + 'px';
+        } else {
+          var natural = it.card.getBoundingClientRect().height;
+          it.extra = Math.max(0, Math.round(natural - room));
+          it.card.style.setProperty('--stack-h', it.extra ? room + 'px' : 'auto');
+        }
         if (it.space) it.space.style.setProperty('--stack-space', it.extra + 'px');
       });
       move();
@@ -34,7 +45,11 @@
         var y = it.extra ? Math.min(it.extra, Math.max(0, past)) : 0;
         it.scroll.style.transform = y ? 'translate3d(0,' + -y + 'px,0)' : '';
       });
-      if (head) head.classList.toggle('is-stuck', head.getBoundingClientRect().top <= 0.5 && stack.getBoundingClientRect().bottom > 80);
+      if (head) {
+        head.classList.toggle('is-stuck', head.getBoundingClientRect().top <= 0.5);
+        // once the last frame reaches the line, the heading steps aside so the frame never passes under it
+        head.classList.toggle('is-gone', lastItem.card.getBoundingClientRect().top <= lastItem.top + 1);
+      }
     };
     var tick = false;
     window.addEventListener('scroll', function () {
