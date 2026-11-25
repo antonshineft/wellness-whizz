@@ -1155,3 +1155,23 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-slider-tags .ww-tag b { width: 14px; height: 14px; font-size: 9px; line-height: 14px; }
 .ww-slider-tags .ww-tag b svg { width: 12px; height: 12px; }
 @media (max-width: 767px) { .ww-slider-tags .ww-tag { height: 20px; font-size: 9px; padding: 0 8px 0 3px; } }
+/* Shelf scan: the title sits in a dark block with the site's inner line. */
+.ww-scan-sheet { background: #1d272d linear-gradient(#2f6b4a 0%, #1d272d 62%); color: #fff; padding: 44px 40px 40px; box-shadow: 0 24px 50px -28px #1d272d99; }
+.ww-scan-sheet::before { content: ""; position: absolute; inset: 10px; border: 1px solid #ffffff38; border-radius: 24px; pointer-events: none; }
+.ww-scan-sheet > * { position: relative; }
+.ww-scan-sheet .ww-scan-title, .ww-scan-sheet .ww-scan-lead { color: #fff; }
+.ww-scan-sheet .ww-scan-hint, .ww-scan-sheet .ww-scan-label { color: #ffffffc2; }
+.ww-scan-sheet .ww-shelf-status { color: #bcffb7; }
+.ww-scan-sheet .ww-scan-chip { background: transparent; color: #fff; border-color: #ffffff59; }
+.ww-scan-sheet .ww-scan-chip:hover { border-color: #fff; }
+.ww-scan-sheet .ww-scan-chip[aria-pressed="true"] { background: #87d581; border-color: #87d581; color: #1d272d; }
+.ww-scan-sheet .ww-scan-goal { background: #ffffff14; border-color: #ffffff59; color: #fff; }
+.ww-scan-sheet .ww-scan-goal::placeholder { color: #ffffffa6; }
+.ww-scan-sheet .ww-scan-go { background: #87d581; color: #1d272d; }
+.ww-scan-sheet .ww-scan-go:hover { background: #9be095; }
+.ww-scan-sheet .ww-scan-add { color: #fff; border-color: #ffffff80; }
+.ww-scan-sheet .ww-scan-add:hover { border-color: #fff; background: #ffffff14; }
+.ww-scan-sheet .ww-scan-thumb { border-color: #ffffff40; }
+.ww-scan-sheet .ww-scan-thumb button { background: #fff; color: #1d272d; }
+.ww-scan-sheet .ww-scan-chip:focus-visible, .ww-scan-sheet .ww-scan-go:focus-visible, .ww-scan-sheet .ww-scan-goal:focus-visible, .ww-scan-sheet .ww-scan-thumb button:focus-visible { outline-color: #bcffb7; }
+@media (max-width: 767px) { .ww-scan-sheet { padding: 34px 24px 30px; } .ww-scan-sheet::before { inset: 8px; border-radius: 20px; } }
