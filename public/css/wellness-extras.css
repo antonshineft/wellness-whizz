@@ -1149,3 +1149,9 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-scan-add { width: 76px; height: 76px; box-sizing: border-box; border-radius: 16px; border: 1.5px dashed #1d272d80; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; line-height: 14px; font-weight: 500; color: #1d272d; cursor: pointer; margin: 0; }
 .ww-scan-add span { font-size: 24px; line-height: 22px; font-weight: 400; }
 .ww-scan-add:hover { border-color: #1d272d; background: #bcffb740; }
+/* Home slider tags: small, in scale with the card. */
+.ww-slider-tags { gap: 4px; }
+.ww-slider-tags .ww-tag { height: 22px; font-size: 10px; letter-spacing: .03em; gap: 5px; padding: 0 9px 0 4px; }
+.ww-slider-tags .ww-tag b { width: 14px; height: 14px; font-size: 9px; line-height: 14px; }
+.ww-slider-tags .ww-tag b svg { width: 12px; height: 12px; }
+@media (max-width: 767px) { .ww-slider-tags .ww-tag { height: 20px; font-size: 9px; padding: 0 8px 0 3px; } }
