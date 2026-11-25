@@ -69,17 +69,39 @@ const CHECK_ICON = '<svg viewBox="0 0 12 12" width="14" height="14" aria-hidden=
 
 export function renderHowItWorks(catalogueSize: number, origin: string, counts: { graded: number; gradedAB: number; testedPicks: number; testedSups: number; studiedPicks: number; studiedSups: number }): string {
   const n = catalogueSize >= 50 ? `${Math.floor(catalogueSize / 10) * 10}+` : 'our';
-  const body = `
-      <section class="ww-steps">
-        <div class="ww-step"><b>1</b><h3>Tell us about you</h3><p>Answer a few questions about your goals, diet, lifestyle, health conditions and the supplements you already take. It takes about two minutes and you do not need an account.</p></div>
-        <div class="ww-step"><b>2</b><h3>The advisor checks the catalogue</h3><p>Your answers are compared with a curated catalogue of ${escapeHtml(n)} supplements. Every entry carries a safety rating, FDA status, an effectivity score and notes on interactions, so the advisor can rule out what does not fit before it ranks what does.</p></div>
-        <div class="ww-step"><b>3</b><h3>You get a short, explained list</h3><p>Instead of a hundred options you get three to five. Each comes with a one-paragraph reason written for your answers, product picks, and a link to the full supplement page.</p></div>
-        <div class="ww-step"><b>4</b><h3>See what was checked, then buy</h3><p>Every product pick shows what stands behind it: where its dose sits against the reference range, whether an independent body tested it, and iHerb's own batch report where one exists. Links go to iHerb; we earn a small commission and you pay the same price.</p></div>
-      </section>
-      <section class="ww-prose is-how">
-        <p class="ww-toc">On this page: <a href="#page-tells">What a page tells you</a><a href="#how-we-rate">How we rate</a><a href="#how-we-check">How we check</a><a href="#kept-current">How picks stay current</a><a href="#who">Who we are</a></p>
-        <h2 id="page-tells">What every supplement page tells you</h2>
-        <p>Each supplement in the catalogue has its own page, written to answer the questions people actually have before they buy:</p>
+  const body = `${navbar('logo-left')}
+  <main class="ww-page-wrap ww-how">
+    <header class="ww-how-hero">
+      <div class="ww-eyebrow">How it works</div>
+      <h1 class="ww-page-title">Personal supplement advice, built on evidence</h1>
+      <p class="ww-page-lead">Wellness Whizz turns a two-minute questionnaire into a short list of supplements that fit your goals, diet and safety profile, with links to buy each one on iHerb.</p>
+      <a href="/wellness-quiz" class="footerbutton w-inline-block ww-how-go"><div class="text-57">Start Quiz Now</div></a>
+    </header>
+    <div class="ww-how-grid">
+      <nav class="ww-how-rail" id="ww-how-rail" aria-label="On this page">
+        <div class="ww-how-rail-in">
+          <a href="#steps"><b>1</b><span>The four steps</span></a>
+          <a href="#page-tells"><b>2</b><span>What a page tells you</span></a>
+          <a href="#how-we-rate"><b>3</b><span>How we rate</span></a>
+          <a href="#how-we-check"><b>4</b><span>How we check</span></a>
+          <a href="#kept-current"><b>5</b><span>How picks stay current</span></a>
+          <a href="#who"><b>6</b><span>Who we are</span></a>
+          <a href="#questions"><b>7</b><span>Questions</span></a>
+        </div>
+      </nav>
+      <div class="ww-how-col">
+        <section class="ww-how-sec" id="steps">
+          <h2>The four steps</h2>
+          <ol class="ww-how-steps">
+            <li><b>1</b><div><h3>Tell us about you</h3><p>Answer a few questions about your goals, diet, lifestyle, health conditions and the supplements you already take. It takes about two minutes and you do not need an account.</p></div></li>
+            <li><b>2</b><div><h3>The advisor checks the catalogue</h3><p>Your answers are compared with a curated catalogue of ${escapeHtml(n)} supplements. Every entry carries a safety rating, FDA status, an effectivity score and notes on interactions, so the advisor can rule out what does not fit before it ranks what does.</p></div></li>
+            <li><b>3</b><div><h3>You get a short, explained list</h3><p>Instead of a hundred options you get three to five. Each comes with a one-paragraph reason written for your answers, product picks, and a link to the full supplement page.</p></div></li>
+            <li><b>4</b><div><h3>See what was checked, then buy</h3><p>Every product pick shows what stands behind it: where its dose sits against the reference range, whether an independent body tested it, and iHerb's own batch report where one exists. Links go to iHerb; we earn a small commission and you pay the same price.</p></div></li>
+          </ol>
+        </section>
+        <section class="ww-how-sec ww-prose" id="page-tells">
+          <h2>What every supplement page tells you</h2>
+          <p>Each supplement in the catalogue has its own page, written to answer the questions people actually have before they buy:</p>
         <ul>
           <li><strong>Benefits and contraindications</strong>: what the supplement is used for, and who should avoid it or ask a doctor first.</li>
           <li><strong>Evidence and safety</strong>: an evidence grade or score and a safety score, explained below, plus the FDA status of the ingredient.</li>
@@ -88,18 +110,25 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
           <li><strong>Relevant studies</strong>: links to the peer-reviewed research behind the claims, so you can read the evidence yourself.</li>
           <li><strong>Product picks</strong>: a short list of products on iHerb, each with its dose check and any independent testing we could confirm.</li>
         </ul>
-        <h2 id="how-we-rate">How we rate</h2>
-        <h3>Evidence: a grade from A to D, or a score from 1 to 5</h3>
-        <p>Where we have gone through the published trials, a supplement carries an evidence grade for its best-supported use: A strong, B good, C mixed, D weak. The grade says how good the research is, not how you personally will respond. The details are under <a href="#how-we-check">How we check</a>.</p>
+        </section>
+        <section class="ww-how-sec ww-prose" id="how-we-rate">
+          <h2>How we rate</h2>
+          <h3>Evidence: a grade from A to D, or a score from 1 to 5</h3>
+          <div class="ww-how-scale" role="img" aria-label="A strong, B good, C mixed, D weak"><div><b>A</b><span>Strong</span></div><div><b>B</b><span>Good</span></div><div><b>C</b><span>Mixed</span></div><div><b>D</b><span>Weak</span></div></div>
+          <p>Where we have gone through the published trials, a supplement carries an evidence grade for its best-supported use: A strong, B good, C mixed, D weak. The grade says how good the research is, not how you personally will respond. The details are under <a href="#how-we-check">How we check</a>.</p>
         <p>Supplements we have not graded yet still show an older "effectivity" score from 1 to 5. It is an editorial estimate of the same thing, made before the trial review, and each one is replaced by a grade as we get to it.</p>
-        <h3>Safety (1 to 5)</h3>
-        <p>How much caution the supplement calls for at typical doses in healthy adults. A 5 ("well tolerated") has a long record of use and few interactions in healthy adults; the page still lists who should avoid it. Lower scores mean there are meaningful interactions, side effects at common doses, or groups of people who should not take it. Supplements marked "prescription" are not sold over the counter in most countries.</p>
-        <h3>FDA status</h3>
-        <p>Whether the ingredient is approved or generally recognised as safe by the US Food and Drug Administration, is on the market without a specific approval, or has been the subject of an FDA warning. Dietary supplements are regulated differently from medicines, so "not approved" does not automatically mean unsafe, and "approved" does not mean effective. We show it because it is a useful, verifiable signal.</p>
-        <h2 id="how-we-check">How we check</h2>
-        <p>Four checks sit behind a supplement page and its products. Each block shows the mark as you see it on the site, where it comes from, and what it does not prove. Where we have not checked something, the page shows nothing rather than a guess.</p>
-      </section>
-      <section class="ww-checks">
+          <h3>Safety (1 to 5)</h3>
+          <div class="ww-how-meter" role="img" aria-label="Safety from 1, most caution, to 5, well tolerated"><i></i><i></i><i></i><i></i><i></i><span>Most caution</span><span>Well tolerated</span></div>
+          <p>How much caution the supplement calls for at typical doses in healthy adults. A 5 ("well tolerated") has a long record of use and few interactions in healthy adults; the page still lists who should avoid it. Lower scores mean there are meaningful interactions, side effects at common doses, or groups of people who should not take it. Supplements marked "prescription" are not sold over the counter in most countries.</p>
+          <h3>FDA status</h3>
+          <p>Whether the ingredient is approved or generally recognised as safe by the US Food and Drug Administration, is on the market without a specific approval, or has been the subject of an FDA warning. Dietary supplements are regulated differently from medicines, so "not approved" does not automatically mean unsafe, and "approved" does not mean effective. We show it because it is a useful, verifiable signal.</p>
+        </section>
+        <section class="ww-how-sec" id="how-we-check">
+          <div class="ww-prose">
+            <h2>How we check</h2>
+            <p>Four checks sit behind a supplement page and its products. Each block shows the mark as you see it on the site, where it comes from, and what it does not prove. Where we have not checked something, the page shows nothing rather than a guess.</p>
+          </div>
+          <div class="ww-how-checks">
         <article class="ww-check">
           <div class="ww-check-sample"><b class="ww-grade">A</b>Strong evidence</div>
           <h3>Evidence grade</h3>
@@ -119,8 +148,8 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
           <p>${counts.testedPicks} products across ${counts.testedSups} supplements carry this line. A product gets it only when that exact product name is on the certifier's own list: NSF Contents Certified, NSF Certified for Sport, Informed Choice or IFOS. The line links to the list so you can check it.</p>
           <p class="ww-check-limit"><strong>What it does not prove</strong>Sizes, flavours and production lots can differ from the listed one. It is never given to a whole brand, and no line only means we found no listing.</p>
           <a href="/supplements?filter=tested">See the ${counts.testedSups} supplements with one</a>
-          <p id="paid-tests" style="margin:14px 0 0;font-size:14px;line-height:20px;color:#4a5a63"><strong>*Passed independent US lab testing.</strong> Some products carry this plainer line with the year of the test. They passed a test by an independent US testing service that buys products in shops and measures what is in them. We may not publish its reports, so the line names no source and has no link: you cannot check it yourself, and it is weaker than a named certifier. A test covers the batch that was bought; we do not show a test older than five years. We also use these reports to drop products that failed.</p>
-          <p id="batch-tests" style="margin:10px 0 0;font-size:14px;line-height:20px;color:#4a5a63"><strong>Batch test report published by iHerb.</strong> For some products iHerb publishes a laboratory report on one production lot: the lab, the lot number, the test date and the amounts found. The line opens that report. It is published by the shop that sells the product, and not every lot is tested, so read it as evidence about that lot.</p>
+          <p id="paid-tests" class="ww-check-note"><strong>*Passed independent US lab testing.</strong> Some products carry this plainer line with the year of the test. They passed a test by an independent US testing service that buys products in shops and measures what is in them. We may not publish its reports, so the line names no source and has no link: you cannot check it yourself, and it is weaker than a named certifier. A test covers the batch that was bought; we do not show a test older than five years. We also use these reports to drop products that failed.</p>
+          <p id="batch-tests" class="ww-check-note"><strong>Batch test report published by iHerb.</strong> For some products iHerb publishes a laboratory report on one production lot: the lab, the lot number, the test date and the amounts found. The line opens that report. It is published by the shop that sells the product, and not every lot is tested, so read it as evidence about that lot.</p>
         </article>
         <article class="ww-check">
           <div class="ww-check-sample">Contains Pycnogenol · studied in human trials</div>
@@ -129,16 +158,19 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
           <p class="ww-check-limit"><strong>What it does not prove</strong>The trials tested the ingredient, usually paid for by its maker, not the finished product. The dose can differ from the trial dose.</p>
           <a href="/supplements?filter=studied">See the ${counts.studiedSups} supplements with one</a>
         </article>
-      </section>
-      <section class="ww-prose is-how">
-        <h3>What we do not do</h3>
-        <ul>
+          </div>
+          <div class="ww-prose">
+            <h3>What we do not do</h3>
+            <ul>
           <li>We do not test products in a laboratory ourselves.</li>
           <li>We do not show a reviewer who did not review the page.</li>
           <li>We do not accept payment from brands to be picked. The site earns a commission from iHerb when you buy through a link, whichever product you choose.</li>
         </ul>
-        <h2 id="kept-current">How picks are chosen and kept current</h2>
-        <p>Product picks are not fixed. Every week an automatic check goes through all of them:</p>
+          </div>
+        </section>
+        <section class="ww-how-sec ww-prose" id="kept-current">
+          <h2>How picks are chosen and kept current</h2>
+          <p>Product picks are not fixed. Every week an automatic check goes through all of them:</p>
         <ul>
           <li><strong>Testing lists are read again.</strong> The certifiers' published lists are downloaded, and a product keeps its "independently tested" line only while it is still on a list.</li>
           <li><strong>The shop is checked.</strong> A product that is discontinued or no longer sold on iHerb is taken off the page.</li>
@@ -148,28 +180,29 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
         </ul>
         <p><strong>Top pick.</strong> One product on a page may carry this badge. It is our choice, made by fixed rules: the product must be independently tested and its dose must fit the page's range. A page with no tested product has no top pick.</p>
         <p>No brand pays to be picked, and a brand that certifies many products can still hold only part of a page.</p>
-        <h2>What we are not</h2>
-        <p>Wellness Whizz is an information tool. It is not a medical service, the advisor is not a doctor, and nothing on this site is a diagnosis or a treatment plan. Artificial intelligence can be confidently wrong. Please read the contraindications on each page, check your medication with a pharmacist, and talk to a doctor before starting anything new if you are pregnant or breastfeeding, under 18, or managing a health condition. Who we are and how every page is drafted, reviewed and corrected is on the <a href="/about">About page</a>.</p>
-        <h2 id="who">Who is behind Wellness Whizz</h2>
-        <p>A small independent team, not a supplement company. Every guide and article is drafted from cited studies, read by a member of the editorial team before it goes live, and carries the date of its last review. The <a href="/about">About page</a> explains the editorial process, the medical disclaimer, how the site is funded and how to report a mistake.</p>
-        <h2>Your privacy</h2>
-        <p>There is no account. Your quiz answers are stored so your results page keeps working, without your name or email. We keep a hashed version of your IP address for a short time to prevent abuse, and we count page views and outbound clicks without personal identifiers. The full picture is in our <a href="/terms">Terms and Conditions</a>.</p>
-      </section>${quizCta()}${faqHtml(HOW_FAQ)}`;
+        </section>
+        <section class="ww-how-sec ww-prose" id="who">
+          <h2>Who is behind Wellness Whizz</h2>
+          <p>A small independent team, not a supplement company. Every guide and article is drafted from cited studies, read by a member of the editorial team before it goes live, and carries the date of its last review. The <a href="/about">About page</a> explains the editorial process, the medical disclaimer, how the site is funded and how to report a mistake.</p>
+          <h3>What we are not</h3>
+          <p>Wellness Whizz is an information tool. It is not a medical service, the advisor is not a doctor, and nothing on this site is a diagnosis or a treatment plan. Artificial intelligence can be confidently wrong. Please read the contraindications on each page, check your medication with a pharmacist, and talk to a doctor before starting anything new if you are pregnant or breastfeeding, under 18, or managing a health condition. Who we are and how every page is drafted, reviewed and corrected is on the <a href="/about">About page</a>.</p>
+          <h3>Your privacy</h3>
+          <p>There is no account. Your quiz answers are stored so your results page keeps working, without your name or email. We keep a hashed version of your IP address for a short time to prevent abuse, and we count page views and outbound clicks without personal identifiers. The full picture is in our <a href="/terms">Terms and Conditions</a>.</p>
+        </section>
+        <div class="ww-how-sec" id="questions">${faqHtml(HOW_FAQ)}${quizCta()}
+        </div>
+      </div>
+    </div>
+  </main>${footer()}`;
 
-  const body2 = pageShell({
-    eyebrow: 'How it works',
-    title: 'Personal supplement advice, built on evidence',
-    lead: 'Wellness Whizz turns a two-minute questionnaire into a short list of supplements that fit your goals, diet and safety profile, with links to buy each one on iHerb.',
-    body,
-    variant: 'plain',
-  });
   return page({
     title: 'How it works',
     description: 'How Wellness Whizz turns a two-minute quiz into a short, explained list of supplements with safety ratings, evidence scores and iHerb product picks.',
     pageId: WF_PAGE_IDS.supplement,
     bodyClass: 'body-2',
     head: `\n  <link rel="canonical" href="${escapeHtml(origin)}/how-it-works">`,
-    body: body2,
+    body,
+    scripts: '  <script src="/js/how.js" defer></script>',
   });
 }
 
