@@ -1524,3 +1524,47 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
   ._3-columns > .column-5 > * { min-width: 0; width: 100%; max-width: none; box-sizing: border-box; margin: 0; }
   ._3-columns > .column-2 { align-self: stretch; }
 }
+
+/* ---------- Supplement page on phones: the photo shows, the two cards swipe, the insight blocks read wider ---------- */
+@media (max-width: 767px) {
+  .info { padding-left: 12px; padding-right: 12px; }
+  /* band: the photo fills the top, the cards sit under it in a row that swipes sideways */
+  .info .frame-203 { height: auto; background-size: auto, 100% auto; background-position: 0 0, 50% 0; background-repeat: no-repeat; background-color: #1d272d; }
+  .info .frame-203.ww-insight, .info .frame-203 { background-image: linear-gradient(#1d272d00 0, #1d272d00 34vw, #1d272d 70vw), var(--ww-insight-m, url('../images/Wellnnessback.jpg')); }
+  .info .frame-204 { padding: 52vw 0 16px; height: auto; }
+  .info .frame-204 > .div-block { flex-direction: row; align-items: stretch; gap: 10px; height: auto; padding: 0 14px 6px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 14px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .info .frame-204 > .div-block::-webkit-scrollbar { display: none; }
+  .info .frame-204 > .div-block > .frame-206 { flex: 0 0 84%; scroll-snap-align: start; height: auto; min-height: 0; box-sizing: border-box; padding: 16px 18px 18px 16px; }
+  .info .frame-206 .frame-207, .info .frame-206 .frame-208 { margin-top: 26px; }
+  .info .frame-206 .rich-text-block-2 li { font-size: 15px; line-height: 22px; margin-bottom: 8px; }
+  .info .frame-203::after { inset: 8px; }
+  /* insight blocks: less padding around, smaller type inside */
+  .frame-202.ww-stack { padding-left: 0; padding-right: 0; }
+  .ww-stack-head { font-size: 30px; line-height: 34px; padding-left: 4px; }
+  .frame-202.ww-stack > .ww-stack-card { padding: 0 16px; }
+  .frame-202.ww-stack > .ww-stack-card > .heading-green { font-size: 24px; line-height: 28px; padding: 18px 0 10px; }
+  .ww-stack-card .regular-on-green { font-size: 16px; line-height: 25px; }
+  .ww-stack-scroll { padding-bottom: 20px; }
+  .ww-fg-intro h3 { font-size: 20px; line-height: 25px; margin-bottom: 8px; }
+  .ww-fg-intro p { font-size: 16px; line-height: 25px; }
+  .ww-fg-grid { gap: 10px; margin-top: 16px; }
+  .ww-fg-card { padding: 14px 14px 16px; border-radius: 16px; }
+  .ww-fg-card h4 { font-size: 17px; line-height: 22px; margin-bottom: 6px; }
+  .ww-fg-card p, .ww-fg-card ul, .ww-fg-card ol { font-size: 15px; line-height: 23px; margin-bottom: 8px; }
+  .ww-fg-card.is-take li { font-size: 15px; line-height: 22px; padding-left: 26px; }
+  .ww-fg-tag { margin-bottom: 8px; }
+  .ww-why-body { gap: 16px; }
+  .ww-ishare { gap: 6px; flex-wrap: nowrap; }
+  .ww-ishare-label { display: none; }
+  .ww-ishare-btn { min-height: 40px; padding: 4px 10px 4px 4px; gap: 7px; font-size: 13px; flex: 0 1 auto; min-width: 0; }
+  .ww-ishare-btn span { width: 30px; height: 30px; }
+  .ww-ishare-btn b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ww-stack-card .ww-rl-body { font-size: 15px; line-height: 23px; }
+  .ww-rl-seg label { min-height: 40px; font-size: 14px; }
+}
+@media (max-width: 767px) {
+  .info .frame-203, .info .frame-204 { min-height: 0; height: auto; }
+  .info .frame-203 { overflow: hidden; }
+}
+@media (max-width: 767px) { ._3-columns .frame-226 { min-width: 0; width: 100%; box-sizing: border-box; } ._3-columns .frame-226 img { max-width: 100%; height: auto; } }
+@media (max-width: 767px) { .info .frame-204 > .div-block > .frame-206 { background-color: #26323a; border-radius: 22px; } }
