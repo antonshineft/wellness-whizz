@@ -241,18 +241,19 @@ export function headerTags(sup: Supplement): string {
   );
 }
 
-/** Uniform text tags for result cards: FDA (dark), safety, category, form, effectivity. */
+/** Tags for result cards, in the same one-colour style as the supplement page's hero: category, form, safety, FDA, then the evidence grade (or the older score). */
 export function cardTags(sup: Supplement, formLabel: string): string {
   const fda = FDA_TAGS[sup.fda_status];
   const safety = SAFETY_TAGS[sup.safety_status];
+  const warn = sup.safety_status === 'not_safe' || sup.safety_status === 'prescription' ? ' ww-tag-warn' : '';
   const n = Math.min(5, Math.max(1, Math.round(sup.effectivity)));
   const bars = [1, 2, 3, 4, 5].map((i) => `<i class="${i <= n ? 'on' : ''}" style="height:${4 + i * 2}px"></i>`).join('');
   return (
-    `<span class="ww-tag ww-tag-dark"><b>${fda.glyph}</b>${escapeHtml(fda.label)}</span>` +
-    `<span class="ww-tag"><b>${safety.glyph}</b>${escapeHtml(safety.label)}</span>` +
     `<span class="ww-tag">${escapeHtml(sup.category)}</span>` +
     (formLabel ? `<span class="ww-tag">${escapeHtml(formLabel)}</span>` : '') +
-    (EVIDENCE[sup.slug] ? evidenceTags(sup.slug, '') : `<span class="ww-tag ww-tag-dark" title="Effectivity ${n} of 5">Effectivity<span class="ww-bars">${bars}</span>${n}/5</span>`)
+    `<span class="ww-tag${warn}">${tagIcon(safety.glyph)}${escapeHtml(safety.label)}</span>` +
+    `<span class="ww-tag">${tagIcon(fda.glyph)}${escapeHtml(fda.label)}</span>` +
+    (EVIDENCE[sup.slug] ? evidenceTags(sup.slug, '') : `<span class="ww-tag" title="Effectivity ${n} of 5">Effectivity<span class="ww-bars">${bars}</span>${n}/5</span>`)
   );
 }
 

@@ -1484,3 +1484,14 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
   ._3-columns > .column-2 { align-self: stretch; }
   ._3-columns > .column-5 .frame-226, ._3-columns > .column-5 .frame-227 { min-width: 0; width: 100%; box-sizing: border-box; }
 }
+
+/* Result cards: the same one-colour tags as the supplement page hero */
+.ww-card-meta .ww-tag, .ww-card-meta .ww-tag.ww-tag-good, .ww-card-meta .ww-tag.ww-tag-dark { background: #ffffffb3; color: #1d272d; box-shadow: inset 0 0 0 1px #1d272d1a; gap: 8px; padding: 0 14px 0 8px; line-height: 1; height: 32px; font-size: 13px; margin: 0; white-space: nowrap; }
+.ww-card-meta .ww-tag:not(:has(b)) { padding-left: 14px; }
+.ww-card-meta .ww-tag b, .ww-card-meta .ww-tag.ww-tag-good b, .ww-card-meta .ww-tag.ww-tag-dark b { flex: none; width: 18px; height: 18px; border-radius: 50%; background: #1d272d; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; letter-spacing: 0; text-align: center; display: inline-flex; align-items: center; justify-content: center; }
+.ww-card-meta .ww-tag b svg { display: block; width: 16px; height: 16px; }
+.ww-card-meta .ww-tag.ww-tag-warn { box-shadow: inset 0 0 0 1.5px #b3261e; background: #ffffffb3; }
+.ww-card-meta .ww-tag.ww-tag-warn b { background: #b3261e; }
+.ww-card-meta .ww-bars i { background: #1d272d33; }
+.ww-card-meta .ww-bars i.on { background: #1d272d; }
+@media (max-width: 767px) { .ww-card-meta .ww-tag { height: 28px; font-size: 12px; padding-right: 12px; } }
