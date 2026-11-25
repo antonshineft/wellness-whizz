@@ -1102,3 +1102,17 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 @media (max-width: 767px) {
   .ww-scan-blur i:nth-child(1) { --r: 62vw; } .ww-scan-blur i:nth-child(2) { --r: 52vw; } .ww-scan-blur i:nth-child(3) { --r: 42vw; } .ww-scan-blur i:nth-child(4) { --r: 32vw; }
 }
+
+/* The band above Health Insights: a supplement's own picture where it has one, and a fine grain over every band. */
+.info .frame-203 { position: relative; }
+.info .frame-203.ww-insight { background-image: linear-gradient(#1d272d00, #1d272d 92%), var(--ww-insight); }
+.info .frame-203::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: url('../images/grain.png'); mix-blend-mode: overlay; opacity: .55; pointer-events: none; }
+@media (max-width: 767px) { .info .frame-203.ww-insight { background-image: linear-gradient(#1d272d00, #1d272d 92%), var(--ww-insight-m); } }
+
+/* Hero tags: one colour for all of them, and circles of one size whose marks sit dead centre. */
+.frame-52 .ww-tag, .frame-52 .ww-tag.ww-tag-good, .frame-52 .ww-tag.ww-tag-dark { background: #ffffffb3; color: #1d272d; box-shadow: inset 0 0 0 1px #1d272d1a; gap: 8px; padding: 0 14px 0 8px; line-height: 1; }
+.frame-52 .ww-tag:not(:has(b)) { padding-left: 14px; }
+.frame-52 .ww-tag b, .frame-52 .ww-tag.ww-tag-good b, .frame-52 .ww-tag.ww-tag-dark b { flex: none; width: 18px; height: 18px; border-radius: 50%; background: #1d272d; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; letter-spacing: 0; text-align: center; display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+.frame-52 .ww-tag b svg { display: block; width: 16px; height: 16px; }
+.frame-52 .ww-tag.ww-tag-warn { box-shadow: inset 0 0 0 1.5px #b3261e; }
+.frame-52 .ww-tag.ww-tag-warn b { background: #b3261e; }

@@ -7,6 +7,7 @@ import { EVIDENCE } from '../evidence';
 import { SHOP } from '../checks';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
+import { INSIGHT_IMAGES } from '../insights';
 import { noteLabel, notePath, type ResearchNote } from '../research';
 import { reviewedLine } from './pages';
 import {
@@ -218,8 +219,12 @@ function picksGrid(env: LinkEnv, sup: Supplement, dose: DoseCheck | null, brandP
 
 function synergySection(sup: Supplement): string {
   if (!sup.enhancing_html && !sup.interactions_html) return '';
+  // The band's picture: this supplement's own (src/insights.ts) where one has been made, else the shared one.
+  const own = INSIGHT_IMAGES.has(sup.slug)
+    ? ` ww-insight" style="--ww-insight:url('/images/insights/${escapeHtml(sup.slug)}.webp');--ww-insight-m:url('/images/insights/${escapeHtml(sup.slug)}-m.webp')`
+    : '';
   return `
-    <div class="frame-203">
+    <div class="frame-203${own}">
       <div class="frame-204">
         <div data-w-id="a6669be3-1761-c7e4-ff8a-36b268ed4a9a" class="div-block">
           <div class="frame-205"></div>

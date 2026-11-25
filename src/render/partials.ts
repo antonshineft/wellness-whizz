@@ -212,14 +212,29 @@ export function batchTag(report: string | undefined): string {
 }
 
 /** Header tags on supplement pages: category, safety and FDA as uniform text tags (same size as result-card tags). */
+/** The marks inside a hero tag's circle, drawn to one size and one stroke so they sit level with each other. */
+const TAG_ICONS: Record<string, string> = {
+  '✓': '<path d="M4.4 8.3l2.3 2.3 4.9-5.1"/>',
+  '−': '<path d="M4.6 8h6.8"/>',
+  '!': '<path d="M8 4.2v4.6M8 11.4v.2"/>',
+  '?': '<path d="M5.9 6.2a2.1 2.1 0 1 1 3.3 1.7c-.8.5-1.2.9-1.2 1.7M8 11.6v.1"/>',
+};
+function tagIcon(glyph: string): string {
+  const path = TAG_ICONS[glyph];
+  return path
+    ? `<b><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg></b>`
+    : `<b>${escapeHtml(glyph)}</b>`;
+}
+
+/** The hero's tags: all one colour; only a warning about safety is set apart. */
 export function headerTags(sup: Supplement): string {
   const fda = FDA_TAGS[sup.fda_status];
   const safety = SAFETY_TAGS[sup.safety_status];
-  const safetyCls = sup.safety_status === 'safe' ? ' ww-tag-good' : sup.safety_status === 'ok' ? '' : ' ww-tag-warn';
+  const warn = sup.safety_status === 'not_safe' || sup.safety_status === 'prescription' ? ' ww-tag-warn' : '';
   return (
     `<span class="ww-tag">${escapeHtml(sup.category)}</span>` +
-    `<span class="ww-tag${safetyCls}"><b>${safety.glyph}</b>${escapeHtml(safety.label)}</span>` +
-    `<span class="ww-tag ww-tag-dark"><b>${fda.glyph}</b>${escapeHtml(fda.label)}</span>` +
+    `<span class="ww-tag${warn}">${tagIcon(safety.glyph)}${escapeHtml(safety.label)}</span>` +
+    `<span class="ww-tag">${tagIcon(fda.glyph)}${escapeHtml(fda.label)}</span>` +
     evidenceTags(sup.slug)
   );
 }
