@@ -87,6 +87,7 @@ export function renderHowItWorks(catalogueSize: number, origin: string, counts: 
           <a href="#kept-current"><b>5</b><span>How picks stay current</span></a>
           <a href="#who"><b>6</b><span>Who we are</span></a>
           <a href="#questions"><b>7</b><span>Questions</span></a>
+          <a href="/wellness-quiz" class="ww-how-rail-quiz">Start Quiz Now</a>
         </div>
       </nav>
       <div class="ww-how-col">

@@ -1276,3 +1276,19 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-top-side .ww-top-how { margin-bottom: 0; }
 .ww-top-side .ww-top-list { margin-top: 26px; }
 @media (max-width: 767px) { .ww-top-side .heading-3 { font-size: 26px; line-height: 30px; } .ww-top-side .ww-top-list { margin-top: 20px; } }
+/* How it works: review fixes */
+@media (min-width: 992px) { .ww-how-grid { grid-template-columns: 248px minmax(0, 640px); } }
+.ww-how-hero .ww-page-title { max-width: 20ch; }
+.ww-how a:focus-visible, .ww-how summary:focus-visible, .ww-how-rail a:focus-visible, .ww-how-go:focus-visible { outline: 3px solid #1d272d; outline-offset: 2px; border-radius: 6px; }
+.ww-how-rail a:focus-visible { border-radius: 14px; }
+.ww-how-checks .ww-check > a { padding: 12px 0; }
+.ww-how-col .ww-prose h3 { font-size: 22px; line-height: 28px; font-weight: 700; margin: 36px 0 10px; }
+.ww-how-col p, .ww-how-col li { text-wrap: pretty; }
+.ww-how-steps h3 { text-wrap: balance; }
+.ww-how-rail .ww-how-rail-quiz { margin-top: 14px; justify-content: center; background: #87d581; font-weight: 700; }
+.ww-how-rail .ww-how-rail-quiz:hover { background: #a3ea9d; }
+@media (max-width: 991px) {
+  .ww-how-col { max-width: 640px; }
+  .ww-how-rail .ww-how-rail-quiz { margin-top: 0; background: #87d581; padding: 8px 16px; }
+}
+@media (max-width: 767px) { .ww-how-col .ww-prose h3 { font-size: 20px; line-height: 26px; } }

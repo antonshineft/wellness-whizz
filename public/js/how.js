@@ -3,7 +3,7 @@
   var rail = document.getElementById('ww-how-rail');
   if (!rail || !('IntersectionObserver' in window)) return;
   var strip = rail.querySelector('.ww-how-rail-in');
-  var links = [].slice.call(rail.querySelectorAll('a'));
+  var links = [].slice.call(rail.querySelectorAll('a[href^="#"]'));
   var secs = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
   var current = -1;
   function mark(i) {
@@ -25,6 +25,17 @@
     }
     mark(best);
   }
+  // The site's own smooth-scroll ignores the sticky bar, so in-page links are handled here.
+  document.querySelector('.ww-how').addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href^="#"]');
+    if (!a) return;
+    var t = document.getElementById(a.getAttribute('href').slice(1));
+    if (!t) return;
+    e.preventDefault(); e.stopPropagation();
+    var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    t.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+    try { history.pushState(null, '', a.getAttribute('href')); } catch (err) {}
+  }, true);
   var tick = false;
   window.addEventListener('scroll', function () {
     if (tick) return; tick = true;
