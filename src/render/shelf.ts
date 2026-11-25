@@ -43,18 +43,18 @@ export function renderShelfPage(origin: string): string {
           <button type="submit" class="ww-scan-go" id="ww-shelf-submit">Check my shelf</button>
         </div>
         <p class="ww-shelf-status" id="ww-shelf-status" aria-live="polite"></p>
-        <p class="ww-scan-note">This is information, not medical advice. Keep taking prescribed medicines as directed and ask a pharmacist before combining them with supplements.</p>
       </div>
+      <p class="ww-scan-note">This is information, not medical advice. Keep taking prescribed medicines as directed and ask a pharmacist before combining them with supplements.</p>
     </form>
     <div class="ww-page">
-      <section class="ww-shelf-how">
+      <section class="ww-scan-back">
         <h2>What you get back</h2>
-        <ul>
-          <li><strong>Every product recognised</strong>, with its dose per serving and a link to its profile.</li>
-          <li><strong>Overlaps</strong>: the same ingredient coming from two bottles, and whether that matters.</li>
-          <li><strong>What to take apart</strong>: pairs that compete for absorption, and the best time of day for each.</li>
-          <li><strong>What is missing</strong> for your goal, with the evidence in one sentence and where to buy it.</li>
-        </ul>
+        <dl>
+          <div><dt>Every product recognised</dt><dd>With its dose per serving and a link to its profile.</dd></div>
+          <div><dt>Overlaps</dt><dd>The same ingredient coming from two bottles, and whether that matters.</dd></div>
+          <div><dt>What to take apart</dt><dd>Pairs that compete for absorption, and the best time of day for each.</dd></div>
+          <div><dt>What is missing</dt><dd>For your goal, with the evidence in one sentence and where to buy it.</dd></div>
+        </dl>
       </section>${quizCta('Want a list built from scratch?', 'The two-minute quiz weighs your goals, diet and what you already take, then explains its picks.')}
     </div>
   </main>${footer()}`;

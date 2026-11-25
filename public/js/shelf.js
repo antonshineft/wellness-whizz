@@ -45,7 +45,7 @@
   function draw() {
     if (!W) return;
     var cx = W / 2, cy = H * CY, b = U * 0.04, R = Math.sqrt(W * W + H * H), g, i;
-    g = x.createRadialGradient(cx, cy, 0, cx, cy, R * 0.62); g.addColorStop(0, '#d9f76a'); g.addColorStop(0.5, '#b3ec6a'); g.addColorStop(1, '#8fe08f'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    g = x.createRadialGradient(cx, cy, 0, cx, cy, R * 0.62); g.addColorStop(0, '#bcffb7'); g.addColorStop(0.45, '#a3ea9d'); g.addColorStop(1, '#87d581'); x.fillStyle = g; x.fillRect(0, 0, W, H);
     g = x.createRadialGradient(cx, cy, U * 0.2, cx, cy, U * 0.7); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.42, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, W, H);
     var D0 = U * 0.2, N = Math.ceil(Math.log(R * 1.5 / D0) / Math.log(G));
     [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(function (q) {
@@ -134,7 +134,7 @@
     Promise.all(files.slice(0, room).map(resize)).then(function (out) {
       out.forEach(function (o) { fly(o.preview); });
       images = images.concat(out);
-      setTimeout(render, reduce ? 0 : 600);
+      setTimeout(function () { render(); if (next.scrollIntoView && next.getBoundingClientRect().bottom > window.innerHeight) submit.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); }, reduce ? 0 : 600);
     }).catch(function (err) { say(err && err.message ? err.message : T.failed); });
   }
 
