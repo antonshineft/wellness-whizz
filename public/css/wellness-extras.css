@@ -1477,3 +1477,10 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 /* Insight frames: text fades (40px at most) where it slides behind the frame edge */
 .ww-stack-clip { -webkit-mask-image: linear-gradient(#0000 0, #000 var(--fade-t, 0px), #000 calc(100% - var(--fade-b, 0px)), #0000 100%); mask-image: linear-gradient(#0000 0, #000 var(--fade-t, 0px), #000 calc(100% - var(--fade-b, 0px)), #0000 100%); }
 @media (min-width: 992px) { .ww-top { width: calc(100vw - 136px); margin-left: auto; margin-right: auto; box-sizing: border-box; } }
+/* The benefits row above the picks: same outer edges as the picks section (wide desktops; below 1280px the cards need the room) */
+@media (min-width: 1280px) {
+  ._3-columns { display: grid; grid-template-columns: clamp(230px, calc(48vw - 380px), 480px) minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; padding-left: 58px; padding-right: 58px; box-sizing: border-box; }
+  ._3-columns > * { min-width: 0; width: auto; max-width: none; }
+  ._3-columns > .column-2 { align-self: stretch; }
+  ._3-columns > .column-5 .frame-226, ._3-columns > .column-5 .frame-227 { min-width: 0; width: 100%; box-sizing: border-box; }
+}
