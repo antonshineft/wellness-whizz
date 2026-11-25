@@ -1636,3 +1636,9 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
   .ww-strip::-webkit-scrollbar { display: none; }
   .ww-strip > .ww-pick { flex: 0 0 calc(50% - 5px); box-sizing: border-box; min-width: 0; scroll-snap-align: start; }
 }
+/* Phone: Common Questions title matches Health Insights, and the question cards use the full width of the block */
+@media (max-width: 767px) {
+  .frame-202.ww-qa { padding-left: 0; padding-right: 0; }
+  .ww-qa .heading-2 { font-size: 30px; line-height: 34px; padding-left: 4px; margin-bottom: 0; align-self: stretch; text-align: left; }
+  .ww-qa .ww-qa-list { margin-top: 18px; }
+}
