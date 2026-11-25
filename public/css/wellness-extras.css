@@ -1270,3 +1270,9 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 @media (prefers-reduced-motion: reduce) { .ww-how-rail a, .ww-how-rail a b { transition: none; } }
 .ww-how-checks .ww-check p a { color: #1d272d; text-decoration: underline; text-decoration-color: #87d581; text-decoration-thickness: 2px; text-underline-offset: 3px; }
 .ww-how-checks .ww-check > a { padding: 11px 0; }
+
+/* Picks heading at the size of the "Benefits" titles, with room before the quick links */
+.ww-top-side .heading-3 { font-size: 38px; line-height: 42px; font-weight: 400; letter-spacing: -.01em; margin: 0 0 14px; text-wrap: balance; }
+.ww-top-side .ww-top-how { margin-bottom: 0; }
+.ww-top-side .ww-top-list { margin-top: 26px; }
+@media (max-width: 767px) { .ww-top-side .heading-3 { font-size: 26px; line-height: 30px; } .ww-top-side .ww-top-list { margin-top: 20px; } }
