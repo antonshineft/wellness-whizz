@@ -314,13 +314,26 @@ function researchSection(sup: Supplement, notes: readonly ResearchNote[]): strin
   return `
     <div data-w-id="d2583c6d-a801-58f2-5a58-efcac18e2fe2" style="opacity:0" class="frame-209 recent ww-rl" id="research">
       <h3 class="heading-green recent">Research</h3>
-      <div class="rich-text-block-4 links ww-rl-body">${latest ? `
+      <div class="rich-text-block-4 links ww-rl-body">${latest && classicBlock ? `
+        <div class="ww-rl-tabs">
+          <input type="radio" name="ww-rl" id="ww-rl-new" class="ww-rl-radio" checked>
+          <input type="radio" name="ww-rl" id="ww-rl-key" class="ww-rl-radio">
+          <div class="ww-rl-seg"><label for="ww-rl-new">New studies</label><label for="ww-rl-key">Key studies</label></div>
+          <div class="ww-rl-panel is-new">
+            <ul class="ww-rl-list">${latest}
+            </ul>
+            <p class="ww-rl-more"><a href="/research">All research notes</a></p>
+          </div>
+          <div class="ww-rl-panel is-key">
+            ${classicBlock}
+          </div>
+        </div>` : `${latest ? `
         <h4 class="ww-rl-group">New studies</h4>
         <ul class="ww-rl-list">${latest}
         </ul>
         <p class="ww-rl-more"><a href="/research">All research notes</a></p>` : ''}${classicBlock ? `
         <h4 class="ww-rl-group">Key studies</h4>
-        ${classicBlock}` : ''}
+        ${classicBlock}` : ''}`}
       </div>
     </div>`;
 }

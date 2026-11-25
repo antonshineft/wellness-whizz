@@ -1366,3 +1366,26 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 /* "From the blog": green glow from the top centre, fading out in every direction */
 .ww-teaser { background-image: radial-gradient(ellipse 75% 85% at 50% 0%, #bcffb7 0%, #bcffb799 34%, #bcffb700 100%); }
 @media (max-width: 767px) { .ww-teaser { background-image: radial-gradient(ellipse 130% 70% at 50% 0%, #bcffb7 0%, #bcffb799 34%, #bcffb700 100%); } }
+
+/* Supplement page, Health Insights: each block in a rounded frame whose line fades out downward */
+.frame-202 > .frame-209 { position: relative; box-sizing: border-box; padding: 34px 36px 38px; }
+.frame-202 > .frame-209::before, .frame-209.recent.ww-rl::before { content: ""; position: absolute; inset: 0; border: 1px solid #ffffff47; border-radius: 28px; pointer-events: none; -webkit-mask-image: linear-gradient(#000 0, #000 60px, #0000 min(100%, 520px)); mask-image: linear-gradient(#000 0, #000 60px, #0000 min(100%, 520px)); }
+.frame-209.recent.ww-rl { position: relative; box-sizing: border-box; padding: 34px 36px 38px; border-radius: 28px; }
+.frame-202 > .div-block-15 { visibility: hidden; height: 20px; margin: 0; }
+@media (max-width: 767px) {
+  .frame-202 > .frame-209, .frame-209.recent.ww-rl { padding: 24px 20px 28px; }
+  .frame-202 > .frame-209::before, .frame-209.recent.ww-rl::before { border-radius: 22px; }
+  .frame-202 > .div-block-15 { height: 12px; }
+}
+/* Research: New studies / Key studies as a two-part switch (no script; two radio buttons) */
+.ww-rl-radio { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.ww-rl-seg { display: inline-grid; grid-template-columns: 1fr 1fr; gap: 0; padding: 5px; margin: 0 0 24px; border-radius: 999px; background: #ffffff14; box-shadow: inset 0 0 0 1px #ffffff29; }
+.ww-rl-seg label { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 26px; margin: 0; border-radius: 999px; font-family: Aeonik, sans-serif; font-size: 16px; line-height: 20px; font-weight: 500; color: #ffffffd9; cursor: pointer; white-space: nowrap; transition: background-color .2s, color .2s; }
+.ww-rl-seg label:hover { color: #fff; }
+#ww-rl-new:checked ~ .ww-rl-seg label[for="ww-rl-new"], #ww-rl-key:checked ~ .ww-rl-seg label[for="ww-rl-key"] { background: linear-gradient(90deg, #87d581, #bcffb7); color: #1d272d; font-weight: 700; }
+#ww-rl-new:focus-visible ~ .ww-rl-seg label[for="ww-rl-new"], #ww-rl-key:focus-visible ~ .ww-rl-seg label[for="ww-rl-key"] { outline: 3px solid #fff; outline-offset: 2px; }
+.ww-rl-panel { display: none; }
+#ww-rl-new:checked ~ .ww-rl-panel.is-new, #ww-rl-key:checked ~ .ww-rl-panel.is-key { display: block; }
+@media (max-width: 479px) { .ww-rl-seg { display: grid; } .ww-rl-seg label { padding: 0 12px; font-size: 15px; } }
+@media (prefers-reduced-motion: reduce) { .ww-rl-seg label { transition: none; } }
+.frame-202 > .div-block-15 { display: none; }
