@@ -24,7 +24,7 @@
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* The picture: in each quarter a nest of rounded triangles steps outward as white fades over green, and the nest
-     flows into a white opening shaped like a lobed cross. One step in is one loop. */
+     flows into the centre, where the words sit. One step in is one loop. */
   var canvas = art.querySelector('canvas'), x = canvas.getContext('2d');
   var W = 0, H = 0, U = 0, phase = 0.35, speed = 1, target = 1, k = 1, kT = 1, last = 0, on = false;
   var G = 1.5, CY = 0.4;
@@ -50,18 +50,16 @@
     var D0 = U * 0.2, N = Math.ceil(Math.log(R * 1.5 / D0) / Math.log(G));
     [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(function (q) {
       x.save(); x.translate(cx, cy); x.scale(q[0], q[1]);
-      for (i = N; i >= 0; i--) {
-        var D = D0 * Math.pow(G, i + phase), a = b + D / (2 * G) * 0.72, e = b + D / 2;
+      for (i = N; i >= -3; i--) {
+        var D = D0 * Math.pow(G, i + phase) * k, a = b + D / (2 * G) * 0.72, e = b + D / 2;
+        /* The innermost steps fade out as they reach the centre, where the words sit. */
+        x.globalAlpha = Math.max(0, Math.min(1, (D / U - 0.1) / 0.16));
         x.beginPath(); roundPoly([[b, b], [b + D, b], [b, b + D]], Math.min(U * 0.085, D * 0.2));
         var g2 = x.createLinearGradient(a, a, e, e); g2.addColorStop(0, 'rgba(255,255,255,0)'); g2.addColorStop(0.55, 'rgba(255,255,255,.3)'); g2.addColorStop(1, 'rgba(255,255,255,.96)');
         x.fillStyle = g2; x.fill();
       }
       x.restore();
     });
-    x.save(); x.translate(cx, cy); x.scale(k, k); x.beginPath();
-    rr(-0.265 * U, -0.185 * U, 0.53 * U, 0.37 * U, 0.06 * U); rr(-0.07 * U, -0.375 * U, 0.14 * U, 0.75 * U, 0.07 * U);
-    [-1, 1].forEach(function (sx) { [-1, 1].forEach(function (sy) { rr(sx < 0 ? -0.265 * U : 0.125 * U, sy < 0 ? -0.245 * U : 0, 0.14 * U, 0.245 * U, 0.065 * U); }); });
-    x.shadowColor = 'rgba(60,130,20,.4)'; x.shadowBlur = U * 0.06; x.shadowOffsetY = U * 0.015; x.fillStyle = '#fff'; x.fill('nonzero'); x.restore();
   }
   function tick(t) {
     if (!on) return;

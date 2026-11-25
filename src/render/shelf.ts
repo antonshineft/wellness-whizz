@@ -12,8 +12,8 @@ const NOINDEX = '\n  <meta name="robots" content="noindex">';
 const GOALS = ['Better sleep', 'More energy', 'Joints', 'Immunity'];
 
 /**
- * The upload page: the whole hero is a looping picture (public/js/shelf.js draws it) with a white opening in its
- * centre that takes the photos, and a sheet over its lower edge that holds the title and, once a photo is in, the
+ * The upload page: the whole hero is a looping picture (public/js/shelf.js draws it) whose centre takes the
+ * photos, and a sheet over its lower edge that holds the title and, once a photo is in, the
  * next steps.
  */
 export function renderShelfPage(origin: string): string {
