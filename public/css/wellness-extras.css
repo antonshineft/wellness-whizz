@@ -1497,3 +1497,11 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 @media (max-width: 767px) { .ww-card-meta .ww-tag { height: 28px; font-size: 12px; padding-right: 12px; } }
 /* "Top picks on iHerb" strip: same outer edges as the row below it on wide desktops */
 @media (min-width: 1280px) { .ww-strip-wrap { padding-left: 58px; padding-right: 58px; } }
+/* Insight cards: one fixed left column, so the text of every card starts on the same line */
+@media (min-width: 992px) {
+  .frame-202.ww-stack > .ww-stack-card > .heading-green { flex: 0 0 34%; max-width: 34%; min-width: 0; margin-right: 0; box-sizing: border-box; text-wrap: balance; }
+}
+.ww-fg-tag.is-num { width: 26px; height: 26px; padding: 0; display: inline-flex; align-items: center; justify-content: center; letter-spacing: 0; font-size: 13px; }
+.ww-fg-plain { font-size: 17px; line-height: 27px; }
+.ww-fg-plain p { font-size: 17px; line-height: 27px; }
+.ww-fg-card ul, .ww-fg-card ol { margin: 0 0 12px; padding-left: 20px; font-size: 16px; line-height: 26px; }

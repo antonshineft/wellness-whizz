@@ -274,30 +274,39 @@ const GUIDE_TAGS: [RegExp, string][] = [
 ];
 
 /**
- * The stored guide (a title, an opening paragraph, then h4 chapters and a "Key takeaways" list) as cards: one per
- * chapter with a one-word label, two side by side on desktop, the takeaways full width at the end.
- * A guide without chapters is shown as it was written.
+ * The stored guide as cards. Newer guides are a title, an opening paragraph, h4 chapters and a "Key takeaways" list;
+ * older ones are a title and three or four chapters under h2 headings. Either way the first heading is the title,
+ * what follows it is the opening, and every later heading starts a chapter card. Chapters get a one-word label when
+ * every one of them answers a plain question (what, who, how, lifestyle); otherwise they are numbered.
+ * A guide with fewer than two headings is shown as it was written.
  */
 function guideCards(html: string): string {
-  const parts = html.split(/<h4[^>]*>([\s\S]*?)<\/h4>/i);
-  if (parts.length < 3) return `<div class="rich-text-block-4 w-richtext">${html}</div>`;
-  const cards: string[] = [];
-  for (let i = 1; i < parts.length; i += 2) {
-    const heading = parts[i].trim();
-    const content = (parts[i + 1] ?? '').trim();
-    const plain = heading.replace(/<[^>]+>/g, '');
-    if (/takeaway/i.test(plain)) {
-      cards.push(`
-            <div class="ww-fg-card is-take"><h4>${heading}</h4>${content}</div>`);
-      continue;
-    }
-    const tag = GUIDE_TAGS.find(([re]) => re.test(plain))?.[1] ?? '';
-    cards.push(`
-            <div class="ww-fg-card">${tag ? `<span class="ww-fg-tag">${tag}</span>` : ''}<h4>${heading}</h4>${content}</div>`);
-  }
+  const heads = [...html.matchAll(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi)];
+  if (heads.length < 2) return `<div class="rich-text-block-4 w-richtext ww-fg-plain">${html}</div>`;
+  const end = (i: number) => (i + 1 < heads.length ? heads[i + 1].index! : html.length);
+  const body = (i: number) => html.slice(heads[i].index! + heads[i][0].length, end(i)).trim();
+  const before = html.slice(0, heads[0].index!).trim();
+  const chapters = heads.slice(1).map((h, k) => {
+    const plain = h[2].replace(/<[^>]+>/g, '').trim();
+    return { heading: h[2].trim(), plain, content: body(k + 1), take: /takeaway|bottom line|in short|summary|conclusion/i.test(plain) };
+  });
+  const tags = chapters.map((c) => (c.take ? '' : GUIDE_TAGS.find(([re]) => re.test(c.plain))?.[1] ?? ''));
+  const named = chapters.filter((c) => !c.take);
+  const worded = named.length > 0 && chapters.every((c, i) => c.take || tags[i]) && new Set(tags.filter(Boolean)).size === named.length;
+  let n = 0;
+  const cards = chapters
+    .map((c, i) => {
+      if (c.take) return `
+            <div class="ww-fg-card is-take"><h4>${c.heading}</h4>${c.content}</div>`;
+      n += 1;
+      const tag = worded ? `<span class="ww-fg-tag">${tags[i]}</span>` : `<span class="ww-fg-tag is-num">${n}</span>`;
+      return `
+            <div class="ww-fg-card">${tag}<h4>${c.heading}</h4>${c.content}</div>`;
+    })
+    .join('');
   return `<div class="ww-fg">
-          <div class="ww-fg-intro rich-text-block-4 w-richtext">${parts[0]}</div>
-          <div class="ww-fg-grid">${cards.join('')}
+          <div class="ww-fg-intro rich-text-block-4 w-richtext">${before}<h3>${heads[0][2].trim()}</h3>${body(0)}</div>
+          <div class="ww-fg-grid">${cards}
           </div>
         </div>`;
 }
