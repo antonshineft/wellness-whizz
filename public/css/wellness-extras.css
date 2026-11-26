@@ -1613,7 +1613,7 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 
 /* Pointer feedback: buttons step and press, product photos ease in a touch, question rows answer the pointer */
 .outbutton, .ww-ishare-btn, .ww-top-list a { transition: transform .15s cubic-bezier(.2, .8, .2, 1), background-color .15s ease, color .15s ease, border-color .15s ease; }
-.outbutton:active, .ww-ishare-btn:active { transform: translateY(1px) scale(.985); transition-duration: .09s; }
+
 .ww-top-photo { overflow: hidden; }
 .ww-top-photo img { transition: transform .4s cubic-bezier(.2, .8, .2, 1); }
 .ww-qa-item { transition: background-color .2s ease; }
@@ -1622,7 +1622,7 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
   .ww-top-card:hover .ww-top-photo img { transform: scale(1.03); transition-duration: .6s; }
   .ww-qa-item:not([open]):hover { background: #ffffff12; }
 }
-@media (prefers-reduced-motion: reduce) { .outbutton, .ww-ishare-btn, .ww-top-photo img { transition: none; } .outbutton:hover, .outbutton:active, .ww-ishare-btn:active, .ww-top-card:hover .ww-top-photo img { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .outbutton, .ww-ishare-btn, .ww-top-photo img { transition: none; } .outbutton:hover, .ww-top-card:hover .ww-top-photo img { transform: none; } }
 
 /* Supplement page: nothing fades or slides in because the page scrolled */
 .heading-3-columns[data-w-id], .heading-3-columns [data-w-id], ._3-columns[data-w-id], .info .div-block[data-w-id] { opacity: 1 !important; transform: none !important; }
@@ -1652,3 +1652,22 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-guides-list a { display: block; height: 100%; box-sizing: border-box; padding: 16px 20px; border-radius: 18px; background: #f7faf6; border: 1px solid #e3ebe1; color: #1d272d; font-size: 17px; line-height: 24px; font-weight: 500; text-decoration: none; transition: border-color .15s ease, background-color .15s ease; }
 .ww-guides-list a:hover { border-color: #87d581; background: #fff; }
 @media (max-width: 767px) { .ww-guides { padding-top: 32px; } .ww-guides-list { grid-template-columns: minmax(0, 1fr); } .ww-guides-list a { font-size: 16px; padding: 14px 16px; } }
+
+/* Press feedback, site-wide: everything tappable shrinks a touch under the finger or the mouse button and springs
+   back. Uses the separate "scale" property so it never fights a transform the element already has. */
+.w-button, .btn, .fakebutton, .footerbutton, .outbutton, .bignavbutton, .submit-button, .menu-button, .w-nav-button,
+.ww-share-btn, .ww-ishare-btn, .ww-teaser-btn, .ww-rnote-btn, .ww-teaser-link, .radio-button-field, .ww-rl-seg label, .ww-top-list a,
+.ww-guides-list a, .ww-brand-pick-buy, button, [role="button"], input[type="submit"], input[type="button"] {
+  transition: scale .16s cubic-bezier(.23, 1, .32, 1), transform .15s cubic-bezier(.2, .8, .2, 1), background-color .2s ease, color .2s ease, border-color .2s ease, opacity .2s ease, box-shadow .2s ease;
+}
+.w-button:active, .btn:active, .fakebutton:active, .footerbutton:active, .outbutton:active, .bignavbutton:active, .submit-button:active, .menu-button:active, .w-nav-button:active,
+.ww-share-btn:active, .ww-ishare-btn:active, .ww-teaser-btn:active, .ww-rnote-btn:active, .ww-teaser-link:active, .radio-button-field:active, .ww-rl-seg label:active, .ww-top-list a:active,
+.ww-guides-list a:active, .ww-brand-pick-buy:active, button:not(:disabled):active, [role="button"]:active, input[type="submit"]:active, input[type="button"]:active { scale: .97; }
+/* Wide rows press less, or the whole row would visibly jump */
+.ww-qa-q, .ww-faq summary { transition: scale .16s cubic-bezier(.23, 1, .32, 1); }
+.ww-qa-q:active, .ww-faq summary:active { scale: .99; }
+@media (prefers-reduced-motion: reduce) {
+  .w-button:active, .btn:active, .fakebutton:active, .footerbutton:active, .outbutton:active, .bignavbutton:active, .submit-button:active, .menu-button:active, .w-nav-button:active,
+  .ww-share-btn:active, .ww-ishare-btn:active, .ww-teaser-btn:active, .ww-rnote-btn:active, .ww-teaser-link:active, .radio-button-field:active, .ww-rl-seg label:active, .ww-top-list a:active,
+  .ww-guides-list a:active, .ww-brand-pick-buy:active, button:active, [role="button"]:active, input[type="submit"]:active, input[type="button"]:active, .ww-qa-q:active, .ww-faq summary:active { scale: 1; }
+}
