@@ -963,6 +963,32 @@ app.post('/api/subscribe', async (c) => {
   });
 });
 
+/**
+ * Owner-only: send one plain-text email from the site's own address (EMAIL_FROM), for the owner's outreach.
+ * POST { to, subject, text }: one recipient, no HTML, no attachments. Replies go to the same address.
+ */
+app.post('/api/admin/email/send', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  c.header('cache-control', 'no-store');
+  if (!emailEnabled(c.env)) return c.json({ error: 'Email is not configured' }, 400);
+  const body = (await c.req.json().catch(() => ({}))) as { to?: unknown; subject?: unknown; text?: unknown };
+  const to = String(body.to ?? '').trim();
+  const subject = String(body.subject ?? '').replace(/\s+/g, ' ').trim();
+  const text = String(body.text ?? '').trim();
+  if (!/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(to)) return c.json({ error: 'to must be one email address' }, 400);
+  if (!subject || subject.length > 200) return c.json({ error: 'subject is required (200 characters at most)' }, 400);
+  if (text.length < 20 || text.length > 20000) return c.json({ error: 'text must be 20 to 20000 characters' }, 400);
+  const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#1d272d">${text.split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s<]+[^\s<.,;:)])/g, '<a href="$1">$1</a>')}</p>`).join('')}</div>`;
+  try {
+    const id = await sendEmail(c.env, to, subject, html, text);
+    return c.json({ ok: true, id, from: c.env.EMAIL_FROM });
+  } catch (err) {
+    return c.json({ ok: false, error: String(err instanceof Error ? err.message : err) }, 502);
+  }
+});
+
 /** Owner-only: the subscriber list as CSV (default) or JSON (?format=json). */
 app.get('/api/admin/subscribers', async (c) => {
   const denied = authorized(c);
