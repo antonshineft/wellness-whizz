@@ -1646,3 +1646,9 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 .ww-brand-short p { font-size: 18px; line-height: 28px; max-width: 760px; }
 .ww-brand-faq { max-width: none; }
 .ww-brand-faq h2 { margin-top: 0; }
+/* Supplement page: links to the blog's guides about it */
+.ww-guides { padding-top: 48px; padding-bottom: 0; }
+.ww-guides-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+.ww-guides-list a { display: block; height: 100%; box-sizing: border-box; padding: 16px 20px; border-radius: 18px; background: #f7faf6; border: 1px solid #e3ebe1; color: #1d272d; font-size: 17px; line-height: 24px; font-weight: 500; text-decoration: none; transition: border-color .15s ease, background-color .15s ease; }
+.ww-guides-list a:hover { border-color: #87d581; background: #fff; }
+@media (max-width: 767px) { .ww-guides { padding-top: 32px; } .ww-guides-list { grid-template-columns: minmax(0, 1fr); } .ww-guides-list a { font-size: 16px; padding: 14px 16px; } }

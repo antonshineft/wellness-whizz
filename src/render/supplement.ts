@@ -431,6 +431,20 @@ function faqSection(sup: Supplement): string {
     </div>`;
 }
 
+/** Links to the blog's articles about this supplement: readers get the longer answer, and the articles get a link from the page people land on. */
+function guidesSection(sup: Supplement, guides: { slug: string; title: string }[]): string {
+  if (!guides.length) return '';
+  return `
+  <section class="ww-related-wrap ww-guides" aria-label="Guides">
+    <div class="ww-related-inner">
+      <h2 class="ww-related-title">Guides on ${escapeHtml(sup.name)}</h2>
+      <ul class="ww-guides-list">
+        ${guides.map((g) => `<li><a href="/blog/${escapeHtml(g.slug)}">${escapeHtml(g.title)}</a></li>`).join('\n        ')}
+      </ul>
+    </div>
+  </section>`;
+}
+
 export interface SupplementPageExtras {
   related?: Supplement[];
   /** Site origin for canonical URL and structured data. */
@@ -442,6 +456,8 @@ export interface SupplementPageExtras {
    * null when the page has none yet, shows the new one: brands on the left, a grid of cards with scales on the right.
    */
   dose?: DoseCheck | null;
+  /** Articles from the blog about this supplement, linked under the questions. */
+  guides?: { slug: string; title: string }[];
   /** The strip of running brand logos, shown above the footer (src/render/brand.ts); empty or absent leaves it out. */
   brandStrip?: string;
   /** The path of a brand's profile page for a pick's brand name, or null when it has none: brand names then become links. */
@@ -626,7 +642,7 @@ export function renderSupplementPage(input: Supplement, explore: Supplement[], e
     </div>${extras.dose === undefined ? productCards(env, sup) : picksGrid(env, sup, extras.dose, extras.brandPath)}
   </div>
   <section class="info">${synergySection(sup)}${insightsSection(sup, researchSection(sup, extras.notes ?? []), extras.origin ?? 'https://aiww.io')}${faqSection(sup)}
-  </section>${relatedSection(extras.related ?? [], `Browse all ${explore.length || ''} supplements`)}${extras.brandStrip ?? ''}${footer()}${stickyBuyBar(env, sup)}`;
+  </section>${guidesSection(sup, extras.guides ?? [])}${relatedSection(extras.related ?? [], `Browse all ${explore.length || ''} supplements`)}${extras.brandStrip ?? ''}${footer()}${stickyBuyBar(env, sup)}`;
 
   return page({
     title: seoTitle(sup),

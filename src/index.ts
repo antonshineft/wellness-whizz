@@ -438,7 +438,12 @@ pageRoute('/supplement/:slug', async (c, lang) => {
   // The dose check (src/dose.ts) is English only. DOSE_CHECK "true" shows it to everyone; "preview" (the default)
   // only with ?dose=preview, so the owner can review it before readers see it; "false" hides it.
   const dose = doseVisible(c) ? visibleCheck(await getDoseCheck(c.env.DB, supplement.slug), studiedVisible(c)) : undefined;
-  const html = renderSupplementPage(localizeSupplement(supplement, translation), explore, c.env, { related, origin: new URL(c.req.url).origin, notes, dose, ...(brandsVisible(c) ? { brandStrip: brandStrip(listBrands()), brandPath: (name: string) => { const b = brandFor(name); return b ? `/brand/${b.slug}` : null; } } : {}) });
+  // The blog's articles about this supplement (English only): the one it illustrates first, then those that sell it.
+  const posts = lang === 'en' ? await allPosts(c.env.DB) : [];
+  const named = supplement.name.toLowerCase();
+  const rank = (p: { heroSupplement: string; title: string; shop: string[] }) => (p.heroSupplement === supplement.slug ? 0 : p.title.toLowerCase().includes(named) ? 1 : p.shop.includes(supplement.slug) ? 2 : 9);
+  const guides = posts.map((p) => ({ p, r: rank(p) })).filter((x) => x.r < 9).sort((x, y) => x.r - y.r).slice(0, 5).map(({ p }) => ({ slug: p.slug, title: p.title }));
+  const html = renderSupplementPage(localizeSupplement(supplement, translation), explore, c.env, { related, origin: new URL(c.req.url).origin, notes, dose, guides, ...(brandsVisible(c) ? { brandStrip: brandStrip(listBrands()), brandPath: (name: string) => { const b = brandFor(name); return b ? `/brand/${b.slug}` : null; } } : {}) });
   const body = pending ? new Response(html, { status: 200, headers: { ...htmlHeaders('public, max-age=60'), 'x-robots-tag': 'noindex' } }) : html;
   return sendPage(c, body, lang, `/supplement/${supplement.slug}`, 'public, max-age=300', alternates);
 });
