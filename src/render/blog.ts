@@ -224,8 +224,24 @@ function jsonLd(ctx: BlogContext, post: BlogPost, imageUrl: string | null): stri
       }
     : null;
   const safe = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
+  // The monthly data article describes a dataset; marking it up lets Google Dataset Search list the file.
+  const dataset = /^what-\d+-supplement-plans-say-/.test(post.slug)
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'Dataset',
+        name: 'Wellness Whizz supplement plans: aggregate statistics',
+        description: 'Anonymised aggregate statistics from supplement plans built by the free Wellness Whizz quiz: how often each supplement is recommended, overall and by stated goal, age group, sex and diet, plus the mix of goals, diets and activity levels people report. Counts only; any figure covering fewer than five plans is masked. Updated as new plans are made; the article describes the method and its limits.',
+        url: `${ctx.origin}/blog/${post.slug}`,
+        license: 'https://creativecommons.org/licenses/by/4.0/',
+        isAccessibleForFree: true,
+        creator: { '@type': 'Organization', name: 'Wellness Whizz', url: ctx.origin },
+        keywords: ['dietary supplements', 'supplement use', 'consumer health', 'nutrition'],
+        dateModified: post.date,
+        distribution: [{ '@type': 'DataDownload', encodingFormat: 'text/csv', contentUrl: `${ctx.origin}/data/supplement-plans.csv` }],
+      }
+    : null;
   return `
-  <script type="application/ld+json">${safe(article)}</script>${faq ? `\n  <script type="application/ld+json">${safe(faq)}</script>` : ''}`;
+  <script type="application/ld+json">${safe(article)}</script>${dataset ? `\n  <script type="application/ld+json">${safe(dataset)}</script>` : ''}${faq ? `\n  <script type="application/ld+json">${safe(faq)}</script>` : ''}`;
 }
 
 export function renderBlogPost(ctx: BlogContext, post: BlogPost, related: readonly BlogPost[]): string {

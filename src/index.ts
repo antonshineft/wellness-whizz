@@ -20,7 +20,7 @@ import { actOnArticle, articleSummary, asKind, autoQueue, draftNext, enqueueArti
 import { CONTENT_LANGS, asLang, langFromPath, localizePath, localizeResponse, type Lang } from './i18n';
 import { SHELF_MAX_BASE64, SHELF_MAX_IMAGES, SHELF_MEDIA_TYPES, analyzeShelf, countRecentScans, getShelfScan, resolveShelfSupplements, saveShelfScan, shelfEnabled, type ShelfImage, type ShelfMediaType } from './shelf';
 import { renderShelfPage, renderShelfResult } from './render/shelf';
-import { queueQuizDataArticle, quizDataSummary } from './quizdata';
+import { queueQuizDataArticle, quizDataCsv, quizDataSummary } from './quizdata';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
 import { carouselJob, getCarousel, listCarousels, markCarouselFailed, markCarouselReady, queueCarousel, scheduleCarousel, setCarouselStatus } from './carousels';
@@ -549,6 +549,13 @@ pageRoute('/blog/:slug', async (c, lang) => {
 });
 
 /** robots.txt with an absolute sitemap URL (a relative one is ignored by search engines). */
+/** The aggregate quiz statistics as a data file (src/quizdata.ts): counts only, small cells masked, kept for an hour. */
+app.get('/data/supplement-plans.csv', async (c) => {
+  await ensureDatabase(c.env.DB);
+  const csv = quizDataCsv(await quizDataSummary(c.env.DB));
+  return new Response(csv, { headers: { 'content-type': 'text/csv; charset=utf-8', 'cache-control': 'public, max-age=3600', 'content-disposition': 'inline; filename="wellness-whizz-supplement-plans.csv"' } });
+});
+
 app.get('/robots.txt', (c) => {
   const origin = new URL(c.req.url).origin;
   // Result pages stay out of search indexes, but the link-preview crawlers may read them for the share card.

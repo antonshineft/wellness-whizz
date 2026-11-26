@@ -201,3 +201,35 @@ export async function queueQuizDataArticle(env: ArticleEnv): Promise<{ slug: str
   await enqueueArticle(env, { topic, kind: asKind('guide', 'guide'), slug, notes: quizDataBrief(summary) });
   return { slug, sessions: summary.sessions };
 }
+
+
+/**
+ * The public data file behind the monthly article (/data/supplement-plans.csv): aggregate counts only, one row per
+ * figure. A cell counting fewer than five plans is written as "<5" with no percentage, so no small group can be
+ * picked out. No answer text, date, country or identifier of any plan is included.
+ */
+export function quizDataCsv(d: QuizDataSummary): string {
+  const esc = (v: string | number) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v));
+  const rows: (string | number)[][] = [['section', 'group', 'item', 'plans', 'percent_of_group', 'group_size']];
+  const add = (section: string, group: string, size: number, list: Count[]) => {
+    for (const c of list) rows.push([section, group, c.name, c.count < 5 ? '<5' : c.count, c.count < 5 ? '' : c.pct, size]);
+  };
+  add('profile: sex', 'plans stating sex', d.with_profile.sex, d.by_sex);
+  add('profile: age', 'plans stating age', d.with_profile.age, d.by_age);
+  add('profile: activity', 'plans stating activity', d.with_profile.activity, d.by_activity);
+  add('goal themes', 'plans stating a goal', d.with_profile.goal, d.goal_themes);
+  add('diet', 'plans stating a diet', d.with_profile.diet, d.diet_tags);
+  add('supplements recommended', 'all plans', d.sessions, d.top_supplements);
+  add('first supplement in the plan', 'all plans', d.sessions, d.first_pick);
+  const split = (section: string, groups: Record<string, Count[]>) => {
+    for (const [label, list] of Object.entries(groups)) {
+      const m = /^(.*) \(n=(\d+)\)$/.exec(label);
+      add(section, m ? m[1] : label, m ? Number(m[2]) : 0, list);
+    }
+  };
+  split('supplements by goal theme', d.top_by_theme);
+  split('supplements by age', d.top_by_age);
+  split('supplements by sex', d.top_by_sex);
+  split('supplements by diet', d.top_by_diet);
+  return rows.map((r) => r.map(esc).join(',')).join('\n') + '\n';
+}
