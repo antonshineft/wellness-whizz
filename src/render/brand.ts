@@ -93,6 +93,50 @@ function picksBlock(env: LinkEnv, b: BrandProfile, picks: BrandPick[]): string {
       </section>`;
 }
 
+
+/** One plain sentence on how the brand's picks sit against the reference ranges, or '' when too few are rated. */
+function doseSentence(b: BrandProfile, r: DoseRecord): string {
+  if (r.rated < 3) return '';
+  const off = r.high + r.more + r.low;
+  return `Of the ${r.rated} ${b.name} products we rated, ${r.fine} ${r.fine === 1 ? 'sits' : 'sit'} inside the reference dose range${off ? ` and ${off} ${off === 1 ? 'falls' : 'fall'} outside it` : ''}.`;
+}
+
+/**
+ * The questions people type about a brand, answered only from the sourced profile and the site's own dose data.
+ * Nothing here is an opinion: where the profile has no point, the answer says so.
+ */
+function brandQuestions(b: BrandProfile, r: DoseRecord): { q: string; a: string }[] {
+  const n = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+  const out: { q: string; a: string }[] = [];
+  const plus = b.positives.length ? `we could confirm ${n(b.positives.length, 'point', 'points')} in its favour from independent sources` : 'we found no point in its favour that an independent source confirms';
+  const minus = b.negatives.length ? `${n(b.negatives.length, 'thing', 'things')} worth knowing before you buy` : 'no FDA warning letter, recall or settled lawsuit in our search';
+  out.push({
+    q: `Is ${b.name} a good brand?`,
+    a: `We do not score brands, so here is the record: ${plus}, and ${minus}. ${doseSentence(b, r)} Each point on this page links to the source it rests on.`.replace(/\s+/g, ' ').trim(),
+  });
+  if (b.owner || b.founder || b.founded) {
+    const parts = [b.owner ? `${b.name} is owned by ${b.owner}.` : '', b.founded ? `It was founded in ${b.founded}${b.founder ? ` by ${b.founder}` : ''}.` : b.founder ? `It was founded by ${b.founder}.` : '', b.headquarters ? `Its headquarters are in ${b.headquarters}.` : ''];
+    out.push({ q: `Who owns ${b.name} and where is it based?`, a: parts.filter(Boolean).join(' ') });
+  }
+  const tested = b.positives.filter((p) => /third[- ]party|independent(ly)? (lab|test)|\bNSF\b|\bUSP\b|\bGMP\b|certif|ConsumerLab|Informed/i.test(p.text));
+  if (tested.length) out.push({ q: `Is ${b.name} tested or certified by anyone independent?`, a: tested.map((p) => `${p.text} (source: ${p.sourceName})`).join(' ') });
+  out.push({
+    q: `Has ${b.name} had recalls, FDA warnings or lawsuits?`,
+    a: b.negatives.length
+      ? b.negatives.map((p) => `${p.text} (source: ${p.sourceName})`).join(' ')
+      : 'Our search found no FDA warning letter, recall or settled lawsuit against the brand. That is not proof there has never been one.',
+  });
+  return out;
+}
+
+function questionsBlock(qs: { q: string; a: string }[]): string {
+  return `
+      <section class="ww-brand-block ww-faq ww-brand-faq">
+        <h2>Common questions</h2>
+        ${qs.map((x) => `<details><summary>${escapeHtml(x.q)}</summary><p>${escapeHtml(x.a)}</p></details>`).join('\n        ')}
+      </section>`;
+}
+
 export interface BrandPageData {
   brand: BrandProfile;
   picks: BrandPick[];
@@ -106,7 +150,12 @@ export function renderBrandPage(env: LinkEnv, d: BrandPageData): string {
   // A name that starts with a small letter on purpose (iHerb, eSupplements) keeps it.
   const cap = (v: string | number) => (/^[a-z][A-Z]/.test(String(v)) ? String(v) : String(v).replace(/^[a-z]/, (ch) => ch.toUpperCase()));
   const fact = (label: string, value: string | number | null) => (value ? `<div><dt>${label}</dt><dd>${escapeHtml(cap(value))}</dd></div>` : '');
+  const qs = brandQuestions(b, d.record);
   const body = `
+      <section class="ww-brand-block ww-brand-short">
+        <h2>Is ${escapeHtml(b.name)} a good brand?</h2>
+        <p>${escapeHtml(qs[0].a)}</p>
+      </section>
       <dl class="ww-brand-facts">
         ${fact('Founded', b.founded)}${fact('Founder', b.founder)}${fact('Headquarters', b.headquarters)}${fact('Owner', b.owner)}
       </dl>
@@ -123,7 +172,7 @@ export function renderBrandPage(env: LinkEnv, d: BrandPageData): string {
           <h2>What to know</h2>
           ${points(b.negatives, 'Our search found no FDA warning letter, recall or settled lawsuit against the brand. That is not proof there has never been one.')}
         </section>
-      </div>${recordBlock(b, d.record)}${picksBlock(env, b, d.picks)}`;
+      </div>${recordBlock(b, d.record)}${picksBlock(env, b, d.picks)}${questionsBlock(qs.slice(1))}`;
   const lead = [b.founded ? `Founded in ${b.founded}` : '', b.headquarters ?? '', b.owner ? `owned by ${b.owner}` : ''].filter(Boolean).join(' · ');
   const shell = pageShell({
     eyebrow: 'Brand profile',
@@ -144,12 +193,18 @@ export function renderBrandPage(env: LinkEnv, d: BrandPageData): string {
     about: { '@type': 'Brand', name: b.name },
     publisher: { '@id': `${d.origin}/#organization` },
   };
+  const faqLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: qs.map((x) => ({ '@type': 'Question', name: x.q, acceptedAnswer: { '@type': 'Answer', text: x.a } })),
+  };
+  const titles = [`${b.name} Review: Is It a Good Brand? Record & Recalls`, `${b.name} Review: Is It a Good Brand?`, `Is ${b.name} a Good Brand?`];
   return page({
-    title: `${b.name}: history, strengths and what to know`,
-    description: `${b.name} at a glance: who owns it, a short history, what speaks for the company, what to know before you buy, and how its ${d.picks.length} picks on Wellness Whizz are dosed.`.slice(0, 300),
+    title: titles.find((t) => t.length <= 43) ?? titles[titles.length - 1],
+    description: `Is ${b.name} a good brand? Who owns it, what independent sources confirm, recalls and lawsuits to know about, and how its ${d.picks.length} products compare with reference doses.`.slice(0, 160),
     pageId: WF_PAGE_IDS.supplement,
     bodyClass: 'body-2',
-    head: `\n  <link rel="canonical" href="${escapeHtml(d.origin)}/brand/${escapeHtml(b.slug)}">\n  <script type="application/ld+json">${safe(ld)}</script>`,
+    head: `\n  <link rel="canonical" href="${escapeHtml(d.origin)}/brand/${escapeHtml(b.slug)}">\n  <script type="application/ld+json">${safe(ld)}</script>\n  <script type="application/ld+json">${safe(faqLd)}</script>`,
     body: shell,
   });
 }

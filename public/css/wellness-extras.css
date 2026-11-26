@@ -241,7 +241,7 @@ a.ww-footer-link:hover { opacity: 1; }
 .ww-article-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 14px; opacity: .75; margin: 0 0 28px; }
 .ww-article-meta .ww-tag { opacity: 1; }
 .ww-shop { background: #ecf3f6; border-radius: 24px; padding: 20px; }
-.ww-shop h4 { margin: 0 0 6px; font-family: Aeonik, sans-serif; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; opacity: .7; font-weight: 700; }
+.ww-shop h3, .ww-shop h4 { margin: 0 0 6px; font-family: Aeonik, sans-serif; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; opacity: .7; font-weight: 700; }
 .ww-shop-item { display: flex; flex-direction: column; gap: 10px; padding: 12px 0; border-top: 1px solid #1d272d14; }
 .ww-shop-top { display: flex; gap: 12px; align-items: center; }
 .ww-shop-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -284,7 +284,7 @@ a.ww-footer-link:hover { opacity: 1; }
 .ww-quiz-card-frame { border: 1px solid #1d272d1f; border-radius: 18px; padding: 16px; overflow: hidden; }
 .ww-quiz-card-media { margin: -16px -16px 12px; }
 .ww-quiz-card-media img { display: block; width: 100%; height: 150px; object-fit: cover; -webkit-mask-image: linear-gradient(#000 50%, transparent); mask-image: linear-gradient(#000 50%, transparent); }
-.ww-quiz-card h4 { margin: 0 0 6px; font-family: Aeonik, sans-serif; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; opacity: .7; font-weight: 700; }
+.ww-quiz-card h3, .ww-quiz-card h4 { margin: 0 0 6px; font-family: Aeonik, sans-serif; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; opacity: .7; font-weight: 700; }
 .ww-quiz-card p { margin: 0 0 14px; font-size: 14px; line-height: 22px; opacity: .85; }
 .ww-quiz-card .ww-shop-buy { display: inline-block; padding: 10px 14px; font-size: 14px; line-height: 18px; border-radius: 14px; }
 .ww-quiz-card:hover .ww-shop-buy { background-color: #2f3d46; }
@@ -1642,3 +1642,7 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
   .ww-qa .heading-2 { font-size: 30px; line-height: 34px; padding-left: 4px; margin-bottom: 0; align-self: stretch; text-align: left; }
   .ww-qa .ww-qa-list { margin-top: 18px; }
 }
+/* Brand page: the short answer first, and the common questions at the foot */
+.ww-brand-short p { font-size: 18px; line-height: 28px; max-width: 760px; }
+.ww-brand-faq { max-width: none; }
+.ww-brand-faq h2 { margin-top: 0; }

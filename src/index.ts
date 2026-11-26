@@ -306,7 +306,28 @@ async function localizeResultItems(db: D1Database, lang: Lang, items: ResultItem
 
 pageRoute('/', async (c, lang) => {
   track(c, { type: 'home_view', page: '/' });
-  return sendPage(c, await renderHome(c.env, c.req.raw, curatedOnly(c.env), lang, doseVisible(c), studiedVisible(c), brandsVisible(c) ? brandStrip(listBrands()) : ''), lang, '/', 'public, max-age=60');
+  // The homepage reads a few hundred rows to build its carousel and lists; a plain request (no query string) is kept
+  // at the edge for five minutes so most visitors and crawlers get it without that work.
+  const url = new URL(c.req.url);
+  const plain = !url.search;
+  const key = new Request(`${url.origin}/__cache/home-${lang}`);
+  const edge = (caches as unknown as { default: Cache }).default;
+  if (plain) {
+    const hit = await edge.match(key).catch(() => undefined);
+    if (hit) {
+      const res = new Response(hit.body, hit);
+      res.headers.set('cache-control', 'public, max-age=60');
+      return res;
+    }
+  }
+  const res = await sendPage(c, await renderHome(c.env, c.req.raw, curatedOnly(c.env), lang, doseVisible(c), studiedVisible(c), brandsVisible(c) ? brandStrip(listBrands()) : ''), lang, '/', 'public, max-age=60');
+  if (plain && res.status === 200) {
+    const copy = new Response(res.clone().body, res);
+    copy.headers.set('cache-control', 'public, max-age=300');
+    copy.headers.delete('set-cookie');
+    c.executionCtx.waitUntil(edge.put(key, copy).catch(() => undefined));
+  }
+  return res;
 });
 
 pageRoute('/wellness-quiz', async (c, lang) => {

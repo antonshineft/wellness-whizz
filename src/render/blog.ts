@@ -51,12 +51,12 @@ function shopBlock(ctx: BlogContext, post: BlogPost, slugs: string[], title: str
     // Catalogue not loaded yet (fresh deployment): fall back to a search link so the article still sells.
     const q = slugs[0]?.replace(/-[0-9a-f]{5}$/, '').replace(/-/g, ' ') ?? post.title;
     return `
-        <div class="ww-shop ${extraClass}"><h4>${escapeHtml(title)}</h4>
+        <div class="ww-shop ${extraClass}"><h3>${escapeHtml(title)}</h3>
           <a href="${escapeHtml(searchUrl(ctx.env, q))}" target="_blank" rel="noopener nofollow sponsored" class="fakebutton ww-buy ww-shop-buy w-button" data-track="outbound_click" data-slug="blog:${escapeHtml(post.slug)}" data-product="${escapeHtml(q)}">Find on iHerb</a>
         </div>`;
   }
   return `
-        <div class="ww-shop ${extraClass}"><h4>${escapeHtml(title)}</h4>${sups.map((s) => shopItem(ctx.env, s)).join('')}
+        <div class="ww-shop ${extraClass}"><h3>${escapeHtml(title)}</h3>${sups.map((s) => shopItem(ctx.env, s)).join('')}
           <p class="ww-note" style="margin:12px 0 0">Prices and availability are set by iHerb.</p>
         </div>`;
 }
@@ -258,7 +258,7 @@ export function renderBlogPost(ctx: BlogContext, post: BlogPost, related: readon
           <p class="ww-note">${escapeHtml(DISCLOSURE)} <a href="/about#disclaimer">Read our full medical disclaimer.</a></p>
         </article>
         <aside class="ww-article-aside ww-only-desktop">${shop}
-          <a href="/wellness-quiz" class="ww-quiz-card"><div class="ww-quiz-card-frame"><div class="ww-quiz-card-media"><img src="/images/quiz-still.webp" width="720" height="400" loading="lazy" alt=""></div><h4>Free personal list</h4><p>Two minutes, no account. The advisor weighs your goals and what you already take.</p><span class="fakebutton ww-buy ww-shop-buy">Start the quiz</span></div></a>
+          <a href="/wellness-quiz" class="ww-quiz-card"><div class="ww-quiz-card-frame"><div class="ww-quiz-card-media"><img src="/images/quiz-still.webp" width="720" height="400" loading="lazy" alt=""></div><h3>Free personal list</h3><p>Two minutes, no account. The advisor weighs your goals and what you already take.</p><span class="fakebutton ww-buy ww-shop-buy">Start the quiz</span></div></a>
           ${captureBox({ source: 'newsletter', compact: true })}
         </aside>
       </div>${relatedHtml}`;

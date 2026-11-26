@@ -440,7 +440,7 @@ export function exploreSection(supplements: Supplement[]): string {
     : `<div role="list" class="linksnav w-dyn-items w-row"></div><div class="w-dyn-empty"><div>No items found.</div></div>`;
   return `
   <div id="Links" class="manuallinks">
-    <h3 class="heading-2 explore">Explore manually</h3>
+    <h2 class="heading-2 explore">Explore manually</h2>
     <figure class="collection-list-wrapper w-dyn-list">${items}</figure>
   </div>`;
 }
