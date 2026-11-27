@@ -1671,3 +1671,25 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
   .ww-share-btn:active, .ww-ishare-btn:active, .ww-teaser-btn:active, .ww-rnote-btn:active, .ww-teaser-link:active, .radio-button-field:active, .ww-rl-seg label:active, .ww-top-list a:active,
   .ww-guides-list a:active, .ww-brand-pick-buy:active, button:active, [role="button"]:active, input[type="submit"]:active, input[type="button"]:active, .ww-qa-q:active, .ww-faq summary:active { scale: 1; }
 }
+
+/* Fixes from the eight-width check */
+/* Post cards never ask for more width than a small phone has */
+.ww-posts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+/* A long supplement name in the Explore list is cut with an ellipsis, never pushed off the page */
+.linksnav .collection-item { overflow: hidden; text-overflow: ellipsis; }
+/* Menu button stays on one line; on mid-width screens it takes less padding */
+.bignavbutton { white-space: nowrap; }
+@media (min-width: 992px) and (max-width: 1279px) { .bignavbutton { padding-left: 32px; padding-right: 32px; } }
+/* "Buy on iHerb" stays on one line in the small top strip */
+.ww-pick .outbutton { white-space: nowrap; }
+@media (max-width: 359px) { .ww-pick .outbutton { padding-left: 10px; padding-right: 10px; font-size: 13px; } }
+/* Very wide screens: the top of a supplement page is capped and centred like the sections under it */
+@media (min-width: 1700px) {
+  .heading-3-columns > .frame-48, .heading-3-columns > .ww-strip-wrap, .heading-3-columns > ._3-columns { max-width: 1636px; margin-left: auto; margin-right: auto; }
+  .heading-3-columns > .ww-top { max-width: 1520px; }
+}
+/* The rating strip follows its card once the page is capped, not the window width */
+@media (min-width: 1700px) { .heading-3-columns ._3-columns .frame-170 { width: auto; max-width: 100%; align-self: stretch; } }
+/* The Explore list can shrink to the screen; long names are cut with an ellipsis */
+.manuallinks > * { min-width: 0; max-width: 100%; }
+.manuallinks .linksnav { max-width: 100%; }
