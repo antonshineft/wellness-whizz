@@ -15,7 +15,7 @@
  */
 import { claudeJson } from './claude';
 import { MAX_SCENE_WORDS, getVideo, parseScript, type VideoEnv, type VideoScript } from './videos';
-import { createPost, deletePost, getPost, listAccounts, postAnalytics, recentPublished, uploadVideo, type ZernioEnv } from './zernio';
+import { createPost, deletePost, getPost, listAccounts, postAnalytics, recentPublished, uploadVideo, type ZernioEnv, uploadMedia } from './zernio';
 
 /** hook, ending: one spoken line changed (the first kind of trial). shot, voice, short: the three tests of a daily batch since 19 Nov 2026.
  *  style: the whole reel remade in another look (every clip is generated again), added by hand for a round.
@@ -396,7 +396,22 @@ export async function postTrial(env: VideoEnv, slug: string, n: number, when: st
   if (!res.ok) return { ok: false, message: `fetching the rendered file failed: HTTP ${res.status}` };
   const up = await uploadVideo(z, await res.arrayBuffer(), `${slug}-t${n}-${Date.now()}.mp4`);
   if (!up.ok) return up;
-  const post = await createPost(z, { content: video.caption, mediaUrl: up.url, targets, madeWithAi: true, title: parseScript(video.script_json)?.title, scheduledFor: when, timezone: 'Europe/Madrid', ...(mode === 'trial' ? { trial: 'MANUAL' as const } : { shareToFeed: false }) });
+  // Without a cover Instagram shows the video's first frame, which is sometimes blank. The original reel's render
+  // leaves a clean frame beside its file (<name>-cover.jpg); use it, and post without one only if it cannot be read.
+  let coverUrl = '';
+  try {
+    const cr = await fetch(video.video_url.replace(/\.mp4(\?.*)?$/, '-cover.jpg'), { redirect: 'follow' });
+    // The release store serves it as a generic file, so the JPEG is recognised by its first two bytes.
+    const body = cr.ok ? await cr.arrayBuffer() : null;
+    const head = body ? new Uint8Array(body, 0, 2) : null;
+    const bytes = body && head && head[0] === 0xff && head[1] === 0xd8 ? body : null;
+    const cu = bytes && bytes.byteLength > 2000 ? await uploadMedia(z, bytes, `${slug}-t${n}-${Date.now()}-cover.jpg`, 'image/jpeg') : null;
+    if (cu?.ok) coverUrl = cu.url;
+    else console.warn(`trial cover not attached for ${slug} #${n}: ${cu ? cu.message : `HTTP ${cr.status}`}`);
+  } catch (err) {
+    console.warn(`trial cover not attached for ${slug} #${n}: ${String(err)}`);
+  }
+  const post = await createPost(z, { ...(coverUrl ? { coverUrl } : {}), content: video.caption, mediaUrl: up.url, targets, madeWithAi: true, title: parseScript(video.script_json)?.title, scheduledFor: when, timezone: 'Europe/Madrid', ...(mode === 'trial' ? { trial: 'MANUAL' as const } : { shareToFeed: false }) });
   if (!post.ok) return post;
   await env.DB.prepare("UPDATE video_trials SET status = 'posted', publish_id = ?, scheduled_for = ?, updated_at = datetime('now') WHERE id = ?").bind(post.id, when, row.id).run();
   return { ok: true, id: post.id, when };
