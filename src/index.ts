@@ -22,6 +22,7 @@ import { SHELF_MAX_BASE64, SHELF_MAX_IMAGES, SHELF_MEDIA_TYPES, analyzeShelf, co
 import { renderShelfPage, renderShelfResult } from './render/shelf';
 import { queueQuizDataArticle, quizDataCsv, quizDataSummary } from './quizdata';
 import { brandRecalls, listRecalls, syncRecalls } from './recalls';
+import { claudeJson } from './claude';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
 import { carouselJob, getCarousel, listCarousels, markCarouselFailed, markCarouselReady, queueCarousel, scheduleCarousel, setCarouselStatus } from './carousels';
@@ -1232,6 +1233,77 @@ app.get('/api/admin/reddit', async (c) => {
   await ensureDatabase(c.env.DB);
   c.header('cache-control', 'no-store');
   return c.json(await digestStatus(c.env));
+});
+
+/**
+ * Owner-only: what people struggle with, read from the stored F5Bot mentions (thread titles only, no authors).
+ *  ?stats=1                      how much is stored, by keyword and subreddit
+ *  ?step=extract&days=&limit=&offset=   a batch of distinct post titles, each labelled by the small Claude model
+ *  POST ?step=themes { labels: [[label, count], ...] }   the labels grouped into themes by the fast Claude model
+ * Claude only (no fallback to another provider), paid from the site's API credits.
+ */
+app.all('/api/admin/reddit/pains', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  c.header('cache-control', 'no-store');
+  await ensureDatabase(c.env.DB);
+  const days = Math.min(90, Math.max(1, Number(c.req.query('days') ?? '14') || 14));
+  const since = `-${days} days`;
+  if (c.req.query('stats') === '1') {
+    const one = async <T>(sql: string) => (await c.env.DB.prepare(sql).bind(since).all<T>()).results ?? [];
+    return c.json({
+      days,
+      totals: await one(`SELECT COUNT(*) AS mentions, COUNT(DISTINCT post_id) AS threads, MIN(received_at) AS first, MAX(received_at) AS last FROM reddit_mentions WHERE received_at > datetime('now', ?)`),
+      all_time: (await c.env.DB.prepare('SELECT COUNT(*) AS mentions, MIN(received_at) AS first FROM reddit_mentions').all()).results,
+      kinds: await one(`SELECT kind, COUNT(*) AS n FROM reddit_mentions WHERE received_at > datetime('now', ?) GROUP BY kind`),
+      keywords: await one(`SELECT keyword, COUNT(*) AS n, COUNT(DISTINCT post_id) AS threads FROM reddit_mentions WHERE received_at > datetime('now', ?) GROUP BY keyword ORDER BY n DESC LIMIT 60`),
+      subreddits: await one(`SELECT subreddit, COUNT(DISTINCT post_id) AS threads FROM reddit_mentions WHERE received_at > datetime('now', ?) GROUP BY subreddit ORDER BY threads DESC LIMIT 40`),
+    });
+  }
+  const step = c.req.query('step');
+  if (step === 'extract') {
+    const limit = Math.min(200, Math.max(10, Number(c.req.query('limit') ?? '120') || 120));
+    const offset = Math.max(0, Number(c.req.query('offset') ?? '0') || 0);
+    const rows = (
+      await c.env.DB
+        .prepare(`SELECT post_id, MIN(title) AS title, MIN(subreddit) AS subreddit FROM reddit_mentions WHERE received_at > datetime('now', ?) AND title != '' GROUP BY post_id ORDER BY post_id LIMIT ? OFFSET ?`)
+        .bind(since, limit, offset)
+        .all<{ post_id: string; title: string; subreddit: string }>()
+    ).results ?? [];
+    if (!rows.length) return c.json({ offset, count: 0, items: [] });
+    const schema = {
+      type: 'object', additionalProperties: false, required: ['items'],
+      properties: { items: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['i', 'pain', 'supplement', 'type'], properties: {
+        i: { type: 'integer' },
+        pain: { type: 'string', description: 'The problem or worry in 3 to 6 plain lower-case words, or "" when the title is not a person with a problem or question' },
+        supplement: { type: 'string', description: 'The supplement named, lower case, or ""' },
+        type: { type: 'string', enum: ['question', 'bad experience', 'good experience', 'confusion', 'other'] },
+      } } } },
+    };
+    const system = 'You label Reddit thread titles for market research on dietary supplements. For each title decide whether a real person is describing a problem, worry or question they have. If so, name the underlying pain in 3 to 6 plain words that would also fit other similar titles (for example "cannot fall asleep", "side effects from a supplement", "which form to buy", "does it actually work", "safe with my medication", "how much to take", "wasted money on useless product"). Use "" for adverts, news, memes, product launches, off-topic and anything not about a personal problem. Never invent detail that is not in the title.';
+    const user = rows.map((r, i) => `${i}. [r/${r.subreddit}] ${r.title.slice(0, 220)}`).join('\n');
+    const out = await claudeJson<{ items: { i: number; pain: string; supplement: string; type: string }[] }>(c.env, system, user, schema, { tier: 'screen', effort: 'low', maxTokens: 9000, timeoutMs: 120_000 });
+    const items = out.items.filter((x) => x.pain && rows[x.i]).map((x) => ({ pain: x.pain.toLowerCase().trim(), supplement: x.supplement.toLowerCase().trim(), type: x.type, sub: rows[x.i].subreddit, title: rows[x.i].title.slice(0, 160) }));
+    return c.json({ offset, count: rows.length, kept: items.length, items });
+  }
+  if (step === 'themes' && c.req.method === 'POST') {
+    const body = (await c.req.json().catch(() => ({}))) as { labels?: [string, number][] };
+    const labels = (body.labels ?? []).slice(0, 900);
+    if (!labels.length) return c.json({ error: 'labels required' }, 400);
+    const schema = {
+      type: 'object', additionalProperties: false, required: ['themes'],
+      properties: { themes: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['theme', 'what_people_say', 'labels'], properties: {
+        theme: { type: 'string', description: 'A plain name for the pain point, 3 to 7 words' },
+        what_people_say: { type: 'string', description: 'One plain sentence on what the person is struggling with' },
+        labels: { type: 'array', items: { type: 'string' }, description: 'Every input label that belongs to this theme, copied exactly' },
+      } } } },
+    };
+    const system = 'You group short labels of problems people have with dietary supplements into 10 to 16 distinct pain points for a consumer supplement information site. Every input label must be assigned to exactly one theme, copied exactly as given. Keep themes about the person\'s problem (for example trouble sleeping, fear of side effects, not knowing what to buy), not about product categories. Use an "other" theme only for labels that fit nowhere.';
+    const user = labels.map(([l, n]) => `${l} (${n})`).join('\n');
+    const out = await claudeJson<{ themes: { theme: string; what_people_say: string; labels: string[] }[] }>(c.env, system, user, schema, { tier: 'fast', effort: 'medium', maxTokens: 16000, timeoutMs: 180_000 });
+    return c.json(out);
+  }
+  return c.json({ error: 'use ?stats=1, ?step=extract or POST ?step=themes' }, 400);
 });
 
 /**
