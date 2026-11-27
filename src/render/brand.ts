@@ -5,6 +5,7 @@
 import type { BrandPick, BrandPoint, BrandProfile, DoseRecord } from '../brands';
 import { verdictIcon, type DoseState } from '../dose';
 import { escapeHtml } from '../html';
+import { classWords, statusWords, type BrandRecall } from '../recalls';
 import { shopUrl, type LinkEnv } from '../links';
 import { page } from './layout';
 import { pageShell } from './pages';
@@ -105,7 +106,12 @@ function doseSentence(b: BrandProfile, r: DoseRecord): string {
  * The questions people type about a brand, answered only from the sourced profile and the site's own dose data.
  * Nothing here is an opinion: where the profile has no point, the answer says so.
  */
-function brandQuestions(b: BrandProfile, r: DoseRecord): { q: string; a: string }[] {
+function brandQuestions(b: BrandProfile, r: DoseRecord, recalls?: BrandPageData['recalls']): { q: string; a: string }[] {
+  const fda = !recalls || !recalls.tracked || !recalls.checked
+    ? ''
+    : recalls.events.length
+      ? ` The FDA's enforcement reports list ${recalls.events.length} ${recalls.events.length === 1 ? 'recall' : 'recalls'} under the company's name, the latest reported on ${longDate(recalls.events[0].date)} (${statusWords(recalls.events[0].status).toLowerCase()}).`
+      : ` The FDA's enforcement reports list no recall under the company's name as of ${longDate(recalls.checked)}.`;
   const n = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
   const out: { q: string; a: string }[] = [];
   const plus = b.positives.length ? `we could confirm ${n(b.positives.length, 'point', 'points')} in its favour from independent sources` : 'we found no point in its favour that an independent source confirms';
@@ -122,11 +128,47 @@ function brandQuestions(b: BrandProfile, r: DoseRecord): { q: string; a: string 
   if (tested.length) out.push({ q: `Is ${b.name} tested or certified by anyone independent?`, a: tested.map((p) => `${p.text} (source: ${p.sourceName})`).join(' ') });
   out.push({
     q: `Has ${b.name} had recalls, FDA warnings or lawsuits?`,
-    a: b.negatives.length
+    a: (b.negatives.length
       ? b.negatives.map((p) => `${p.text} (source: ${p.sourceName})`).join(' ')
-      : 'Our search found no FDA warning letter, recall or settled lawsuit against the brand. That is not proof there has never been one.',
+      : 'Our search found no FDA warning letter, recall or settled lawsuit against the brand. That is not proof there has never been one.') + fda,
   });
   return out;
+}
+
+/** FDA recall records, newest first: what was recalled, why, how serious the FDA rated it, and where to check. */
+function recallsBlock(b: BrandProfile, r: BrandPageData['recalls']): string {
+  if (!r || !r.tracked || !r.checked) return '';
+  const checked = `Read from the FDA's public enforcement reports on ${longDate(r.checked)}; we check again every week.`;
+  if (!r.events.length) {
+    return `
+      <section class="ww-brand-block ww-brand-recalls" id="recalls">
+        <h2>FDA recall records</h2>
+        <p>The FDA's enforcement reports list no food or supplement recall under ${escapeHtml(b.name)}'s company name.</p>
+        <p class="ww-brand-small">${checked} A recall filed under a different company name, or handled outside the United States, would not appear here.</p>
+      </section>`;
+  }
+  const item = (e: BrandRecall) => `<li class="ww-recall">
+            <div class="ww-recall-head"><b>${escapeHtml(longDate(e.date))}</b><span class="ww-recall-chip${/ongoing/i.test(e.status) ? ' is-open' : ''}">${escapeHtml(statusWords(e.status))}</span></div>
+            <p class="ww-recall-what">${escapeHtml(e.products[0])}${e.products.length > 1 ? ` <em>and ${e.products.length - 1} more ${e.products.length === 2 ? 'product' : 'products'} in the same recall</em>` : ''}</p>
+            <p><span class="ww-recall-label">Reason given</span> ${escapeHtml(e.reason)}</p>
+            <p><span class="ww-recall-label">FDA rating</span> ${escapeHtml(classWords(e.classification))}</p>${e.lots ? `
+            <p><span class="ww-recall-label">Lots</span> ${escapeHtml(e.lots)}</p>` : ''}
+            <p class="ww-brand-small">Recalled by ${escapeHtml(e.firm)} · FDA record <a href="https://api.fda.gov/food/enforcement.json?search=recall_number:%22${encodeURIComponent(e.numbers[0])}%22" target="_blank" rel="noopener nofollow" class="ww-brand-src">${escapeHtml(e.numbers[0])}</a></p>
+          </li>`;
+  const open = r.events.filter((e) => /ongoing/i.test(e.status)).length;
+  return `
+      <section class="ww-brand-block ww-brand-recalls" id="recalls">
+        <h2>FDA recall records</h2>
+        <p>${r.events.length} ${r.events.length === 1 ? 'recall' : 'recalls'} on record under the company's name${open ? `, ${open} still open` : ', all closed'}. Most recalls are started by the company itself, and a closed one means the FDA considers it dealt with.</p>
+        <ul class="ww-recalls">
+          ${r.events.slice(0, 5).map(item).join('\n          ')}
+        </ul>${r.events.length > 5 ? `
+        <details class="ww-recalls-older"><summary>Show ${r.events.length - 5} older ${r.events.length - 5 === 1 ? 'record' : 'records'}</summary>
+        <ul class="ww-recalls">
+          ${r.events.slice(5).map(item).join('\n          ')}
+        </ul></details>` : ''}
+        <p class="ww-brand-small">${checked} If you own a recalled lot, stop using it and follow the company's or the FDA's instructions.</p>
+      </section>`;
 }
 
 function questionsBlock(qs: { q: string; a: string }[]): string {
@@ -138,6 +180,8 @@ function questionsBlock(qs: { q: string; a: string }[]): string {
 }
 
 export interface BrandPageData {
+  /** FDA recall records under the company's name (src/recalls.ts); absent on a preview without the feed. */
+  recalls?: { events: BrandRecall[]; checked: string | null; tracked: boolean };
   brand: BrandProfile;
   picks: BrandPick[];
   record: DoseRecord;
@@ -150,7 +194,7 @@ export function renderBrandPage(env: LinkEnv, d: BrandPageData): string {
   // A name that starts with a small letter on purpose (iHerb, eSupplements) keeps it.
   const cap = (v: string | number) => (/^[a-z][A-Z]/.test(String(v)) ? String(v) : String(v).replace(/^[a-z]/, (ch) => ch.toUpperCase()));
   const fact = (label: string, value: string | number | null) => (value ? `<div><dt>${label}</dt><dd>${escapeHtml(cap(value))}</dd></div>` : '');
-  const qs = brandQuestions(b, d.record);
+  const qs = brandQuestions(b, d.record, d.recalls);
   const body = `
       <section class="ww-brand-block ww-brand-short">
         <h2>Is ${escapeHtml(b.name)} a good brand?</h2>
@@ -172,7 +216,7 @@ export function renderBrandPage(env: LinkEnv, d: BrandPageData): string {
           <h2>What to know</h2>
           ${points(b.negatives, 'Our search found no FDA warning letter, recall or settled lawsuit against the brand. That is not proof there has never been one.')}
         </section>
-      </div>${recordBlock(b, d.record)}${picksBlock(env, b, d.picks)}${questionsBlock(qs.slice(1))}`;
+      </div>${recallsBlock(b, d.recalls)}${recordBlock(b, d.record)}${picksBlock(env, b, d.picks)}${questionsBlock(qs.slice(1))}`;
   const lead = [b.founded ? `Founded in ${b.founded}` : '', b.headquarters ?? '', b.owner ? `owned by ${b.owner}` : ''].filter(Boolean).join(' · ');
   const shell = pageShell({
     eyebrow: 'Brand profile',

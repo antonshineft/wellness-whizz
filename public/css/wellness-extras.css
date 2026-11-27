@@ -1693,3 +1693,16 @@ a.ww-dose-studies { color: inherit; text-decoration: underline; text-decoration-
 /* The Explore list can shrink to the screen; long names are cut with an ellipsis */
 .manuallinks > * { min-width: 0; max-width: 100%; }
 .manuallinks .linksnav { max-width: 100%; }
+/* Brand page: FDA recall records */
+.ww-recalls { list-style: none; margin: 18px 0 14px; padding: 0; display: grid; gap: 12px; }
+.ww-recall { padding: 18px 20px; border-radius: 18px; background: #f7faf6; border: 1px solid #e3ebe1; }
+.ww-recall p { margin: 6px 0 0; font-size: 16px; line-height: 25px; }
+.ww-recall-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 16px; }
+.ww-recall-what { font-weight: 500; }
+.ww-recall-what em { font-style: normal; font-weight: 400; color: #44484a; }
+.ww-recall-label { display: inline-block; min-width: 96px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #44484a; }
+.ww-recall-chip { flex: 0 0 auto; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #e3ebe1; color: #1d272d; }
+.ww-recall-chip.is-open { background: #ffe1c2; color: #7a3b00; }
+@media (max-width: 767px) { .ww-recall { padding: 14px 16px; } .ww-recall p { font-size: 15px; line-height: 23px; } .ww-recall-label { display: block; min-width: 0; } }
+.ww-recalls-older { margin: 0 0 14px; }
+.ww-recalls-older summary { cursor: pointer; font-size: 16px; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #87d581; }

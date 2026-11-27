@@ -21,6 +21,7 @@ import { CONTENT_LANGS, asLang, langFromPath, localizePath, localizeResponse, ty
 import { SHELF_MAX_BASE64, SHELF_MAX_IMAGES, SHELF_MEDIA_TYPES, analyzeShelf, countRecentScans, getShelfScan, resolveShelfSupplements, saveShelfScan, shelfEnabled, type ShelfImage, type ShelfMediaType } from './shelf';
 import { renderShelfPage, renderShelfResult } from './render/shelf';
 import { queueQuizDataArticle, quizDataCsv, quizDataSummary } from './quizdata';
+import { brandRecalls, listRecalls, syncRecalls } from './recalls';
 import { MAX_SINGLE_UPLOAD, connectPage, creatorInfo, disconnect, finishConnect, getAuth, listPosts, postStatus, postVideo, startConnect, tiktokEnabled } from './tiktok';
 import { renderTikTokAdmin } from './render/tiktok-admin';
 import { carouselJob, getCarousel, listCarousels, markCarouselFailed, markCarouselReady, queueCarousel, scheduleCarousel, setCarouselStatus } from './carousels';
@@ -485,7 +486,7 @@ pageRoute('/brand/:slug', async (c, lang) => {
   if (!brand) return c.notFound();
   const picks = await brandPicks(c.env.DB, brand, curatedOnly(c.env), studiedVisible(c), MAX_PICKS);
   track(c, { type: 'page_view', page: `/brand/${brand.slug}` });
-  const html = renderBrandPage(c.env, { brand, picks, record: doseRecord(picks), others: listBrands().filter((b) => b.slug !== brand.slug), origin: new URL(c.req.url).origin });
+  const html = renderBrandPage(c.env, { brand, picks, record: doseRecord(picks), recalls: await brandRecalls(c.env.DB, brand.slug), others: listBrands().filter((b) => b.slug !== brand.slug), origin: new URL(c.req.url).origin });
   return sendPage(c, html, lang, `/brand/${brand.slug}`, 'public, max-age=600');
 });
 
@@ -987,6 +988,17 @@ app.post('/api/admin/email/send', async (c) => {
   } catch (err) {
     return c.json({ ok: false, error: String(err instanceof Error ? err.message : err) }, 502);
   }
+});
+
+/** Owner-only: FDA recall records stored for the profiled brands (src/recalls.ts). ?run=1 reads the feed now. */
+app.get('/api/admin/recalls', async (c) => {
+  const denied = authorized(c);
+  if (denied) return denied;
+  c.header('cache-control', 'no-store');
+  await ensureDatabase(c.env.DB);
+  const names = new Map(listBrands().map((b) => [b.slug, b.name]));
+  const sync = c.req.query('run') === '1' ? await syncRecalls(c.env, names) : null;
+  return c.json({ sync, records: await listRecalls(c.env.DB) });
 });
 
 /** Owner-only: the subscriber list as CSV (default) or JSON (?format=json). */
@@ -2713,6 +2725,10 @@ export default {
     if (event.cron === '0 * * * *' && new Date(event.scheduledTime).getUTCDay() === 0 && new Date(event.scheduledTime).getUTCHours() === 4) {
       // Sunday 04:00 UTC: queue the week's run, so it is finished long before Monday's email.
       ctx.waitUntil(ensureDatabase(env.DB).then(() => startChecks(env)).then(() => console.log('product check queued')).catch((err) => console.error(`product check start failed: ${String(err)}`)));
+    }
+    if (event.cron === '0 * * * *' && new Date(event.scheduledTime).getUTCDay() === 2 && new Date(event.scheduledTime).getUTCHours() === 6) {
+      // Tuesday 06:00 UTC: read the FDA's recall feed for the profiled brands; a new, recent record is queued for X.
+      ctx.waitUntil(ensureDatabase(env.DB).then(() => syncRecalls(env, new Map(listBrands().map((b) => [b.slug, b.name])))).then((r) => console.log(`recalls: ${r.stored} new, ${r.queued.length} queued`)).catch((err) => console.error(`recall sync failed: ${String(err)}`)));
     }
     if (event.cron === '0 * * * *') {
       // Hourly: build the X queue from the site's own content and send what is due.
