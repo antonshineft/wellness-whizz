@@ -1303,6 +1303,35 @@ app.all('/api/admin/reddit/pains', async (c) => {
     const out = await claudeJson<{ themes: { theme: string; what_people_say: string; labels: string[] }[] }>(c.env, system, user, schema, { tier: 'fast', effort: 'medium', maxTokens: 16000, timeoutMs: 180_000 });
     return c.json(out);
   }
+  if (step === 'classify') {
+    // One pass with fixed lists: every title gets its own row back (numbered), so nothing can drift out of line.
+    const limit = Math.min(200, Math.max(10, Number(c.req.query('limit') ?? '120') || 120));
+    const offset = Math.max(0, Number(c.req.query('offset') ?? '0') || 0);
+    const rows = (
+      await c.env.DB
+        .prepare(`SELECT post_id, MIN(title) AS title, MIN(subreddit) AS subreddit, MIN(keyword) AS keyword FROM reddit_mentions WHERE received_at > datetime('now', ?) AND title != '' GROUP BY post_id ORDER BY post_id LIMIT ? OFFSET ?`)
+        .bind(since, limit, offset)
+        .all<{ post_id: string; title: string; subreddit: string; keyword: string }>()
+    ).results ?? [];
+    if (!rows.length) return c.json({ offset, count: 0, items: [] });
+    const NEEDS = ['which product, brand or form to buy', 'does it actually work or is it worth it', 'side effect or bad reaction', 'how much, when or how to take it', 'is it safe with my medicine, condition or pregnancy', 'do i have a deficiency or what do my lab results mean', 'product quality or trust (fake, contaminated, wasted money)', 'what should i take for my problem', 'none of these'];
+    const GOALS = ['sleep', 'energy, fatigue or brain fog', 'stress, anxiety or mood', 'gut and digestion', 'hair, skin or nails', 'weight or appetite', 'muscle, fitness or performance', 'joints or pain', 'hormones, cycle, fertility or menopause', 'immunity or getting sick', 'heart, blood pressure or blood sugar', 'general health or longevity', 'other or unclear'];
+    const schema = {
+      type: 'object', additionalProperties: false, required: ['items'],
+      properties: { items: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['i', 'about', 'need', 'goal', 'supplement'], properties: {
+        i: { type: 'integer' },
+        about: { type: 'string', enum: ['person asking or struggling, supplements involved', 'person asking or struggling, no supplement involved', 'not a personal problem'] },
+        need: { type: 'string', enum: NEEDS },
+        goal: { type: 'string', enum: GOALS },
+        supplement: { type: 'string', description: 'The supplement, vitamin or mineral named in the title, lower case, or ""' },
+      } } } },
+    };
+    const system = 'You tag Reddit thread titles for market research by a consumer site about dietary supplements (vitamins, minerals, herbs, protein, probiotics and similar). Return one row for every title, with its number. "about": is a real person asking a question or describing a struggle, and does it involve a dietary supplement (named or clearly implied)? Adverts, news, memes, pets, product launches and off-topic posts are "not a personal problem". "need": what the person wants to know about supplements. "goal": the health area. Judge only from the title; when unsure choose the cautious option.';
+    const user = rows.map((r, i) => `${i}. [r/${r.subreddit}] ${r.title.slice(0, 220)}`).join('\n');
+    const out = await claudeJson<{ items: { i: number; about: string; need: string; goal: string; supplement: string }[] }>(c.env, system, user, schema, { tier: 'screen', effort: 'low', maxTokens: 12000, timeoutMs: 150_000 });
+    const items = out.items.filter((x) => rows[x.i]).map((x) => ({ about: x.about, need: x.need, goal: x.goal, supplement: x.supplement.toLowerCase().trim(), sub: rows[x.i].subreddit, keyword: rows[x.i].keyword, title: rows[x.i].title.slice(0, 160) }));
+    return c.json({ offset, count: rows.length, returned: items.length, items });
+  }
   if (step === 'assign' && c.req.method === 'POST') {
     // Sort a batch of labels into themes that already exist: returns one theme number per label, in order.
     const body = (await c.req.json().catch(() => ({}))) as { themes?: string[]; labels?: string[] };
