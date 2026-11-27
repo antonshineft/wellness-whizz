@@ -1303,7 +1303,18 @@ app.all('/api/admin/reddit/pains', async (c) => {
     const out = await claudeJson<{ themes: { theme: string; what_people_say: string; labels: string[] }[] }>(c.env, system, user, schema, { tier: 'fast', effort: 'medium', maxTokens: 16000, timeoutMs: 180_000 });
     return c.json(out);
   }
-  return c.json({ error: 'use ?stats=1, ?step=extract or POST ?step=themes' }, 400);
+  if (step === 'assign' && c.req.method === 'POST') {
+    // Sort a batch of labels into themes that already exist: returns one theme number per label, in order.
+    const body = (await c.req.json().catch(() => ({}))) as { themes?: string[]; labels?: string[] };
+    const themes = (body.themes ?? []).slice(0, 24);
+    const labels = (body.labels ?? []).slice(0, 320);
+    if (!themes.length || !labels.length) return c.json({ error: 'themes and labels required' }, 400);
+    const schema = { type: 'object', additionalProperties: false, required: ['assign'], properties: { assign: { type: 'array', items: { type: 'integer' }, description: 'For each label in order, the number of its theme' } } };
+    const system = `You sort short labels of problems people describe on Reddit into fixed themes for a consumer supplement information site. Answer with one theme number per label, in the same order and the same count as the labels. Themes:\n${themes.map((t, i) => `${i}. ${t}`).join('\n')}`;
+    const out = await claudeJson<{ assign: number[] }>(c.env, system, labels.map((l, i) => `${i}. ${l}`).join('\n'), schema, { tier: 'screen', effort: 'low', maxTokens: 6000, timeoutMs: 120_000 });
+    return c.json({ assign: out.assign, expected: labels.length });
+  }
+  return c.json({ error: 'use ?stats=1, ?step=extract, POST ?step=themes or POST ?step=assign' }, 400);
 });
 
 /**
